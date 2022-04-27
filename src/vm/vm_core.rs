@@ -1,20 +1,37 @@
 use num_bigint::BigUint;
 use std::collections::HashMap;
-mod maybe_relocatable;
+mod relocatable;
 mod memory_dict;
+mod validated_memory_dict;
+mod trace_entry;
+mod builtin_runner;
+
+use::maybe_relocatable::MaybeRelocatable;
+use::memory_dict::MemoryDict;
+use::validated_memory_dict::ValidatedMemoryDict;
+use::relocatable::MaybeRelocatable;
+use::trace_entry::TraceEntry;
+use::builtin_runner::BuitinRunner;
+
+struct Operands {
+    dst: MaybeRelocatable,
+    res: Option<MaybeRelocatable>,
+    op0: MaybeRelocatable,
+    op1: MaybeRelocatable
+}
 
 struct RunContext {
     memory: MemoryDict,
     pc: MaybeRelocatable,
     ap: MaybeRelocatable,
     fp: MaybeRelocatable,
-    prime: BigUint,
+    prime: BigUint
 }
 
-struct VirtualMachine {
+pub struct VirtualMachine {
     run_context: RunContext,
     prime: BigUint,
-    builtin_runners: Option<HashMap<..., ...>>,
+    builtin_runners: Option<HashMap<String, BuiltinRunner>>,
     exec_scopes: Vec<HashMap<..., ...>>,
     enter_scope: ,
     hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
@@ -31,5 +48,5 @@ struct VirtualMachine {
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigUint,
-    skip_instruction_execution: bool,
+    skip_instruction_execution: bool
 }
