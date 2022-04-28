@@ -1,5 +1,3 @@
-use num_bigint::BigUint;
-use std::collections::HashMap;
 mod relocatable;
 mod memory_dict;
 mod validated_memory_dict;
@@ -14,6 +12,8 @@ use::relocatable::MaybeRelocatable;
 use::trace_entry::TraceEntry;
 use::builtin_runner::BuitinRunner;
 use::instruction::Instruction;
+use num_bigint::BigUint;
+use std::collections::HashMap;
 
 struct Operands {
     dst: MaybeRelocatable,
