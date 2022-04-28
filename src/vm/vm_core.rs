@@ -97,7 +97,7 @@ impl RunContext {
     }
 
     fn compute_op1_addr(&self, instruction: Instruction, op0: Option<MaybeRelocatable>) -> Result<BigUint, VirtualMachineError> {
-        let base_addr : Option<MaybeRelocatable>
+        let base_addr : Option<MaybeRelocatable>;
         match instruction.op1_addr {
             Instruction.Op1Addr.FP => base_addr = Some(self.fp),
             Instruction.Op1Addr.AP => base_addr = Some(self.ap),
@@ -106,6 +106,12 @@ impl RunContext {
                     1 => base_addr = Some(self.pc),
                     _ => Err(VirtualMachineError::ImmShouldBe1Error),
                 },
+            Instruction.Op1Addr.OP0 => {
+                match op0 {
+                    Some(addr) => base_addr = Some(addr)
+                    None => Err(VirtualMachineError::UnknownOp0Error)
+                },
+            },
             _ => None,
         };
         if let Some(addr) = base_addr {
