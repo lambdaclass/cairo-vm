@@ -5,6 +5,7 @@ mod trace_entry;
 mod builtin_runner;
 mod instruction;
 
+//Import div_mod 
 use::maybe_relocatable::MaybeRelocatable;
 use::memory_dict::MemoryDict;
 use::validated_memory_dict::ValidatedMemoryDict;
@@ -38,7 +39,7 @@ pub struct VirtualMachine {
     enter_scope: ,
     hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
     hint_locals: HashMap<..., ...>,
-    hint_pc_and_index: HashMap<i32, (MaybeRelocatable, i32)>,
+    hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     static_locals: Option<HashMap<..., ...>>,
     intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
     debug_file_contents: HashMap<String, String>,
@@ -46,7 +47,7 @@ pub struct VirtualMachine {
     program: ProgramBase,
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    auto_deduction: HashMap<i32, Vec<(Rule, ())>>,
+    auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigUint,
@@ -216,6 +217,88 @@ impl VirtualMachine {
             },
         };
     }
+
+    ///Returns a tuple (deduced_op0, deduced_res).
+    ///Deduces the value of op0 if possible (based on dst and op1). Otherwise, returns None.
+    ///If res was already deduced, returns its deduced value as well.
+    fn deduce_op0(&self, instruction: Instruction, dst: Option<MaybeRelocatable>, op1: Option<MaybeRelocatable>) 
+        -> (Option<MaybeRelocatable>, Option<MaybeRelocatable>) {
+            match instruction.opcode {
+                Instruction.Opcode::CALL => return (Some(self.run_context.pc + size(instruction)), None),
+                Instruction.Opcode::ASSERT_EQ => {
+                    match instruction.res {
+                        Instruction.Res::ADD => {
+                            if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
+                                return (Some((dst_addr - op1_addr) % self.prime), Some(dst_addr));
+                            }                            
+                        },
+                        Instruction.Res::MUL => { 
+                            if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
+                                if let  (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op1)) = (dst_addr, op1_addr) {
+                                    if num_op1 != 0 {
+                                        return (Some(div_mod(num_dst, num_op1, self.prime)), Some(dst));
+                                    }
+                                }
+                            }
+                        },
+                        _ => (),
+                    };
+                },
+                _ => (),
+            };
+            return (None, None);
+        }
+
+        /// Returns a tuple (deduced_op1, deduced_res).
+        ///Deduces the value of op1 if possible (based on dst and op0). Otherwise, returns None.
+        ///If res was already deduced, returns its deduced value as well.
+        fn deduce_op1(&self, instruction: Instruction, dst: Option<MaybeRelocatable>, op0: Option<MaybeRelocatable>) 
+            -> (Option<MaybeRelocatable>, Option<MaybeRelocatable>) {
+            match instruction.opcode {
+                Instruction.Opcode::ASSERT_EQ => {
+                    match instruction.res {
+                        Instruction.Res::OP1 => {
+                            if let Some(dst_addr) = dst {
+                                return (dst, dst);
+                            }
+                        },
+                        Instruction.Res::ADD => {
+                            if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
+                                return (Some((dst_addr - op0_addr) % self.prime), dst);
+                            }
+                        },
+                        Instruction.Res::MUL => {
+                            if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
+                                if let  (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) = (dst_addr, op0_addr) {
+                                    if num_op0 != 0 {
+                                        return (Some(div_mod(num_dst, num_op0, self.prime)), Some(dst));
+                                    }
+                                }
+                            }
+                        },
+                        _ => (),
+                    };
+                },
+                _ => (),
+            };
+            return (None, None);
+        }
+
+        ///Computes the value of res if possible
+        fn compute_res(&self, instruction: Instruction, op0: MaybeRelocatable, op1: MaybeRelocatable) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
+            match instruction.res {
+                Instruction.Res::OP1 => Ok(Some(op1)),
+                Instruction.Res::ADD => Ok(Some((op0 + op1) % self.prime)),
+                Instruction.Res::MUL => {
+                    if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1) {
+                        Ok(Some((num_op0 * num_op1) % self.prime));
+                    }
+                    Err(VirtualMachineError::PureValueError("*", op0, op1));
+                },
+                Instruction.Res::UNCONSTRAINED => Ok(None),
+                _ => Err(VirtualMachineError::InvalidResError),
+            };
+        }       
 }
 #[derive(Debug, Clone)]
 enum VirtualMachineError{
@@ -231,7 +314,8 @@ enum VirtualMachineError{
     UnconstrainedResAddError,
     UnconstrainedResJumpError,
     UnconstrainedResJumpRelError,
-    PureValueError(str, MaybeRelocatable)
+    PureValueError(str, ())
+    InvalidResError
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -249,6 +333,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnconstrainedResAddError => write!(f, "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")
             VirtualMachineError::UnconstrainedJumpAddError => write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")
             VirtualMachineError::UnconstrainedResJumpRelError => write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL")
+            VirtualMachineError::InvalidResError => write!(f, "Invalid res value")
             //TODO: add PureValueError
         };
     }
