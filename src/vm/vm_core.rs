@@ -5,7 +5,6 @@ mod trace_entry;
 mod builtin_runner;
 mod instruction;
 
-//Import div_mod 
 use::maybe_relocatable::MaybeRelocatable;
 use::memory_dict::MemoryDict;
 use::validated_memory_dict::ValidatedMemoryDict;
@@ -236,7 +235,7 @@ impl VirtualMachine {
                             if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
                                 if let  (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op1)) = (dst_addr, op1_addr) {
                                     if num_op1 != 0 {
-                                        return (Some(div_mod(num_dst, num_op1, self.prime)), Some(dst));
+                                        return (Some((num_dst / num_op1) % self.prime)), Some(dst));
                                     }
                                 }
                             }
@@ -298,7 +297,78 @@ impl VirtualMachine {
                 Instruction.Res::UNCONSTRAINED => Ok(None),
                 _ => Err(VirtualMachineError::InvalidResError),
             };
-        }       
+        }
+
+        fn deduce_dst(&self, instruction: Instruction, res: Option<MaybeRelocatable>) -> Option<MaybeRelocatable> {
+            match instruction.opcode {
+                Instruction.Opcode::ASSERT_EQ => {
+                    if let Some(res_addr) = res {
+                        return res;
+                    }
+                },
+                Instruction.Opcode::CALL => return Some(self.run_context.fp),
+                _ => ();
+            };
+            return None
+        }
+
+        
+        ///Computes the values of the operands. Deduces dst if needed.
+        ///Returns: operands - an Operands instance with the values of the operands.
+        ///mem_addresses - the memory addresses for the 3 memory units used (dst, op0, op1)
+        fn compute_operands(&self, instruction: Instruction) -> Result<(Operands, Vec<BigUint>), VirtualMachineError> {
+            dst_addr = self.run_context.compute_dst_addr(instruction)?;
+            op0_addr = self.run_context.compute_op0_addr(instruction)?;
+            op1_addr = self.run_context.compute_op1_addr(instruction)?;
+            dst: Option<MaybeRelocatable> = self.validated_memory.get(dst_addr);
+            op0: Option<MaybeRelocatable> = self.validated_memory.get(op0_addr);
+            op1: Option<MaybeRelocatable> = self.validated_memory.get(op1_addr);
+            res: Option<MaybeRelocatable> = None;
+
+            if let None = op0 {
+                op0 = self.deduce_memory_cell(op0_addr);
+            }
+            if let None = op1 {
+                op1 = self.deduce_memory_cell(op1_addr);
+            }
+
+            if let None = op0 {
+                (op0, deduced_res) = deduce_op0(instruction, dst, op1);
+                if let None = res {
+                    res = deduced_res;
+                }
+            }
+            if let None = op1 {
+                (op1, deduced_res) = deduce_op1(instruction, dst, op0);
+                if let None = res {
+                    res = deduced_res;
+                }
+            }
+
+            if let None = op0 {
+                op0 = self.validated_memory[op0_addr]?;
+            }
+            if let None = op1 {
+                op1 = self.validated_memory[op1_addr]?;
+            }
+
+            if let None = res {
+                res = self.compute_res(instruction, op0, op1)?;
+            }
+
+            if let None = dst {
+                dst = self.deduce_dst(instruction, op0, op1);
+            }
+            if let None = dst {
+                self.validated_memory[dst_addr]?;
+            }
+
+            self.validated_memory[dst_addr] = dst
+            self.validated_memory[op0_addr] = op0
+            self.validated_memory[op1_addr] = op1
+
+            return (Operands(dst, op0, op1), [dst_addr, op0_addr, op1_addr]);
+        }
 }
 #[derive(Debug, Clone)]
 enum VirtualMachineError{
