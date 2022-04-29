@@ -1,8 +1,10 @@
+use num_bigint::BigUint;
+
 pub struct Instruction {
     off0: i16,
     off1: i16,
     off2: i16,
-    imm: Option<i64>,
+    imm: Option<BigUint>,
     dst_register: Register,
     op0_register: Register,
     op1_addr: Op1Addr,
