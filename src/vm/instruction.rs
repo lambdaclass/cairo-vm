@@ -1,15 +1,8 @@
-use num_bigint::BigUint;
-
-num Register {
-    AP,
-    FP
-}
-
 pub struct Instruction {
-    off0: BigUint,
-    off1: BigUint,
-    off2: BigUint,
-    imm: Option<BigUint>,
+    off0: i16,
+    off1: i16,
+    off2: i16,
+    imm: Option<i64>,
     dst_register: Register,
     op0_register: Register,
     op1_addr: Op1Addr,
@@ -19,6 +12,11 @@ pub struct Instruction {
     fp_update: FpUpdate,
     opcode: Opcode
 
+}
+
+pub enum Register {
+    AP,
+    FP
 }
 
 pub enum Op1Addr {
