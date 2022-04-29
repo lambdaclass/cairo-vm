@@ -2,7 +2,9 @@
 
 Rust implementation of the Cairo VM
 
-# How does the vm manage memory?
+# How does the original Cairo VM work?
+
+## How does the vm manage memory?
 
 
 Cairo's memory is read-only (can only be written once), and requires that memory adresses accessed by the program must be continuous. If gaps are present they will be filled with arbitrary values.
