@@ -1,4 +1,4 @@
-# Giza
+# Cleopatra
 
 Rust implementation of the Cairo VM
 
