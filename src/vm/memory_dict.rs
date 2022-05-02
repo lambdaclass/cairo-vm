@@ -1,9 +1,12 @@
-mod relocatable;
+use std::collections::HashMap;
+use crate::vm::relocatable::MaybeRelocatable;
 
-use num_bigint::BigUint;
-use relocatable::RelocatableValue
-struct MemoryDict {
-    data: HashMap,
-    frozen: bool,
-    relocation_rules: HashMap<BigUint, RelocatableValue>
+pub struct Memory {
+    data:HashMap<MaybeRelocatable, MaybeRelocatable>,
+}
+
+impl Memory {
+    pub fn get(&self, &addr: &MaybeRelocatable) -> Option<MaybeRelocatable> {
+        Some(self.data[addr])
+    }
 }

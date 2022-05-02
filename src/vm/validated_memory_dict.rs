@@ -1,14 +1,13 @@
-mod memory_dict;
-mod relocatable;
-
 use num_bigint::BigUint;
-use memory_dict::MemoryDict;
-use relocatable::RelocatableValue
+use crate::vm::memory_dict::Memory;
+use crate::vm::relocatable::Relocatable;
+use std::collections::HashMap;
+use crate::vm::relocatable::MaybeRelocatable;
 
 pub struct ValidatedMemoryDict {
-    memory : MemoryDict,
+    memory : Memory,
     validation_rules : HashMap<BigUint, Vec<(ValidationRule, ())>>,
-    validated_addresses: Vec<RelocatableValue>
+    validated_addresses: Vec<Relocatable>
 }
 
-pub struct ValidationRule(fn(MemoryDict, MaybeRelocatable, ()) -> RelocatableValue)
+pub struct ValidationRule(fn(Memory, MaybeRelocatable, ()) -> Relocatable);

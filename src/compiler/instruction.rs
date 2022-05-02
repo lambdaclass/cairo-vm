@@ -1,24 +1,23 @@
-use num_bigint::BigUint;
+use num_bigint::BigInt;
 
-num Register {
+pub enum Register {
     AP,
     FP
 }
 
 pub struct Instruction {
-    off0: BigUint,
-    off1: BigUint,
-    off2: BigUint,
-    imm: Option<BigUint>,
-    dst_register: Register,
-    op0_register: Register,
-    op1_addr: Op1Addr,
-    res: Res,
-    pc_update: PcUpdate,
-    ap_update: ApUpdate
-    fp_update: FpUpdate,
-    opcode: Opcode
-
+    pub off0: BigInt,
+    pub off1: BigInt,
+    pub off2: BigInt,
+    pub imm: Option<BigInt>,
+    pub dst_register: Register,
+    pub op0_register: Register,
+    pub op1_addr: Op1Addr,
+    pub res: Res,
+    pub pc_update: PcUpdate,
+    pub ap_update: ApUpdate,
+    pub fp_update: FpUpdate,
+    pub opcode: Opcode
 }
 
 pub enum Op1Addr {
@@ -62,14 +61,11 @@ pub enum Opcode {
     RET
 }
 
-trait Size { 
-    fn size(&self) -> i32;
-}
-impl size for Instruction {
-    fn size(&self) -> i32 {
+impl Instruction {
+    pub fn size(&self) -> i64 {
         match self.imm {
-            Some(imm) => 2
-            None => 1
-        }
+            Some(imm) => return 2,
+            None => return 1,
+        };
     }
 }
