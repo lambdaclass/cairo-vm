@@ -1,9 +1,7 @@
-mod relocatable;
-
-std::collections::HashMap;
+use std::collections::HashMap;
 
 struct Memory {
-    data:HashMap<relocatable::MaybeRelocatable, relocatable::MaybeRelocatable>;
+    data:HashMap<relocatable::MaybeRelocatable, relocatable::MaybeRelocatable>
 }
 
 impl Memory {
