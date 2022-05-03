@@ -247,32 +247,39 @@ Instruction Structure:
 * `imm` : Optional(int) (Immediate)
 * `dst_register`: Register (Where Register contains AP and FP)
 * `op0_register`: Register (Where Register contains AP and FP)
+
 * `op1_addr` : Op1Addr(Enum) These are used by `compute_op1_addr`
     * IMM -> means op1_addr should be run_context.pc
     * AP -> means op1_addr should be run_context.ap
     * FP -> means op1_addr should be run_context.fp
     * OP0 -> means op1_addr should be op0 (Optionally received)
+    
 * `res`: Res(Enum) These are used by `compute_res`
     * OP1 -> means res should be op1
     * ADD -> means res should be op0 + op1 mod prime
     * MUL -> means res should be op0 + op1 mod prime
     * UNCONSTRAINED -> res = None (Handled elsewhere), Res is UNCONSTRAINED when a Jump to label occurs (Res.JNZ), This is checked when the instruction is decoded
 <a id="updatereg"> 
+   
 * `pc_update`: PcUpdate(Enum) These are used by `update_register`
     * REGULAR -> means run_context.pc should be += instruction.size
     * JUMP -> means run_context.pc should be = operands.res
     * JUMP_REL -> means run_context.pc should be += operands.res
     * JNZ -> means run_context.pc should be += instruction_size if operands.dst == 0, or += operands.op1 (This would be a Jump to label)
+   
 * `ap_update`: ApUpdate(Enum) These are used by `update_register`
     * REGULAR -> no update
     * ADD -> means run_context.ap should be += operand.res
     * ADD1 -> means run_context.ap should be +=1
     * ADD2 -> means run_context.ap should be +=2
+   
 * `fp_update`: FpUpdate(Enum) These are used by `update_register`
     * REGULAR -> no update
     * AP_PLUS2 -> means run_context.fp should be .ap + 2
     * DST -> means run_context.fp should be = operands.dst
+   
 </a>
+
 * `opcode`: Opcode(Enum)
     * NOP
     * ASSERT_EQ
