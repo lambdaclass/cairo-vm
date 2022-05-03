@@ -91,6 +91,7 @@ impl MaybeRelocatable {
         };
     }
     ///Adds a number to the address, then performs mod prime if prime is given
+    /// Only works for non-relocatable values (Int)
     pub fn add_num_addr(
         &self,
         other: BigInt,
@@ -109,6 +110,7 @@ impl MaybeRelocatable {
     }
 
     ///Adds a number to the address, then performs mod prime if prime is given
+    /// Cant add two relocatable values
     pub fn add_addr(
         &self,
         other: MaybeRelocatable,
@@ -125,9 +127,24 @@ impl MaybeRelocatable {
             (&MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
                 return Err(VirtualMachineError::RelocatableAddError)
             }
+            (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
+                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: rel.segment_index.clone(),
+                    offset: rel.offset.clone() + num,
+                }));
+            }
+            (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
+                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: rel.segment_index,
+                    offset: rel.offset + num_ref.clone(),
+                }));
+            }
             _ => return Err(VirtualMachineError::NotImplementedError),
         };
     }
+    ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
+    /// Only values of the same type may be substracted.
+    /// Relocatable values can only be substracted if they belong to the same segment.
     pub fn sub_addr(
         &self,
         other: &MaybeRelocatable,
