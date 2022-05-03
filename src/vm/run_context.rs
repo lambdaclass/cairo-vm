@@ -27,7 +27,7 @@ impl RunContext {
             } else {
                 return Err(VirtualMachineError::InvalidInstructionEncodingError);
             }
-            let imm_addr = self.pc.imm_address()? % self.prime.clone();
+            let imm_addr = self.pc.add_num_addr(BigInt::from_i32(1).unwrap(),Some(self.prime.clone()));
             let optional_imm = self.memory.get(&imm_addr);
             return Ok((encoding_ref, optional_imm));
         };

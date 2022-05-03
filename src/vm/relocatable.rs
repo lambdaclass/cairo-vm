@@ -80,22 +80,8 @@ impl Sub<MaybeRelocatable> for MaybeRelocatable {
 }
 
 impl MaybeRelocatable {
-    /// Returns the immediate adress (Current Address + 1)
-    pub fn imm_address(&self) -> Result<MaybeRelocatable, VirtualMachineError> {
-        if let &MaybeRelocatable::Int(ref value) = self {
-            let mut num = Clone::clone(value);
-            num = BigInt::from_i32(1).unwrap() + num;
-            return Ok(MaybeRelocatable::Int(num));
-        } else {
-            return Err(VirtualMachineError::NotImplementedError);
-        };
-    }
     ///Adds a number to the address, then performs mod prime if prime is given
-    pub fn add_num_addr(
-        &self,
-        other: BigInt,
-        prime: Option<BigInt>,
-    ) -> MaybeRelocatable {
+    pub fn add_num_addr(&self, other: BigInt, prime: Option<BigInt>) -> MaybeRelocatable {
         match self {
             &MaybeRelocatable::Int(ref value) => {
                 let mut num = Clone::clone(value);
@@ -105,16 +91,16 @@ impl MaybeRelocatable {
                 }
                 return MaybeRelocatable::Int(num);
             }
-            &MaybeRelocatable::RelocatableValue(ref rel)=> {
+            &MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut new_offset = rel.offset.clone() + other;
                 if let Some(num_prime) = prime {
-                    new_offset = new_offset% num_prime;
+                    new_offset = new_offset % num_prime;
                 }
                 return MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index : rel.segment_index.clone(),
-                    offset : new_offset
-                    });
-                },
+                    segment_index: rel.segment_index.clone(),
+                    offset: new_offset,
+                });
+            }
         };
     }
 
@@ -147,7 +133,7 @@ impl MaybeRelocatable {
                     segment_index: rel.segment_index,
                     offset: rel.offset + num_ref.clone(),
                 }));
-            },
+            }
         };
     }
     ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
