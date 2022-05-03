@@ -43,7 +43,7 @@ impl RunContext {
         };
         match base_addr {
             Some(addr) => {
-                return Ok((addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone())))?)
+                return Ok(addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone())))
             }
             _ => return Err(VirtualMachineError::InvalidDstRegError),
         };
@@ -58,7 +58,7 @@ impl RunContext {
             Register::FP => Some(&self.fp),
         };
         if let Some(addr) = base_addr {
-            return Ok((addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())))?);
+            return Ok(addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
         } else {
             return Err(VirtualMachineError::InvalidOp0RegError);
         }
@@ -81,13 +81,15 @@ impl RunContext {
             }
             Op1Addr::OP0 => {
                 match op0 {
-                    Some(addr) => return Ok((addr + instruction.off1.clone())? % self.prime.clone()),
+                    Some(addr) => {
+                        return Ok((addr + instruction.off1.clone())? % self.prime.clone())
+                    }
                     None => return Err(VirtualMachineError::UnknownOp0Error),
                 };
             }
         }
         if let Some(addr) = base_addr {
-            return Ok((addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())))?);
+            return Ok(addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
         } else {
             return Err(VirtualMachineError::InvalidOp1RegError);
         }

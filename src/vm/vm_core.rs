@@ -51,7 +51,7 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_fp = match instruction.fp_update {
-            FpUpdate::AP_PLUS2 => Some((self.run_context.ap.add_num_addr(bigint!(2), None))?),
+            FpUpdate::AP_PLUS2 => Some(self.run_context.ap.add_num_addr(bigint!(2), None)),
             FpUpdate::DST => Some(operands.dst.clone()),
             FpUpdate::REGULAR => return Ok(()),
         };
@@ -78,8 +78,8 @@ impl VirtualMachine {
                 ),
                 None => return Err(VirtualMachineError::UnconstrainedResAddError),
             },
-            ApUpdate::ADD1 => Some((self.run_context.ap.add_num_addr(bigint!(1), None))?),
-            ApUpdate::ADD2 => Some((self.run_context.ap.add_num_addr(bigint!(2), None))?),
+            ApUpdate::ADD1 => Some(self.run_context.ap.add_num_addr(bigint!(1), None)),
+            ApUpdate::ADD2 => Some(self.run_context.ap.add_num_addr(bigint!(2), None)),
             ApUpdate::REGULAR => return Ok(()),
         };
         if let Some(ap) = new_ap {
@@ -96,10 +96,10 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
             PcUpdate::REGULAR => {
-                (self
+                self
                     .run_context
                     .pc
-                    .add_num_addr(bigint!(Instruction::size(&instruction)), None))?
+                    .add_num_addr(bigint!(Instruction::size(&instruction)), None)
             }
             PcUpdate::JUMP => match operands.res.clone() {
                 Some(res) => res,
@@ -108,7 +108,7 @@ impl VirtualMachine {
             PcUpdate::JUMP_REL => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => {
-                        (self.run_context.pc.add_num_addr(num_res, None))?
+                        self.run_context.pc.add_num_addr(num_res, None)
                     }
 
                     _ => return Err(VirtualMachineError::PureValueError),
@@ -117,10 +117,10 @@ impl VirtualMachine {
             },
             PcUpdate::JNZ => match VirtualMachine::is_zero(operands.res.clone())? {
                 true => {
-                    (self
+                    self
                         .run_context
                         .pc
-                        .add_num_addr(bigint!(Instruction::size(&instruction)), None))?
+                        .add_num_addr(bigint!(Instruction::size(&instruction)), None)
                 }
                 false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
             },
@@ -171,10 +171,10 @@ impl VirtualMachine {
             Opcode::CALL => {
                 return Ok((
                     Some(
-                        (self
+                        self
                             .run_context
                             .pc
-                            .add_num_addr(bigint!(Instruction::size(&instruction)), None))?,
+                            .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                     ),
                     None,
                 ))

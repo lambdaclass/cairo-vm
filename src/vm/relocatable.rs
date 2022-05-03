@@ -91,21 +91,30 @@ impl MaybeRelocatable {
         };
     }
     ///Adds a number to the address, then performs mod prime if prime is given
-    /// Only works for non-relocatable values (Int)
     pub fn add_num_addr(
         &self,
         other: BigInt,
         prime: Option<BigInt>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        if let &MaybeRelocatable::Int(ref value) = self {
-            let mut num = Clone::clone(value);
-            num = other + num;
-            if let Some(num_prime) = prime {
-                num = num % num_prime;
+    ) -> MaybeRelocatable {
+        match self {
+            &MaybeRelocatable::Int(ref value) => {
+                let mut num = Clone::clone(value);
+                num = other + num;
+                if let Some(num_prime) = prime {
+                    num = num % num_prime;
+                }
+                return MaybeRelocatable::Int(num);
             }
-            return Ok(MaybeRelocatable::Int(num));
-        } else {
-            return Err(VirtualMachineError::NotImplementedError);
+            &MaybeRelocatable::RelocatableValue(ref rel)=> {
+                let mut new_offset = rel.offset.clone() + other;
+                if let Some(num_prime) = prime {
+                    new_offset = new_offset% num_prime;
+                }
+                return MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index : rel.segment_index.clone(),
+                    offset : new_offset
+                    });
+                },
         };
     }
 
@@ -138,8 +147,7 @@ impl MaybeRelocatable {
                     segment_index: rel.segment_index,
                     offset: rel.offset + num_ref.clone(),
                 }));
-            }
-            _ => return Err(VirtualMachineError::NotImplementedError),
+            },
         };
     }
     ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
