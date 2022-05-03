@@ -6,7 +6,7 @@ Rust implementation of the Cairo VM
 
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
 
-* [CairoVm code](https://github.com/starkware-libs/cairo-lang/tree/master/src/starkware/cairo/lang/vm)
+* [Cairo VM code](https://github.com/starkware-libs/cairo-lang/tree/master/src/starkware/cairo/lang/vm)
 
 ## Complementary Reading
 
@@ -14,7 +14,7 @@ Rust implementation of the Cairo VM
 
 ## Flux Diagram
 
-Illustrates function calls and where each of them are defined for a simple cairo program execution
+We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
 
 ![diagram](cairo_vm_flowchart.png)
 
