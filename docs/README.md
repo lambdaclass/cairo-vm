@@ -6,7 +6,7 @@
 
 * [CairoVm code](https://github.com/starkware-libs/cairo-lang/tree/master/src/starkware/cairo/lang/vm)
 
-## Complimentary Reading
+## Complementary Reading
 
 * [Cairo Whitepaper](https://eprint.iacr.org/2021/1063)
 
