@@ -5,5 +5,5 @@ use crate::vm::relocatable::MaybeRelocatable;
 pub struct TraceEntry {
     pc: MaybeRelocatable,
     ap: MaybeRelocatable,
-    fp: MaybeRelocatable
+    fp: MaybeRelocatable,
 }

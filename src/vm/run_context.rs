@@ -1,10 +1,10 @@
+use crate::compiler::instruction::Instruction;
+use crate::compiler::instruction::Op1Addr;
+use crate::compiler::instruction::Register;
+use crate::vm::memory_dict::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
-use crate::compiler::instruction::Instruction;
-use crate::compiler::instruction::Register;
-use crate::compiler::instruction::Op1Addr;
-use crate::vm::memory_dict::Memory;
 use num_traits::cast::FromPrimitive;
 
 pub struct RunContext {
@@ -12,78 +12,84 @@ pub struct RunContext {
     pub pc: MaybeRelocatable,
     pub ap: MaybeRelocatable,
     pub fp: MaybeRelocatable,
-    pub prime: BigInt
+    pub prime: BigInt,
 }
 
 impl RunContext {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
-    fn get_instruction_encoding(&self) -> Result<(BigInt, Option<MaybeRelocatable>), VirtualMachineError> {
-        let instruction_encoding = self.memory[self.pc];
-        match instruction_encoding{
-            MaybeRelocatable::Int(encoding) => {
-                let imm_addr = (self.pc + BigInt::from_i64(1).unwrap())? % self.prime;
-                let optional_imm = self.memory.get(&imm_addr);
-                return Ok((encoding, optional_imm));
-            },
-            _ => return  Err(VirtualMachineError::InvalidInstructionEncodingError),
+    fn get_instruction_encoding(
+        &self,
+    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
+        let encoding_ref: &BigInt;
+        {
+            if let Some(&MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.pc) {
+                encoding_ref = encoding;
+            } else {
+                return Err(VirtualMachineError::InvalidInstructionEncodingError);
+            }
+            let imm_addr = self.pc.imm_address()? % self.prime.clone();
+            let optional_imm = self.memory.get(&imm_addr);
+            return Ok((encoding_ref, optional_imm));
         };
     }
 
-    fn compute_dst_addr(&self, instruction: Instruction) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn compute_dst_addr(
+        &self,
+        instruction: Instruction,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.dst_register {
-            Register::AP => Some(self.ap),
-            Register::FP => Some(self.fp),
-            _ => None,
+            Register::AP => Some(&self.ap),
+            Register::FP => Some(&self.fp),
         };
-        if let Some(addr) = base_addr {
-            return Ok((addr + instruction.off0)? % self.prime);
-        }
-        else{
-            return Err(VirtualMachineError::InvalidDstRegError);
-        }
+        match base_addr {
+            Some(addr) => {
+                return Ok((addr.add_num_addr(instruction.off0, Some(self.prime.clone())))?)
+            }
+            _ => return Err(VirtualMachineError::InvalidDstRegError),
+        };
     }
 
-    fn compute_op0_addr(&self, instruction: Instruction) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn compute_op0_addr(
+        &self,
+        instruction: Instruction,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op0_register {
-            Register::AP => Some(self.ap),
-            Register::FP => Some(self.fp),
-            _ => None,
+            Register::AP => Some(&self.ap),
+            Register::FP => Some(&self.fp),
         };
         if let Some(addr) = base_addr {
-            return Ok((addr + instruction.off1)? % self.prime);
-        }
-        else{
+            return Ok((addr.add_num_addr(instruction.off1, Some(self.prime.clone())))?);
+        } else {
             return Err(VirtualMachineError::InvalidOp0RegError);
         }
     }
 
-    fn compute_op1_addr(&self, instruction: Instruction, op0: Option<MaybeRelocatable>) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base_addr : Option<MaybeRelocatable>;
+    pub fn compute_op1_addr(
+        &self,
+        instruction: Instruction,
+        op0: Option<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        let base_addr: Option<&MaybeRelocatable>;
         match instruction.op1_addr {
-            Op1Addr::FP => base_addr = Some(self.fp),
-            Op1Addr::AP => base_addr = Some(self.ap),
+            Op1Addr::FP => base_addr = Some(&self.fp),
+            Op1Addr::AP => base_addr = Some(&self.ap),
             Op1Addr::IMM => {
-                let one = BigInt::from_i64(1);
-                match instruction.off2{
-                    one => base_addr = Some(self.pc),
-                    _ => return Err(VirtualMachineError::ImmShouldBe1Error),
-                };
-            },
+                if instruction.off2 == BigInt::from_i32(1).unwrap() {
+                    base_addr = Some(&self.pc);
+                }
+                return Err(VirtualMachineError::ImmShouldBe1Error);
+            }
             Op1Addr::OP0 => {
                 match op0 {
-                    Some(addr) => base_addr = Some(addr),
+                    Some(addr) => return Ok((addr + instruction.off1)? % self.prime.clone()),
                     None => return Err(VirtualMachineError::UnknownOp0Error),
                 };
-            },
-            _ => (),
+            }
         }
         if let Some(addr) = base_addr {
-            return Ok((addr + instruction.off1)? % self.prime);
-        }
-        else {
+            return Ok((addr.add_num_addr(instruction.off1, Some(self.prime.clone())))?);
+        } else {
             return Err(VirtualMachineError::InvalidOp1RegError);
         }
     }
-
 }
-

@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 
 pub enum Register {
     AP,
-    FP
+    FP,
 }
 
 pub struct Instruction {
@@ -17,54 +17,54 @@ pub struct Instruction {
     pub pc_update: PcUpdate,
     pub ap_update: ApUpdate,
     pub fp_update: FpUpdate,
-    pub opcode: Opcode
+    pub opcode: Opcode,
 }
 
 pub enum Op1Addr {
     IMM,
     AP,
     FP,
-    OP0
+    OP0,
 }
 
 pub enum Res {
     OP1,
     ADD,
     MUL,
-    UNCONSTRAINED
+    UNCONSTRAINED,
 }
 
 pub enum PcUpdate {
     REGULAR,
     JUMP,
     JUMP_REL,
-    JNZ
+    JNZ,
 }
 
 pub enum ApUpdate {
     REGULAR,
     ADD,
     ADD1,
-    ADD2
+    ADD2,
 }
 
 pub enum FpUpdate {
     REGULAR,
     AP_PLUS2,
-    DST
+    DST,
 }
 
 pub enum Opcode {
     NOP,
     ASSERT_EQ,
     CALL,
-    RET
+    RET,
 }
 
 impl Instruction {
-    pub fn size(&self) -> i64 {
+    pub fn size(&self) -> i32 {
         match self.imm {
-            Some(imm) => return 2,
+            Some(_) => return 2,
             None => return 1,
         };
     }
