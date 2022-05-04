@@ -1,6 +1,6 @@
-# Cleopatra
+# Cleopatra Cairo VM
 
-Rust implementation of the Cairo VM
+Cleaopatra is a Rust implementation of the Cairo VM
 
 ## Must Read
 
