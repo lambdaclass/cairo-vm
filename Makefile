@@ -11,5 +11,6 @@ else
   release :=--release
 endif
 
+.PHONY: build
 build:
 	cargo build $(release)
