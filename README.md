@@ -8,8 +8,6 @@ Rust implementation of the Cairo VM
 
 * [Cairo VM code](https://github.com/starkware-libs/cairo-lang/tree/master/src/starkware/cairo/lang/vm)
 
-## Complementary Reading
-
 * [Cairo Whitepaper](https://eprint.iacr.org/2021/1063)
 
 ## Flux Diagram
