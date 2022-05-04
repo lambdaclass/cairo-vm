@@ -165,3 +165,59 @@ impl MaybeRelocatable {
         };
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_bigint::BigInt;
+    use num_bigint::Sign;
+
+    #[test]
+    fn add_num_to_int_addr() {
+        let addr = MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
+        let added_addr = addr.add_num_addr(BigInt::from_i32(2).unwrap(), None);
+        if let MaybeRelocatable::Int(num) = added_addr {
+            assert_eq!(num, BigInt::from_i32(9).unwrap());
+        }
+    }
+
+    #[test]
+    fn add_num_to_relocatable_addr() {
+        let addr = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(7).unwrap(),
+            offset: BigInt::from_i32(65).unwrap(),
+        });
+        let added_addr = addr.add_num_addr(BigInt::from_i32(2).unwrap(), None);
+        if let MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index,
+            offset,
+        }) = added_addr
+        {
+            assert_eq!(offset, BigInt::from_i32(67).unwrap());
+            assert_eq!(segment_index, BigInt::from_i32(7).unwrap());
+        }
+    }
+
+    #[test]
+    fn add_num_to_int_addr_with_prime() {
+        let addr = MaybeRelocatable::Int(BigInt::new(
+            Sign::Plus,
+            vec![
+                43680, 0, 0, 0, 0, 0, 0, 2013265920, 4294967289, 4294967295, 4294967295,
+                4294967295, 4294967295, 4294967295, 4294967295, 1048575,
+            ],
+        ));
+        let added_addr = addr.add_num_addr(
+            BigInt::from_i32(1).unwrap(),
+            Some(BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            )),
+        );
+        if let MaybeRelocatable::Int(num) = added_addr {
+            assert_eq!(num, BigInt::from_i32(4).unwrap());
+        }
+    }
+}
