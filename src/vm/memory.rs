@@ -1,11 +1,16 @@
 use crate::vm::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 
+<<<<<<< HEAD
 pub struct Memory {
+=======
+struct Memory {
+>>>>>>> ca9186fcfae3890011d50fd238eda44c70ef70b9
     data: HashMap<MaybeRelocatable, MaybeRelocatable>,
 }
 
 impl Memory {
+<<<<<<< HEAD
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         return self.data.get(&addr);
     }
@@ -30,3 +35,9 @@ mod memory_tests {
     }
 }
 
+=======
+    fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
+        return self.data.get(addr);
+    }
+}
+>>>>>>> ca9186fcfae3890011d50fd238eda44c70ef70b9

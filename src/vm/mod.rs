@@ -1,3 +1,5 @@
+pub mod decoder;
+pub mod instruction;
 pub mod memory_dict;
 pub mod relocatable;
 pub mod run_context;
