@@ -54,16 +54,12 @@ impl RunContext {
     pub fn compute_op0_addr(
         &self,
         instruction: &Instruction,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    ) -> MaybeRelocatable {
         let base_addr = match instruction.op0_register {
-            Register::AP => Some(&self.ap),
-            Register::FP => Some(&self.fp),
+            Register::AP => &self.ap,
+            Register::FP => &self.fp,
         };
-        if let Some(addr) = base_addr {
-            return Ok(addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
-        } else {
-            return Err(VirtualMachineError::InvalidOp0RegError);
-        }
+        return base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone()));
     }
 
     pub fn compute_op1_addr(
