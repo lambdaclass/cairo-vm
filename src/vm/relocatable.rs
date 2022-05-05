@@ -34,6 +34,7 @@ impl Add<BigInt> for MaybeRelocatable {
         }
     }
 }
+
 impl Add<MaybeRelocatable> for MaybeRelocatable {
     type Output = Result<MaybeRelocatable, VirtualMachineError>;
     fn add(self, other: MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -312,6 +313,62 @@ mod tests {
         {
             assert_eq!(offset, BigInt::from_i32(17).unwrap());
             assert_eq!(segment_index, BigInt::from_i32(7).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn int_addr_rem() {
+        let addr = MaybeRelocatable::Int(BigInt::new(
+            Sign::Plus,
+            vec![
+                43680, 0, 0, 0, 0, 0, 0, 2013265920, 4294967289, 4294967295, 4294967295,
+                4294967295, 4294967295, 4294967295, 4294967295, 1048575,
+            ],
+        ));
+        let rem_addr = addr
+            % BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            );
+        if let MaybeRelocatable::Int(num) = rem_addr {
+            assert_eq!(num, BigInt::from_i32(3).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn relocatable_addr_rem() {
+        let addr = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(3).unwrap(),
+            offset: (BigInt::new(
+                Sign::Plus,
+                vec![
+                    43680, 0, 0, 0, 0, 0, 0, 2013265920, 4294967289, 4294967295, 4294967295,
+                    4294967295, 4294967295, 4294967295, 4294967295, 1048575,
+                ],
+            )),
+        });
+        let rem_addr = addr
+            % BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            );
+        if let MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index,
+            offset,
+        }) = rem_addr
+        {
+            assert_eq!(offset, BigInt::from_i32(3).unwrap());
+            assert_eq!(segment_index, BigInt::from_i32(3).unwrap());
         } else {
             assert!(false);
         }
