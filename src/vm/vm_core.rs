@@ -1,4 +1,4 @@
-use crate::compiler::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
+use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
