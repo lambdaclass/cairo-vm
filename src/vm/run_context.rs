@@ -1,7 +1,7 @@
-use crate::compiler::instruction::Instruction;
-use crate::compiler::instruction::Op1Addr;
-use crate::compiler::instruction::Register;
-use crate::vm::memory_dict::Memory;
+use crate::vm::instruction::Instruction;
+use crate::vm::instruction::Op1Addr;
+use crate::vm::instruction::Register;
+use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
