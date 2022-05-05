@@ -35,26 +35,15 @@ impl RunContext {
         };
     }
 
-    pub fn compute_dst_addr(
-        &self,
-        instruction: &Instruction,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn compute_dst_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
         let base_addr = match instruction.dst_register {
-            Register::AP => Some(&self.ap),
-            Register::FP => Some(&self.fp),
+            Register::AP => &self.ap,
+            Register::FP => &self.fp,
         };
-        match base_addr {
-            Some(addr) => {
-                return Ok(addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone())))
-            }
-            _ => return Err(VirtualMachineError::InvalidDstRegError),
-        };
+        return base_addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone()));
     }
 
-    pub fn compute_op0_addr(
-        &self,
-        instruction: &Instruction,
-    ) -> MaybeRelocatable {
+    pub fn compute_op0_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
         let base_addr = match instruction.op0_register {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
@@ -68,20 +57,16 @@ impl RunContext {
         op0: Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op1_addr {
-            Op1Addr::FP =>  &self.fp,
-            Op1Addr::AP =>  &self.ap,
-            Op1Addr::IMM => {
-                match instruction.off2 == BigInt::from_i32(1).unwrap() {
-                    true => &self.pc,
-                    false => return Err(VirtualMachineError::ImmShouldBe1Error),
-                }
-            }
-            Op1Addr::OP0 => {
-                match op0 {
-                    Some(addr) => return Ok(addr + instruction.off1.clone() % self.prime.clone()),
-                    None => return Err(VirtualMachineError::UnknownOp0Error),
-                }
-            }
+            Op1Addr::FP => &self.fp,
+            Op1Addr::AP => &self.ap,
+            Op1Addr::IMM => match instruction.off2 == BigInt::from_i32(1).unwrap() {
+                true => &self.pc,
+                false => return Err(VirtualMachineError::ImmShouldBe1Error),
+            },
+            Op1Addr::OP0 => match op0 {
+                Some(addr) => return Ok(addr + instruction.off1.clone() % self.prime.clone()),
+                None => return Err(VirtualMachineError::UnknownOp0Error),
+            },
         };
         return Ok(base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
     }
