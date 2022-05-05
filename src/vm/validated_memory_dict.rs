@@ -1,4 +1,4 @@
-use crate::vm::memory_dict::Memory;
+use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;

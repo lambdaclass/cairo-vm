@@ -1,6 +1,6 @@
 pub mod decoder;
 pub mod instruction;
-pub mod memory_dict;
+pub mod memory;
 pub mod relocatable;
 pub mod run_context;
 pub mod trace_entry;
