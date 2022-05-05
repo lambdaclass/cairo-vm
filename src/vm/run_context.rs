@@ -67,27 +67,22 @@ impl RunContext {
         instruction: &Instruction,
         op0: Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base_addr: Option<&MaybeRelocatable>;
-        match instruction.op1_addr {
-            Op1Addr::FP => base_addr = Some(&self.fp),
-            Op1Addr::AP => base_addr = Some(&self.ap),
+        let base_addr = match instruction.op1_addr {
+            Op1Addr::FP =>  &self.fp,
+            Op1Addr::AP =>  &self.ap,
             Op1Addr::IMM => {
-                if instruction.off2 == BigInt::from_i32(1).unwrap() {
-                    base_addr = Some(&self.pc);
+                match instruction.off2 == BigInt::from_i32(1).unwrap() {
+                    true => &self.pc,
+                    false => return Err(VirtualMachineError::ImmShouldBe1Error),
                 }
-                return Err(VirtualMachineError::ImmShouldBe1Error);
             }
             Op1Addr::OP0 => {
                 match op0 {
-                    Some(addr) => return Ok((addr + instruction.off1.clone()) % self.prime.clone()),
+                    Some(addr) => return Ok(addr + instruction.off1.clone() % self.prime.clone()),
                     None => return Err(VirtualMachineError::UnknownOp0Error),
-                };
+                }
             }
-        }
-        if let Some(addr) = base_addr {
-            return Ok(addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
-        } else {
-            return Err(VirtualMachineError::InvalidOp1RegError);
-        }
+        };
+        return Ok(base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
     }
 }
