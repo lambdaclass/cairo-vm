@@ -1,225 +1,314 @@
-mod relocatable;
-mod memory_dict;
-mod validated_memory_dict;
-mod trace_entry;
-mod builtin_runner;
-mod instruction;
+use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
+use crate::vm::relocatable::MaybeRelocatable;
+use crate::vm::run_context::RunContext;
+use crate::vm::trace_entry::TraceEntry;
+use crate::vm::validated_memory_dict::ValidatedMemoryDict;
+use num_bigint::BigInt;
+use num_traits::FromPrimitive;
+//use std::collections::HashMap;
+use std::fmt;
 
-use::maybe_relocatable::MaybeRelocatable;
-use::memory_dict::MemoryDict;
-use::validated_memory_dict::ValidatedMemoryDict;
-use::relocatable::MaybeRelocatable;
-use::trace_entry::TraceEntry;
-use::builtin_runner::BuitinRunner;
-use::instruction::Instruction;
-use num_bigint::BigUint;
-use std::collections::HashMap;
+macro_rules! bigint {
+    ($val : expr) => {
+        BigInt::from_i32($val).unwrap()
+    };
+}
 
 struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
-    op1: MaybeRelocatable
-}
-
-struct RunContext {
-    memory: MemoryDict,
-    pc: MaybeRelocatable,
-    ap: MaybeRelocatable,
-    fp: MaybeRelocatable,
-    prime: BigUint
+    op1: MaybeRelocatable,
 }
 
 pub struct VirtualMachine {
     run_context: RunContext,
-    prime: BigUint,
-    builtin_runners: Option<HashMap<String, BuiltinRunner>>,
-    exec_scopes: Vec<HashMap<..., ...>>,
-    enter_scope: ,
-    hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
-    hint_locals: HashMap<..., ...>,
-    hint_pc_and_index: HashMap<i32, (MaybeRelocatable, i32)>,
-    static_locals: Option<HashMap<..., ...>>,
-    intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
-    debug_file_contents: HashMap<String, String>,
-    error_message_attributes: Vec<VmAttributeScope>,
-    program: ProgramBase,
+    prime: BigInt,
+    //builtin_runners: Option<HashMap<String, BuiltinRunner>>,
+    //exec_scopes: Vec<HashMap<..., ...>>,
+    //enter_scope: ,
+    //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
+    //hint_locals: HashMap<..., ...>,
+    //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
+    //static_locals: Option<HashMap<..., ...>>,
+    //intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
+    //debug_file_contents: HashMap<String, String>,
+    //error_message_attributes: Vec<VmAttributeScope>,
+    //program: ProgramBase,
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    auto_deduction: HashMap<i32, Vec<(Rule, ())>>,
+    //auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
-    current_step: BigUint,
-    skip_instruction_execution: bool
-}
-
-impl RunContext {
-    ///Returns the encoded instruction (the value at pc) and the immediate value (the value atpc + 1, if it exists in the memory).
-    fn get_instruction_encoding(&self) -> Result<(BigUint, Option<BigUint>), VirtualMachineError> {
-        let instruction_encoding = self.memory.[self.pc];
-        match instruction_encoding{
-            MaybeRelocatable::Int => {
-                let imm_addr = (self.pc + 1) % self.prime;
-                let optional_imm = self.memory.get(imm_addr);
-                Ok(instruction_encoding, optional_imm);
-            },
-            _ => Err(VirtualMachineError::InvalidInstructionEcodingError(instruction_encoding)),
-        };
-    }
-
-    fn compute_dst_addr(&self, instruction: Instruction) -> Result<BigUint, VirtualMachineError> {
-        let base_addr = match instruction.dst_register {
-            Register::AP => Some(self.ap),
-            Register::FP => Some(self.fp),
-            _ => None,
-        };
-        if let Some(addr) = base_addr {
-            Ok((addr + instruction.off0) % self.prime);
-        }
-        else{
-            Err(VirtualMachineError::InvalidDstRegError);
-        }
-    }
-
-    fn compute_op0_addr(&self, instruction: Instruction) -> Result<BigUint, VirtualMachineError> {
-        let base_addr = match instruction.op0_register {
-            Register::AP => Some(self.ap),
-            Register::FP => Some(self.fp),
-            _ => None,
-        }
-        if let Some(addr) = base_addr {
-            Ok((addr + instruction.off1) % self.prime);
-        }
-        else{
-            Err(VirtualMachineError::InvalidOp0RegError);
-        }
-    }
-
-    fn compute_op1_addr(&self, instruction: Instruction, op0: Option<MaybeRelocatable>) -> Result<BigUint, VirtualMachineError> {
-        let base_addr : Option<MaybeRelocatable>;
-        match instruction.op1_addr {
-            Instruction.Op1Addr::FP => base_addr = Some(self.fp),
-            Instruction.Op1Addr::AP => base_addr = Some(self.ap),
-            Instruction.Op1Addr::IMM => {
-                match instruction.off2{
-                    1 => base_addr = Some(self.pc),
-                    _ => Err(VirtualMachineError::ImmShouldBe1Error),
-                };
-            },
-            Instruction.Op1Addr::OP0 => {
-                match op0 {
-                    Some(addr) => base_addr = Some(addr),
-                    None => Err(VirtualMachineError::UnknownOp0Error),
-                };
-            },
-            _ => None,
-        };
-        if let Some(addr) = base_addr {
-            Ok((addr + instruction.off1) % self.prime);
-        }
-        else{
-            Err(VirtualMachineError::InvalidOp1RegError);
-        }
-    }
-
+    current_step: BigInt,
+    skip_instruction_execution: bool,
 }
 
 impl VirtualMachine {
-    fn update_fp(&mut self, instruction: Instruction, operands: Operands) -> Result<(), VirtualMachineError> {
+    fn update_fp(
+        &mut self,
+        instruction: &Instruction,
+        operands: &Operands,
+    ) -> Result<(), VirtualMachineError> {
         let new_fp = match instruction.fp_update {
-            Instruction.FpUpdate::AP_PLUS2 => Some(self.run_context.ap + 2),
-            Instruction.FpUpdate::DST => Some(operands.dst),
-            Instruction.FpUpdate::REGULAR => Some(self.run_context.fp),
-            _ => None,
+            FpUpdate::AP_PLUS2 => Some(self.run_context.ap.add_num_addr(bigint!(2), None)),
+            FpUpdate::DST => Some(operands.dst.clone()),
+            FpUpdate::REGULAR => return Ok(()),
         };
         match new_fp {
             Some(fp) => {
                 self.run_context.fp = fp;
-                Ok();
-            },
-            None => Err(VirtualMachineError::InvalidFpUpdateError),
-        };     
-    }
-
-    fn update_ap(&mut self, instruction: Instruction, operands: Operands) -> Result<(), VirtualMachineError> {
-        let new_ap = MaybeRelocatable;
-        match instruction.ap_update {
-            Instruction.ApUpdate::ADD => {
-                match operands.res {
-                    Some(res) => new_ap = self.run_context.ap + (res % self.prime),
-                    None => Err(VirtualMachineError::UnconstrainedResAddError),
-                };
-            },
-            Instruction.ApUpdate::ADD1 => new_ap = self.run_context.ap + 1,
-            Instruction.ApUpdate::ADD2 => new_ap = self.run_context.ap + 2,
-            Instruction.ApUpdate::REGULAR => new_ap = self.run_context.ap,
-            _ => Err(VirtualMachineError::InvalidApUpdateError),
+                return Ok(());
+            }
+            None => return Err(VirtualMachineError::InvalidFpUpdateError),
         };
-        self.run_context.ap = new_ap % self.prime;
-        Ok();
     }
 
-    fn update_pc(&mut self, instruction: Instruction, operands: Operands) -> Result<(), VirtualMachineError> {
-        let new_pc : Option<MaybeRelocatable>;
-        match instruction.pc_update {
-            Instruction.PcUpdate::REGULAR => new_pc = self.run_context.pc + size(instruction),
-            Instruction.PcUpdate::JUMP => {
-                match operands.res {
-                    Some(res) => new_pc = res,
-                    None => Err(VirtualMachineError::UnconstrainedResJumpError),
-                };
+    fn update_ap(
+        &mut self,
+        instruction: &Instruction,
+        operands: &Operands,
+    ) -> Result<(), VirtualMachineError> {
+        let new_ap: Option<MaybeRelocatable> = match instruction.ap_update {
+            ApUpdate::ADD => match operands.res.clone() {
+                Some(res) => Some(
+                    self.run_context
+                        .ap
+                        .add_addr(res, Some(self.prime.clone()))?,
+                ),
+                None => return Err(VirtualMachineError::UnconstrainedResAddError),
             },
-            Instruction.PcUpdate::JUMP_REL => {
-                match operands.res {
-                    Some(res) => {
-                        match res {
-                            MaybeRelocatable::Int(num_res) => new_pc = self.run_context.pc + num_res,
-                            _ => Err(PureValueError("jmp rel", res)),
-                        };
-                    },
-                    None => Err(UnconstrainedResJumpRelError),
-                };
-            },
-            Instruction.PcUpdate::JNZ => {
-                if self.is_zero(operands.res)? {
-                    new_pc = self.run_context.pc + size(instruction);
-                }
-                else {
-                    new_pc = self.run_context + operands.op1
-                }
-            },
-            _ => Err(VirtualMachineError::InvalidPcUpdateError),
+            ApUpdate::ADD1 => Some(self.run_context.ap.add_num_addr(bigint!(1), None)),
+            ApUpdate::ADD2 => Some(self.run_context.ap.add_num_addr(bigint!(2), None)),
+            ApUpdate::REGULAR => return Ok(()),
         };
-        self.run_context.pc = new_pc % self.prime;
-        Ok();
+        if let Some(ap) = new_ap {
+            self.run_context.ap = ap % self.prime.clone();
+            return Ok(());
+        }
+        return Err(VirtualMachineError::InvalidApUpdateError);
     }
 
-    fn update_registers(&mut self, instruction: Instruction, operands: Operands) -> Result<(), VirtualMachineError> {
-        self.update_fp(instruction, operands)?;
-        self.update_ap(instruction, operands)?;
-        self.update_pc(instruction, operands)?;
-        Ok();
+    fn update_pc(
+        &mut self,
+        instruction: &Instruction,
+        operands: &Operands,
+    ) -> Result<(), VirtualMachineError> {
+        let new_pc: MaybeRelocatable = match instruction.pc_update {
+            PcUpdate::REGULAR => {
+                self
+                    .run_context
+                    .pc
+                    .add_num_addr(bigint!(Instruction::size(&instruction)), None)
+            }
+            PcUpdate::JUMP => match operands.res.clone() {
+                Some(res) => res,
+                None => return Err(VirtualMachineError::UnconstrainedResJumpError),
+            },
+            PcUpdate::JUMP_REL => match operands.res.clone() {
+                Some(res) => match res {
+                    MaybeRelocatable::Int(num_res) => {
+                        self.run_context.pc.add_num_addr(num_res, None)
+                    }
+
+                    _ => return Err(VirtualMachineError::PureValueError),
+                },
+                None => return Err(VirtualMachineError::UnconstrainedResJumpRelError),
+            },
+            PcUpdate::JNZ => match VirtualMachine::is_zero(operands.res.clone())? {
+                true => {
+                    self
+                        .run_context
+                        .pc
+                        .add_num_addr(bigint!(Instruction::size(&instruction)), None)
+                }
+                false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
+            },
+        };
+        self.run_context.pc = new_pc % self.prime.clone();
+        return Ok(());
+    }
+
+    fn update_registers(
+        &mut self,
+        instruction: Instruction,
+        operands: Operands,
+    ) -> Result<(), VirtualMachineError> {
+        self.update_fp(&instruction, &operands)?;
+        self.update_ap(&instruction, &operands)?;
+        self.update_pc(&instruction, &operands)?;
+        return Ok(());
     }
 
     /// Returns true if the value is zero
     /// Used for JNZ instructions
-    fn is_zero(value: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
-        match value {
-            MaybeRelocatable::Int(num) => return num == 0,
-            MaybeRelocatable::RelocatableValue => {
-                if value.offset >= 0 {
-                    return false;
+    fn is_zero(addr: Option<MaybeRelocatable>) -> Result<bool, VirtualMachineError> {
+        if let Some(value) = addr {
+            match value {
+                MaybeRelocatable::Int(num) => return Ok(num == bigint!(0)),
+                MaybeRelocatable::RelocatableValue(rel_value) => {
+                    if rel_value.offset >= bigint!(0) {
+                        return Ok(false);
+                    } else {
+                        return Err(VirtualMachineError::PureValueError);
+                    }
                 }
-                else {
-                    Err(VirtualMachineError::PureValueError("jmp != 0", value);
+            };
+        }
+        return Err(VirtualMachineError::NotImplementedError);
+    }
+
+    ///Returns a tuple (deduced_op0, deduced_res).
+    ///Deduces the value of op0 if possible (based on dst and op1). Otherwise, returns None.
+    ///If res was already deduced, returns its deduced value as well.
+    fn deduce_op0(
+        &self,
+        instruction: &Instruction,
+        dst: Option<&MaybeRelocatable>,
+        op1: Option<&MaybeRelocatable>,
+    ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
+        match instruction.opcode {
+            Opcode::CALL => {
+                return Ok((
+                    Some(
+                        self
+                            .run_context
+                            .pc
+                            .add_num_addr(bigint!(Instruction::size(&instruction)), None),
+                    ),
+                    None,
+                ))
+            }
+            Opcode::ASSERT_EQ => {
+                match instruction.res {
+                    Res::ADD => {
+                        if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
+                            return Ok((
+                                Some((dst_addr.sub_addr(op1_addr))? % self.prime.clone()),
+                                Some(dst_addr.clone()),
+                            ));
+                        }
+                    }
+                    Res::MUL => {
+                        if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
+                            if let (
+                                MaybeRelocatable::Int(num_dst),
+                                MaybeRelocatable::Int(ref num_op1_ref),
+                            ) = (dst_addr, op1_addr)
+                            {
+                                let num_op1 = Clone::clone(num_op1_ref);
+                                if num_op1 != bigint!(0) {
+                                    return Ok((
+                                        Some(
+                                            MaybeRelocatable::Int(num_dst / num_op1)
+                                                % self.prime.clone(),
+                                        ),
+                                        Some(dst_addr.clone()),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    _ => (),
+                };
+            }
+            _ => (),
+        };
+        return Ok((None, None));
+    }
+
+    /// Returns a tuple (deduced_op1, deduced_res).
+    ///Deduces the value of op1 if possible (based on dst and op0). Otherwise, returns None.
+    ///If res was already deduced, returns its deduced value as well.
+    fn deduce_op1(
+        &self,
+        instruction: &Instruction,
+        dst: Option<&MaybeRelocatable>,
+        op0: Option<MaybeRelocatable>,
+    ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
+        if let Opcode::ASSERT_EQ = instruction.opcode {
+            match instruction.res {
+                Res::OP1 => {
+                    if let Some(dst_addr) = dst {
+                        return Ok((Some(dst_addr.clone()), Some(dst_addr.clone())));
+                    }
                 }
-            },
+                Res::ADD => {
+                    if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
+                        return Ok((
+                            Some((dst_addr.sub_addr(&op0_addr))?),
+                            Some(dst_addr.clone()),
+                        ));
+                    }
+                }
+                Res::MUL => {
+                    if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
+                        if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
+                            (dst_addr, op0_addr)
+                        {
+                            if num_op0 != bigint!(0) {
+                                return Ok((
+                                    Some(
+                                        MaybeRelocatable::Int(num_dst / num_op0)
+                                            % self.prime.clone(),
+                                    ),
+                                    Some(dst_addr.clone()),
+                                ));
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            };
+        };
+        return Ok((None, None));
+    }
+
+    ///Computes the value of res if possible
+    fn compute_res(
+        &self,
+        instruction: &Instruction,
+        op0: &MaybeRelocatable,
+        op1: &MaybeRelocatable,
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
+        match instruction.res {
+            Res::OP1 => return Ok(Some(op1.clone())),
+            Res::ADD => return Ok(Some(op0.add_addr(op0.clone(), Some(self.prime.clone()))?)),
+            Res::MUL => {
+                if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
+                {
+                    return Ok(Some(
+                        MaybeRelocatable::Int(num_op0 * num_op1) % self.prime.clone(),
+                    ));
+                }
+                return Err(VirtualMachineError::PureValueError);
+            }
+            Res::UNCONSTRAINED => return Ok(None),
         };
     }
+
+    fn deduce_dst(
+        &self,
+        instruction: &Instruction,
+        res: Option<&MaybeRelocatable>,
+    ) -> Option<MaybeRelocatable> {
+        match instruction.opcode {
+            Opcode::ASSERT_EQ => {
+                if let Some(res_addr) = res {
+                    return Some(res_addr.clone());
+                }
+            }
+            Opcode::CALL => return Some(self.run_context.fp.clone()),
+            _ => (),
+        };
+        return None;
+    }
 }
-#[derive(Debug, Clone)]
-enum VirtualMachineError{
-    InvalidInstructionEncodingError(MaybeRelocatable),
+
+#[derive(Debug)]
+pub enum VirtualMachineError {
+    //InvalidInstructionEncodingError(MaybeRelocatable), Impl fmt for MaybeRelocatable
+    InvalidInstructionEncodingError,
     InvalidDstRegError,
     InvalidOp0RegError,
     InvalidOp1RegError,
@@ -231,25 +320,51 @@ enum VirtualMachineError{
     UnconstrainedResAddError,
     UnconstrainedResJumpError,
     UnconstrainedResJumpRelError,
-    PureValueError(str, MaybeRelocatable)
+    PureValueError,
+    InvalidResError,
+    RelocatableAddError,
+    NotImplementedError,
+    DiffIndexSubError,
 }
 
 impl fmt::Display for VirtualMachineError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            VirtualMachineError::InvalidInstructionEcodingError(arg) => write!(f, "Instruction should be an int. Found: {}", arg),
+            //VirtualMachineError::InvalidInstructionEncodingError(arg) => write!(f, "Instruction should be an int. Found: {}", arg),
+            VirtualMachineError::InvalidInstructionEncodingError => {
+                write!(f, "Instruction should be an int. Found:")
+            }
             VirtualMachineError::InvalidDstRegError => write!(f, "Invalid dst_register value"),
             VirtualMachineError::InvalidOp0RegError => write!(f, "Invalid op0_register value"),
             VirtualMachineError::InvalidOp1RegError => write!(f, "Invalid op1_register value"),
-            VirtualMachineError::ImmShouldBe1Error => write!(f, "In immediate mode, off2 should be 1"),
-            VirtualMachineError::UnknownOp0Error => write!(f, "op0 must be known in double dereference"),
+            VirtualMachineError::ImmShouldBe1Error => {
+                write!(f, "In immediate mode, off2 should be 1")
+            }
+            VirtualMachineError::UnknownOp0Error => {
+                write!(f, "op0 must be known in double dereference")
+            }
             VirtualMachineError::InvalidFpUpdateError => write!(f, "Invalid fp_update value"),
             VirtualMachineError::InvalidApUpdateError => write!(f, "Invalid ap_update value"),
             VirtualMachineError::InvalidPcUpdateError => write!(f, "Invalid pc_update value"),
-            VirtualMachineError::UnconstrainedResAddError => write!(f, "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")
-            VirtualMachineError::UnconstrainedJumpAddError => write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")
-            VirtualMachineError::UnconstrainedResJumpRelError => write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL")
-            //TODO: add PureValueError
-        };
+            VirtualMachineError::UnconstrainedResAddError => {
+                write!(f, "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")
+            }
+            VirtualMachineError::UnconstrainedResJumpError => {
+                write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")
+            }
+            VirtualMachineError::UnconstrainedResJumpRelError => {
+                write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL")
+            }
+            VirtualMachineError::InvalidResError => write!(f, "Invalid res value"),
+            VirtualMachineError::RelocatableAddError => {
+                write!(f, "Cannot add two relocatable values")
+            }
+            VirtualMachineError::NotImplementedError => write!(f, "This is not implemented"),
+            VirtualMachineError::PureValueError => Ok(()), //TODO
+            VirtualMachineError::DiffIndexSubError => write!(
+                f,
+                "Can only subtract two relocatable values of the same segment"
+            ),
+        }
     }
 }

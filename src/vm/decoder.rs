@@ -1,32 +1,33 @@
+use crate::vm::instruction;
 use num_bigint::BigUint;
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
-const DST_REG_MASK   = 0x0001;
-const DST_REG_OFF    = 0;
-const OP0_REG_MASK   = 0x0002;
-const OP0_REG_OFF    = 1;
-const OP1_SRC_MASK   = 0x001C;
-const OP1_SRC_OFF    = 2;
-const RES_LOGIC_MASK = 0x0060;
-const RES_LOGIC_OFF  = 5;
-const PC_UPDATE_MASK = 0x0380;
-const PC_UPDATE_OFF  = 7;
-const AP_UPDATE_MASK = 0x0C00;
-const AP_UPDATE_OFF  = 10;
-const OPCODE_MASK    = 0x7000;
-const OPCODE_OFF     = 12;
+const DST_REG_MASK: i32 = 0x0001;
+const DST_REG_OFF: i32 = 0;
+const OP0_REG_MASK: i32 = 0x0002;
+const OP0_REG_OFF: i32 = 1;
+const OP1_SRC_MASK: i32 = 0x001C;
+const OP1_SRC_OFF: i32 = 2;
+const RES_LOGIC_MASK: i32 = 0x0060;
+const RES_LOGIC_OFF: i32 = 5;
+const PC_UPDATE_MASK: i32 = 0x0380;
+const PC_UPDATE_OFF: i32 = 7;
+const AP_UPDATE_MASK: i32 = 0x0C00;
+const AP_UPDATE_OFF: i32 = 10;
+const OPCODE_MASK: i32 = 0x7000;
+const OPCODE_OFF: i32 = 12;
 
 // Flags start on the 48th bit.
-const FLAGS_OFFSET = 48;
-const OFF0_OFF = 0;
-const OFF1_OFF = 16;
-const OFF2_OFF = 32;
-const OFFX_MASK = 0xFFFF;
-
+const FLAGS_OFFSET: i32 = 48;
+const OFF0_OFF: i32 = 0;
+const OFF1_OFF: i32 = 16;
+const OFF2_OFF: i32 = 32;
+const OFFX_MASK: i32 = 0xFFFF;
+/*
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
-pub fn decode_instruction(encoded_instr:i64, imm:Option<BigUint>) -> instruction::Instruction {
+pub fn decode_instruction(encoded_instr:i32, imm:Option<BigUint>) -> instruction::Instruction {
     let off0 = encoded_instr >> OFF0_OFF & OFFX_MASK;
     let off1 = encoded_instr >> OFF1_OFF & OFFX_MASK;
     let off2 = encoded_instr >> OFF2_OFF & OFFX_MASK;
@@ -112,4 +113,4 @@ pub fn decode_instruction(encoded_instr:i64, imm:Option<BigUint>) -> instruction
         opcode
     }
 }
-
+*/
