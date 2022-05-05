@@ -662,4 +662,70 @@ mod tests {
             assert!(false);
         }
     }
+
+    #[test]
+    fn sub_int_addr_ref_from_int_addr_ref() {
+        let addr_a = &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
+        let addr_b = &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
+        let sub_addr = addr_a.sub_addr(addr_b);
+        if let Ok(MaybeRelocatable::Int(num)) = sub_addr {
+            assert_eq!(num, BigInt::from_i32(2).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn sub_relocatable_addr_ref_from_relocatable_addr_ref_same_offset() {
+        let addr_a = &MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(7).unwrap(),
+            offset: BigInt::from_i32(17).unwrap(),
+        });
+        let addr_b = &MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(7).unwrap(),
+            offset: BigInt::from_i32(7).unwrap(),
+        });
+        let sub_addr = addr_a.sub_addr(addr_b);
+        if let Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index,
+            offset,
+        })) = sub_addr
+        {
+            assert_eq!(offset, BigInt::from_i32(10).unwrap());
+            assert_eq!(segment_index, BigInt::from_i32(7).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn sub_relocatable_addr_ref_from_relocatable_addr_refdiff_offset() {
+        let addr_a = &MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(7).unwrap(),
+            offset: BigInt::from_i32(17).unwrap(),
+        });
+        let addr_b = &MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(8).unwrap(),
+            offset: BigInt::from_i32(7).unwrap(),
+        });
+        let sub_addr = addr_a.sub_addr(addr_b);
+        match sub_addr {
+            Err(error) => assert_eq!(error, VirtualMachineError::DiffIndexSubError),
+            Ok(_) => assert!(false),
+        }
+    }
+
+    #[test]
+    fn sub_int_addr_ref_from_relocatable_addr_ref() {
+        let addr_a = &MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: BigInt::from_i32(7).unwrap(),
+            offset: BigInt::from_i32(17).unwrap(),
+        });
+        let addr_b = &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
+        let sub_addr = addr_a.sub_addr(addr_b);
+        match sub_addr {
+            Err(error) => assert_eq!(error, VirtualMachineError::NotImplementedError),
+            Ok(_) => assert!(false),
+        }
+    }
 }
