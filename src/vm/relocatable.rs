@@ -18,12 +18,20 @@ pub enum MaybeRelocatable {
 }
 
 impl Add<BigInt> for MaybeRelocatable {
-    type Output = Result<MaybeRelocatable, VirtualMachineError>;
-    fn add(self, other: BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
-        if let MaybeRelocatable::Int(num) = self {
-            return Ok(MaybeRelocatable::Int(num + other));
+    type Output = MaybeRelocatable;
+    fn add(self, other: BigInt) -> MaybeRelocatable {
+        match self {
+            MaybeRelocatable::Int(num) => return MaybeRelocatable::Int(num + other),
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index,
+                offset,
+            }) => {
+                return MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: segment_index,
+                    offset: offset + other,
+                })
+            }
         }
-        return Err(VirtualMachineError::NotImplementedError);
     }
 }
 impl Add<MaybeRelocatable> for MaybeRelocatable {
@@ -36,7 +44,30 @@ impl Add<MaybeRelocatable> for MaybeRelocatable {
             (MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
                 return Err(VirtualMachineError::RelocatableAddError)
             }
-            _ => return Err(VirtualMachineError::NotImplementedError),
+            (
+                MaybeRelocatable::Int(num),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index,
+                    offset,
+                }),
+            ) => {
+                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: segment_index,
+                    offset: offset + num,
+                }))
+            }
+            (
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index,
+                    offset,
+                }),
+                MaybeRelocatable::Int(num),
+            ) => {
+                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: segment_index,
+                    offset: offset + num,
+                }))
+            }
         };
     }
 }
