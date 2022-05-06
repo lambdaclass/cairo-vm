@@ -114,3 +114,4 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
         opcode,
     }
 }
+
