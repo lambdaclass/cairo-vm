@@ -29,10 +29,13 @@ const OFFX_MASK: i64 = 0xFFFF;
 
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instruction::Instruction {
+    // Grab offsets
     let off0 = encoded_instr >> OFF0_OFF & OFFX_MASK;
     let off1 = encoded_instr >> OFF1_OFF & OFFX_MASK;
     let off2 = encoded_instr >> OFF2_OFF & OFFX_MASK;
+    // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;
+    // Grab individual flags
     let dst_reg_num = (flags & DST_REG_MASK) >> DST_REG_OFF;
     let op0_reg_num = (flags & OP0_REG_MASK) >> OP0_REG_OFF;
     let op1_src_num = (flags & OP1_SRC_MASK) >> OP1_SRC_OFF;
@@ -41,6 +44,7 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
     let ap_update_num = (flags & AP_UPDATE_MASK) >> AP_UPDATE_OFF;
     let opcode_num = (flags & OPCODE_MASK) >> OPCODE_OFF;
 
+    // Match each flag to its corresponding enum value
     let dst_register = match dst_reg_num {
         0 => instruction::Register::AP,
         1 => instruction::Register::FP,
@@ -100,6 +104,7 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
     };
 
     instruction::Instruction {
+        // TODO: Replace or confirm the unrwap is safe
         off0: BigInt::from_i64(off0).unwrap(),
         off1: BigInt::from_i64(off1).unwrap(),
         off2: BigInt::from_i64(off2).unwrap(),
