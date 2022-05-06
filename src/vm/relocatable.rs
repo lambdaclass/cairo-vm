@@ -5,13 +5,13 @@ use std::ops::Add;
 use std::ops::Rem;
 use std::ops::Sub;
 
-#[derive(Eq, Hash, PartialEq, Clone)]
+#[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct Relocatable {
     pub segment_index: BigInt,
     pub offset: BigInt,
 }
 
-#[derive(Eq, Hash, PartialEq, Clone)]
+#[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(BigInt),
