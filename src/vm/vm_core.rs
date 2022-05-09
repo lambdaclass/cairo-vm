@@ -95,12 +95,10 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
-            PcUpdate::REGULAR => {
-                self
-                    .run_context
-                    .pc
-                    .add_num_addr(bigint!(Instruction::size(&instruction)), None)
-            }
+            PcUpdate::REGULAR => self
+                .run_context
+                .pc
+                .add_num_addr(bigint!(Instruction::size(&instruction)), None),
             PcUpdate::JUMP => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJumpError),
@@ -116,12 +114,10 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRelError),
             },
             PcUpdate::JNZ => match VirtualMachine::is_zero(operands.res.clone())? {
-                true => {
-                    self
-                        .run_context
-                        .pc
-                        .add_num_addr(bigint!(Instruction::size(&instruction)), None)
-                }
+                true => self
+                    .run_context
+                    .pc
+                    .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                 false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
             },
         };
@@ -171,8 +167,7 @@ impl VirtualMachine {
             Opcode::CALL => {
                 return Ok((
                     Some(
-                        self
-                            .run_context
+                        self.run_context
                             .pc
                             .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                     ),
@@ -302,6 +297,47 @@ impl VirtualMachine {
             _ => (),
         };
         return None;
+    }
+
+    fn opcode_assertions(&self, instruction: &Instruction, operands: &Operands) {
+        match instruction.opcode {
+            Opcode::ASSERT_EQ => {
+                match &operands.res {
+                    None => panic!("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ"),
+                    Some(res) => {
+                        if let (MaybeRelocatable::Int(res_num), MaybeRelocatable::Int(dst_num)) =
+                            (res, &operands.dst)
+                        {
+                            if res_num != dst_num {
+                                panic!(
+                                    "An ASSERT_EQ instruction failed: {} != {}",
+                                    res_num, dst_num
+                                );
+                            };
+                        };
+                    }
+                };
+            }
+            Opcode::CALL => {
+                if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
+                    (&operands.op0, &self.run_context.pc)
+                {
+                    let return_pc = run_pc + bigint!(instruction.size());
+                    if op0_num != &return_pc {
+                        panic!("Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0_num, return_pc);
+                    };
+                };
+
+                if let (MaybeRelocatable::Int(return_fp), MaybeRelocatable::Int(dst_num)) =
+                    (&self.run_context.fp, &operands.dst)
+                {
+                    if dst_num != return_fp {
+                        panic!("Call failed to write return-fp (inconsistent dst): fp->{} != dst->{}. Did you forget to increment ap?",dst_num,dst_num);
+                    };
+                };
+            }
+            _ => {}
+        }
     }
 }
 
