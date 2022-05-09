@@ -5,7 +5,7 @@ use crate::vm::trace_entry::TraceEntry;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-//use std::collections::HashMap;
+use std::collections::HashMap;
 use std::fmt;
 
 macro_rules! bigint {
@@ -19,6 +19,10 @@ struct Operands {
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
     op1: MaybeRelocatable,
+}
+
+struct Rule {
+    inner: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
 }
 
 pub struct VirtualMachine {
@@ -37,7 +41,7 @@ pub struct VirtualMachine {
     //program: ProgramBase,
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    //auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
+    auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigInt,
@@ -95,12 +99,10 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
-            PcUpdate::REGULAR => {
-                self
-                    .run_context
-                    .pc
-                    .add_num_addr(bigint!(Instruction::size(&instruction)), None)
-            }
+            PcUpdate::REGULAR => self
+                .run_context
+                .pc
+                .add_num_addr(bigint!(Instruction::size(&instruction)), None),
             PcUpdate::JUMP => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJumpError),
@@ -116,12 +118,10 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRelError),
             },
             PcUpdate::JNZ => match VirtualMachine::is_zero(operands.res.clone())? {
-                true => {
-                    self
-                        .run_context
-                        .pc
-                        .add_num_addr(bigint!(Instruction::size(&instruction)), None)
-                }
+                true => self
+                    .run_context
+                    .pc
+                    .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                 false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
             },
         };
@@ -171,8 +171,7 @@ impl VirtualMachine {
             Opcode::CALL => {
                 return Ok((
                     Some(
-                        self
-                            .run_context
+                        self.run_context
                             .pc
                             .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                     ),
@@ -302,6 +301,25 @@ impl VirtualMachine {
             _ => (),
         };
         return None;
+    }
+
+    pub fn deduce_memory_cell(&mut self, addr: MaybeRelocatable) -> Option<MaybeRelocatable> {
+        match addr {
+            MaybeRelocatable::Int(_) => None,
+            MaybeRelocatable::RelocatableValue(addr) => {
+                let rules = self.auto_deduction.get(&addr.segment_index);
+                for (rule, args) in rules.iter() {
+                    match rule(self, addr, args) {
+                        Some(value) => {
+                            self.validated_memory.validated_addresses[addr] = value;
+                            return value;
+                        }
+                        None => None,
+                    };
+                }
+            }
+        }
+        None
     }
 }
 
