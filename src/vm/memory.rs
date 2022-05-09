@@ -6,8 +6,12 @@ pub struct Memory {
 }
 
 impl Memory {
+    pub fn new() -> Memory { Memory {data: HashMap::new()} }
+    pub fn insert(&mut self, key:&MaybeRelocatable, val:&MaybeRelocatable) {
+        self.data.insert(key.clone(), val.clone());
+    }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
-        return self.data.get(addr);
+        self.data.get(addr)
     }
 }
 
@@ -21,12 +25,10 @@ mod memory_tests {
     fn get_test () {
         let key = MaybeRelocatable::Int(BigInt::from_i32(2).unwrap());
         let val = MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
-        let key_clone = key.clone();
         let val_clone = val.clone();
-        let mem = Memory {
-            data: HashMap::from([(key, val)])
-        };
-        //assert_eq!(mem.get(&key_clone), Some(&val_clone));
+        let mut mem = Memory::new();
+        mem.insert(&key, &val);
+        assert_eq!(matches!(mem.get(&key), val_clone), true);
     }
 }
 
