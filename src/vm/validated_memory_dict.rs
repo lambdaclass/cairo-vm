@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use std::collections::HashMap;
 
 pub struct ValidatedMemoryDict {
-    memory: Memory,
+    pub memory: Memory,
     validation_rules: HashMap<BigInt, Vec<(ValidationRule, ())>>,
     validated_addresses: Vec<Relocatable>,
 }

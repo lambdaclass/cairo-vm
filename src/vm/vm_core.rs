@@ -5,7 +5,7 @@ use crate::vm::trace_entry::TraceEntry;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-//use std::collections::HashMap;
+use std::collections::HashMap;
 use std::fmt;
 
 macro_rules! bigint {
@@ -19,6 +19,10 @@ struct Operands {
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
     op1: MaybeRelocatable,
+}
+
+struct Rule {
+    func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
 }
 
 pub struct VirtualMachine {
@@ -37,7 +41,7 @@ pub struct VirtualMachine {
     //program: ProgramBase,
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    //auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
+    auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigInt,
@@ -338,6 +342,29 @@ impl VirtualMachine {
             }
             _ => {}
         }
+    }
+
+    pub fn deduce_memory_cell(&mut self, addr: MaybeRelocatable) -> Option<MaybeRelocatable> {
+        match addr {
+            MaybeRelocatable::Int(_) => (),
+            MaybeRelocatable::RelocatableValue(ref addr_val) => {
+                match self.auto_deduction.get(&addr_val.segment_index) {
+                    Some(rules) => {
+                        for (rule, args) in rules.iter() {
+                            match (rule.func)(self, &addr, args) {
+                                Some(value) => {
+                                    self.validated_memory.memory.insert(&addr, &value);
+                                    return Some(value);
+                                }
+                                None => (),
+                            };
+                        }
+                    }
+                    None => (),
+                };
+            }
+        }
+        None
     }
 }
 
