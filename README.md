@@ -13,11 +13,18 @@ Cleaopatra is a Rust implementation of the Cairo VM
 * [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust
 
 
-## Flux Diagram
+## Flow Diagram
 
 We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
 
-![diagram](cairo_vm_flowchart.png)
+
+<p float="left">
+  <img src="cairo_vm_color_key.png" width="200" />
+</p>
+
+![diagram](cairo_vm_flow_diagram.jpg)
+
+This diagram was produced using this [mermaid code](cairo_vm_flow_diagram.md).
 
 # How does the original Cairo VM work?
 
