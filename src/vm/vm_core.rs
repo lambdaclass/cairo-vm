@@ -45,12 +45,8 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    fn update_fp(
-        &mut self,
-        instruction: &Instruction,
-        operands: &Operands,
-    ) {
-        let new_fp = match instruction.fp_update {
+    fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
+        let new_fp: MaybeRelocatable = match instruction.fp_update {
             FpUpdate::AP_PLUS2 => self.run_context.ap.add_num_addr(bigint!(2), None),
             FpUpdate::DST => operands.dst.clone(),
             FpUpdate::REGULAR => return,
@@ -63,24 +59,21 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_ap: Option<MaybeRelocatable> = match instruction.ap_update {
+        let new_ap: MaybeRelocatable = match instruction.ap_update {
             ApUpdate::ADD => match operands.res.clone() {
-                Some(res) => Some(
-                    self.run_context
-                        .ap
-                        .add_addr(res, Some(self.prime.clone()))?,
-                ),
+                Some(res) => self
+                    .run_context
+                    .ap
+                    .add_addr(res, Some(self.prime.clone()))?,
+
                 None => return Err(VirtualMachineError::UnconstrainedResAddError),
             },
-            ApUpdate::ADD1 => Some(self.run_context.ap.add_num_addr(bigint!(1), None)),
-            ApUpdate::ADD2 => Some(self.run_context.ap.add_num_addr(bigint!(2), None)),
+            ApUpdate::ADD1 => self.run_context.ap.add_num_addr(bigint!(1), None),
+            ApUpdate::ADD2 => self.run_context.ap.add_num_addr(bigint!(2), None),
             ApUpdate::REGULAR => return Ok(()),
         };
-        if let Some(ap) = new_ap {
-            self.run_context.ap = ap % self.prime.clone();
-            return Ok(());
-        }
-        return Err(VirtualMachineError::InvalidApUpdateError);
+        self.run_context.ap = new_ap % self.prime.clone();
+        return Ok(());
     }
 
     fn update_pc(
