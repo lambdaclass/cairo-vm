@@ -2,9 +2,11 @@ use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, 
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
+use crate::vm::decoder::decode_instruction;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
+use num_traits::ToPrimitive;
 //use std::collections::HashMap;
 use std::fmt;
 
@@ -38,7 +40,7 @@ pub struct VirtualMachine {
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
     //auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
-    accessesed_addresses: Vec<MaybeRelocatable>,
+    accessed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigInt,
     skip_instruction_execution: bool,
@@ -338,6 +340,38 @@ impl VirtualMachine {
             }
             _ => {}
         }
+    }
+
+    fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
+        (operands, operands_mem_addresses) = self.compute_operands(&instruction)?;
+        self.opcode_assertions(&instruction, &operands)?;
+        self.trace_entry.append(TraceEntry {
+            pc: self.run_context.pc,
+            ap: self.run_context.ap,
+            fp: self.run_context.fp,
+        });
+        self.accessed_addresses.update(operands_mem_addresses);
+        self.accessed_addresses.add(self.run_context.pc);
+        self.update_registers(instruction, operands)?;
+        self.current_step += bigint!(1);
+        Ok(())
+    }
+
+    fn decode_current_instruction(&mut self) -> Result<Instruction, VirtualMachineError> {
+        let (instruction_ref, imm) = self.run_context.get_instruction_encoding()?;
+        let instruction = instruction_ref.clone().to_i64().unwrap();
+        if let Some(&MaybeRelocatable::Int(imm_ref)) = imm {
+            return Ok(decode_instruction(instruction, Some(imm_ref.clone())))
+        }
+        return Ok(decode_instruction(instruction, None))
+    }
+
+    pub fn step(&mut self) -> Result<(), VirtualMachineError> {
+        self.skip_instruction_execution = false;
+        //TODO: Hint Management
+        let instruction = self.decode_current_instruction()?;
+        self.run_instruction(instruction)?;
+        return Ok(())
     }
 }
 
