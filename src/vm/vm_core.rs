@@ -95,12 +95,10 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
-            PcUpdate::REGULAR => {
-                self
-                    .run_context
-                    .pc
-                    .add_num_addr(bigint!(Instruction::size(&instruction)), None)
-            }
+            PcUpdate::REGULAR => self
+                .run_context
+                .pc
+                .add_num_addr(bigint!(Instruction::size(&instruction)), None),
             PcUpdate::JUMP => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJumpError),
@@ -116,12 +114,10 @@ impl VirtualMachine {
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRelError),
             },
             PcUpdate::JNZ => match VirtualMachine::is_zero(operands.res.clone())? {
-                true => {
-                    self
-                        .run_context
-                        .pc
-                        .add_num_addr(bigint!(Instruction::size(&instruction)), None)
-                }
+                true => self
+                    .run_context
+                    .pc
+                    .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                 false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
             },
         };
@@ -171,8 +167,7 @@ impl VirtualMachine {
             Opcode::CALL => {
                 return Ok((
                     Some(
-                        self
-                            .run_context
+                        self.run_context
                             .pc
                             .add_num_addr(bigint!(Instruction::size(&instruction)), None),
                     ),
@@ -305,7 +300,7 @@ impl VirtualMachine {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum VirtualMachineError {
     //InvalidInstructionEncodingError(MaybeRelocatable), Impl fmt for MaybeRelocatable
     InvalidInstructionEncodingError,
