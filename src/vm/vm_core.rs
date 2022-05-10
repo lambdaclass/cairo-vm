@@ -305,22 +305,22 @@ impl VirtualMachine {
 
     pub fn deduce_memory_cell(&mut self, addr: MaybeRelocatable) -> Option<MaybeRelocatable> {
         match addr {
-            MaybeRelocatable::Int(_) => None,
-            MaybeRelocatable::RelocatableValue(addr_val) => {
+            MaybeRelocatable::Int(_) => (),
+            MaybeRelocatable::RelocatableValue(ref addr_val) => {
                 match self.auto_deduction.get(&addr_val.segment_index) {
                     Some(rules) => {
                         for (rule, args) in rules.iter() {
                             match (rule.func)(self, &addr, args) {
                                 Some(value) => {
-                                    self.validated_memory.memory.insert(&addr, value);
+                                    self.validated_memory.memory.insert(&addr, &value);
                                     return Some(value);
                                 },
-                                None => None,
+                                None => (),
                             };
                         }
                     },
-                    None => None
-                }
+                    None => (),
+                };
             }
         }
         None
