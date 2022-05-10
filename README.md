@@ -81,7 +81,7 @@ VirtualMachineBase's init is used to set these values (plus other ones), the nex
 * `skip_instruction_execution` (= False), used by hints to skip execution of current step
 
 Functions:
-* `[update_registers(instruction, operands)](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L143)`: Updates fp, ap, and pc, based on the instruction's [FpUpdate, ApUpdate and PcUpdate](#updatereg)
+* `[update_registers(instruction, operands)]`(https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L143): Updates fp, ap, and pc, based on the instruction's [FpUpdate, ApUpdate and PcUpdate](#updatereg)
 * [`deduce_op0(instruction, dst, op1) -> Tuple(Op(MaybeRelocatable), Op(MaybeRelocatable) `](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L189)deduces op0 from op1 and dst, also returns dst as deduced_res in case of an ASSERT_EQ opcode.
 * [`deduce_op1(instruction, dst, op0) -> Tuple(Op(Mr), Op(Mr))`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L214) deduces op1 from op0 and dst, also returns dst as deduced_res in case of an ASSERT_EQ opcode.
 * [`compute_res(instruction, op0, op1)`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L241) -> Optional(MaybeRelocatable): Returns computed res based on instruction.res: returns op1 if OP1, op1+op2 mod prime if ADD, op0 * op1 mod prime if MUL (and both operands are not relocatable), none if UNCONSTRAINED (handled elsewhere???, should be inverse of dst), or fails otherwise
@@ -239,7 +239,7 @@ Operands are computed at the start of each instruction
 * `fp` : MaybeRelocatable
 * `prime` : int
 Functions:
-* [`get_instruction_encoding()`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L42) -> (encoded_instruction, imm): returns instruction at pc, and the value at pc + 1 if it exists
+* [`get_instruction_encoding() -> (encoded_instruction, imm)]`(https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L42): returns instruction at pc, and the value at pc + 1 if it exists
 * [`compute_dst_addr(instruction)`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L59): returns either ap or fp depending on the instruction's dst_register + off0 mod prime
 * [`compute_op0_addr(instruction)`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L69): returns either ap or fp depending on the instruction's op0_register + off1 mod prime
 * [`compute_op1_addr(instruction)`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L79): returns either fp, ap, or pc depending on the instruction's op1_addr + off2 mod prime
