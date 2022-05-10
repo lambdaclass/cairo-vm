@@ -71,3 +71,72 @@ impl RunContext {
         return Ok(base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
+    use std::collections::HashMap;
+
+    #[test]
+    fn compute_dst_addr_for_ap_register() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(3).unwrap(),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let MaybeRelocatable::Int(num) = run_context.compute_dst_addr(&instruction) {
+            assert_eq!(num, BigInt::from_i32(6).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_dst_addr_for_fp_register() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(3).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let MaybeRelocatable::Int(num) = run_context.compute_dst_addr(&instruction) {
+            assert_eq!(num, BigInt::from_i32(7).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+}
