@@ -17,7 +17,7 @@ pub struct RunContext {
 
 impl RunContext {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
-    fn get_instruction_encoding(
+    pub fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt;
