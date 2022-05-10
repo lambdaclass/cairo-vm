@@ -24,3 +24,7 @@ We've created a diagram that illustrates function calls and where each of them a
 ![diagram](./docs/diagram/cairo_vm_flow_diagram.jpg)
 
 This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow_diagram.md).
+
+## Original Cairo VM Internals
+
+We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/original_vm_internals.md).
