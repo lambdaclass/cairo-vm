@@ -1315,13 +1315,325 @@ mod tests {
 
     #[test]
     fn is_zero_relocatable_value() {
-        let value = MaybeRelocatable::RelocatableValue(Relocatable {segment_index: bigint!(1), offset: bigint!(2)});
+        let value = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: bigint!(1),
+            offset: bigint!(2),
+        });
         assert_eq!(Ok(false), VirtualMachine::is_zero(Some(value)));
     }
 
     #[test]
     fn is_zero_relocatable_value_negative() {
-        let value = MaybeRelocatable::RelocatableValue(Relocatable {segment_index: bigint!(1), offset: bigint!(-1)});
-        assert_eq!(Err(VirtualMachineError::PureValueError), VirtualMachine::is_zero(Some(value)));
+        let value = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: bigint!(1),
+            offset: bigint!(-1),
+        });
+        assert_eq!(
+            Err(VirtualMachineError::PureValueError),
+            VirtualMachine::is_zero(Some(value))
+        );
+    }
+
+    #[test]
+    fn deduce_op0_opcode_call() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::CALL,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        assert_eq!(
+            Ok((Some(MaybeRelocatable::Int(bigint!(5))), None)),
+            vm.deduce_op0(&instruction, None, None)
+        );
+    }
+
+    #[test]
+    fn deduce_op0_opcode_assert_eq_res_add_with_optionals() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let dst = MaybeRelocatable::Int(bigint!(3));
+        let op1 = MaybeRelocatable::Int(bigint!(2));
+        assert_eq!(
+            Ok((
+                Some(MaybeRelocatable::Int(bigint!(1))),
+                Some(MaybeRelocatable::Int(bigint!(3)))
+            )),
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        );
+    }
+
+    #[test]
+    fn deduce_op0_opcode_assert_eq_res_add_without_optionals() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let dst = MaybeRelocatable::Int(bigint!(3));
+        let op1 = MaybeRelocatable::Int(bigint!(2));
+        assert_eq!(Ok((None, None)), vm.deduce_op0(&instruction, None, None));
+    }
+
+    #[test]
+    fn deduce_op0_opcode_assert_eq_res_mul_non_zero_op1() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::MUL,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let dst = MaybeRelocatable::Int(bigint!(4));
+        let op1 = MaybeRelocatable::Int(bigint!(2));
+        assert_eq!(
+            Ok((
+                Some(MaybeRelocatable::Int(bigint!(2))),
+                Some(MaybeRelocatable::Int(bigint!(4)))
+            )),
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        );
+    }
+
+    #[test]
+    fn deduce_op0_opcode_assert_eq_res_mul_zero_op1() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::MUL,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let dst = MaybeRelocatable::Int(bigint!(4));
+        let op1 = MaybeRelocatable::Int(bigint!(0));
+        assert_eq!(
+            Ok((None, None)),
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        );
+    }
+
+    #[test]
+    fn deduce_op0_opcode_assert_eq_res_op1() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::OP1,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let dst = MaybeRelocatable::Int(bigint!(4));
+        let op1 = MaybeRelocatable::Int(bigint!(0));
+        assert_eq!(
+            Ok((None, None)),
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        );
+    }
+
+    #[test]
+    fn deduce_op0_opcode_ret() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::MUL,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::RET,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let dst = MaybeRelocatable::Int(bigint!(4));
+        let op1 = MaybeRelocatable::Int(bigint!(0));
+        assert_eq!(
+            Ok((None, None)),
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
+        );
     }
 }
