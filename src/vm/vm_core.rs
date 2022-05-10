@@ -1306,4 +1306,22 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(7)));
         assert_eq!(vm.run_context.fp, MaybeRelocatable::Int(bigint!(11)));
     }
+
+    #[test]
+    fn is_zero_int_value() {
+        let value = MaybeRelocatable::Int(bigint!(1));
+        assert_eq!(Ok(false), VirtualMachine::is_zero(Some(value)));
+    }
+
+    #[test]
+    fn is_zero_relocatable_value() {
+        let value = MaybeRelocatable::RelocatableValue(Relocatable {segment_index: bigint!(1), offset: bigint!(2)});
+        assert_eq!(Ok(false), VirtualMachine::is_zero(Some(value)));
+    }
+
+    #[test]
+    fn is_zero_relocatable_value_negative() {
+        let value = MaybeRelocatable::RelocatableValue(Relocatable {segment_index: bigint!(1), offset: bigint!(-1)});
+        assert_eq!(Err(VirtualMachineError::PureValueError), VirtualMachine::is_zero(Some(value)));
+    }
 }
