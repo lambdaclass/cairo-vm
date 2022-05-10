@@ -73,7 +73,7 @@ impl VirtualMachine {
             ApUpdate::REGULAR => return Ok(()),
         };
         self.run_context.ap = new_ap % self.prime.clone();
-        return Ok(());
+        Ok(())
     }
 
     fn update_pc(
@@ -109,7 +109,7 @@ impl VirtualMachine {
             },
         };
         self.run_context.pc = new_pc % self.prime.clone();
-        return Ok(());
+        Ok(())
     }
 
     fn update_registers(
@@ -120,7 +120,7 @@ impl VirtualMachine {
         self.update_fp(&instruction, &operands);
         self.update_ap(&instruction, &operands)?;
         self.update_pc(&instruction, &operands)?;
-        return Ok(());
+        Ok(())
     }
 
     /// Returns true if the value is zero
@@ -196,7 +196,7 @@ impl VirtualMachine {
             }
             _ => (),
         };
-        return Ok((None, None));
+        Ok((None, None))
     }
 
     /// Returns a tuple (deduced_op1, deduced_res).
