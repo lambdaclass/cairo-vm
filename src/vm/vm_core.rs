@@ -366,6 +366,75 @@ impl VirtualMachine {
         }
         None
     }
+
+    pub fn compute_operands(&self, instruction:&Instruction) -> (Operands, Vec<MaybeRelocatable>) {
+        let dst_addr = self.run_context.compute_dst_addr(instruction);
+        let mut dst = self.validated_memory.memory.get(dst_addr);
+        let op0_addr = self.run_context.compute_op0_addr(instruction);
+        let mut op0 = self.validated_memory.memory.get(op0_addr);
+        let op1_addr = self.run_context.compute_op1_addr(instruction);
+        let mut op1 = self.validated_memory.memory.get(op1_addr);
+        let mut res: Option<MaybeRelocatable> = ();
+
+        if matches!(op0, None) {
+            op0 = self.deduce_memory_cell(op0_addr);
+        }
+        if matches!(op1, None) {
+            op1 = self.deduce_memory_cell(op1_addr);
+        }
+
+        let should_update_dst = matches!(dst, None);
+        let should_update_op0 = matches!(op0, None);
+        let should_update_op1 = matches!(op1, None);
+
+        if matches!(op0, None) {
+            (op0, deduced_res) = self.deduce_op0(instruction);
+            if matches!(res, None) {
+                res = deduced_res
+            }
+        }
+        if matches!(op1, None) {
+            (op1, deduced_res) = self.deduce_op1(instruction);
+            if matches!(res, None) {
+                res = deduced_res
+            }
+        }
+
+        if matches!(op0, None) {
+            op0 = self.validated_memory.memory.get(op0_addr);
+        }
+        if matches!(op1, None) {
+            op1 = self.validated_memory.memory.get(op1_addr);
+        }
+
+        if matches!(res, None) {
+            res = self.compute_res(instruction, op0, op1);
+        }
+
+        if matches!(dst, None) {
+            match instruction.opcode {
+                Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res,
+                Opcode::CALL => dst = self.run_context.fp,
+                _ => (),
+            }
+        }
+
+        if matches!(dst, None) {
+            dst = self.validated_memory.memory.get(dst_addr)
+        }
+
+        if should_update_dst {
+            self.validated_memory.memory.insert(&dst_addr, &dst);
+        }
+        if should_update_op0 {
+            self.validated_memory.memory.insert(&op0_addr, &op0);
+        }
+        if should_update_op1 {
+            self.validated_memory.memory.insert(&op1_addr, &op1);
+        }
+        
+        (Operands(dst, op0, op1, res), [dst_addr, op0_addr, op1_addr])
+    }
 }
 
 #[derive(Debug, PartialEq)]
