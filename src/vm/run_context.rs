@@ -76,6 +76,7 @@ impl RunContext {
 mod tests {
     use super::*;
     use crate::vm::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
+    use crate::vm::vm_core::VirtualMachineError;
     use std::collections::HashMap;
 
     #[test]
@@ -135,6 +136,196 @@ mod tests {
         };
         if let MaybeRelocatable::Int(num) = run_context.compute_dst_addr(&instruction) {
             assert_eq!(num, BigInt::from_i32(7).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_op1_addr_for_fp_op1_addr() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(3).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::FP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(num, BigInt::from_i32(8).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_op1_addr_for_ap_op1_addr() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(3).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(num, BigInt::from_i32(7).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(1).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::IMM,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(num, BigInt::from_i32(6).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(3).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::IMM,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(error, VirtualMachineError::ImmShouldBe1Error);
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_op1_addr_for_op0_op1_addr_with_op0() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(1).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::OP0,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+
+        let op0 = MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
+        if let Ok(MaybeRelocatable::Int(num)) =
+            run_context.compute_op1_addr(&instruction, Some(op0))
+        {
+            assert_eq!(num, BigInt::from_i32(9).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn compute_op1_addr_for_op0_op1_addr_without_op0() {
+        let instruction = Instruction {
+            off0: BigInt::from_i32(1).unwrap(),
+            off1: BigInt::from_i32(2).unwrap(),
+            off2: BigInt::from_i32(3).unwrap(),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::OP0,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            prime: BigInt::from_i32(39).unwrap(),
+        };
+        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(error, VirtualMachineError::UnknownOp0Error);
         } else {
             assert!(false);
         }
