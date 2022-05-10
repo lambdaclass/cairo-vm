@@ -22,7 +22,7 @@ struct Operands {
 }
 
 struct Rule {
-    inner: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
+    func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
 }
 
 pub struct VirtualMachine {
@@ -306,16 +306,20 @@ impl VirtualMachine {
     pub fn deduce_memory_cell(&mut self, addr: MaybeRelocatable) -> Option<MaybeRelocatable> {
         match addr {
             MaybeRelocatable::Int(_) => None,
-            MaybeRelocatable::RelocatableValue(addr) => {
-                let rules = self.auto_deduction.get(&addr.segment_index);
-                for (rule, args) in rules.iter() {
-                    match rule(self, addr, args) {
-                        Some(value) => {
-                            self.validated_memory.validated_addresses[addr] = value;
-                            return value;
+            MaybeRelocatable::RelocatableValue(addr_val) => {
+                match self.auto_deduction.get(&addr_val.segment_index) {
+                    Some(rules) => {
+                        for (rule, args) in rules.iter() {
+                            match (rule.func)(self, &addr, args) {
+                                Some(value) => {
+                                    self.validated_memory.memory.insert(&addr, value);
+                                    return Some(value);
+                                },
+                                None => None,
+                            };
                         }
-                        None => None,
-                    };
+                    },
+                    None => None
                 }
             }
         }
