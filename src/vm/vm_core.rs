@@ -343,15 +343,15 @@ impl VirtualMachine {
     }
 
     fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
-        (operands, operands_mem_addresses) = self.compute_operands(&instruction)?;
-        self.opcode_assertions(&instruction, &operands)?;
-        self.trace_entry.append(TraceEntry {
+        let (operands, operands_mem_addresses) = self.compute_operands(&instruction)?;
+        self.opcode_assertions(&instruction, &operands);
+        self.trace.push(TraceEntry {
             pc: self.run_context.pc,
             ap: self.run_context.ap,
             fp: self.run_context.fp,
         });
-        self.accessed_addresses.update(operands_mem_addresses);
-        self.accessed_addresses.add(self.run_context.pc);
+        self.accessed_addresses.append(&mut operands_mem_addresses);
+        self.accessed_addresses.push(self.run_context.pc);
         self.update_registers(instruction, operands)?;
         self.current_step += bigint!(1);
         Ok(())
