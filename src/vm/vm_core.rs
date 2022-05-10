@@ -49,19 +49,13 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
         operands: &Operands,
-    ) -> Result<(), VirtualMachineError> {
+    ) {
         let new_fp = match instruction.fp_update {
-            FpUpdate::AP_PLUS2 => Some(self.run_context.ap.add_num_addr(bigint!(2), None)),
-            FpUpdate::DST => Some(operands.dst.clone()),
-            FpUpdate::REGULAR => return Ok(()),
+            FpUpdate::AP_PLUS2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            FpUpdate::DST => operands.dst.clone(),
+            FpUpdate::REGULAR => return,
         };
-        match new_fp {
-            Some(fp) => {
-                self.run_context.fp = fp;
-                return Ok(());
-            }
-            None => return Err(VirtualMachineError::InvalidFpUpdateError),
-        };
+        self.run_context.fp = new_fp;
     }
 
     fn update_ap(
@@ -130,7 +124,7 @@ impl VirtualMachine {
         instruction: Instruction,
         operands: Operands,
     ) -> Result<(), VirtualMachineError> {
-        self.update_fp(&instruction, &operands)?;
+        self.update_fp(&instruction, &operands);
         self.update_ap(&instruction, &operands)?;
         self.update_pc(&instruction, &operands)?;
         return Ok(());
