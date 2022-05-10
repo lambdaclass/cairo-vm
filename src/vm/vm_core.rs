@@ -5,7 +5,7 @@ use crate::vm::trace_entry::TraceEntry;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-//use std::collections::HashMap;
+use std::collections::HashMap;
 use std::fmt;
 
 macro_rules! bigint {
