@@ -17,11 +17,10 @@ Cleaopatra is a Rust implementation of the Cairo VM
 
 We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
 
-
 <p float="left">
   <img src="cairo_vm_color_key.png" width="200" />
 </p>
 
-![diagram](cairo_vm_flow_diagram.jpg)
+![diagram](./docs/diagram/cairo_vm_flow_diagram.jpg)
 
-This diagram was produced using this [mermaid code](cairo_vm_flow_diagram.md).
+This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow_diagram.md).
