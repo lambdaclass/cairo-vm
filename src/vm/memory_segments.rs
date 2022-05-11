@@ -6,7 +6,7 @@ use num_traits::FromPrimitive;
 use num_traits::Zero;
 use std::collections::HashMap;
 
-struct MemorySegmentManager {
+pub struct MemorySegmentManager {
     memory: Memory,
     prime: BigInt,
     num_segments: i32,
