@@ -344,17 +344,17 @@ impl VirtualMachine {
         }
     }
 
-    pub fn deduce_memory_cell(&mut self, addr: MaybeRelocatable) -> Option<&MaybeRelocatable> {
+    pub fn deduce_memory_cell(&mut self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         match addr {
             MaybeRelocatable::Int(_) => (),
             MaybeRelocatable::RelocatableValue(ref addr_val) => {
                 match self.auto_deduction.get(&addr_val.segment_index) {
                     Some(rules) => {
                         for (rule, args) in rules.iter() {
-                            match (rule.func)(self, &addr, args) {
+                            match (rule.func)(self, addr, args) {
                                 Some(value) => {
-                                    self.validated_memory.memory.insert(&addr, &value);
-                                    return self.validated_memory.memory.get(&addr);
+                                    self.validated_memory.memory.insert(addr, &value);
+                                    return self.validated_memory.memory.get(addr);
                                 }
                                 None => (),
                             };
@@ -380,80 +380,80 @@ impl VirtualMachine {
             .compute_op1_addr(instruction, op0.clone())?;
         let mut op1: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&op1_addr);
         let mut res: Option<MaybeRelocatable> = None;
-        
-        if matches!(op0, None) {
-            op0 = self.deduce_memory_cell(op0_addr);
-        }/*
-        if matches!(op1, None) {
-            op1 = self.deduce_memory_cell(op1_addr).as_ref();
-        }
-
-        let should_update_dst = matches!(dst, None);
-        let should_update_op0 = matches!(op0, None);
-        let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
-            let deduced_operand = self.deduce_op0(instruction, dst, op1).unwrap();
-            op0 = deduced_operand.0.as_ref();
-            let deduced_res = deduced_operand.1;
-            if matches!(res, None) {
-                res = deduced_res
-            }
-        }
-        if matches!(op1, None) {
-            let deduced_operand = self.deduce_op1(instruction, dst, Some(op0.unwrap().clone())).unwrap();
-            op1 = deduced_operand.0.as_ref();
-            let deduced_res = deduced_operand.1;
-            if matches!(res, None) {
-                res = deduced_res
-            }
-        }
+            op0 = self.deduce_memory_cell(&op0_addr);
+        } /*
+          if matches!(op1, None) {
+              op1 = self.deduce_memory_cell(op1_addr).as_ref();
+          }
 
-        if matches!(op0, None) {
-            op0 = self.validated_memory.memory.get(&op0_addr);
-        }
-        if matches!(op1, None) {
-            op1 = self.validated_memory.memory.get(&op1_addr);
-        }
+          let should_update_dst = matches!(dst, None);
+          let should_update_op0 = matches!(op0, None);
+          let should_update_op1 = matches!(op1, None);
 
-        if matches!(res, None) {
-            res = self
-                .compute_res(instruction, &op0.unwrap(), &op1.unwrap())
-                .unwrap();
-        }
+          if matches!(op0, None) {
+              let deduced_operand = self.deduce_op0(instruction, dst, op1).unwrap();
+              op0 = deduced_operand.0.as_ref();
+              let deduced_res = deduced_operand.1;
+              if matches!(res, None) {
+                  res = deduced_res
+              }
+          }
+          if matches!(op1, None) {
+              let deduced_operand = self.deduce_op1(instruction, dst, Some(op0.unwrap().clone())).unwrap();
+              op1 = deduced_operand.0.as_ref();
+              let deduced_res = deduced_operand.1;
+              if matches!(res, None) {
+                  res = deduced_res
+              }
+          }
 
-        if matches!(dst, None) {
-            match instruction.opcode {
-                Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res.as_ref(),
-                Opcode::CALL => dst = Some(&self.run_context.fp),
-                _ => (),
-            }
-        }
+          if matches!(op0, None) {
+              op0 = self.validated_memory.memory.get(&op0_addr);
+          }
+          if matches!(op1, None) {
+              op1 = self.validated_memory.memory.get(&op1_addr);
+          }
 
-        if matches!(dst, None) {
-            dst = self.validated_memory.memory.get(&dst_addr)
-        }
+          if matches!(res, None) {
+              res = self
+                  .compute_res(instruction, &op0.unwrap(), &op1.unwrap())
+                  .unwrap();
+          }
 
-        if should_update_dst {
-            self.validated_memory
-                .memory
-                .insert(&dst_addr, &dst.unwrap());
-        }
-        if should_update_op0 {
-            self.validated_memory
-                .memory
-                .insert(&op0_addr, &op0.unwrap());
-        }
-        if should_update_op1 {
-            self.validated_memory
-                .memory
-                .insert(&op1_addr, &op1.unwrap());
-        }
-        (
-            Operands { dst:dst.unwrap().clone(), op0:op0.unwrap().clone(), op1:op1.unwrap().clone(), res },
-            [dst_addr, op0_addr, op1_addr].to_vec(),
-        )
-        */
+          if matches!(dst, None) {
+              match instruction.opcode {
+                  Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res.as_ref(),
+                  Opcode::CALL => dst = Some(&self.run_context.fp),
+                  _ => (),
+              }
+          }
+
+          if matches!(dst, None) {
+              dst = self.validated_memory.memory.get(&dst_addr)
+          }
+
+          if should_update_dst {
+              self.validated_memory
+                  .memory
+                  .insert(&dst_addr, &dst.unwrap());
+          }
+          if should_update_op0 {
+              self.validated_memory
+                  .memory
+                  .insert(&op0_addr, &op0.unwrap());
+          }
+          if should_update_op1 {
+              self.validated_memory
+                  .memory
+                  .insert(&op1_addr, &op1.unwrap());
+          }
+          (
+              Operands { dst:dst.unwrap().clone(), op0:op0.unwrap().clone(), op1:op1.unwrap().clone(), res },
+              [dst_addr, op0_addr, op1_addr].to_vec(),
+          )
+          */
         Ok((
             Operands {
                 dst: dst.unwrap().clone(),
