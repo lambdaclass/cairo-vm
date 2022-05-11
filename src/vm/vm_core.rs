@@ -377,8 +377,7 @@ impl VirtualMachine {
         let mut op0: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&op0_addr);
         let op1_addr: MaybeRelocatable = self
             .run_context
-            .compute_op1_addr(instruction, Some(op0.unwrap().clone()))
-            .unwrap();
+            .compute_op1_addr(instruction, op0.clone())?;
         let mut op1: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&op1_addr);
         let mut res: Option<MaybeRelocatable> = None;
         /*
