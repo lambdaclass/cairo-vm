@@ -357,10 +357,10 @@ impl VirtualMachine {
         Ok(())
     }
 
-    fn decode_current_instruction(&mut self) -> Result<Instruction, VirtualMachineError> {
+    fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.run_context.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
-        if let Some(&MaybeRelocatable::Int(imm_ref)) = imm {
+        if let Some(&MaybeRelocatable::Int(ref imm_ref)) = imm {
             return Ok(decode_instruction(instruction, Some(imm_ref.clone())))
         }
         return Ok(decode_instruction(instruction, None))
