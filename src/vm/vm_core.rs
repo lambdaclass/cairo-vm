@@ -41,7 +41,7 @@ pub struct VirtualMachine {
     //program: ProgramBase,
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
+    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigInt,
@@ -329,29 +329,6 @@ impl VirtualMachine {
             }
             _ => {}
         }
-    }
-
-    pub fn deduce_memory_cell(&mut self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
-        match addr {
-            MaybeRelocatable::Int(_) => (),
-            MaybeRelocatable::RelocatableValue(ref addr_val) => {
-                match self.auto_deduction.get(&addr_val.segment_index) {
-                    Some(rules) => {
-                        for (rule, args) in rules.iter() {
-                            match (rule.func)(self, addr, args) {
-                                Some(value) => {
-                                    self.validated_memory.memory.insert(addr, &value);
-                                    return self.validated_memory.memory.get(addr);
-                                }
-                                None => (),
-                            };
-                        }
-                    }
-                    None => (),
-                };
-            }
-        }
-        None
     }
 
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
@@ -2298,7 +2275,10 @@ mod tests {
             skip_instruction_execution: false,
         };
         let res = MaybeRelocatable::Int(bigint!(7));
-        assert_eq!(Some(MaybeRelocatable::Int(bigint!(7))), vm.deduce_dst(&instruction, Some(&res)));
+        assert_eq!(
+            Some(MaybeRelocatable::Int(bigint!(7))),
+            vm.deduce_dst(&instruction, Some(&res))
+        );
     }
 
     #[test]
@@ -2374,7 +2354,10 @@ mod tests {
             current_step: bigint!(1),
             skip_instruction_execution: false,
         };
-        assert_eq!(Some(MaybeRelocatable::Int(bigint!(6))), vm.deduce_dst(&instruction, None));
+        assert_eq!(
+            Some(MaybeRelocatable::Int(bigint!(6))),
+            vm.deduce_dst(&instruction, None)
+        );
     }
 
     #[test]
