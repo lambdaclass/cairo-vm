@@ -370,7 +370,7 @@ impl VirtualMachine {
     pub fn compute_operands(
         &mut self,
         instruction: &Instruction,
-    ) -> (Operands, Vec<MaybeRelocatable>) {
+    ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
         let mut dst: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&dst_addr);
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
@@ -455,7 +455,7 @@ impl VirtualMachine {
                     [dst_addr, op0_addr, op1_addr].to_vec(),
                 )
         */
-        (
+        Ok((
             Operands {
                 dst: dst.unwrap().clone(),
                 op0: op0.unwrap().clone(),
@@ -463,7 +463,7 @@ impl VirtualMachine {
                 res,
             },
             [].to_vec(),
-        )
+        ))
     }
 }
 
