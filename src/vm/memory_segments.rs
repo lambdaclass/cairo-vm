@@ -1,11 +1,10 @@
 use crate::vm::memory::Memory;
-use crate::vm::relocatable::Relocatable;
 use crate::vm::relocatable::MaybeRelocatable;
+use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Zero;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 struct MemorySegmentManager {
     memory: Memory,
@@ -32,11 +31,19 @@ impl MemorySegmentManager {
         }
     }
     ///Writes data into the memory at address ptr and returns the first address after the data.
-    pub fn load_data(&mut self, ptr: &MaybeRelocatable, data: Vec<MaybeRelocatable>) -> MaybeRelocatable {
+    pub fn load_data(
+        &mut self,
+        ptr: &MaybeRelocatable,
+        data: Vec<MaybeRelocatable>,
+    ) -> MaybeRelocatable {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(&ptr.add_num_addr(BigInt::from_usize(num).unwrap(), None), value);
+            self.memory.insert(
+                &ptr.add_num_addr(BigInt::from_usize(num).unwrap(), None),
+                value,
+            );
         }
-        ptr.add_num_addr(BigInt::from_usize(data.len()).unwrap(), None).clone()
+        ptr.add_num_addr(BigInt::from_usize(data.len()).unwrap(), None)
+            .clone()
     }
 
     pub fn new(memory: Memory, prime: BigInt) -> MemorySegmentManager {
