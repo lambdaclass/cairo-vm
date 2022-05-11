@@ -5,6 +5,7 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Zero;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 struct MemorySegmentManager {
     memory: Memory,
@@ -36,5 +37,17 @@ impl MemorySegmentManager {
             self.memory.insert(&ptr.add_num_addr(BigInt::from_usize(num).unwrap(), None), value);
         }
         ptr.add_num_addr(BigInt::from_usize(data.len()).unwrap(), None).clone()
+    }
+
+    pub fn new(memory: Memory, prime: BigInt) -> MemorySegmentManager {
+        MemorySegmentManager {
+            memory: memory,
+            prime: prime,
+            num_segments: 0,
+            segment_sizes: HashMap::<BigInt, BigInt>::new(),
+            segment_used_sizes: None,
+            public_memory_offsets: HashMap::<BigInt, Vec<(BigInt, BigInt)>>::new(),
+            num_temp_segments: 0,
+        }
     }
 }
