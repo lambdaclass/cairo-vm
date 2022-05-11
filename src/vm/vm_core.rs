@@ -367,82 +367,85 @@ impl VirtualMachine {
         None
     }
 
+    /// Compute operands and result, trying to deduce them if normal memory access returns a None
+    /// value.
     pub fn compute_operands(
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
-        let mut dst: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&dst_addr);
+        let mut dst: Option<MaybeRelocatable> = match self.validated_memory.memory.get(&dst_addr) {
+            Some(destination) => Some(destination.clone()),
+            None => None,
+        };
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
-        let mut op0: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&op0_addr);
+        let mut op0: Option<MaybeRelocatable> = match self.validated_memory.memory.get(&op0_addr) {
+            Some(operand0) => Some(operand0.clone()),
+            None => None,
+        };
         let op1_addr: MaybeRelocatable = self
             .run_context
-            .compute_op1_addr(instruction, op0.clone())?;
-        let mut op1: Option<&MaybeRelocatable> = self.validated_memory.memory.get(&op1_addr);
-        let mut res: Option<MaybeRelocatable> = self.compute_res(instruction, &op0.unwrap(), &op1.unwrap())?;
-/*
+            .compute_op1_addr(instruction, op0.as_ref())?;
+        let mut op1: Option<MaybeRelocatable> = match self.validated_memory.memory.get(&op1_addr) {
+            Some(operand1) => Some(operand1.clone()),
+            None => None,
+        };
+        let mut res: Option<MaybeRelocatable> = None;
+
         let should_update_dst = matches!(dst, None);
         let should_update_op0 = matches!(op0, None);
         let should_update_op1 = matches!(op1, None);
 
-        let mut deduced_operand_op0: (Option<MaybeRelocatable>, Option<MaybeRelocatable>) = (None, None);
         if matches!(op0, None) {
-            deduced_operand_op0 = self.deduce_op0(instruction, dst, op1).unwrap();
-            op0 = deduced_operand_op0.0.as_ref();
-            let deduced_res = deduced_operand_op0.1;
-            if matches!(res, None) {
-                res = deduced_res
-            }
+            (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
         }
-        let mut deduced_operand_op1: (Option<MaybeRelocatable>, Option<MaybeRelocatable>) = (None, None);
+
         if matches!(op1, None) {
-            let deduced_operand_op1 = self.deduce_op1(instruction, dst, Some(op0.unwrap().clone())).unwrap();
-            op1 = deduced_operand_op1.0.as_ref();
-            let deduced_res = deduced_operand_op1.1;
+            let deduced_operand = self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
+            op1 = deduced_operand.0;
             if matches!(res, None) {
-                res = deduced_res
+                res = deduced_operand.1;
             }
         }
 
-        assert!(matches!(op0, None), "Couldn't compute or deduce op0")
-        assert!(matches!(op1, None), "Couldn't compute or deduce op1")
+        assert!(matches!(op0, Some(_)), "Couldn't compute or deduce op0");
+        assert!(matches!(op1, Some(_)), "Couldn't compute or deduce op1");
 
         if matches!(res, None) {
-            res = self
-                .compute_res(instruction, &op0.unwrap(), &op1.unwrap())
-                .unwrap();
+            res = self.compute_res(instruction, op0.as_ref().unwrap(), op1.as_ref().unwrap())?;
         }
 
         if matches!(dst, None) {
             match instruction.opcode {
-                Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res.as_ref(),
-                Opcode::CALL => dst = Some(&self.run_context.fp),
-                _ => (),
+                Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res.clone(),
+                Opcode::CALL => dst = Some(self.run_context.fp.clone()),
+                _ => panic!("Couldn't get or load dst"),
             }
-        }
-
-        if matches!(dst, None) {
-            dst = self.validated_memory.memory.get(&dst_addr)
         }
 
         if should_update_dst {
             self.validated_memory
                 .memory
-                .insert(&dst_addr, &dst.unwrap());
+                .insert(&dst_addr, dst.as_ref().unwrap());
         }
         if should_update_op0 {
             self.validated_memory
                 .memory
-                .insert(&op0_addr, &op0.unwrap());
+                .insert(&op0_addr, op0.as_ref().unwrap());
         }
         if should_update_op1 {
             self.validated_memory
                 .memory
-                .insert(&op1_addr, &op1.unwrap());
+                .insert(&op1_addr, op1.as_ref().unwrap());
         }
-        */
+
         Ok((
-            Operands { dst:dst.unwrap().clone(), op0:op0.unwrap().clone(), op1:op1.unwrap().clone(), res },
+            Operands {
+                dst: dst.unwrap().clone(),
+                op0: op0.unwrap().clone(),
+                op1: op1.unwrap().clone(),
+                res,
+            },
             [dst_addr, op0_addr, op1_addr].to_vec(),
         ))
     }
