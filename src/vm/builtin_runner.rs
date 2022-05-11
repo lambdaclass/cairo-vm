@@ -1,5 +1,6 @@
 use num_bigint::BigInt;
 use crate::vm::relocatable::Relocatable;
+use crate::vm::cairo_runner::CairoRunner;
 
 pub enum BuiltinRunner {
     SimpleBuiltinRunner,
@@ -33,6 +34,10 @@ impl SimpleBuiltinRunner {
             n_input_cells: n_input_cells,
         }
     }
+
+    pub fn initialize_segments(&mut self, runner: CairoRunner) {
+        self.base = runner.segments.add()
+    }
 }
 
 impl OutputRunner {
@@ -42,5 +47,9 @@ impl OutputRunner {
             base: None,
             stop_ptr: None,
         }
+    }
+
+    pub fn initialize_segments(&mut self, runner: CairoRunner) {
+        self.base = runner.segments.add()
     }
 }
