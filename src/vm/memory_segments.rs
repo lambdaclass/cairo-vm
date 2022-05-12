@@ -7,9 +7,9 @@ use num_traits::Zero;
 use std::collections::HashMap;
 
 pub struct MemorySegmentManager {
-    memory: Memory,
+    pub memory: Memory,
     prime: BigInt,
-    num_segments: i32,
+    pub num_segments: i32,
     segment_sizes: HashMap<BigInt, BigInt>,
     segment_used_sizes: Option<HashMap<BigInt, BigInt>>,
     public_memory_offsets: HashMap<BigInt, Vec<(BigInt, BigInt)>>,

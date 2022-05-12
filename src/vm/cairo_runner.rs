@@ -65,10 +65,50 @@ mod tests {
     use super::*;
 
     #[test]
-    fn initialize_segemnts_no_base() {
+    fn initialize_segments_with_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
-            builtins: vec![String::from("output"), String::from("range_check")],
+            builtins: vec![String::from("output")],
+            prime: BigInt::from_i32(17).unwrap(),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        let program_base = Some(Relocatable {
+            segment_index: BigInt::from_i32(5).unwrap(),
+            offset: BigInt::from_i32(9).unwrap(),
+        });
+        cairo_runner.segments.num_segments = 6;
+        cairo_runner.initialize_segments(program_base);
+        assert_eq!(
+            cairo_runner.program_base,
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(5).unwrap(),
+                offset: BigInt::from_i32(9).unwrap()
+            })
+        );
+        assert_eq!(
+            cairo_runner.execution_base,
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(6).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+
+        assert_eq!(
+            cairo_runner.builtin_runners[&String::from("output")].base(),
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(7).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+
+        assert_eq!(cairo_runner.segments.num_segments, 8);
+    }
+
+    #[test]
+    fn initialize_segments_no_base() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
             prime: BigInt::from_i32(17).unwrap(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
@@ -96,17 +136,6 @@ mod tests {
             })
         );
 
-        assert_eq!(
-            cairo_runner.builtin_runners[&String::from("range_check")].base(),
-            Some(Relocatable {
-                segment_index: BigInt::from_i32(3).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
-            })
-        );
-
-       
-          
-        
-
+        assert_eq!(cairo_runner.segments.num_segments, 3);
     }
 }
