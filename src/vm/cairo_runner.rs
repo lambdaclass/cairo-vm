@@ -1,7 +1,8 @@
-use crate::vm::builtin_runner::BuiltinRunner;
+use crate::vm::builtin_runner::{OutputRunner, SimpleBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::program::Program;
 use crate::vm::relocatable::Relocatable;
+use crate::vm::builtin_runner::BuiltinRunner;
 use std::collections::HashMap;
 
 pub struct CairoRunner {
@@ -16,6 +17,23 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
+    pub fn new(program: &Program) -> CairoRunner {
+        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
+        for builtin_name in program.builtins.iter() {
+            if *builtin_name == String::from("output") {
+                builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
+            }
+        };
+        CairoRunner {
+            program: program.clone(),
+            layout: String::from("plain"),
+            segments: MemorySegmentManager::new(program.prime.clone()),
+            final_pc: None,
+            program_base: None,
+            execution_base: None,
+            builtin_runners: builtin_runners,
+        }
+    }
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),

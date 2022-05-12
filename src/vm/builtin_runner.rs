@@ -1,9 +1,8 @@
-use crate::vm::cairo_runner::CairoRunner;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 
-struct SimpleBuiltinRunner {
+pub struct SimpleBuiltinRunner {
     name: String,
     included: bool,
     ratio: BigInt,
@@ -12,7 +11,7 @@ struct SimpleBuiltinRunner {
     cells_per_instance: BigInt,
     n_input_cells: BigInt,
 }
-struct OutputRunner {
+pub struct OutputRunner {
     included: bool,
     base: Option<Relocatable>,
     stop_ptr: Option<Relocatable>,
@@ -60,7 +59,7 @@ impl BuiltinRunner for SimpleBuiltinRunner {
 }
 
 impl OutputRunner {
-    fn new(included: bool) -> OutputRunner {
+    pub fn new(included: bool) -> OutputRunner {
         OutputRunner {
             included: included,
             base: None,

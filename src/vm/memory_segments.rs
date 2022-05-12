@@ -46,9 +46,9 @@ impl MemorySegmentManager {
             .clone()
     }
 
-    pub fn new(memory: Memory, prime: BigInt) -> MemorySegmentManager {
+    pub fn new(prime: BigInt) -> MemorySegmentManager {
         MemorySegmentManager {
-            memory: memory,
+            memory: Memory::new(),
             prime: prime,
             num_segments: 0,
             segment_sizes: HashMap::<BigInt, BigInt>::new(),

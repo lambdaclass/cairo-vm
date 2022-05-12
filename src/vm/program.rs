@@ -1,3 +1,7 @@
+use num_bigint::BigInt;
+
+#[derive(Clone)]
 pub struct Program {
-    builtins: Vec<String>,
+    pub builtins: Vec<String>,
+    pub prime: BigInt,
 }
