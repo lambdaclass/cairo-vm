@@ -2456,4 +2456,65 @@ mod tests {
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
     }
+
+    #[test]
+    fn compute_operands_mul_fp() {
+        let inst = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(1),
+            off2: bigint!(2),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::FP,
+            res: Res::MUL,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::REGULAR,
+            opcode: Opcode::NOP,
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(0)),
+            ap: MaybeRelocatable::Int(bigint!(0)),
+            fp: MaybeRelocatable::Int(bigint!(0)),
+            prime: bigint!(127),
+        };
+
+        let dst_addr = MaybeRelocatable::Int(bigint!(0));
+        let dst_addr_value = MaybeRelocatable::Int(bigint!(6));
+        let op0_addr = MaybeRelocatable::Int(bigint!(1));
+        let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
+        let op1_addr = MaybeRelocatable::Int(bigint!(2));
+        let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
+        let mut val_memory = ValidatedMemoryDict::new();
+        val_memory.insert(&dst_addr, &dst_addr_value);
+        val_memory.insert(&op0_addr, &op0_addr_value);
+        val_memory.insert(&op1_addr, &op1_addr_value);
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: val_memory,
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        let expected_operands = Operands {
+            dst: dst_addr_value.clone(),
+            res: Some(dst_addr_value.clone()),
+            op0: op0_addr_value.clone(),
+            op1: op1_addr_value.clone(),
+        };
+
+        let expected_addresses: Vec<MaybeRelocatable> =
+            vec![dst_addr.clone(), op0_addr.clone(), op1_addr.clone()];
+        let (operands, addresses) = vm.compute_operands(&inst).unwrap();
+        assert!(operands == expected_operands);
+        assert!(addresses == expected_addresses);
+    }
 }
