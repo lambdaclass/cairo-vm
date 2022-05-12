@@ -1,1 +1,3 @@
-pub struct Program {}
+pub struct Program {
+    builtins: Vec<String>,
+}
