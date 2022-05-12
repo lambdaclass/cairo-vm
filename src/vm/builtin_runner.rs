@@ -1,11 +1,7 @@
 use crate::vm::cairo_runner::CairoRunner;
+use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
-
-pub enum BuiltinRunner {
-    SimpleBuiltinRunner,
-    OutputRunner,
-}
 
 struct SimpleBuiltinRunner {
     name: String,
@@ -20,6 +16,10 @@ struct OutputRunner {
     included: bool,
     base: Option<Relocatable>,
     stop_ptr: Option<Relocatable>,
+}
+
+pub trait BuiltinRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
 }
 
 impl SimpleBuiltinRunner {
@@ -40,22 +40,25 @@ impl SimpleBuiltinRunner {
             n_input_cells: n_input_cells,
         }
     }
-
-    pub fn initialize_segments(&mut self, runner: &mut CairoRunner) {
-        self.base = Some(runner.segments.add(None))
+}
+impl BuiltinRunner for SimpleBuiltinRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = Some(segments.add(None))
     }
 }
 
 impl OutputRunner {
-    pub fn new(included: bool) -> OutputRunner {
+    fn new(included: bool) -> OutputRunner {
         OutputRunner {
             included: included,
             base: None,
             stop_ptr: None,
         }
     }
+}
 
-    pub fn initialize_segments(&mut self, runner: &mut CairoRunner) {
-        self.base = Some(runner.segments.add(None))
+impl BuiltinRunner for OutputRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = Some(segments.add(None))
     }
 }

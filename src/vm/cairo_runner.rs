@@ -8,11 +8,11 @@ pub struct CairoRunner {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
     layout: String,
-    builtin_runners: HashMap<String, BuiltinRunner>,
+    builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
-    program_base: Option<Relocatable>
-    execution_base: Option<Relocatable>
+    program_base: Option<Relocatable>,
+    execution_base: Option<Relocatable>,
 }
 
 impl CairoRunner {
@@ -23,7 +23,7 @@ impl CairoRunner {
         };
         self.execution_base = Some(self.segments.add(None));
         for (_key, builtin_runner) in self.builtin_runners.iter_mut() {
-            (*builtin_runner).initialize_segments(&self);
+            builtin_runner.initialize_segments(&mut self.segments);
         }
     }
 }
