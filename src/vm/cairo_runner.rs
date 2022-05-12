@@ -59,3 +59,54 @@ impl CairoRunner {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn initialize_segemnts_no_base() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output"), String::from("range_check")],
+            prime: BigInt::from_i32(17).unwrap(),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        assert_eq!(
+            cairo_runner.program_base,
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(0).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+        assert_eq!(
+            cairo_runner.execution_base,
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(1).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+
+        assert_eq!(
+            cairo_runner.builtin_runners[&String::from("output")].base(),
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(2).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+
+        assert_eq!(
+            cairo_runner.builtin_runners[&String::from("range_check")].base(),
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(3).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+
+       
+          
+        
+
+    }
+}

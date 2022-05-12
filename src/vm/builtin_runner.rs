@@ -23,6 +23,7 @@ pub struct OutputRunner {
 pub trait BuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
     fn initial_stack(&self) -> Vec<Relocatable>;
+    fn base(&self) -> Option<Relocatable>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -56,6 +57,10 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
             Vec::new()
         }
     }
+
+    fn base(&self) -> Option<Relocatable> {
+        self.base.clone()
+    }
 }
 
 impl OutputRunner {
@@ -83,6 +88,10 @@ impl BuiltinRunner for OutputRunner {
         } else {
             Vec::new()
         }
+    }
+
+    fn base(&self) -> Option<Relocatable> {
+        self.base.clone()
     }
 }
 

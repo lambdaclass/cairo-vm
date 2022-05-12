@@ -64,7 +64,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn add_segment_no_size_test() {
+    fn add_segment_no_size() {
         let mut segments = MemorySegmentManager::new(BigInt::from_i32(17).unwrap());
         let base = segments.add(None);
         assert_eq!(
