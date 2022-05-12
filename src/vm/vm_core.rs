@@ -2273,10 +2273,7 @@ mod tests {
             skip_instruction_execution: false,
         };
         let res = MaybeRelocatable::Int(bigint!(7));
-        assert_eq!(
-            Some(MaybeRelocatable::Int(bigint!(7))),
-            vm.deduce_dst(&instruction, Some(&res))
-        );
+        assert_eq!(Some(MaybeRelocatable::Int(bigint!(7))), vm.deduce_dst(&instruction, Some(&res)));
     }
 
     #[test]
@@ -2352,10 +2349,7 @@ mod tests {
             current_step: bigint!(1),
             skip_instruction_execution: false,
         };
-        assert_eq!(
-            Some(MaybeRelocatable::Int(bigint!(6))),
-            vm.deduce_dst(&instruction, None)
-        );
+        assert_eq!(Some(MaybeRelocatable::Int(bigint!(6))), vm.deduce_dst(&instruction, None));
     }
 
     #[test]

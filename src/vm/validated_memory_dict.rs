@@ -18,7 +18,6 @@ impl ValidatedMemoryDict {
             validated_addresses: Vec::<Relocatable>::new(),
         }
     }
-
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         self.memory.get(addr)
     }
