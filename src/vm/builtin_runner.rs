@@ -41,7 +41,7 @@ impl SimpleBuiltinRunner {
         }
     }
 
-    pub fn initialize_segments(&mut self, runner: CairoRunner) {
+    pub fn initialize_segments(&mut self, runner: &mut CairoRunner) {
         self.base = Some(runner.segments.add(None))
     }
 }
@@ -55,7 +55,7 @@ impl OutputRunner {
         }
     }
 
-    pub fn initialize_segments(&mut self, runner: CairoRunner) {
+    pub fn initialize_segments(&mut self, runner: &mut CairoRunner) {
         self.base = Some(runner.segments.add(None))
     }
 }
