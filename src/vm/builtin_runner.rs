@@ -21,8 +21,10 @@ pub struct OutputRunner {
 }
 
 pub trait BuiltinRunner {
+    ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
     fn initial_stack(&self) -> Vec<Relocatable>;
+    ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
 }
 

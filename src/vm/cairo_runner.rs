@@ -48,6 +48,7 @@ impl CairoRunner {
             builtin_runners: builtin_runners,
         }
     }
+    ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
