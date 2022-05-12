@@ -1,8 +1,10 @@
-use crate::vm::builtin_runner::{OutputRunner, SimpleBuiltinRunner};
+use crate::vm::builtin_runner::BuiltinRunner;
+use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::program::Program;
 use crate::vm::relocatable::Relocatable;
-use crate::vm::builtin_runner::BuiltinRunner;
+use num_bigint::BigInt;
+use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
 pub struct CairoRunner {
@@ -23,7 +25,20 @@ impl CairoRunner {
             if *builtin_name == String::from("output") {
                 builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
             }
-        };
+
+            if *builtin_name == String::from("range_check") {
+                //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(RangeCheckBuiltinRunner::new(
+                        builtin_name.clone(),
+                        true,
+                        BigInt::from_i32(8).unwrap(),
+                        8,
+                    )),
+                );
+            }
+        }
         CairoRunner {
             program: program.clone(),
             layout: String::from("plain"),
