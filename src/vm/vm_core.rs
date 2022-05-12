@@ -41,7 +41,7 @@ pub struct VirtualMachine {
     //program: ProgramBase,
     program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
+    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessesed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigInt,
