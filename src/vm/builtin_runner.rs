@@ -20,6 +20,7 @@ struct OutputRunner {
 
 pub trait BuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
+    fn initial_stack(&self) -> Vec<Relocatable>;
 }
 
 impl SimpleBuiltinRunner {
@@ -45,6 +46,17 @@ impl BuiltinRunner for SimpleBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
+    fn initial_stack(&self) -> Vec<Relocatable> {
+        if self.included {
+            if let Some(builtin_base) = &self.base {
+                vec![builtin_base.clone()]
+            } else {
+                panic!("Uninitialized self.base")
+            }
+        } else {
+            Vec::new()
+        }
+    }
 }
 
 impl OutputRunner {
@@ -60,5 +72,17 @@ impl OutputRunner {
 impl BuiltinRunner for OutputRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
+    }
+
+    fn initial_stack(&self) -> Vec<Relocatable> {
+        if self.included {
+            if let Some(builtin_base) = &self.base {
+                vec![builtin_base.clone()]
+            } else {
+                panic!("Uninitialized self.base")
+            }
+        } else {
+            Vec::new()
+        }
     }
 }
