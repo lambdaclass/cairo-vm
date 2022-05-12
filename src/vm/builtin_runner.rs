@@ -1,10 +1,9 @@
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::Relocatable;
-use num_traits::FromPrimitive;
 use num_bigint::BigInt;
+use num_traits::FromPrimitive;
 
 pub struct RangeCheckBuiltinRunner {
-    name: String,
     included: bool,
     ratio: BigInt,
     base: Option<Relocatable>,
@@ -27,15 +26,9 @@ pub trait BuiltinRunner {
 }
 
 impl RangeCheckBuiltinRunner {
-    pub fn new(
-        name: String,
-        included: bool,
-        ratio: BigInt,
-        n_parts: u32
-    ) -> RangeCheckBuiltinRunner {
+    pub fn new(included: bool, ratio: BigInt, n_parts: u32) -> RangeCheckBuiltinRunner {
         let inner_rc_bound = BigInt::from_i32(2_i32.pow(16)).unwrap();
         RangeCheckBuiltinRunner {
-            name: name,
             included: included,
             ratio: ratio,
             base: None,
@@ -44,7 +37,7 @@ impl RangeCheckBuiltinRunner {
             n_input_cells: 1,
             inner_rc_bound: inner_rc_bound.clone(),
             bound: inner_rc_bound.pow(n_parts),
-            n_parts:n_parts,
+            n_parts: n_parts,
         }
     }
 }
@@ -90,5 +83,38 @@ impl BuiltinRunner for OutputRunner {
         } else {
             Vec::new()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn initialize_segments_for_output() {
+        let mut builtin = OutputRunner::new(true);
+        let mut segments = MemorySegmentManager::new(BigInt::from_i32(7).unwrap());
+        builtin.initialize_segments(&mut segments);
+        assert_eq!(
+            builtin.base,
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(0).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
+    }
+
+    #[test]
+    fn initialize_segments_for_range_check() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, BigInt::from_i32(8).unwrap(), 8);
+        let mut segments = MemorySegmentManager::new(BigInt::from_i32(7).unwrap());
+        builtin.initialize_segments(&mut segments);
+        assert_eq!(
+            builtin.base,
+            Some(Relocatable {
+                segment_index: BigInt::from_i32(0).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            })
+        );
     }
 }

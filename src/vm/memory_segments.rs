@@ -67,7 +67,13 @@ mod tests {
     fn add_segment_no_size_test() {
         let mut segments = MemorySegmentManager::new(BigInt::from_i32(17).unwrap());
         let base = segments.add(None);
-        assert_eq!(base, Relocatable { segment_index: BigInt::from_i32(0).unwrap(), offset: BigInt::from_i32(0).unwrap()});
+        assert_eq!(
+            base,
+            Relocatable {
+                segment_index: BigInt::from_i32(0).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            }
+        );
         assert_eq!(segments.num_segments, 1);
     }
 
@@ -76,7 +82,13 @@ mod tests {
         let mut segments = MemorySegmentManager::new(BigInt::from_i32(17).unwrap());
         let mut base = segments.add(None);
         base = segments.add(None);
-        assert_eq!(base, Relocatable { segment_index: BigInt::from_i32(1).unwrap(), offset: BigInt::from_i32(0).unwrap()});
+        assert_eq!(
+            base,
+            Relocatable {
+                segment_index: BigInt::from_i32(1).unwrap(),
+                offset: BigInt::from_i32(0).unwrap()
+            }
+        );
         assert_eq!(segments.num_segments, 2);
     }
 }

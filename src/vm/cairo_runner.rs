@@ -31,7 +31,6 @@ impl CairoRunner {
                 builtin_runners.insert(
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(
-                        builtin_name.clone(),
                         true,
                         BigInt::from_i32(8).unwrap(),
                         8,
