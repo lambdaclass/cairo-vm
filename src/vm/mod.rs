@@ -4,6 +4,7 @@ pub mod decoder;
 pub mod instruction;
 pub mod memory;
 pub mod memory_segments;
+pub mod program;
 pub mod relocatable;
 pub mod run_context;
 pub mod trace_entry;
