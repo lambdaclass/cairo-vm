@@ -64,11 +64,13 @@ impl RunContext {
                 false => return Err(VirtualMachineError::ImmShouldBe1Error),
             },
             Op1Addr::OP0 => match op0.clone() {
-                Some(addr) => return Ok(addr.clone() + instruction.off1.clone() % self.prime.clone()),
+                Some(addr) => {
+                    return Ok(addr.clone() + instruction.off2.clone() % self.prime.clone())
+                }
                 None => return Err(VirtualMachineError::UnknownOp0Error),
             },
         };
-        return Ok(base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone())));
+        return Ok(base_addr.add_num_addr(instruction.off2.clone(), Some(self.prime.clone())));
     }
 }
 
@@ -298,7 +300,7 @@ mod tests {
             prime: BigInt::from_i32(39).unwrap(),
         };
         if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(num, BigInt::from_i32(8).unwrap());
+            assert_eq!(num, BigInt::from_i32(9).unwrap());
         } else {
             assert!(false);
         }
@@ -329,7 +331,7 @@ mod tests {
             prime: BigInt::from_i32(39).unwrap(),
         };
         if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(num, BigInt::from_i32(7).unwrap());
+            assert_eq!(num, BigInt::from_i32(8).unwrap());
         } else {
             assert!(false);
         }
@@ -360,7 +362,7 @@ mod tests {
             prime: BigInt::from_i32(39).unwrap(),
         };
         if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(num, BigInt::from_i32(6).unwrap());
+            assert_eq!(num, BigInt::from_i32(5).unwrap());
         } else {
             assert!(false);
         }
@@ -426,7 +428,7 @@ mod tests {
         if let Ok(MaybeRelocatable::Int(num)) =
             run_context.compute_op1_addr(&instruction, Some(&op0))
         {
-            assert_eq!(num, BigInt::from_i32(9).unwrap());
+            assert_eq!(num, BigInt::from_i32(8).unwrap());
         } else {
             assert!(false);
         }
