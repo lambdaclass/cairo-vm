@@ -10,4 +10,14 @@ pub struct ValidatedMemoryDict {
     validated_addresses: Vec<Relocatable>,
 }
 
+impl ValidatedMemoryDict {
+    pub fn new() -> ValidatedMemoryDict {
+        ValidatedMemoryDict {
+            memory: Memory::new(),
+            validation_rules: HashMap::<BigInt, Vec<(ValidationRule, ())>>::new(),
+            validated_addresses: Vec::<Relocatable>::new(),
+        }
+    }
+}
+
 pub struct ValidationRule(fn(Memory, MaybeRelocatable, ()) -> Relocatable);
