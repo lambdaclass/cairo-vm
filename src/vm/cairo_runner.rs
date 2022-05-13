@@ -111,6 +111,27 @@ impl CairoRunner {
         self.final_pc = Some(end.clone());
         end
     }
+    ///Initializes state for running a program from the main() entrypoint.
+    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///Returns the value of the program counter after returning from main.
+    pub fn initialize_main_entrypoint(&mut self) -> Relocatable {
+        //self.execution_public_memory = Vec::new() -> Not used now
+        let mut stack = Vec::new();
+        for (_name, builtin_runner) in self.builtin_runners.iter() {
+            stack.append(&mut builtin_runner.initial_stack());
+        }
+        //Different process if proof_mode is enabled
+        let return_fp = self.segments.add(None);
+        if let Some(main) = &self.program.main {
+            self.initialize_function_entrypoint(
+                main.clone(),
+                stack,
+                MaybeRelocatable::RelocatableValue(return_fp),
+            )
+        } else {
+            panic!("Missing main()")
+        }
+    }
 }
 
 #[cfg(test)]
@@ -124,6 +145,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let program_base = Some(Relocatable {
@@ -165,6 +187,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -201,6 +224,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -227,6 +251,7 @@ mod tests {
                 MaybeRelocatable::Int(bigint!(4)),
                 MaybeRelocatable::Int(bigint!(6)),
             ],
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(Relocatable {
@@ -262,6 +287,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -298,6 +324,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.execution_base = Some(Relocatable {
@@ -320,6 +347,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -338,6 +366,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -371,6 +400,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -412,6 +442,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let stack = vec![MaybeRelocatable::Int(bigint!(7))];

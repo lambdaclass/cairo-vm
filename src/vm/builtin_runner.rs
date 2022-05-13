@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::relocatable;
 use crate::vm::memory_segments::MemorySegmentManager;
+use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -25,7 +26,7 @@ pub struct OutputRunner {
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
-    fn initial_stack(&self) -> Vec<Relocatable>;
+    fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
 }
@@ -50,10 +51,10 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
-    fn initial_stack(&self) -> Vec<Relocatable> {
+    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
             if let Some(builtin_base) = &self.base {
-                vec![builtin_base.clone()]
+                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
             } else {
                 panic!("Uninitialized self.base")
             }
@@ -82,10 +83,10 @@ impl BuiltinRunner for OutputRunner {
         self.base = Some(segments.add(None))
     }
 
-    fn initial_stack(&self) -> Vec<Relocatable> {
+    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
             if let Some(builtin_base) = &self.base {
-                vec![builtin_base.clone()]
+                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
             } else {
                 panic!("Uninitialized self.base")
             }
@@ -130,7 +131,10 @@ mod tests {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
         let initial_stack = builtin.initial_stack();
-        assert_eq!(Some(initial_stack[0].clone()), builtin.base());
+        assert_eq!(
+            initial_stack[0].clone(),
+            MaybeRelocatable::RelocatableValue(builtin.base().unwrap())
+        );
         assert_eq!(initial_stack.len(), 1);
     }
 
@@ -156,7 +160,10 @@ mod tests {
             offset: bigint!(0),
         });
         let initial_stack = builtin.initial_stack();
-        assert_eq!(Some(initial_stack[0].clone()), builtin.base());
+        assert_eq!(
+            initial_stack[0].clone(),
+            MaybeRelocatable::RelocatableValue(builtin.base().unwrap())
+        );
         assert_eq!(initial_stack.len(), 1);
     }
 
