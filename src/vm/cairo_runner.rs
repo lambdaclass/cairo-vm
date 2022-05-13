@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::vm::builtin_runner::BuiltinRunner;
 use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
@@ -33,11 +34,7 @@ impl CairoRunner {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
                 builtin_runners.insert(
                     builtin_name.clone(),
-                    Box::new(RangeCheckBuiltinRunner::new(
-                        true,
-                        BigInt::from_i32(8).unwrap(),
-                        8,
-                    )),
+                    Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
                 );
             }
         }
@@ -89,11 +86,22 @@ impl CairoRunner {
         }
     }
 
-    fn initialize_function_entrypoint(&mut self, entrypoint: BigInt, mut stack: Vec<MaybeRelocatable>, return_fp: MaybeRelocatable) -> Relocatable {
+    fn initialize_function_entrypoint(
+        &mut self,
+        entrypoint: BigInt,
+        mut stack: Vec<MaybeRelocatable>,
+        return_fp: MaybeRelocatable,
+    ) -> Relocatable {
         let end = self.segments.add(None);
-        stack.append(&mut vec![return_fp, MaybeRelocatable::RelocatableValue(end.clone())]);
+        stack.append(&mut vec![
+            return_fp,
+            MaybeRelocatable::RelocatableValue(end.clone()),
+        ]);
         if let Some(base) = &self.execution_base {
-            self.initial_fp = Some(Relocatable {segment_index: base.segment_index.clone(), offset: base.offset.clone() + stack.len()});
+            self.initial_fp = Some(Relocatable {
+                segment_index: base.segment_index.clone(),
+                offset: base.offset.clone() + stack.len(),
+            });
             self.initial_ap = self.initial_fp.clone();
         } else {
             panic!("Cant initialize the function entrypoint without a program base");
@@ -113,36 +121,36 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let program_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(5).unwrap(),
-            offset: BigInt::from_i32(9).unwrap(),
+            segment_index: bigint!(5),
+            offset: bigint!(9),
         });
         cairo_runner.segments.num_segments = 6;
         cairo_runner.initialize_segments(program_base);
         assert_eq!(
             cairo_runner.program_base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(5).unwrap(),
-                offset: BigInt::from_i32(9).unwrap()
+                segment_index: bigint!(5),
+                offset: bigint!(9),
             })
         );
         assert_eq!(
             cairo_runner.execution_base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(6).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(6),
+                offset: bigint!(0),
             })
         );
 
         assert_eq!(
             cairo_runner.builtin_runners[&String::from("output")].base(),
             Some(Relocatable {
-                segment_index: BigInt::from_i32(7).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(7),
+                offset: bigint!(0),
             })
         );
 
@@ -154,7 +162,7 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
@@ -162,23 +170,23 @@ mod tests {
         assert_eq!(
             cairo_runner.program_base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(0).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(0),
+                offset: bigint!(0)
             })
         );
         assert_eq!(
             cairo_runner.execution_base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(1).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(1),
+                offset: bigint!(0)
             })
         );
 
         assert_eq!(
             cairo_runner.builtin_runners[&String::from("output")].base(),
             Some(Relocatable {
-                segment_index: BigInt::from_i32(2).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(2),
+                offset: bigint!(0)
             })
         );
 
@@ -190,26 +198,26 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(1).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(1),
+            offset: bigint!(0),
         });
         cairo_runner.execution_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(2).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(2),
+            offset: bigint!(0),
         });
         let stack = Vec::new();
-        let entrypoint = BigInt::from_i32(1).unwrap();
+        let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
             cairo_runner.program_base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(1).unwrap(),
-                offset: BigInt::from_i32(1).unwrap()
+                segment_index: bigint!(1),
+                offset: bigint!(1)
             })
         );
     }
@@ -219,23 +227,23 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: vec![
-                MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-                MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+                MaybeRelocatable::Int(bigint!(4)),
+                MaybeRelocatable::Int(bigint!(6)),
             ],
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(1).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(1),
+            offset: bigint!(0),
         });
         cairo_runner.execution_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(2).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(2),
+            offset: bigint!(0),
         });
         let stack = Vec::new();
-        let entrypoint = BigInt::from_i32(1).unwrap();
+        let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
             cairo_runner
@@ -244,17 +252,17 @@ mod tests {
                 .get(&MaybeRelocatable::RelocatableValue(
                     cairo_runner.program_base.unwrap()
                 )),
-            Some(&MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()))
+            Some(&MaybeRelocatable::Int(bigint!(4)))
         );
         assert_eq!(
             cairo_runner
                 .segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: BigInt::from_i32(1).unwrap(),
-                    offset: BigInt::from_i32(2).unwrap()
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
                 })),
-            Some(&MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()))
+            Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
 
@@ -263,23 +271,23 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(1).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(1),
+            offset: bigint!(0),
         });
         cairo_runner.execution_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(2).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(2),
+            offset: bigint!(0),
         });
         let stack = vec![
-            MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            MaybeRelocatable::Int(bigint!(4)),
+            MaybeRelocatable::Int(bigint!(6)),
         ];
-        let entrypoint = BigInt::from_i32(1).unwrap();
+        let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
             cairo_runner
@@ -288,17 +296,17 @@ mod tests {
                 .get(&MaybeRelocatable::RelocatableValue(
                     cairo_runner.execution_base.unwrap()
                 )),
-            Some(&MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()))
+            Some(&MaybeRelocatable::Int(bigint!(4)))
         );
         assert_eq!(
             cairo_runner
                 .segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: BigInt::from_i32(2).unwrap(),
-                    offset: BigInt::from_i32(1).unwrap()
+                    segment_index: bigint!(2),
+                    offset: bigint!(1)
                 })),
-            Some(&MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()))
+            Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
 
@@ -308,19 +316,19 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.execution_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(2).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(2),
+            offset: bigint!(0),
         });
         let stack = vec![
-            MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            MaybeRelocatable::Int(bigint!(4)),
+            MaybeRelocatable::Int(bigint!(6)),
         ];
-        let entrypoint = BigInt::from_i32(1).unwrap();
+        let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
     }
 
@@ -330,19 +338,47 @@ mod tests {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
-            prime: BigInt::from_i32(17).unwrap(),
+            prime: bigint!(17),
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(Relocatable {
-            segment_index: BigInt::from_i32(1).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(1),
+            offset: bigint!(0),
         });
         let stack = vec![
-            MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            MaybeRelocatable::Int(bigint!(4)),
+            MaybeRelocatable::Int(bigint!(6)),
         ];
-        let entrypoint = BigInt::from_i32(1).unwrap();
+        let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
+    }
+
+    #[test]
+    #[should_panic]
+    fn initialize_function_entrypoint_empty_stack() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.execution_base = Some(Relocatable {
+            segment_index: bigint!(1),
+            offset: bigint!(0),
+        });
+        let stack = Vec::new();
+        let entrypoint = bigint!(1);
+        let return_fp = MaybeRelocatable::Int(bigint!(9));
+        cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
+        assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
+        assert_eq!(
+            cairo_runner.initial_fp,
+            Some(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2)
+            })
+        );
     }
 }

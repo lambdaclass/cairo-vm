@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
@@ -30,7 +31,7 @@ pub trait BuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(included: bool, ratio: BigInt, n_parts: u32) -> RangeCheckBuiltinRunner {
-        let inner_rc_bound = BigInt::from_i32(2_i32.pow(16)).unwrap();
+        let inner_rc_bound = bigint!(2_i32.pow(16));
         RangeCheckBuiltinRunner {
             included: included,
             ratio: ratio,
@@ -104,37 +105,37 @@ mod tests {
     #[test]
     fn initialize_segments_for_output() {
         let mut builtin = OutputRunner::new(true);
-        let mut segments = MemorySegmentManager::new(BigInt::from_i32(7).unwrap());
+        let mut segments = MemorySegmentManager::new(bigint!(7));
         builtin.initialize_segments(&mut segments);
         assert_eq!(
             builtin.base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(0).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(0),
+                offset: bigint!(0)
             })
         );
     }
 
     #[test]
     fn initialize_segments_for_range_check() {
-        let mut builtin = RangeCheckBuiltinRunner::new(true, BigInt::from_i32(8).unwrap(), 8);
-        let mut segments = MemorySegmentManager::new(BigInt::from_i32(7).unwrap());
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let mut segments = MemorySegmentManager::new(bigint!(7));
         builtin.initialize_segments(&mut segments);
         assert_eq!(
             builtin.base,
             Some(Relocatable {
-                segment_index: BigInt::from_i32(0).unwrap(),
-                offset: BigInt::from_i32(0).unwrap()
+                segment_index: bigint!(0),
+                offset: bigint!(0)
             })
         );
     }
 
     #[test]
     fn get_initial_stack_for_range_check_included_with_base() {
-        let mut builtin = RangeCheckBuiltinRunner::new(true, BigInt::from_i32(8).unwrap(), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(Relocatable {
-            segment_index: BigInt::from_i32(1).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(1),
+            offset: bigint!(0),
         });
         let initial_stack = builtin.initial_stack();
         assert_eq!(Some(initial_stack[0].clone()), builtin.base());
@@ -144,13 +145,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn get_initial_stack_for_range_check_included_without_base() {
-        let builtin = RangeCheckBuiltinRunner::new(true, BigInt::from_i32(8).unwrap(), 8);
+        let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         let _initial_stack = builtin.initial_stack();
     }
 
     #[test]
     fn get_initial_stack_for_range_check_not_included() {
-        let  builtin = RangeCheckBuiltinRunner::new(false, BigInt::from_i32(8).unwrap(), 8);
+        let builtin = RangeCheckBuiltinRunner::new(false, bigint!(8), 8);
         let initial_stack = builtin.initial_stack();
         assert_eq!(initial_stack.len(), 0);
     }
@@ -159,8 +160,8 @@ mod tests {
     fn get_initial_stack_for_output_included_with_base() {
         let mut builtin = OutputRunner::new(true);
         builtin.base = Some(Relocatable {
-            segment_index: BigInt::from_i32(1).unwrap(),
-            offset: BigInt::from_i32(0).unwrap(),
+            segment_index: bigint!(1),
+            offset: bigint!(0),
         });
         let initial_stack = builtin.initial_stack();
         assert_eq!(Some(initial_stack[0].clone()), builtin.base());
@@ -176,7 +177,7 @@ mod tests {
 
     #[test]
     fn get_initial_stack_for_output_not_included() {
-        let  builtin = OutputRunner::new(false);
+        let builtin = OutputRunner::new(false);
         let initial_stack = builtin.initial_stack();
         assert_eq!(initial_stack.len(), 0);
     }
