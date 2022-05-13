@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::relocatable;
 use crate::vm::builtin_runner::BuiltinRunner;
 use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
@@ -202,14 +203,8 @@ mod tests {
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.program_base = Some(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(0),
-        });
-        cairo_runner.execution_base = Some(Relocatable {
-            segment_index: bigint!(2),
-            offset: bigint!(0),
-        });
+        cairo_runner.program_base = Some(relocatable!(1, 0));
+        cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
         let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
@@ -238,10 +233,7 @@ mod tests {
             segment_index: bigint!(1),
             offset: bigint!(0),
         });
-        cairo_runner.execution_base = Some(Relocatable {
-            segment_index: bigint!(2),
-            offset: bigint!(0),
-        });
+        cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
         let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
@@ -258,10 +250,7 @@ mod tests {
             cairo_runner
                 .segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                })),
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
             Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
@@ -275,14 +264,8 @@ mod tests {
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.program_base = Some(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(0),
-        });
-        cairo_runner.execution_base = Some(Relocatable {
-            segment_index: bigint!(2),
-            offset: bigint!(0),
-        });
+        cairo_runner.program_base = Some(relocatable!(1, 0));
+        cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = vec![
             MaybeRelocatable::Int(bigint!(4)),
             MaybeRelocatable::Int(bigint!(6)),
@@ -302,10 +285,7 @@ mod tests {
             cairo_runner
                 .segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(2),
-                    offset: bigint!(1)
-                })),
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))),
             Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
@@ -342,10 +322,7 @@ mod tests {
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.program_base = Some(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(0),
-        });
+        cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
             MaybeRelocatable::Int(bigint!(4)),
             MaybeRelocatable::Int(bigint!(6)),
@@ -364,10 +341,7 @@ mod tests {
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.execution_base = Some(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(0),
-        });
+        cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = Vec::new();
         let entrypoint = bigint!(1);
         let return_fp = MaybeRelocatable::Int(bigint!(9));
@@ -379,6 +353,16 @@ mod tests {
                 segment_index: bigint!(1),
                 offset: bigint!(2)
             })
+        );
+        assert_eq!(
+            cairo_runner
+                .segments
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(1)
+                })),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2)))
         );
     }
 }

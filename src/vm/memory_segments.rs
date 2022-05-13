@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::relocatable;
 use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
@@ -26,10 +27,7 @@ impl MemorySegmentManager {
         if let Some(segment_size) = size {
             //TODO self.finalize(segment_index, size);
         }
-        Relocatable {
-            segment_index: bigint!(segment_index),
-            offset: BigInt::zero(),
-        }
+        relocatable!(segment_index, 0)
     }
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
@@ -68,13 +66,7 @@ mod tests {
     fn add_segment_no_size() {
         let mut segments = MemorySegmentManager::new(bigint!(17));
         let base = segments.add(None);
-        assert_eq!(
-            base,
-            Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
-            }
-        );
+        assert_eq!(base, relocatable!(0, 0));
         assert_eq!(segments.num_segments, 1);
     }
 
@@ -96,36 +88,24 @@ mod tests {
     #[test]
     fn load_data_empty() {
         let data = Vec::new();
-        let ptr = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(0),
-            offset: bigint!(3),
-        });
+        let ptr = MaybeRelocatable::RelocatableValue(relocatable!(0, 3));
         let mut segments = MemorySegmentManager::new(bigint!(17));
         let current_ptr = segments.load_data(&ptr, data);
         assert_eq!(
             current_ptr,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(3)
-            })
+            MaybeRelocatable::RelocatableValue(relocatable!(0, 3))
         )
     }
 
     #[test]
     fn load_data_one_element() {
         let data = vec![MaybeRelocatable::Int(bigint!(4))];
-        let ptr = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(0),
-            offset: bigint!(3),
-        });
+        let ptr = MaybeRelocatable::RelocatableValue(relocatable!(0, 3));
         let mut segments = MemorySegmentManager::new(bigint!(17));
         let current_ptr = segments.load_data(&ptr, data);
         assert_eq!(
             current_ptr,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4)
-            })
+            MaybeRelocatable::RelocatableValue(relocatable!(0, 4))
         );
         assert_eq!(
             segments.memory.get(&ptr),
@@ -140,18 +120,12 @@ mod tests {
             MaybeRelocatable::Int(bigint!(5)),
             MaybeRelocatable::Int(bigint!(6)),
         ];
-        let ptr = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(0),
-            offset: bigint!(3),
-        });
+        let ptr = MaybeRelocatable::RelocatableValue(relocatable!(0, 3));
         let mut segments = MemorySegmentManager::new(bigint!(17));
         let current_ptr = segments.load_data(&ptr, data);
         assert_eq!(
             current_ptr,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6)
-            })
+            MaybeRelocatable::RelocatableValue(relocatable!(0, 6))
         );
         assert_eq!(
             segments.memory.get(&ptr),
@@ -160,19 +134,13 @@ mod tests {
         assert_eq!(
             segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(4)
-                })),
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
             Some(&MaybeRelocatable::Int(bigint!(5)))
         );
         assert_eq!(
             segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(5)
-                })),
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
             Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }

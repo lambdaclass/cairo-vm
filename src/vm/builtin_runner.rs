@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::relocatable;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
@@ -107,13 +108,7 @@ mod tests {
         let mut builtin = OutputRunner::new(true);
         let mut segments = MemorySegmentManager::new(bigint!(7));
         builtin.initialize_segments(&mut segments);
-        assert_eq!(
-            builtin.base,
-            Some(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
-            })
-        );
+        assert_eq!(builtin.base, Some(relocatable!(0, 0)));
     }
 
     #[test]
@@ -133,10 +128,7 @@ mod tests {
     #[test]
     fn get_initial_stack_for_range_check_included_with_base() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
-        builtin.base = Some(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(0),
-        });
+        builtin.base = Some(relocatable!(1, 0));
         let initial_stack = builtin.initial_stack();
         assert_eq!(Some(initial_stack[0].clone()), builtin.base());
         assert_eq!(initial_stack.len(), 1);
