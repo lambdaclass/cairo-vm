@@ -17,6 +17,8 @@ pub struct CairoRunner {
     final_pc: Option<Relocatable>,
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
+    initial_ap: Option<Relocatable>,
+    initial_fp: Option<Relocatable>,
 }
 
 impl CairoRunner {
@@ -47,6 +49,8 @@ impl CairoRunner {
             program_base: None,
             execution_base: None,
             builtin_runners: builtin_runners,
+            initial_ap: None,
+            initial_fp: None,
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
@@ -83,6 +87,20 @@ impl CairoRunner {
         } else {
             panic!("Cant initialize state without a program base");
         }
+    }
+
+    fn initialize_function_entrypoint(&mut self, entrypoint: BigInt, mut stack: Vec<MaybeRelocatable>, return_fp: MaybeRelocatable) -> Relocatable {
+        let end = self.segments.add(None);
+        stack.append(&mut vec![return_fp, MaybeRelocatable::RelocatableValue(end.clone())]);
+        if let Some(base) = &self.execution_base {
+            self.initial_fp = Some(Relocatable {segment_index: base.segment_index.clone(), offset: base.offset.clone() + stack.len()});
+            self.initial_ap = self.initial_fp.clone();
+        } else {
+            panic!("Cant initialize the function entrypoint without a program base");
+        }
+        self.initialize_state(entrypoint, stack);
+        self.final_pc = Some(end.clone());
+        end
     }
 }
 
