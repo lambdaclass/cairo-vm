@@ -450,4 +450,34 @@ mod tests {
         let return_fp = MaybeRelocatable::Int(bigint!(9));
         cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
     }
+
+    #[test]
+    #[should_panic]
+    fn initialize_main_entrypoint_no_main() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: None,
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_main_entrypoint();
+    }
+
+    #[test]
+    fn initialize_main_entrypoint() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: Some(bigint!(1)),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.program_base = Some(relocatable!(0,0));
+        cairo_runner.execution_base = Some(relocatable!(0,0));
+        let return_pc = cairo_runner.initialize_main_entrypoint();
+        assert_eq!(return_pc, relocatable!(1,0));
+    }
 }
