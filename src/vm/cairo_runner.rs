@@ -1,6 +1,7 @@
 use crate::vm::builtin_runner::BuiltinRunner;
 use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
+use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::program::Program;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
@@ -59,6 +60,21 @@ impl CairoRunner {
             builtin_runner.initialize_segments(&mut self.segments);
         }
     }
+
+    fn initialize_state(&mut self, entrypoint: BigInt, stack: Vec<MaybeRelocatable>) {
+        if let Some(prog_base) = self.program_base.clone() {
+            let new_prog_base = Relocatable { segment_index: prog_base.segment_index, offset: prog_base.offset + entrypoint};
+            self.program_base = Some(new_prog_base.clone());
+            self.segments.load_data(&MaybeRelocatable::RelocatableValue(new_prog_base), self.program.data.clone());
+            if let Some(exec_base) = &self.execution_base {
+                self.segments.load_data(&MaybeRelocatable::RelocatableValue(exec_base.clone()), stack);
+            } else {
+                panic!("Cant initialize state without an execution base");
+            }
+        } else {
+            panic!("Cant initialize state without a program base");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -71,6 +87,7 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::from_i32(17).unwrap(),
+            data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let program_base = Some(Relocatable {
@@ -111,6 +128,7 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::from_i32(17).unwrap(),
+            data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
