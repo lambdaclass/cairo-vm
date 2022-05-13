@@ -105,7 +105,7 @@ impl CairoRunner {
             });
             self.initial_ap = self.initial_fp.clone();
         } else {
-            panic!("Cant initialize the function entrypoint without a program base");
+            panic!("Cant initialize the function entrypoint without an execution base");
         }
         self.initialize_state(entrypoint, stack);
         self.final_pc = Some(end.clone());
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn initialize_state_some_data_emty_stack() {
+    fn initialize_state_some_data_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: vec![String::from("output")],
@@ -332,7 +332,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn initialize_function_entrypoint_empty_stack() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
@@ -341,28 +340,83 @@ mod tests {
             data: Vec::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = Vec::new();
-        let entrypoint = bigint!(1);
+        let entrypoint = bigint!(0);
         let return_fp = MaybeRelocatable::Int(bigint!(9));
         cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
+        assert_eq!(cairo_runner.initial_fp, Some(relocatable!(1, 2)));
         assert_eq!(
-            cairo_runner.initial_fp,
-            Some(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2)
-            })
+            cairo_runner
+                .segments
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
+            Some(&MaybeRelocatable::Int(bigint!(9)))
         );
         assert_eq!(
             cairo_runner
                 .segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(1)
-                })),
-            Some(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2)))
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0)))
         );
+    }
+
+    #[test]
+    fn initialize_function_entrypoint_some_stack() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.execution_base = Some(relocatable!(1, 0));
+        let stack = vec![MaybeRelocatable::Int(bigint!(7))];
+        let entrypoint = bigint!(1);
+        let return_fp = MaybeRelocatable::Int(bigint!(9));
+        cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
+        assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
+        assert_eq!(cairo_runner.initial_fp, Some(relocatable!(1, 3)));
+        assert_eq!(
+            cairo_runner
+                .segments
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
+            Some(&MaybeRelocatable::Int(bigint!(7)))
+        );
+        assert_eq!(
+            cairo_runner
+                .segments
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
+            Some(&MaybeRelocatable::Int(bigint!(9)))
+        );
+        assert_eq!(
+            cairo_runner
+                .segments
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0)))
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn initialize_function_entrypoint_no_execution_base() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        let stack = vec![MaybeRelocatable::Int(bigint!(7))];
+        let entrypoint = bigint!(1);
+        let return_fp = MaybeRelocatable::Int(bigint!(9));
+        cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
     }
 }
