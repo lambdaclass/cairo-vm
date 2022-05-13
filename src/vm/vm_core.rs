@@ -324,7 +324,7 @@ impl VirtualMachine {
                     (&self.run_context.fp, &operands.dst)
                 {
                     if dst_num != return_fp {
-                        panic!("Call failed to write return-fp (inconsistent dst): fp->{} != dst->{}. Did you forget to increment ap?",dst_num,dst_num);
+                        panic!("Call failed to write return-fp (inconsistent dst): fp->{} != dst->{}. Did you forget to increment ap?",return_fp,dst_num);
                     };
                 };
             }
@@ -2663,7 +2663,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "Call failed to write return-fp (inconsistent dst): fp->8 != dst->8. Did you forget to increment ap?"
+        expected = "Call failed to write return-fp (inconsistent dst): fp->6 != dst->8. Did you forget to increment ap?"
     )]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
