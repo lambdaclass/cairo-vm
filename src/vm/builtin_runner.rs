@@ -1,7 +1,10 @@
 use crate::bigint;
 use crate::relocatable;
 use crate::vm::memory_segments::MemorySegmentManager;
+use crate::vm::validated_memory_dict::ValidationRule;
+use crate::vm::cairo_runner::CairoRunner;
 use crate::vm::relocatable::MaybeRelocatable;
+use crate::vm::memory::Memory;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -29,6 +32,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
+    fn add_validation_rules(&self, runner: CairoRunner);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -66,6 +70,21 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
     }
+    
+    fn add_validation_rules(&self, runner: CairoRunner) {
+        fn range_check_validation(memory:Memory, address:MaybeRelocatable) -> MaybeRelocatable {
+            let value = memory.get(&address);
+            if let Some(MaybeRelocatable::Int(ref num)) = value {
+                if bigint!(0) <= num.clone() < self.bound {
+                    address
+                }   else {
+                    panic!("Range-check validation failed, number is out of valid range")
+                }
+            } else {
+                panic!("Range-check validation failed, encountered non-int value")
+            }
+        }
+    }
 }
 
 impl OutputRunner {
@@ -98,6 +117,8 @@ impl BuiltinRunner for OutputRunner {
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
     }
+
+    fn add_validation_rules(&self, runner: CairoRunner){}
 }
 
 #[cfg(test)]
