@@ -1,5 +1,5 @@
-use num_bigint::BigInt;
 use crate::vm::relocatable::MaybeRelocatable;
+use num_bigint::BigInt;
 
 #[derive(Clone)]
 pub struct Program {
