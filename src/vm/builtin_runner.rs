@@ -128,4 +128,56 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn get_initial_stack_for_range_check_included_with_base() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, BigInt::from_i32(8).unwrap(), 8);
+        builtin.base = Some(Relocatable {
+            segment_index: BigInt::from_i32(1).unwrap(),
+            offset: BigInt::from_i32(0).unwrap(),
+        });
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(Some(initial_stack[0].clone()), builtin.base());
+        assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn get_initial_stack_for_range_check_included_without_base() {
+        let builtin = RangeCheckBuiltinRunner::new(true, BigInt::from_i32(8).unwrap(), 8);
+        let initial_stack = builtin.initial_stack();
+    }
+
+    #[test]
+    fn get_initial_stack_for_range_check_not_included() {
+        let mut builtin = RangeCheckBuiltinRunner::new(false, BigInt::from_i32(8).unwrap(), 8);
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack.len(), 0);
+    }
+
+    #[test]
+    fn get_initial_stack_for_output_included_with_base() {
+        let mut builtin = OutputRunner::new(true);
+        builtin.base = Some(Relocatable {
+            segment_index: BigInt::from_i32(1).unwrap(),
+            offset: BigInt::from_i32(0).unwrap(),
+        });
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(Some(initial_stack[0].clone()), builtin.base());
+        assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn get_initial_stack_for_output_included_without_base() {
+        let builtin = OutputRunner::new(true);
+        let initial_stack = builtin.initial_stack();
+    }
+
+    #[test]
+    fn get_initial_stack_for_output_not_included() {
+        let mut builtin = OutputRunner::new(false);
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack.len(), 0);
+    }
 }
