@@ -83,9 +83,9 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
 
     let opcode = match opcode_num {
         0 => instruction::Opcode::NOP,
-        1 => instruction::Opcode::ASSERT_EQ,
+        1 => instruction::Opcode::CALL,
         2 => instruction::Opcode::RET,
-        4 => instruction::Opcode::CALL,
+        4 => instruction::Opcode::ASSERT_EQ,
         _ => panic!("Invalid instruction"),
     };
 
@@ -125,10 +125,10 @@ mod decoder_test {
     use super::*;
 
     #[test]
-    fn decode_flags_assrt_add_jmp_add_imm_fp_fp() {
+    fn decode_flags_call_add_jmp_add_imm_fp_fp() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |ASSRT_EQ|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
+        //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
         let inst = decode_instruction(0x14A7000000000000, None);
@@ -138,9 +138,9 @@ mod decoder_test {
         assert_eq!(matches!(inst.res, instruction::Res::ADD), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JUMP), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::ADD), true);
-        assert_eq!(matches!(inst.opcode, instruction::Opcode::ASSERT_EQ), true);
+        assert_eq!(matches!(inst.opcode, instruction::Opcode::CALL), true);
         assert_eq!(
-            matches!(inst.fp_update, instruction::FpUpdate::REGULAR),
+            matches!(inst.fp_update, instruction::FpUpdate::AP_PLUS2),
             true
         );
     }
@@ -167,10 +167,10 @@ mod decoder_test {
     }
 
     #[test]
-    fn decode_flags_call_add_jnz_mul_fp_ap_ap() {
+    fn decode_flags_assrt_add_jnz_mul_fp_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |    CALL|      ADD|      JNZ|      MUL|     FP|     AP|     AP
+        //   |ASSRT_EQ|      ADD|      JNZ|      MUL|     FP|     AP|     AP
         //  0  1  0  0      1  0   1  0  0      1  0 1  0  0       0       0
         //  0100 1010 0101 0000 = 0x4A50; offx = 0
         let inst = decode_instruction(0x4A50000000000000, None);
@@ -180,18 +180,18 @@ mod decoder_test {
         assert_eq!(matches!(inst.res, instruction::Res::MUL), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JNZ), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::ADD1), true);
-        assert_eq!(matches!(inst.opcode, instruction::Opcode::CALL), true);
+        assert_eq!(matches!(inst.opcode, instruction::Opcode::ASSERT_EQ), true);
         assert_eq!(
-            matches!(inst.fp_update, instruction::FpUpdate::AP_PLUS2),
+            matches!(inst.fp_update, instruction::FpUpdate::REGULAR),
             true
         );
     }
 
     #[test]
-    fn decode_flags_call_add2_jnz_uncon_op0_ap_ap() {
+    fn decode_flags_assrt_add2_jnz_uncon_op0_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |    CALL|     ADD2|      JNZ|UNCONSTRD|    OP0|     AP|     AP
+        //   |ASSRT_EQ|     ADD2|      JNZ|UNCONSTRD|    OP0|     AP|     AP
         //  0  1  0  0      0  0   1  0  0      0  0 0  0  0       0       0
         //  0100 0010 0000 0000 = 0x4200; offx = 0
         let inst = decode_instruction(0x4200000000000000, None);
@@ -200,10 +200,13 @@ mod decoder_test {
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::OP0), true);
         assert_eq!(matches!(inst.res, instruction::Res::UNCONSTRAINED), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JNZ), true);
-        assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::ADD2), true);
-        assert_eq!(matches!(inst.opcode, instruction::Opcode::CALL), true);
         assert_eq!(
-            matches!(inst.fp_update, instruction::FpUpdate::AP_PLUS2),
+            matches!(inst.ap_update, instruction::ApUpdate::REGULAR),
+            true
+        );
+        assert_eq!(matches!(inst.opcode, instruction::Opcode::ASSERT_EQ), true);
+        assert_eq!(
+            matches!(inst.fp_update, instruction::FpUpdate::REGULAR),
             true
         );
     }
