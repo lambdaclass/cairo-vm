@@ -324,7 +324,7 @@ impl VirtualMachine {
                     (&self.run_context.fp, &operands.dst)
                 {
                     if dst_num != return_fp {
-                        panic!("Call failed to write return-fp (inconsistent dst): fp->{} != dst->{}. Did you forget to increment ap?",dst_num,dst_num);
+                        panic!("Call failed to write return-fp (inconsistent dst): fp->{} != dst->{}. Did you forget to increment ap?",return_fp,dst_num);
                     };
                 };
             }
@@ -2273,7 +2273,10 @@ mod tests {
             skip_instruction_execution: false,
         };
         let res = MaybeRelocatable::Int(bigint!(7));
-        assert_eq!(Some(MaybeRelocatable::Int(bigint!(7))), vm.deduce_dst(&instruction, Some(&res)));
+        assert_eq!(
+            Some(MaybeRelocatable::Int(bigint!(7))),
+            vm.deduce_dst(&instruction, Some(&res))
+        );
     }
 
     #[test]
@@ -2349,7 +2352,10 @@ mod tests {
             current_step: bigint!(1),
             skip_instruction_execution: false,
         };
-        assert_eq!(Some(MaybeRelocatable::Int(bigint!(6))), vm.deduce_dst(&instruction, None));
+        assert_eq!(
+            Some(MaybeRelocatable::Int(bigint!(6))),
+            vm.deduce_dst(&instruction, None)
+        );
     }
 
     #[test]
@@ -2510,5 +2516,197 @@ mod tests {
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
+    }
+
+    #[test]
+    #[should_panic(expected = "Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
+    fn opcode_assertions_res_unconstrained() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::AP_PLUS2,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(8)),
+            res: None,
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        vm.opcode_assertions(&instruction, &operands)
+    }
+
+    #[test]
+    #[should_panic(expected = "An ASSERT_EQ instruction failed: 8 != 9")]
+    fn opcode_assertions_instruction_failed() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::AP_PLUS2,
+            opcode: Opcode::ASSERT_EQ,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(9)),
+            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        vm.opcode_assertions(&instruction, &operands)
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Call failed to write return-pc (inconsistent op0): 9 != 5. Did you forget to increment ap?"
+    )]
+    fn opcode_assertions_inconsistent_op0() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::AP_PLUS2,
+            opcode: Opcode::CALL,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(8)),
+            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(4)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        vm.opcode_assertions(&instruction, &operands);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Call failed to write return-fp (inconsistent dst): fp->6 != dst->8. Did you forget to increment ap?"
+    )]
+    fn opcode_assertions_inconsistent_dst() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::ADD,
+            pc_update: PcUpdate::REGULAR,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::AP_PLUS2,
+            opcode: Opcode::CALL,
+        };
+
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(bigint!(8)),
+            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            op0: MaybeRelocatable::Int(bigint!(9)),
+            op1: MaybeRelocatable::Int(bigint!(10)),
+        };
+
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::Int(bigint!(8)),
+            ap: MaybeRelocatable::Int(bigint!(5)),
+            fp: MaybeRelocatable::Int(bigint!(6)),
+            prime: bigint!(127),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: bigint!(127),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessesed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        vm.opcode_assertions(&instruction, &operands);
     }
 }
