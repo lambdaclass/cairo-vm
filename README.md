@@ -27,7 +27,7 @@ This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow
 
 ## Original Cairo VM Internals
 
-We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/original_vm_internals.md).
+We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/README.md).
 
 ## Compilers
 
