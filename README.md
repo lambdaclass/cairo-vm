@@ -50,8 +50,8 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Vitalik's introduction to how zk-SNARKs are possible](https://vitalik.ca/general/2021/01/26/snarks.html)
 * [Vitalik's post on quadratic arithmetic programs](https://medium.com/@VitalikButerin/quadratic-arithmetic-programs-from-zero-to-hero-f6d558cea649)
 * [Comparing General Purpose zk-SNARKs](https://medium.com/coinmonks/comparing-general-purpose-zk-snarks-51ce124c60bd)
-* [Dark forest's intro + circuits PARRT 1](https://blog.zkga.me/intro-to-zksnarks)
-* [Dark forest's intro + circuits PARRT 2](https://blog.zkga.me/df-init-circuit)
+* [Dark forest's intro + circuits PART 1](https://blog.zkga.me/intro-to-zksnarks)
+* [Dark forest's intro + circuits PART 2](https://blog.zkga.me/df-init-circuit)
 
 ### ZK STARKs
 * [Cryptography Stack Exchange Answer](https://crypto.stackexchange.com/questions/56327/what-are-zk-starks)
