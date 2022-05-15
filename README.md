@@ -1,8 +1,8 @@
 # Cleopatra Cairo VM
 
-Cleaopatra is a Rust implementation of the Cairo VM
+Cleaopatra is a Rust implementation of the Cairo VM.
 
-## Must Read
+## Cairo
 
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
 
@@ -28,3 +28,7 @@ This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow
 ## Original Cairo VM Internals
 
 We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/original_vm_internals.md).
+
+## Compilers
+
+* [Introduction to Compilers and Language Design - Douglas Thain](http://compilerbook.org)
