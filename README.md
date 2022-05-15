@@ -32,3 +32,4 @@ We wrote a document explaining how the Cairo VM works. It can be found [here](./
 ## Compilers
 
 * [Introduction to Compilers and Language Design - Douglas Thain](http://compilerbook.org)
+* [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
