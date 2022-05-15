@@ -43,7 +43,7 @@ These is a list of recommended books to learn how to implement a compiler or an 
 ### Basics
 * [Intro to zero knowledge proofs](https://www.youtube.com/watch?v=HUs1bH85X9I)
 * [Security and Privacy for Crypto with Zero-Knowledge Proofs](https://www.youtube.com/watch?v=3NL0ThdvWMU)
-* [A Hands-On Tutorial for Zero-Knowledge Proofs Series](http://www.shirpeled.com/2018/09/a-hands-on-tutorial-for-zero-knowledge.html)\
+* [A Hands-On Tutorial for Zero-Knowledge Proofs Series](http://www.shirpeled.com/2018/09/a-hands-on-tutorial-for-zero-knowledge.html)
 
 ### ZK SNARKs
 * [What are zk-SNARKs?](https://z.cash/technology/zksnarks/)
