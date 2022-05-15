@@ -36,3 +36,4 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Introduction to Compilers and Language Design - Douglas Thain](http://compilerbook.org)
 * [Beautiful Racket - Matthew Flatt](https://beautifulracket.com)
 * [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
+* [Engineering a Compiler - Keith D. Cooper, Linda Torczon](https://www.goodreads.com/en/book/show/1997607.Engineering_a_Compiler)
