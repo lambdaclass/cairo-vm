@@ -29,8 +29,10 @@ This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow
 
 We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/README.md).
 
-## Compilers
+## Compilers and interpreters
+
+These is a list of recommended books to learn how to implement a compiler or an interpreter.
 
 * [Introduction to Compilers and Language Design - Douglas Thain](http://compilerbook.org)
-* [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
 * [Beautiful Racket - Matthew Flatt](https://beautifulracket.com)
+* [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
