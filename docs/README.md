@@ -274,6 +274,9 @@ These values will then be used by decode_instruction (at compiler/encode).`flag`
 # What happens before and after step()?
 *Left side of flow diagram analysis*
 
+## Clarifications on memory:
+CairoRunner's memory is the same as vm_memory and segments.memory (where segments is a MemorySegmentManager that contains a reference to memory), this memory will then become the VirtualMachine's run_context's memory, but changes to one wont affect the other. CairoRunner's Memory doesnt change after each step, unless a hint is executed. When hints interact with memory (ie when alloc() creates a new memory segment) the run_context's and the CairoRunner's memory will both be affected equally.
+
 ## [`cairo_run`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_run.py#L219)
 
 *Overall, this function loads the program, creates a CairoRunner, and calls the necessary functions in order to carry out a vm run.*
@@ -343,10 +346,10 @@ Iterates over `step()` until the pc reaches the predefined end.
 *Overall, this function relocates the accessed addresses and the vm's memory, verifies the validated_memory using the auto_deduction rules, freezes the vm's memory, and calculates the size of each memory segment*
 
 Relocates each address (using the`relocate_value` function in memory_dict) in the accessed_addresses. This function will attempt to relocate the value according to the segment's relocation_rules.
-Relocates the vm's memory using `relocate_memory`
+Relocates the vm's memory using `relocate_memory`(this doesnt turn relocatables into ints).
 Calls the vm's `end_run` function. This function will then call `verify_auto_deductions`, which will make sure that all assigned memory cells are consistent with their auto deduction rules. It achieves this by checking that each address in validated_memory is either non-relocatable or its value is equal to the one that can be obtained via the segment's auto_deduction_rules.
 Freezes memory (so that no more changes can happen).
-Copmputes the size of each segment (via `compute_effective_sizes()`, which deduces the size of each segment from its usage). **All addresses at this point should be Relocatable** (Note, this is the memory stored in the MemorySegmentManager, not the vm's memory, which was just relocated), or else an exception will be raised.
+Computes the size of each segment (via `compute_effective_sizes()`, which deduces the size of each segment from its usage). **All addresses at this point should be Relocatable**, or else an exception will be raised.
 
 ## [`relocate`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_runner.py#L581)
 
