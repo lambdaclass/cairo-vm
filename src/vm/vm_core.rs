@@ -1,10 +1,11 @@
+use crate::vm::decoder::decode_instruction;
 use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
-use crate::vm::decoder::decode_instruction;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
+use num_traits::ToPrimitive;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::fmt;
@@ -334,15 +335,15 @@ impl VirtualMachine {
     }
 
     fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
-        let (operands, operands_mem_addresses) = self.compute_operands(&instruction)?;
+        let (operands, mut operands_mem_addresses) = self.compute_operands(&instruction)?;
         self.opcode_assertions(&instruction, &operands);
         self.trace.push(TraceEntry {
-            pc: self.run_context.pc,
-            ap: self.run_context.ap,
-            fp: self.run_context.fp,
+            pc: self.run_context.pc.clone(),
+            ap: self.run_context.ap.clone(),
+            fp: self.run_context.fp.clone(),
         });
         self.accessed_addresses.append(&mut operands_mem_addresses);
-        self.accessed_addresses.push(self.run_context.pc);
+        self.accessed_addresses.push(self.run_context.pc.clone());
         self.update_registers(instruction, operands)?;
         self.current_step += bigint!(1);
         Ok(())
@@ -352,9 +353,9 @@ impl VirtualMachine {
         let (instruction_ref, imm) = self.run_context.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
         if let Some(&MaybeRelocatable::Int(ref imm_ref)) = imm {
-            return Ok(decode_instruction(instruction, Some(imm_ref.clone())))
+            return Ok(decode_instruction(instruction, Some(imm_ref.clone())));
         }
-        return Ok(decode_instruction(instruction, None))
+        return Ok(decode_instruction(instruction, None));
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
@@ -362,7 +363,8 @@ impl VirtualMachine {
         //TODO: Hint Management
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
-        return Ok(())
+        return Ok(());
+    }
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
     /// value.
     pub fn compute_operands(
