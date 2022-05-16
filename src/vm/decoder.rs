@@ -5,34 +5,35 @@ use num_traits::FromPrimitive;
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
-const DST_REG_MASK: i64 = 0x0001;
-const DST_REG_OFF: i64 = 0;
-const OP0_REG_MASK: i64 = 0x0002;
-const OP0_REG_OFF: i64 = 1;
-const OP1_SRC_MASK: i64 = 0x001C;
-const OP1_SRC_OFF: i64 = 2;
-const RES_LOGIC_MASK: i64 = 0x0060;
-const RES_LOGIC_OFF: i64 = 5;
-const PC_UPDATE_MASK: i64 = 0x0380;
-const PC_UPDATE_OFF: i64 = 7;
-const AP_UPDATE_MASK: i64 = 0x0C00;
-const AP_UPDATE_OFF: i64 = 10;
-const OPCODE_MASK: i64 = 0x7000;
-const OPCODE_OFF: i64 = 12;
-
-// Flags start on the 48th bit.
-const FLAGS_OFFSET: i64 = 48;
-const OFF0_OFF: i64 = 0;
-const OFF1_OFF: i64 = 16;
-const OFF2_OFF: i64 = 32;
-const OFFX_MASK: i64 = 0xFFFF;
-
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instruction::Instruction {
+    const DST_REG_MASK: i64 = 0x0001;
+    const DST_REG_OFF: i64 = 0;
+    const OP0_REG_MASK: i64 = 0x0002;
+    const OP0_REG_OFF: i64 = 1;
+    const OP1_SRC_MASK: i64 = 0x001C;
+    const OP1_SRC_OFF: i64 = 2;
+    const RES_LOGIC_MASK: i64 = 0x0060;
+    const RES_LOGIC_OFF: i64 = 5;
+    const PC_UPDATE_MASK: i64 = 0x0380;
+    const PC_UPDATE_OFF: i64 = 7;
+    const AP_UPDATE_MASK: i64 = 0x0C00;
+    const AP_UPDATE_OFF: i64 = 10;
+    const OPCODE_MASK: i64 = 0x7000;
+    const OPCODE_OFF: i64 = 12;
+
+    // Flags start on the 48th bit.
+    const FLAGS_OFFSET: i64 = 48;
+    const OFF0_OFF: i64 = 0;
+    const OFF1_OFF: i64 = 16;
+    const OFF2_OFF: i64 = 32;
+    const OFFX_MASK: i64 = 0xFFFF;
+
     // Grab offsets and convert them from little endian format.
-    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
-    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK);
-    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK);
+    let off0 = (encoded_instr >> OFF0_OFF & OFFX_MASK).reverse_bits() >> 48;
+    let off1 = (encoded_instr >> OFF1_OFF & OFFX_MASK).reverse_bits() >> 48;
+    let off2 = (encoded_instr >> OFF2_OFF & OFFX_MASK).reverse_bits() >> 48;
+
     // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;
     // Grab individual flags
