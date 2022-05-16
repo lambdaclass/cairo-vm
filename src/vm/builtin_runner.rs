@@ -1,5 +1,4 @@
 use crate::bigint;
-use crate::relocatable;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
@@ -103,6 +102,7 @@ impl BuiltinRunner for OutputRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
 
     #[test]
     fn initialize_segments_for_output() {
@@ -171,7 +171,7 @@ mod tests {
     #[should_panic]
     fn get_initial_stack_for_output_included_without_base() {
         let builtin = OutputRunner::new(true);
-        let initial_stack = builtin.initial_stack();
+        let _initial_stack = builtin.initial_stack();
     }
 
     #[test]
