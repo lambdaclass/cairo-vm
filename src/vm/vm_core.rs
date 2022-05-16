@@ -516,6 +516,7 @@ mod tests {
     use crate::vm::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::vm::memory::Memory;
     use crate::vm::relocatable::Relocatable;
+    use num_bigint::Sign;
 
     #[test]
     fn update_fp_ap_plus2() {
@@ -2741,5 +2742,134 @@ mod tests {
         };
 
         vm.opcode_assertions(&instruction, &operands);
+    }
+
+    #[test]
+    ///Test for a simple program execution
+    /// Used program code:
+    /// func main():
+    ///let a = 1
+    ///let b = 2
+    ///let c = a + b
+    //return()
+    //end
+    /// Memory taken from original vm
+    /// {RelocatableValue(segment_index=0, offset=0): 2345108766317314046,
+    ///  RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    ///  RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    /// Current register values:
+    /// AP 1:2
+    /// FP 1:2
+    /// PC 0:0
+    fn test_step_for_preset_memory() {
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2),
+            }),
+            fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2),
+            }),
+            prime: BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            ),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            ),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        );
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0),
+            }),
+        );
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(1),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0),
+            }),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        );
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0),
+            }),
+        );
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(1),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0),
+            }),
+        );
+        /// More in deep analysis of the program execution due to step failure
+        //if let Ok(instruction) = vm.decode_current_instruction(){
+        ///Compare decoded instruction with the one in the python vm
+        let instruction = decode_instruction(2345108766317314046, None);
+        assert_eq!(instruction.off0, bigint!(-2));
+        assert_eq!(instruction.off1, bigint!(-1));
+        assert_eq!(instruction.off2, bigint!(1));
+        assert_eq!(instruction.imm, None);
+        assert_eq!(instruction.dst_register, Register::FP);
+        assert_eq!(instruction.op0_register, Register::FP);
+        assert_eq!(instruction.op0_register, Register::FP);
+        assert_eq!(instruction.op1_addr, Op1Addr::FP);
+        assert_eq!(instruction.res, Res::OP1);
+
+        //assert_eq!(vm.step(), Ok(()));
     }
 }
