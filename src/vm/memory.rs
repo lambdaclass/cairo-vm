@@ -2,20 +2,20 @@ use crate::vm::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 
 pub struct Memory {
-    _data: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    data: HashMap<MaybeRelocatable, MaybeRelocatable>,
 }
 
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            _data: HashMap::new(),
+            data: HashMap::new(),
         }
     }
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
-        self._data.insert(key.clone(), val.clone());
+        self.data.insert(key.clone(), val.clone());
     }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
-        self._data.get(addr)
+        self.data.get(addr)
     }
 }
 
