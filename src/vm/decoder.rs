@@ -246,6 +246,6 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000000000007FFF, None);
-        assert_eq!(inst.off0, BigInt::from_i32(-1).unwrap());
+        assert_eq!(inst.off0, BigInt::from_i32(-2).unwrap());
     }
 }
