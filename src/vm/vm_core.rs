@@ -342,6 +342,7 @@ impl VirtualMachine {
             ap: self.run_context.ap.clone(),
             fp: self.run_context.fp.clone(),
         });
+        operands_mem_addresses.dedup();
         self.accessed_addresses.append(&mut operands_mem_addresses);
         self.accessed_addresses.push(self.run_context.pc.clone());
         self.update_registers(instruction, operands)?;
@@ -2859,17 +2860,95 @@ mod tests {
         /// More in deep analysis of the program execution due to step failure
         //if let Ok(instruction) = vm.decode_current_instruction(){
         ///Compare decoded instruction with the one in the python vm
-        let instruction = decode_instruction(2345108766317314046, None);
+        //let instruction = decode_instruction(2345108766317314046, None);
+        let instruction = Instruction {
+            off0: bigint!(-2),
+            off1: bigint!(-1),
+            off2: bigint!(-1),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::FP,
+            pc_update: PcUpdate::JUMP,
+            ap_update: ApUpdate::REGULAR,
+            fp_update: FpUpdate::DST,
+            opcode: Opcode::RET,
+            res: Res::OP1,
+        };
         assert_eq!(instruction.off0, bigint!(-2));
         assert_eq!(instruction.off1, bigint!(-1));
-        assert_eq!(instruction.off2, bigint!(1));
+        assert_eq!(instruction.off2, bigint!(-1));
         assert_eq!(instruction.imm, None);
         assert_eq!(instruction.dst_register, Register::FP);
         assert_eq!(instruction.op0_register, Register::FP);
-        assert_eq!(instruction.op0_register, Register::FP);
-        assert_eq!(instruction.op1_addr, Op1Addr::FP);
+        //assert_eq!(instruction.op1_addr, Op1Addr::FP);
         assert_eq!(instruction.res, Res::OP1);
+        assert_eq!(instruction.pc_update, PcUpdate::JUMP);
+        assert_eq!(instruction.ap_update, ApUpdate::REGULAR);
+        assert_eq!(instruction.fp_update, FpUpdate::DST);
+        assert_eq!(instruction.opcode, Opcode::RET);
 
         //assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.run_instruction(instruction), Ok(()));
+        assert_eq!(
+            vm.trace[0],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(0)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                })
+            }
+        );
+        assert_eq!(
+            vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0)
+            })
+        );
+
+        assert_eq!(
+            vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2)
+            })
+        );
+        assert_eq!(
+            vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[0],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(0)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[1],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(1)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[2],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0)
+            })
+        );
     }
 }
