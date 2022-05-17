@@ -370,3 +370,128 @@ After this relocation, each address whould be an Int instead of a RelocatableVal
 If there is no output_builtin, does nothing.
 Calls the function `get_used_cells_and_allocated_size` from this builtin. which calls `get_segment_used_size`, which returns the segment_used_size computed earlier in `compute_effective_sizes`. This would be the size of the output_builtin segment, which would correspond to the amount of values to be printed.
 Iterates over the size returned by the previous function calls fetching values from memory and printing them(uses the address at the output_runner's base, and adds 1 to it on each iteration).
+
+# How does the CairoVm manage Hints?
+
+The following is a broad analysis of how hints are processed from the compiled json file to their execution. Below the explanation, there is an **Example data**  section that will illustrate each of these steps showing the actual vm data for each step for a simple cairo program.
+
+### During initialization phase (before step)
+
+On the compiled json file, there is a hint section that includes each hint's code, accesible scopes (includes main, current function, builtins, and import path if inside an imported function) flow-tracking data, and the reference_ids which would be the variables it can interact with (the ones available on the scope the moment the hint is "called").
+Once we load the json file and create a [Program](https://github.com/starkware-libs/cairo-lang/blob/2abd303e1808612b724bc1412b2b5babd04bb4e7/src/starkware/cairo/lang/compiler/program.py#L83) object, it will have a field called hints, which will be a dictionary containing this same information we saw on the json file.
+When the vm is initialized, and the program’s data is loaded through `load_program`, [`load_hints`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L202) is called, which creates a dictionary that maps an address to a list of compiled hints (there may be more than one hint for an adress) this is called hints, and also creates a map from an id (the hint’s id) to a pc (address) and an index (in case there is more than one hint on a particular address), this is called hint_pc_and_index.
+The compiled hints are obtained by using python's [`compile`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L278) function in exec mode using the hint's code.
+
+### During execution phase (with each step iteration)
+Hits are the first thing to be handled once a [`step`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L443) starts.
+The current steps are taken to execute hints with each iteration:
+1. We obtain the list of the hints at our current pc (if any) and iterate over it
+2. We create an `exec_locals` dictionary that will contain our program’s input, memory (validated_memory), current registers (ap, fp, pc), the current step, ids which contains memory, ap, fp and pc as constants, the functions load_program, enter_scope and exit_scope, and the static_locals. The static_locals add to the exec_locals the program’s prime, the MemorySegmentManager (for example, this is used by alloc to add a memory segment for a undetermined-lengh array), and basic operations such as fadd, fsub, fdiv, etc.
+3. We [execute](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L285) the hint using python’s exec function, using exec_locals as globals.
+
+
+## Example data 
+
+### Simple program with simple hint code
+
+Cairo source code:
+
+```cairo
+func main():
+    let a: felt = 1
+    let b: felt = 2
+    %{  
+        b = 4
+    %}
+    let c: felt = 1 + 2
+    return ()
+end
+```
+
+On the compiled json file:
+
+```json=
+"hints": {
+        "0": [
+            {
+                "accessible_scopes": [
+                    "__main__",
+                    "__main__.main"
+                ],
+                "code": "b = 4",
+                "flow_tracking_data": {
+                    "ap_tracking": {
+                        "group": 0,
+                        "offset": 0
+                    },
+                    "reference_ids": {
+                        "__main__.main.a": 0,
+                        "__main__.main.b": 1
+                    }
+                }
+            }
+        ]
+    },
+```
+
+The hints field on the Program object:
+```bash
+{0: [CairoHint(code='b = 4',
+accessible_scopes=[ScopedName(path=('__main__',)),
+ScopedName(path=('__main__', 'main'))],
+flow_tracking_data=FlowTrackingDataActual(ap_tracking=RegTrackingData(group=0, offset=0),
+reference_ids={ScopedName(path=('__main__', 'main', 'a')): 0,
+ScopedName(path=('__main__', 'main', 'b')): 1}))]}
+```
+On the VirtualMachine structure we have the following fields:
+
+hint_pc_and_index: 
+
+```bash
+{0: (RelocatableValue(segment_index=0, offset=0), 0)}
+```
+hints: 
+
+```bash
+{RelocatableValue(segment_index=0, offset=0): 
+[CompiledHint(
+compiled=<code object <module> at 0x106a51920,
+file “<hint0>”, line 1>,
+consts=<function VirtualMachineBase.load_hints.<locals>.<lambda> at 0x106a0ff70>)]}
+```
+exec_locals before executing our hint:
+
+```bash
+{'program_input': {},
+'memory': <starkware.cairo.lang.vm.validated_memory_dict.ValidatedMemoryDict object at 0x1086ef040>,
+'ap': RelocatableValue(segment_index=1, offset=2),
+'fp': RelocatableValue(segment_index=1, offset=2),
+'pc': RelocatableValue(segment_index=0, offset=0),
+'current_step': 0, 'ids': <starkware.cairo.lang.vm.vm_consts.VmConsts object at 0x108744820>,
+'vm_load_program': <bound method VirtualMachineBase.load_program of <starkware.cairo.lang.vm.vm_core.VirtualMachine object at 0x1086efa90>>,
+'vm_enter_scope': <bound method VirtualMachineBase.enter_scope of <starkware.cairo.lang.vm.vm_core.VirtualMachine object at 0x1086efa90>>,
+'vm_exit_scope': <bound method VirtualMachineBase.exit_scope of <starkware.cairo.lang.vm.vm_core.VirtualMachine object at 0x1086efa90>>,
+'segments': <starkware.cairo.lang.vm.memory_segments.MemorySegmentManager object at 0x10871c6a0>,
+'PRIME': 3618502788666131213697322783095070105623107215331596699973092056135872020481,
+'fadd': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d550>, 
+'fsub': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d3a0>, 
+'fmul': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d5e0>, 
+'fdiv': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d310>, 
+'fpow': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d670>, 
+'fis_quad_residue': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d280>, 
+'fsqrt': <function VirtualMachineBase.__init__.<locals>.<lambda> at 0x10870d700>, 
+'safe_div': <function safe_div at 0x1058ca0d0>, 
+'to_felt_or_relocatable': <function RelocatableValue.to_felt_or_relocatable at 0x108534670>}
+```
+## Non-simple cases
+
+### What happens when we import a function that contains a hint?
+The hint's code will contain the hint on the library function's code, and the accessible_scopes will become the import path.
+For example, when importing the function [alloc()](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/common/alloc.cairo#L2), our Program's hints field will look like this:
+
+```bash
+{0: [CairoHint(code=‘memory[ap] = segments.add()’,
+accessible_scopes=[ScopedName(path=(‘starkware’, ‘cairo’, ‘common’, ‘alloc’)),
+ScopedName(path=(‘starkware’, ‘cairo’, ‘common’, ‘alloc’, ‘alloc’))],
+flow_tracking_data=FlowTrackingDataActual(ap_tracking=RegTrackingData(group=0, offset=0), reference_ids={}))]}
+```
