@@ -60,8 +60,8 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
     let op1_addr = match op1_src_num {
         0 => instruction::Op1Addr::OP0,
         1 => instruction::Op1Addr::IMM,
-        2 => instruction::Op1Addr::AP,
-        4 => instruction::Op1Addr::FP,
+        2 => instruction::Op1Addr::FP,
+        4 => instruction::Op1Addr::AP,
         _ => panic!("Invalid instruction"),
     };
 
@@ -120,8 +120,8 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
     }
 }
 
-fn decode_offset(offset:i64) -> i64 {
-    let vectorized_offset:[u8;8] = offset.to_le_bytes();
+fn decode_offset(offset: i64) -> i64 {
+    let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
     let complement_const = 0x8000u16;
     let (offset_16b, _) = offset_16b_encoded.overflowing_sub(complement_const);
@@ -154,16 +154,16 @@ mod decoder_test {
     }
 
     #[test]
-    fn decode_flags_ret_add1_jmp_rel_mul_ap_ap_ap() {
+    fn decode_flags_ret_add1_jmp_rel_mul_fp_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |     RET|     ADD1| JUMP_REL|      MUL|     AP|     AP|     AP
+        //   |     RET|     ADD1| JUMP_REL|      MUL|     FP|     AP|     AP
         //  0  0  1  0      1  0   0  1  0      1  0 0  1  0       0       0
         //  0010 1001 0100 1000 = 0x2948; offx = 0
         let inst = decode_instruction(0x2948800080008000, None);
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
-        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::AP), true);
+        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::FP), true);
         assert_eq!(matches!(inst.res, instruction::Res::MUL), true);
         assert_eq!(
             matches!(inst.pc_update, instruction::PcUpdate::JUMP_REL),
@@ -175,16 +175,16 @@ mod decoder_test {
     }
 
     #[test]
-    fn decode_flags_assrt_add_jnz_mul_fp_ap_ap() {
+    fn decode_flags_assrt_add_jnz_mul_ap_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |ASSRT_EQ|      ADD|      JNZ|      MUL|     FP|     AP|     AP
+        //   |ASSRT_EQ|      ADD|      JNZ|      MUL|     AP|     AP|     AP
         //  0  1  0  0      1  0   1  0  0      1  0 1  0  0       0       0
         //  0100 1010 0101 0000 = 0x4A50; offx = 0
         let inst = decode_instruction(0x4A50800080008000, None);
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
-        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::FP), true);
+        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::AP), true);
         assert_eq!(matches!(inst.res, instruction::Res::MUL), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JNZ), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::ADD1), true);
