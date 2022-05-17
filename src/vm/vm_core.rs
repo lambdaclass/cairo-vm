@@ -2857,39 +2857,7 @@ mod tests {
                 offset: bigint!(0),
             }),
         );
-        /// More in deep analysis of the program execution due to step failure
-        //if let Ok(instruction) = vm.decode_current_instruction(){
-        ///Compare decoded instruction with the one in the python vm
-        //let instruction = decode_instruction(2345108766317314046, None);
-        let instruction = Instruction {
-            off0: bigint!(-2),
-            off1: bigint!(-1),
-            off2: bigint!(-1),
-            imm: None,
-            dst_register: Register::FP,
-            op0_register: Register::FP,
-            op1_addr: Op1Addr::FP,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::DST,
-            opcode: Opcode::RET,
-            res: Res::OP1,
-        };
-        assert_eq!(instruction.off0, bigint!(-2));
-        assert_eq!(instruction.off1, bigint!(-1));
-        assert_eq!(instruction.off2, bigint!(-1));
-        assert_eq!(instruction.imm, None);
-        assert_eq!(instruction.dst_register, Register::FP);
-        assert_eq!(instruction.op0_register, Register::FP);
-        //assert_eq!(instruction.op1_addr, Op1Addr::FP);
-        assert_eq!(instruction.res, Res::OP1);
-        assert_eq!(instruction.pc_update, PcUpdate::JUMP);
-        assert_eq!(instruction.ap_update, ApUpdate::REGULAR);
-        assert_eq!(instruction.fp_update, FpUpdate::DST);
-        assert_eq!(instruction.opcode, Opcode::RET);
-
-        //assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.run_instruction(instruction), Ok(()));
+        assert_eq!(vm.step(), Ok(()));
         assert_eq!(
             vm.trace[0],
             TraceEntry {
