@@ -7,7 +7,6 @@ use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
-use std::collections::HashMap;
 use std::fmt;
 
 macro_rules! bigint {
@@ -340,9 +339,9 @@ impl VirtualMachine {
         let (operands, mut operands_mem_addresses) = self.compute_operands(&instruction)?;
         self.opcode_assertions(&instruction, &operands);
         self._trace.push(TraceEntry {
-            pc: self.run_context.pc.clone(),
-            ap: self.run_context.ap.clone(),
-            fp: self.run_context.fp.clone(),
+            _pc: self.run_context.pc.clone(),
+            _ap: self.run_context.ap.clone(),
+            _fp: self.run_context.fp.clone(),
         });
         operands_mem_addresses.dedup();
         self.accessed_addresses.append(&mut operands_mem_addresses);
