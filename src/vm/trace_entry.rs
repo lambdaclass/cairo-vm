@@ -3,7 +3,7 @@
 use crate::vm::relocatable::MaybeRelocatable;
 
 pub struct TraceEntry {
-    pc: MaybeRelocatable,
-    ap: MaybeRelocatable,
-    fp: MaybeRelocatable,
+    pub pc: MaybeRelocatable,
+    pub ap: MaybeRelocatable,
+    pub fp: MaybeRelocatable,
 }
