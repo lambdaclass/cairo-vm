@@ -29,10 +29,10 @@ const OFFX_MASK: i64 = 0xFFFF;
 
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instruction::Instruction {
-    // Grab offsets
-    let off0 = encoded_instr >> OFF0_OFF & OFFX_MASK;
-    let off1 = encoded_instr >> OFF1_OFF & OFFX_MASK;
-    let off2 = encoded_instr >> OFF2_OFF & OFFX_MASK;
+    // Grab offsets and convert them from little endian format.
+    let off0 = (encoded_instr >> OFF0_OFF & OFFX_MASK).reverse_bits() >> 48;
+    let off1 = (encoded_instr >> OFF1_OFF & OFFX_MASK).reverse_bits() >> 48;
+    let off2 = (encoded_instr >> OFF2_OFF & OFFX_MASK).reverse_bits() >> 48;
     // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;
     // Grab individual flags
@@ -236,5 +236,16 @@ mod decoder_test {
             matches!(inst.fp_update, instruction::FpUpdate::REGULAR),
             true
         );
+    }
+
+    #[test]
+    fn decode_offset_negative() {
+        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
+        //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
+        //  0000 0000 0000 0000 = 0x0000; offx = 0
+        let inst = decode_instruction(0x0000000000007FFF, None);
+        assert_eq!(inst.off0, BigInt::from_i32(-2).unwrap());
     }
 }
