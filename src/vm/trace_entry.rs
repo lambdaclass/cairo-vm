@@ -3,7 +3,7 @@
 use crate::vm::relocatable::MaybeRelocatable;
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
-    pub pc: MaybeRelocatable,
-    pub ap: MaybeRelocatable,
-    pub fp: MaybeRelocatable,
+    pc: MaybeRelocatable,
+    ap: MaybeRelocatable,
+    fp: MaybeRelocatable,
 }

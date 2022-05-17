@@ -13,7 +13,7 @@ use std::collections::HashMap;
 pub struct CairoRunner {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
-    layout: String,
+    _layout: String,
     builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
@@ -41,7 +41,7 @@ impl CairoRunner {
         }
         CairoRunner {
             program: program.clone(),
-            layout: String::from("plain"),
+            _layout: String::from("plain"),
             segments: MemorySegmentManager::new(program.prime.clone()),
             final_pc: None,
             program_base: None,
@@ -475,9 +475,9 @@ mod tests {
             main: Some(bigint!(1)),
         };
         let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.program_base = Some(relocatable!(0,0));
-        cairo_runner.execution_base = Some(relocatable!(0,0));
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint();
-        assert_eq!(return_pc, relocatable!(1,0));
+        assert_eq!(return_pc, relocatable!(1, 0));
     }
 }

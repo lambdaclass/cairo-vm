@@ -9,12 +9,12 @@ use std::collections::HashMap;
 
 pub struct MemorySegmentManager {
     pub memory: Memory,
-    prime: BigInt,
+    _prime: BigInt,
     pub num_segments: i32,
-    segment_sizes: HashMap<BigInt, BigInt>,
-    segment_used_sizes: Option<HashMap<BigInt, BigInt>>,
-    public_memory_offsets: HashMap<BigInt, Vec<(BigInt, BigInt)>>,
-    num_temp_segments: i32,
+    _segment_sizes: HashMap<BigInt, BigInt>,
+    _segment_used_sizes: Option<HashMap<BigInt, BigInt>>,
+    _public_memory_offsets: HashMap<BigInt, Vec<(BigInt, BigInt)>>,
+    _num_temp_segments: i32,
 }
 
 impl MemorySegmentManager {
@@ -23,7 +23,7 @@ impl MemorySegmentManager {
     pub fn add(&mut self, size: Option<i32>) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
-        if let Some(segment_size) = size {
+        if let Some(_segment_size) = size {
             //TODO self.finalize(segment_index, size);
         }
         relocatable!(segment_index, 0)
@@ -47,12 +47,12 @@ impl MemorySegmentManager {
     pub fn new(prime: BigInt) -> MemorySegmentManager {
         MemorySegmentManager {
             memory: Memory::new(),
-            prime: prime,
+            _prime: prime,
             num_segments: 0,
-            segment_sizes: HashMap::<BigInt, BigInt>::new(),
-            segment_used_sizes: None,
-            public_memory_offsets: HashMap::<BigInt, Vec<(BigInt, BigInt)>>::new(),
-            num_temp_segments: 0,
+            _segment_sizes: HashMap::<BigInt, BigInt>::new(),
+            _segment_used_sizes: None,
+            _public_memory_offsets: HashMap::<BigInt, Vec<(BigInt, BigInt)>>::new(),
+            _num_temp_segments: 0,
         }
     }
 }

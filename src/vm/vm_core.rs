@@ -42,13 +42,13 @@ pub struct VirtualMachine {
     //debug_file_contents: HashMap<String, String>,
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
-    program_base: Option<MaybeRelocatable>,
+    _program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    //auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
-    accessed_addresses: Vec<MaybeRelocatable>,
-    trace: Vec<TraceEntry>,
-    current_step: BigInt,
-    skip_instruction_execution: bool,
+    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
+    _accessed_addresses: Vec<MaybeRelocatable>,
+    _trace: Vec<TraceEntry>,
+    _current_step: BigInt,
+    _skip_instruction_execution: bool,
 }
 
 impl VirtualMachine {
@@ -337,7 +337,7 @@ impl VirtualMachine {
     fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
         let (operands, mut operands_mem_addresses) = self.compute_operands(&instruction)?;
         self.opcode_assertions(&instruction, &operands);
-        self.trace.push(TraceEntry {
+        self._trace.push(TraceEntry {
             pc: self.run_context.pc.clone(),
             ap: self.run_context.ap.clone(),
             fp: self.run_context.fp.clone(),
@@ -346,7 +346,7 @@ impl VirtualMachine {
         self.accessed_addresses.append(&mut operands_mem_addresses);
         self.accessed_addresses.push(self.run_context.pc.clone());
         self.update_registers(instruction, operands)?;
-        self.current_step += bigint!(1);
+        self._current_step += bigint!(1);
         Ok(())
     }
 
@@ -360,7 +360,7 @@ impl VirtualMachine {
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
-        self.skip_instruction_execution = false;
+        self._skip_instruction_execution = false;
         //TODO: Hint Management
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
@@ -554,12 +554,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.update_fp(&instruction, &operands);
@@ -601,12 +601,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.update_fp(&instruction, &operands);
@@ -648,12 +648,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.update_fp(&instruction, &operands);
@@ -695,12 +695,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
@@ -742,12 +742,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(
@@ -791,12 +791,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
@@ -838,12 +838,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
@@ -885,12 +885,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
@@ -932,12 +932,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
@@ -979,12 +979,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
@@ -1026,12 +1026,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
@@ -1073,12 +1073,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(
@@ -1122,12 +1122,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
@@ -1169,12 +1169,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(
@@ -1221,12 +1221,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(
@@ -1270,12 +1270,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
@@ -1317,12 +1317,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
@@ -1364,12 +1364,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_registers(instruction, operands));
@@ -1413,12 +1413,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok(()), vm.update_registers(instruction, operands));
@@ -1482,12 +1482,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(
@@ -1524,12 +1524,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(3));
         let op1 = MaybeRelocatable::Int(bigint!(2));
@@ -1570,12 +1570,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         assert_eq!(Ok((None, None)), vm.deduce_op0(&instruction, None, None));
     }
@@ -1608,12 +1608,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(2));
@@ -1654,12 +1654,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(0));
@@ -1697,12 +1697,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(0));
@@ -1740,12 +1740,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(0));
@@ -1783,12 +1783,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         assert_eq!(Ok((None, None)), vm.deduce_op1(&instruction, None, None));
@@ -1822,12 +1822,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(3));
         let op0 = MaybeRelocatable::Int(bigint!(2));
@@ -1868,12 +1868,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         assert_eq!(Ok((None, None)), vm.deduce_op1(&instruction, None, None));
     }
@@ -1906,12 +1906,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op0 = MaybeRelocatable::Int(bigint!(2));
@@ -1952,12 +1952,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op0 = MaybeRelocatable::Int(bigint!(0));
@@ -1995,12 +1995,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let op0 = MaybeRelocatable::Int(bigint!(0));
         assert_eq!(
@@ -2037,12 +2037,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let dst = MaybeRelocatable::Int(bigint!(7));
         assert_eq!(
@@ -2082,12 +2082,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -2125,12 +2125,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -2168,12 +2168,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -2211,12 +2211,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let op1 = MaybeRelocatable::RelocatableValue(Relocatable {
             segment_index: bigint!(2),
@@ -2260,12 +2260,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -2300,12 +2300,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         let res = MaybeRelocatable::Int(bigint!(7));
         assert_eq!(
@@ -2342,12 +2342,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         assert_eq!(None, vm.deduce_dst(&instruction, None));
     }
@@ -2380,12 +2380,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         assert_eq!(
             Some(MaybeRelocatable::Int(bigint!(6))),
@@ -2421,12 +2421,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
         assert_eq!(None, vm.deduce_dst(&instruction, None));
     }
@@ -2470,12 +2470,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: val_memory,
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         let expected_operands = Operands {
@@ -2531,12 +2531,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: val_memory,
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         let expected_operands = Operands {
@@ -2589,12 +2589,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.opcode_assertions(&instruction, &operands)
@@ -2636,12 +2636,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.opcode_assertions(&instruction, &operands)
@@ -2685,12 +2685,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.opcode_assertions(&instruction, &operands);
@@ -2734,12 +2734,12 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
+            _accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            _trace: Vec::<TraceEntry>::new(),
+            _current_step: bigint!(1),
+            _skip_instruction_execution: false,
         };
 
         vm.opcode_assertions(&instruction, &operands);
