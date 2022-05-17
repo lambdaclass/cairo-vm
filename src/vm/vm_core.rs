@@ -339,9 +339,9 @@ impl VirtualMachine {
         let (operands, mut operands_mem_addresses) = self.compute_operands(&instruction)?;
         self.opcode_assertions(&instruction, &operands);
         self._trace.push(TraceEntry {
-            _pc: self.run_context.pc.clone(),
-            _ap: self.run_context.ap.clone(),
-            _fp: self.run_context.fp.clone(),
+            pc: self.run_context.pc.clone(),
+            ap: self.run_context.ap.clone(),
+            fp: self.run_context.fp.clone(),
         });
         operands_mem_addresses.dedup();
         self.accessed_addresses.append(&mut operands_mem_addresses);
