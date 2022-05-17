@@ -24,6 +24,7 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
+#[allow(dead_code)]
 struct Rule {
     func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
 }
@@ -51,6 +52,7 @@ pub struct VirtualMachine {
     _skip_instruction_execution: bool,
 }
 
+#[allow(dead_code)]
 impl VirtualMachine {
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
@@ -448,6 +450,7 @@ impl VirtualMachine {
 }
 
 #[derive(Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum VirtualMachineError {
     //InvalidInstructionEncodingError(MaybeRelocatable), Impl fmt for MaybeRelocatable
     InvalidInstructionEncodingError,

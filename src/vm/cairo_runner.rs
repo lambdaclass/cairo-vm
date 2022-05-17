@@ -22,6 +22,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
 }
 
+#[allow(dead_code)]
 impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
         let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();

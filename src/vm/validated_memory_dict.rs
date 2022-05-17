@@ -11,6 +11,7 @@ pub struct ValidatedMemoryDict {
 }
 
 impl ValidatedMemoryDict {
+    #[allow(dead_code)]
     pub fn new() -> ValidatedMemoryDict {
         ValidatedMemoryDict {
             memory: Memory::new(),
