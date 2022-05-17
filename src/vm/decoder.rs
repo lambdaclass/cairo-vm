@@ -59,9 +59,9 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
 
     let op1_addr = match op1_src_num {
         0 => instruction::Op1Addr::OP0,
-        1 => instruction::Op1Addr::IMM,
+        1 => instruction::Op1Addr::FP,
         2 => instruction::Op1Addr::AP,
-        4 => instruction::Op1Addr::FP,
+        4 => instruction::Op1Addr::IMM,
         _ => panic!("Invalid instruction"),
     };
 
@@ -142,7 +142,7 @@ mod decoder_test {
         let inst = decode_instruction(0x14A7800080008000, None);
         assert_eq!(matches!(inst.dst_register, instruction::Register::FP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::FP), true);
-        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::IMM), true);
+        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::FP), true);
         assert_eq!(matches!(inst.res, instruction::Res::ADD), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JUMP), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::ADD), true);
@@ -184,7 +184,7 @@ mod decoder_test {
         let inst = decode_instruction(0x4A50800080008000, None);
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
-        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::FP), true);
+        assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::IMM), true);
         assert_eq!(matches!(inst.res, instruction::Res::MUL), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JNZ), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::ADD1), true);
