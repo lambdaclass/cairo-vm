@@ -54,9 +54,9 @@ pub struct VirtualMachine {
 impl VirtualMachine {
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
-            FpUpdate::AP_PLUS2 => self.run_context.ap.add_num_addr(bigint!(2), None),
-            FpUpdate::DST => operands.dst.clone(),
-            FpUpdate::REGULAR => return,
+            FpUpdate::APPlus2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            FpUpdate::Dst => operands.dst.clone(),
+            FpUpdate::Regular => return,
         };
         self.run_context.fp = new_fp;
     }
@@ -67,7 +67,7 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_ap: MaybeRelocatable = match instruction.ap_update {
-            ApUpdate::ADD => match operands.res.clone() {
+            ApUpdate::Add => match operands.res.clone() {
                 Some(res) => self
                     .run_context
                     .ap
@@ -75,9 +75,9 @@ impl VirtualMachine {
 
                 None => return Err(VirtualMachineError::UnconstrainedResAddError),
             },
-            ApUpdate::ADD1 => self.run_context.ap.add_num_addr(bigint!(1), None),
-            ApUpdate::ADD2 => self.run_context.ap.add_num_addr(bigint!(2), None),
-            ApUpdate::REGULAR => return Ok(()),
+            ApUpdate::Add1 => self.run_context.ap.add_num_addr(bigint!(1), None),
+            ApUpdate::Add2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            ApUpdate::Regular => return Ok(()),
         };
         self.run_context.ap = new_ap % self.prime.clone();
         Ok(())
@@ -89,15 +89,15 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
-            PcUpdate::REGULAR => self
+            PcUpdate::Regular => self
                 .run_context
                 .pc
                 .add_num_addr(bigint!(Instruction::size(&instruction)), None),
-            PcUpdate::JUMP => match operands.res.clone() {
+            PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJumpError),
             },
-            PcUpdate::JUMP_REL => match operands.res.clone() {
+            PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => {
                         self.run_context.pc.add_num_addr(num_res, None)
@@ -158,7 +158,7 @@ impl VirtualMachine {
         op1: Option<&MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
         match instruction.opcode {
-            Opcode::CALL => {
+            Opcode::Call => {
                 return Ok((
                     Some(
                         self.run_context
@@ -168,9 +168,9 @@ impl VirtualMachine {
                     None,
                 ))
             }
-            Opcode::ASSERT_EQ => {
+            Opcode::AsseertEq => {
                 match instruction.res {
-                    Res::ADD => {
+                    Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
                             return Ok((
                                 Some((dst_addr.sub_addr(op1_addr))? % self.prime.clone()),
@@ -178,7 +178,7 @@ impl VirtualMachine {
                             ));
                         }
                     }
-                    Res::MUL => {
+                    Res::Mul => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
                             if let (
                                 MaybeRelocatable::Int(num_dst),
@@ -215,14 +215,14 @@ impl VirtualMachine {
         dst: Option<&MaybeRelocatable>,
         op0: Option<MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
-        if let Opcode::ASSERT_EQ = instruction.opcode {
+        if let Opcode::AsseertEq = instruction.opcode {
             match instruction.res {
-                Res::OP1 => {
+                Res::Op1 => {
                     if let Some(dst_addr) = dst {
                         return Ok((Some(dst_addr.clone()), Some(dst_addr.clone())));
                     }
                 }
-                Res::ADD => {
+                Res::Add => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
                         return Ok((
                             Some((dst_addr.sub_addr(&op0_addr))?),
@@ -230,7 +230,7 @@ impl VirtualMachine {
                         ));
                     }
                 }
-                Res::MUL => {
+                Res::Mul => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
                         if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
                             (dst_addr, op0_addr)
@@ -261,9 +261,9 @@ impl VirtualMachine {
         op1: &MaybeRelocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
-            Res::OP1 => return Ok(Some(op1.clone())),
-            Res::ADD => return Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
-            Res::MUL => {
+            Res::Op1 => return Ok(Some(op1.clone())),
+            Res::Add => return Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
+            Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
                     return Ok(Some(
@@ -272,7 +272,7 @@ impl VirtualMachine {
                 }
                 return Err(VirtualMachineError::PureValueError);
             }
-            Res::UNCONSTRAINED => return Ok(None),
+            Res::Unconstrained => return Ok(None),
         };
     }
 
@@ -282,12 +282,12 @@ impl VirtualMachine {
         res: Option<&MaybeRelocatable>,
     ) -> Option<MaybeRelocatable> {
         match instruction.opcode {
-            Opcode::ASSERT_EQ => {
+            Opcode::AsseertEq => {
                 if let Some(res_addr) = res {
                     return Some(res_addr.clone());
                 }
             }
-            Opcode::CALL => return Some(self.run_context.fp.clone()),
+            Opcode::Call => return Some(self.run_context.fp.clone()),
             _ => (),
         };
         return None;
@@ -295,7 +295,7 @@ impl VirtualMachine {
 
     fn opcode_assertions(&self, instruction: &Instruction, operands: &Operands) {
         match instruction.opcode {
-            Opcode::ASSERT_EQ => {
+            Opcode::AsseertEq => {
                 match &operands.res {
                     None => panic!("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ"),
                     Some(res) => {
@@ -312,7 +312,7 @@ impl VirtualMachine {
                     }
                 };
             }
-            Opcode::CALL => {
+            Opcode::Call => {
                 if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
                     (&operands.op0, &self.run_context.pc)
                 {
@@ -416,8 +416,8 @@ impl VirtualMachine {
 
         if matches!(dst, None) {
             match instruction.opcode {
-                Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res.clone(),
-                Opcode::CALL => dst = Some(self.run_context.fp.clone()),
+                Opcode::AsseertEq if matches!(res, Some(_)) => dst = res.clone(),
+                Opcode::Call => dst = Some(self.run_context.fp.clone()),
                 _ => panic!("Couldn't get or load dst"),
             }
         }
@@ -529,11 +529,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -576,11 +576,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::DST,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -623,11 +623,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -670,11 +670,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -717,11 +717,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -766,11 +766,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD1,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add1,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -813,11 +813,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD2,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add2,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -860,11 +860,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -907,11 +907,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -954,11 +954,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1001,11 +1001,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1048,11 +1048,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1097,11 +1097,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1144,11 +1144,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1193,11 +1193,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1245,11 +1245,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
+            res: Res::Add,
             pc_update: PcUpdate::JNZ,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1292,11 +1292,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
+            res: Res::Add,
             pc_update: PcUpdate::JNZ,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1339,11 +1339,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1388,11 +1388,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::ADD2,
-            fp_update: FpUpdate::DST,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Add2,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1464,11 +1464,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
         };
 
         let run_context = RunContext {
@@ -1506,11 +1506,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1552,11 +1552,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1590,11 +1590,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1636,11 +1636,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1679,11 +1679,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1722,11 +1722,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::RET,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Ret,
         };
 
         let run_context = RunContext {
@@ -1765,11 +1765,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
         };
 
         let run_context = RunContext {
@@ -1804,11 +1804,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1850,11 +1850,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1888,11 +1888,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1934,11 +1934,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -1977,11 +1977,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2019,11 +2019,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2064,11 +2064,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2107,11 +2107,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2150,11 +2150,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2193,11 +2193,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2242,11 +2242,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2282,11 +2282,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2324,11 +2324,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
         let run_context = RunContext {
@@ -2362,11 +2362,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::CALL,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
         };
 
         let run_context = RunContext {
@@ -2403,11 +2403,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::RET,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Ret,
         };
 
         let run_context = RunContext {
@@ -2441,11 +2441,11 @@ mod tests {
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -2502,11 +2502,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::FP,
-            res: Res::MUL,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -2564,11 +2564,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::AsseertEq,
         };
 
         let operands = Operands {
@@ -2611,11 +2611,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::AsseertEq,
         };
 
         let operands = Operands {
@@ -2660,11 +2660,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
         };
 
         let operands = Operands {
@@ -2709,11 +2709,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
         };
 
         let operands = Operands {
