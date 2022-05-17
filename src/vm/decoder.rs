@@ -237,4 +237,15 @@ mod decoder_test {
             true
         );
     }
+
+    #[test]
+    fn decode_offset_negative() {
+        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
+        //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
+        //  0000 0000 0000 0000 = 0x0000; offx = 0
+        let inst = decode_instruction(0x0000000000007FFF, None);
+        assert_eq!(inst.off0, BigInt::from_i32(-1).unwrap());
+    }
 }
