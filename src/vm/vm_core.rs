@@ -17,7 +17,7 @@ macro_rules! bigint {
 }
 
 #[derive(PartialEq)]
-struct Operands {
+pub struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
@@ -543,7 +543,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -590,7 +590,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -637,7 +637,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -684,7 +684,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -731,7 +731,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -780,7 +780,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -827,7 +827,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -874,7 +874,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -921,7 +921,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -968,7 +968,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1015,7 +1015,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1062,7 +1062,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1111,7 +1111,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1158,7 +1158,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1210,7 +1210,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1259,7 +1259,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1306,7 +1306,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1353,7 +1353,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1402,7 +1402,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1471,7 +1471,7 @@ mod tests {
             opcode: Opcode::CALL,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1479,7 +1479,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1513,7 +1513,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1521,7 +1521,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1559,7 +1559,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1567,7 +1567,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1597,7 +1597,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1605,7 +1605,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1643,7 +1643,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1651,7 +1651,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1686,7 +1686,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1694,7 +1694,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1729,7 +1729,7 @@ mod tests {
             opcode: Opcode::RET,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1737,7 +1737,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1772,7 +1772,7 @@ mod tests {
             opcode: Opcode::CALL,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1780,7 +1780,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1811,7 +1811,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1819,7 +1819,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1857,7 +1857,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1865,7 +1865,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1895,7 +1895,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1903,7 +1903,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1941,7 +1941,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1949,7 +1949,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -1984,7 +1984,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1992,7 +1992,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2026,7 +2026,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2034,7 +2034,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2071,7 +2071,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2079,7 +2079,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2114,7 +2114,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2122,7 +2122,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2157,7 +2157,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2165,7 +2165,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2200,7 +2200,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2208,7 +2208,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2249,7 +2249,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2257,7 +2257,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2289,7 +2289,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2297,7 +2297,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2331,7 +2331,7 @@ mod tests {
             opcode: Opcode::ASSERT_EQ,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2339,7 +2339,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2369,7 +2369,7 @@ mod tests {
             opcode: Opcode::CALL,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2377,7 +2377,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2410,7 +2410,7 @@ mod tests {
             opcode: Opcode::RET,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2418,7 +2418,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2448,7 +2448,7 @@ mod tests {
             opcode: Opcode::NOP,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(0)),
             ap: MaybeRelocatable::Int(bigint!(0)),
@@ -2509,7 +2509,7 @@ mod tests {
             opcode: Opcode::NOP,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(0)),
             ap: MaybeRelocatable::Int(bigint!(0)),
@@ -2578,7 +2578,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2586,7 +2586,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2625,7 +2625,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2633,7 +2633,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2674,7 +2674,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2682,7 +2682,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
@@ -2723,7 +2723,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(8)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2731,7 +2731,7 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,

@@ -1,5 +1,4 @@
 use crate::bigint;
-use crate::relocatable;
 use crate::vm::builtin_runner::BuiltinRunner;
 use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
@@ -137,6 +136,7 @@ impl CairoRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
 
     #[test]
     fn initialize_segments_with_base() {
