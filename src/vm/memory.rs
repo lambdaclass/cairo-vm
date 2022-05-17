@@ -29,9 +29,9 @@ mod memory_tests {
     fn get_test() {
         let key = MaybeRelocatable::Int(BigInt::from_i32(2).unwrap());
         let val = MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
-        let val_clone = val.clone();
+        let _val_clone = val.clone();
         let mut mem = Memory::new();
         mem.insert(&key, &val);
-        assert_eq!(matches!(mem.get(&key), val_clone), true);
+        assert_eq!(matches!(mem.get(&key), _val_clone), true);
     }
 }

@@ -2092,7 +2092,7 @@ mod tests {
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(7))))),
+            Ok(Some(MaybeRelocatable::Int(bigint!(7)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2135,7 +2135,7 @@ mod tests {
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(16))))),
+            Ok(Some(MaybeRelocatable::Int(bigint!(16)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2178,7 +2178,7 @@ mod tests {
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(63))))),
+            Ok(Some(MaybeRelocatable::Int(bigint!(63)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }

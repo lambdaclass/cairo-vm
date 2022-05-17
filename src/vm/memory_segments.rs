@@ -72,10 +72,10 @@ mod tests {
     #[test]
     fn add_segment_no_size_test_two_segments() {
         let mut segments = MemorySegmentManager::new(bigint!(17));
-        let mut base = segments.add(None);
-        base = segments.add(None);
+        let mut _base = segments.add(None);
+        _base = segments.add(None);
         assert_eq!(
-            base,
+            _base,
             Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(0)

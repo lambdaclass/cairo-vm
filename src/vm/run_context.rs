@@ -79,7 +79,6 @@ mod tests {
     use super::*;
     use crate::vm::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::vm::vm_core::VirtualMachineError;
-    use std::collections::HashMap;
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
