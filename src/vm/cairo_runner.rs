@@ -122,8 +122,9 @@ impl CairoRunner {
         //Different process if proof_mode is enabled
         let return_fp = self.segments.add(None);
         if let Some(main) = &self.program.main {
+            let main_clone = main.clone();
             self.initialize_function_entrypoint(
-                main.clone(),
+                main_clone,
                 stack,
                 MaybeRelocatable::RelocatableValue(return_fp),
             )
