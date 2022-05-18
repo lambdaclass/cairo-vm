@@ -1,5 +1,6 @@
 use num_bigint::BigInt;
 
+#[derive(Debug, PartialEq)]
 pub enum Register {
     AP,
     FP,
@@ -20,6 +21,7 @@ pub struct Instruction {
     pub opcode: Opcode,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Op1Addr {
     IMM,
     AP,
@@ -27,6 +29,7 @@ pub enum Op1Addr {
     OP0,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Res {
     OP1,
     ADD,
@@ -34,6 +37,7 @@ pub enum Res {
     UNCONSTRAINED,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum PcUpdate {
     REGULAR,
     JUMP,
@@ -41,6 +45,7 @@ pub enum PcUpdate {
     JNZ,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum ApUpdate {
     REGULAR,
     ADD,
@@ -48,12 +53,14 @@ pub enum ApUpdate {
     ADD2,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum FpUpdate {
     REGULAR,
     AP_PLUS2,
     DST,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Opcode {
     NOP,
     ASSERT_EQ,
