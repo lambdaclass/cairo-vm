@@ -33,6 +33,7 @@ We wrote a document explaining how the Cairo VM works. It can be found [here](./
 
 These is a list of recommended books to learn how to implement a compiler or an interpreter.
 
+* [How I wrote my own "proper" programming language - Mukul Rathi](https://mukulrathi.com/create-your-own-programming-language/intro-to-compiler/)
 * [Introduction to Compilers and Language Design - Douglas Thain](http://compilerbook.org)
 * [Beautiful Racket - Matthew Flatt](https://beautifulracket.com)
 * [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
