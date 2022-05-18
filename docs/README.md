@@ -371,7 +371,7 @@ If there is no output_builtin, does nothing.
 Calls the function `get_used_cells_and_allocated_size` from this builtin. which calls `get_segment_used_size`, which returns the segment_used_size computed earlier in `compute_effective_sizes`. This would be the size of the output_builtin segment, which would correspond to the amount of values to be printed.
 Iterates over the size returned by the previous function calls fetching values from memory and printing them(uses the address at the output_runner's base, and adds 1 to it on each iteration).
 
-# How does the CairoVm manage Hints?
+# How does the CairoVM manage Hints?
 
 The following is a broad analysis of how hints are processed from the compiled json file to their execution. Below the explanation, there is an **Example data**  section that will illustrate each of these steps showing the actual vm data for each step for a simple cairo program.
 
