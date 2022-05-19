@@ -64,7 +64,7 @@ impl RunContext {
                 true => &self.pc,
                 false => return Err(VirtualMachineError::ImmShouldBe1Error),
             },
-            Op1Addr::Op0 => match op0.clone() {
+            Op1Addr::Op0 => match op0 {
                 Some(addr) => {
                     return Ok(addr.clone() + instruction.off2.clone() % self.prime.clone())
                 }

@@ -438,9 +438,9 @@ impl VirtualMachine {
 
         Ok((
             Operands {
-                dst: dst.unwrap().clone(),
-                op0: op0.unwrap().clone(),
-                op1: op1.unwrap().clone(),
+                dst: dst.unwrap(),
+                op0: op0.unwrap(),
+                op1: op1.unwrap(),
                 res,
             },
             [dst_addr, op0_addr, op1_addr].to_vec(),
