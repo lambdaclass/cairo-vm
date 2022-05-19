@@ -2777,24 +2777,12 @@ mod tests {
                 segment_index: bigint!(1),
                 offset: bigint!(2),
             }),
-            prime: BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
-                    4294967295, 67108863,
-                ],
-            ),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         };
 
         let mut vm = VirtualMachine {
             run_context: run_context,
-            prime: BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
-                    4294967295, 67108863,
-                ],
-            ),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
@@ -2965,24 +2953,12 @@ mod tests {
                 segment_index: bigint!(1),
                 offset: bigint!(2),
             }),
-            prime: BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
-                    4294967295, 67108863,
-                ],
-            ),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         };
 
         let mut vm = VirtualMachine {
             run_context: run_context,
-            prime: BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
-                    4294967295, 67108863,
-                ],
-            ),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
@@ -3178,62 +3154,8 @@ mod tests {
             segment_index: bigint!(3),
             offset: bigint!(0),
         });
-        /*while vm.run_context.pc != final_pc {
+        while vm.run_context.pc != final_pc {
             assert_eq!(vm.step(), Ok(()));
-        }*/
-        /*assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.step(), Ok(()));*/
-
-        //Fails at second iteration
-        //Lets check registers after each iteration
-        //Run each step and check current register values
-        assert_eq!(vm.step(), Ok(()));
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(5)
-            })
-        );
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(3)
-            })
-        );
-        assert_eq!(
-            vm.run_context.fp,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2)
-            })
-        );
-
-        assert_eq!(vm.step(), Ok(()));
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
-            })
-        );
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(5)
-            })
-        );
-        assert_eq!(
-            vm.run_context.fp,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(5)
-            })
-        );
+        }
     }
 }
