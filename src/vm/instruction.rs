@@ -71,8 +71,8 @@ pub enum Opcode {
 impl Instruction {
     pub fn size(&self) -> i32 {
         match self.imm {
-            Some(_) => return 2,
-            None => return 1,
-        };
+            Some(_) => 2,
+            None => 1,
+        }
     }
 }

@@ -146,7 +146,7 @@ impl VirtualMachine {
                 }
             };
         }
-        return Err(VirtualMachineError::NotImplementedError);
+        Err(VirtualMachineError::NotImplementedError)
     }
 
     ///Returns a tuple (deduced_op0, deduced_res).
@@ -251,7 +251,7 @@ impl VirtualMachine {
                 _ => (),
             };
         };
-        return Ok((None, None));
+        Ok((None, None))
     }
 
     ///Computes the value of res if possible
@@ -262,8 +262,8 @@ impl VirtualMachine {
         op1: &MaybeRelocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
-            Res::Op1 => return Ok(Some(op1.clone())),
-            Res::Add => return Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
+            Res::Op1 => Ok(Some(op1.clone())),
+            Res::Add => Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
             Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
@@ -271,10 +271,10 @@ impl VirtualMachine {
                         MaybeRelocatable::Int(num_op0 * num_op1) % self.prime.clone(),
                     ));
                 }
-                return Err(VirtualMachineError::PureValueError);
+                Err(VirtualMachineError::PureValueError)
             }
-            Res::Unconstrained => return Ok(None),
-        };
+            Res::Unconstrained => Ok(None),
+        }
     }
 
     fn deduce_dst(
@@ -291,7 +291,7 @@ impl VirtualMachine {
             Opcode::Call => return Some(self.run_context.fp.clone()),
             _ => (),
         };
-        return None;
+        None
     }
 
     fn opcode_assertions(&self, instruction: &Instruction, operands: &Operands) {
@@ -357,7 +357,7 @@ impl VirtualMachine {
         if let Some(&MaybeRelocatable::Int(ref imm_ref)) = imm {
             return Ok(decode_instruction(instruction, Some(imm_ref.clone())));
         }
-        return Ok(decode_instruction(instruction, None));
+        Ok(decode_instruction(instruction, None))
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
@@ -365,7 +365,7 @@ impl VirtualMachine {
         //TODO: Hint Management
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
-        return Ok(());
+        Ok(())
     }
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
     /// value.

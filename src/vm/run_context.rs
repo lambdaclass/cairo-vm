@@ -32,8 +32,8 @@ impl RunContext {
                 .pc
                 .add_num_addr(BigInt::from_i32(1).unwrap(), Some(self.prime.clone()));
             let optional_imm = self.memory.get(&imm_addr);
-            return Ok((encoding_ref, optional_imm));
-        };
+            Ok((encoding_ref, optional_imm))
+        }
     }
 
     pub fn compute_dst_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
@@ -41,7 +41,7 @@ impl RunContext {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
         };
-        return base_addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone()));
+        base_addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone()))
     }
 
     pub fn compute_op0_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
@@ -49,7 +49,7 @@ impl RunContext {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
         };
-        return base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone()));
+        base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone()))
     }
 
     pub fn compute_op1_addr(
@@ -71,7 +71,7 @@ impl RunContext {
                 None => return Err(VirtualMachineError::UnknownOp0Error),
             },
         };
-        return Ok(base_addr.add_num_addr(instruction.off2.clone(), Some(self.prime.clone())));
+        Ok(base_addr.add_num_addr(instruction.off2.clone(), Some(self.prime.clone())))
     }
 }
 

@@ -20,16 +20,14 @@ impl Add<BigInt> for MaybeRelocatable {
     type Output = MaybeRelocatable;
     fn add(self, other: BigInt) -> MaybeRelocatable {
         match self {
-            MaybeRelocatable::Int(num) => return MaybeRelocatable::Int(num + other),
+            MaybeRelocatable::Int(num) => MaybeRelocatable::Int(num + other),
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index,
                 offset,
-            }) => {
-                return MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: segment_index,
-                    offset: offset + other,
-                })
-            }
+            }) => MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index,
+                offset: offset + other,
+            }),
         }
     }
 }
@@ -39,10 +37,10 @@ impl Add<MaybeRelocatable> for MaybeRelocatable {
     fn add(self, other: MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
             (MaybeRelocatable::Int(num_a), MaybeRelocatable::Int(num_b)) => {
-                return Ok(MaybeRelocatable::Int(num_a + num_b))
+                Ok(MaybeRelocatable::Int(num_a + num_b))
             }
             (MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
-                return Err(VirtualMachineError::RelocatableAddError)
+                Err(VirtualMachineError::RelocatableAddError)
             }
             (
                 MaybeRelocatable::Int(num),
@@ -50,25 +48,21 @@ impl Add<MaybeRelocatable> for MaybeRelocatable {
                     segment_index,
                     offset,
                 }),
-            ) => {
-                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: segment_index,
-                    offset: offset + num,
-                }))
-            }
+            ) => Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index,
+                offset: offset + num,
+            })),
             (
                 MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index,
                     offset,
                 }),
                 MaybeRelocatable::Int(num),
-            ) => {
-                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: segment_index,
-                    offset: offset + num,
-                }))
-            }
-        };
+            ) => Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index,
+                offset: offset + num,
+            })),
+        }
     }
 }
 
@@ -92,7 +86,7 @@ impl Sub<MaybeRelocatable> for MaybeRelocatable {
     fn sub(self, other: MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
             (MaybeRelocatable::Int(num_a), MaybeRelocatable::Int(num_b)) => {
-                return Ok(MaybeRelocatable::Int(num_a - num_b))
+                Ok(MaybeRelocatable::Int(num_a - num_b))
             }
             (
                 MaybeRelocatable::RelocatableValue(rel_a),
@@ -104,10 +98,10 @@ impl Sub<MaybeRelocatable> for MaybeRelocatable {
                         offset: rel_a.offset - rel_b.offset,
                     }));
                 }
-                return Err(VirtualMachineError::DiffIndexSubError);
+                Err(VirtualMachineError::DiffIndexSubError)
             }
-            _ => return Err(VirtualMachineError::NotImplementedError),
-        };
+            _ => Err(VirtualMachineError::NotImplementedError),
+        }
     }
 }
 
@@ -121,19 +115,19 @@ impl MaybeRelocatable {
                 if let Some(num_prime) = prime {
                     num = num % num_prime;
                 }
-                return MaybeRelocatable::Int(num);
+                MaybeRelocatable::Int(num)
             }
             &MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut new_offset = rel.offset.clone() + other;
                 if let Some(num_prime) = prime {
                     new_offset = new_offset % num_prime;
                 }
-                return MaybeRelocatable::RelocatableValue(Relocatable {
+                MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index.clone(),
                     offset: new_offset,
-                });
+                })
             }
-        };
+        }
     }
 
     ///Adds a number to the address, then performs mod prime if prime is given
@@ -149,10 +143,10 @@ impl MaybeRelocatable {
                 if let Some(num_prime) = prime {
                     return Ok(MaybeRelocatable::Int((num_a + num_b) % num_prime));
                 }
-                return Ok(MaybeRelocatable::Int(num_a + num_b));
+                Ok(MaybeRelocatable::Int(num_a + num_b))
             }
             (&MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
-                return Err(VirtualMachineError::RelocatableAddError)
+                Err(VirtualMachineError::RelocatableAddError)
             }
             (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
                 if let Some(num_prime) = prime {
@@ -161,10 +155,10 @@ impl MaybeRelocatable {
                         offset: (rel.offset.clone() + num) % num_prime,
                     }));
                 }
-                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index.clone(),
                     offset: rel.offset.clone() + num,
-                }));
+                }))
             }
             (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
                 if let Some(num_prime) = prime {
@@ -173,12 +167,12 @@ impl MaybeRelocatable {
                         offset: (rel.offset + num_ref.clone()) % num_prime,
                     }));
                 }
-                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: rel.offset + num_ref.clone(),
-                }));
+                }))
             }
-        };
+        }
     }
     ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
@@ -191,7 +185,7 @@ impl MaybeRelocatable {
             (&MaybeRelocatable::Int(ref num_a_ref), &MaybeRelocatable::Int(ref num_b_ref)) => {
                 let num_a = Clone::clone(num_a_ref);
                 let num_b = Clone::clone(num_b_ref);
-                return Ok(MaybeRelocatable::Int(num_a - num_b));
+                Ok(MaybeRelocatable::Int(num_a - num_b))
             }
             (
                 MaybeRelocatable::RelocatableValue(rel_a),
@@ -203,10 +197,10 @@ impl MaybeRelocatable {
                         offset: rel_a.offset.clone() - rel_b.offset.clone(),
                     }));
                 }
-                return Err(VirtualMachineError::DiffIndexSubError);
+                Err(VirtualMachineError::DiffIndexSubError)
             }
-            _ => return Err(VirtualMachineError::NotImplementedError),
-        };
+            _ => Err(VirtualMachineError::NotImplementedError),
+        }
     }
 }
 #[cfg(test)]
