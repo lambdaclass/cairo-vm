@@ -2762,7 +2762,7 @@ mod tests {
     /// AP 1:2
     /// FP 1:2
     /// PC 0:0
-    fn test_step_for_preset_memory() {
+    fn test_step_for_preset_memory_simple_sum() {
         let mut run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
@@ -2916,6 +2916,323 @@ mod tests {
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0)
+            })
+        );
+    }
+
+    #[test]
+    /*
+    Test for a simple program execution
+    Used program code:
+        func myfunc(a: felt) -> (r: felt):
+            let b = a * 2
+            return(b)
+        end
+        func main():
+            let a = 1
+            let b = myfunc(a)
+            return()
+        end
+    Memory taken from original vm:
+    {RelocatableValue(segment_index=0, offset=0): 5207990763031199744,
+    RelocatableValue(segment_index=0, offset=1): 2,
+    RelocatableValue(segment_index=0, offset=2): 2345108766317314046,
+    RelocatableValue(segment_index=0, offset=3): 5189976364521848832,
+    RelocatableValue(segment_index=0, offset=4): 1,
+    RelocatableValue(segment_index=0, offset=5): 1226245742482522112,
+    RelocatableValue(segment_index=0, offset=6): 3618502788666131213697322783095070105623107215331596699973092056135872020476,
+    RelocatableValue(segment_index=0, offset=7): 2345108766317314046,
+    RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    Current register values:
+    AP 1:2
+    FP 1:2
+    PC 0:3
+    Final Pc (not executed): 3:0
+    */
+    fn test_step_for_preset_memory_function_call() {
+        let mut run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(3),
+            }),
+            ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2),
+            }),
+            fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2),
+            }),
+            prime: BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            ),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            ),
+            program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+
+        //Insert values into memory
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
+        );
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(1),
+            }),
+            &MaybeRelocatable::Int(bigint!(2)),
+        );
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(2),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(3),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(4),
+            }),
+            &MaybeRelocatable::Int(bigint!(1)),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(5),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(6),
+            }),
+            &MaybeRelocatable::Int(BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                    134217728,
+                ],
+            )),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(7),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0),
+            }),
+        );
+
+        vm.run_context.memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(1),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0),
+            }),
+        );
+
+        //Insert same values into validated_memory
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
+        );
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(1),
+            }),
+            &MaybeRelocatable::Int(bigint!(2)),
+        );
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(2),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(3),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(4),
+            }),
+            &MaybeRelocatable::Int(bigint!(1)),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(5),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(6),
+            }),
+            &MaybeRelocatable::Int(BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                    134217728,
+                ],
+            )),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(7),
+            }),
+            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(0),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0),
+            }),
+        );
+
+        vm.validated_memory.insert(
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(1),
+            }),
+            &MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0),
+            }),
+        );
+
+        let final_pc = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: bigint!(3),
+            offset: bigint!(0),
+        });
+        /*while vm.run_context.pc != final_pc {
+            assert_eq!(vm.step(), Ok(()));
+        }*/
+        /*assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(), Ok(()));*/
+
+        //Fails at second iteration
+        //Lets check registers after each iteration
+        //Run each step and check current register values
+        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(
+            vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(5)
+            })
+        );
+        assert_eq!(
+            vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(3)
+            })
+        );
+        assert_eq!(
+            vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2)
+            })
+        );
+
+        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(
+            vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0)
+            })
+        );
+        assert_eq!(
+            vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(5)
+            })
+        );
+        assert_eq!(
+            vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(5)
             })
         );
     }
