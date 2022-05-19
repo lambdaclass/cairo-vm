@@ -3151,20 +3151,12 @@ mod tests {
                 offset: bigint!(7),
             }),
             MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(4),
             }),
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1),
             }),
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
@@ -3181,10 +3173,6 @@ mod tests {
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(5),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(3),
             }),
         ];
 
@@ -3314,6 +3302,97 @@ mod tests {
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(1)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[1],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(7)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[2],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[3],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(4)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[4],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[5],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(5)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[6],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(1)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[7],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(3)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[8],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(4)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[9],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(6)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[10],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(2)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[11],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(5)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[12],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(0)
+            })
+        );
+        assert_eq!(
+            vm.accessed_addresses[13],
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(3)
             })
         );
     }
