@@ -335,15 +335,18 @@ impl VirtualMachine {
     }
 
     fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
-        let (operands, mut operands_mem_addresses) = self.compute_operands(&instruction)?;
+        let (operands, operands_mem_addresses) = self.compute_operands(&instruction)?;
         self.opcode_assertions(&instruction, &operands);
         self.trace.push(TraceEntry {
             pc: self.run_context.pc.clone(),
             ap: self.run_context.ap.clone(),
             fp: self.run_context.fp.clone(),
         });
-        operands_mem_addresses.dedup();
-        self.accessed_addresses.append(&mut operands_mem_addresses);
+        for addr in operands_mem_addresses.iter() {
+            if !self.accessed_addresses.contains(addr) {
+                self.accessed_addresses.push(addr.clone());
+            }
+        }
         self.accessed_addresses.push(self.run_context.pc.clone());
         self.update_registers(instruction, operands)?;
         self.current_step += bigint!(1);
@@ -2937,6 +2940,7 @@ mod tests {
     FP 1:2
     PC 0:3
     Final Pc (not executed): 3:0
+    This program consists of 5 steps
     */
     fn test_step_for_preset_memory_function_call() {
         let mut run_context = RunContext {
@@ -3057,9 +3061,7 @@ mod tests {
                 offset: bigint!(0),
             }),
         );
-
         //Insert same values into validated_memory
-
         vm.validated_memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
@@ -3154,8 +3156,122 @@ mod tests {
             segment_index: bigint!(3),
             offset: bigint!(0),
         });
+        //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(vm.step(), Ok(()));
         }
+        //Check final register values
+        assert_eq!(
+            vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0)
+            })
+        );
+
+        assert_eq!(
+            vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(6)
+            })
+        );
+
+        assert_eq!(
+            vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0)
+            })
+        );
+        //Check each TraceEntry in trace
+        assert_eq!(vm.trace.len(), 5);
+        assert_eq!(
+            vm.trace[0],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(3)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+            }
+        );
+        assert_eq!(
+            vm.trace[1],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(5)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+            }
+        );
+        assert_eq!(
+            vm.trace[2],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(0)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+            }
+        );
+        assert_eq!(
+            vm.trace[3],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(2)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(6)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+            }
+        );
+        assert_eq!(
+            vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(7)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(6)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+            }
+        );
+        //Check accessed_addresses
+        assert_eq!(vm.accessed_addresses.len(), 14);
     }
 }
