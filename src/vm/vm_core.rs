@@ -7,7 +7,6 @@ use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
-use std::collections::HashMap;
 use std::fmt;
 
 macro_rules! bigint {
@@ -17,13 +16,14 @@ macro_rules! bigint {
 }
 
 #[derive(PartialEq)]
-struct Operands {
+pub struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
     op1: MaybeRelocatable,
 }
 
+#[allow(dead_code)]
 struct Rule {
     func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
 }
@@ -42,21 +42,22 @@ pub struct VirtualMachine {
     //debug_file_contents: HashMap<String, String>,
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
-    program_base: Option<MaybeRelocatable>,
+    _program_base: Option<MaybeRelocatable>,
     validated_memory: ValidatedMemoryDict,
-    //auto_deduction: HashMap<i64, Vec<(Rule, ())>>,
+    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
     current_step: BigInt,
     skip_instruction_execution: bool,
 }
 
+#[allow(dead_code)]
 impl VirtualMachine {
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
-            FpUpdate::AP_PLUS2 => self.run_context.ap.add_num_addr(bigint!(2), None),
-            FpUpdate::DST => operands.dst.clone(),
-            FpUpdate::REGULAR => return,
+            FpUpdate::APPlus2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            FpUpdate::Dst => operands.dst.clone(),
+            FpUpdate::Regular => return,
         };
         self.run_context.fp = new_fp;
     }
@@ -67,7 +68,7 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_ap: MaybeRelocatable = match instruction.ap_update {
-            ApUpdate::ADD => match operands.res.clone() {
+            ApUpdate::Add => match operands.res.clone() {
                 Some(res) => self
                     .run_context
                     .ap
@@ -75,9 +76,9 @@ impl VirtualMachine {
 
                 None => return Err(VirtualMachineError::UnconstrainedResAddError),
             },
-            ApUpdate::ADD1 => self.run_context.ap.add_num_addr(bigint!(1), None),
-            ApUpdate::ADD2 => self.run_context.ap.add_num_addr(bigint!(2), None),
-            ApUpdate::REGULAR => return Ok(()),
+            ApUpdate::Add1 => self.run_context.ap.add_num_addr(bigint!(1), None),
+            ApUpdate::Add2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            ApUpdate::Regular => return Ok(()),
         };
         self.run_context.ap = new_ap % self.prime.clone();
         Ok(())
@@ -89,15 +90,15 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
-            PcUpdate::REGULAR => self
+            PcUpdate::Regular => self
                 .run_context
                 .pc
                 .add_num_addr(bigint!(Instruction::size(&instruction)), None),
-            PcUpdate::JUMP => match operands.res.clone() {
+            PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJumpError),
             },
-            PcUpdate::JUMP_REL => match operands.res.clone() {
+            PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => {
                         self.run_context.pc.add_num_addr(num_res, None)
@@ -158,7 +159,7 @@ impl VirtualMachine {
         op1: Option<&MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
         match instruction.opcode {
-            Opcode::CALL => {
+            Opcode::Call => {
                 return Ok((
                     Some(
                         self.run_context
@@ -168,9 +169,9 @@ impl VirtualMachine {
                     None,
                 ))
             }
-            Opcode::ASSERT_EQ => {
+            Opcode::AsseertEq => {
                 match instruction.res {
-                    Res::ADD => {
+                    Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
                             return Ok((
                                 Some((dst_addr.sub_addr(op1_addr))? % self.prime.clone()),
@@ -178,7 +179,7 @@ impl VirtualMachine {
                             ));
                         }
                     }
-                    Res::MUL => {
+                    Res::Mul => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
                             if let (
                                 MaybeRelocatable::Int(num_dst),
@@ -215,14 +216,14 @@ impl VirtualMachine {
         dst: Option<&MaybeRelocatable>,
         op0: Option<MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
-        if let Opcode::ASSERT_EQ = instruction.opcode {
+        if let Opcode::AsseertEq = instruction.opcode {
             match instruction.res {
-                Res::OP1 => {
+                Res::Op1 => {
                     if let Some(dst_addr) = dst {
                         return Ok((Some(dst_addr.clone()), Some(dst_addr.clone())));
                     }
                 }
-                Res::ADD => {
+                Res::Add => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
                         return Ok((
                             Some((dst_addr.sub_addr(&op0_addr))?),
@@ -230,7 +231,7 @@ impl VirtualMachine {
                         ));
                     }
                 }
-                Res::MUL => {
+                Res::Mul => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
                         if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
                             (dst_addr, op0_addr)
@@ -261,9 +262,9 @@ impl VirtualMachine {
         op1: &MaybeRelocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
-            Res::OP1 => return Ok(Some(op1.clone())),
-            Res::ADD => return Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
-            Res::MUL => {
+            Res::Op1 => return Ok(Some(op1.clone())),
+            Res::Add => return Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
+            Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
                     return Ok(Some(
@@ -272,7 +273,7 @@ impl VirtualMachine {
                 }
                 return Err(VirtualMachineError::PureValueError);
             }
-            Res::UNCONSTRAINED => return Ok(None),
+            Res::Unconstrained => return Ok(None),
         };
     }
 
@@ -282,12 +283,12 @@ impl VirtualMachine {
         res: Option<&MaybeRelocatable>,
     ) -> Option<MaybeRelocatable> {
         match instruction.opcode {
-            Opcode::ASSERT_EQ => {
+            Opcode::AsseertEq => {
                 if let Some(res_addr) = res {
                     return Some(res_addr.clone());
                 }
             }
-            Opcode::CALL => return Some(self.run_context.fp.clone()),
+            Opcode::Call => return Some(self.run_context.fp.clone()),
             _ => (),
         };
         return None;
@@ -295,7 +296,7 @@ impl VirtualMachine {
 
     fn opcode_assertions(&self, instruction: &Instruction, operands: &Operands) {
         match instruction.opcode {
-            Opcode::ASSERT_EQ => {
+            Opcode::AsseertEq => {
                 match &operands.res {
                     None => panic!("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ"),
                     Some(res) => {
@@ -312,7 +313,7 @@ impl VirtualMachine {
                     }
                 };
             }
-            Opcode::CALL => {
+            Opcode::Call => {
                 if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
                     (&operands.op0, &self.run_context.pc)
                 {
@@ -416,8 +417,8 @@ impl VirtualMachine {
 
         if matches!(dst, None) {
             match instruction.opcode {
-                Opcode::ASSERT_EQ if matches!(res, Some(_)) => dst = res.clone(),
-                Opcode::CALL => dst = Some(self.run_context.fp.clone()),
+                Opcode::AsseertEq if matches!(res, Some(_)) => dst = res.clone(),
+                Opcode::Call => dst = Some(self.run_context.fp.clone()),
                 _ => panic!("Couldn't get or load dst"),
             }
         }
@@ -448,6 +449,7 @@ impl VirtualMachine {
 }
 
 #[derive(Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum VirtualMachineError {
     //InvalidInstructionEncodingError(MaybeRelocatable), Impl fmt for MaybeRelocatable
     InvalidInstructionEncodingError,
@@ -529,11 +531,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -543,7 +545,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -554,7 +556,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -576,11 +578,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::DST,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -590,7 +592,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -601,7 +603,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -623,11 +625,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -637,7 +639,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -648,7 +650,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -670,11 +672,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -684,7 +686,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -695,7 +697,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -717,11 +719,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -731,7 +733,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -742,7 +744,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -766,11 +768,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD1,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add1,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -780,7 +782,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -791,7 +793,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -813,11 +815,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::ADD2,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add2,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -827,7 +829,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -838,7 +840,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -860,11 +862,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -874,7 +876,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -885,7 +887,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -907,11 +909,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -921,7 +923,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -932,7 +934,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -954,11 +956,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -968,7 +970,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -979,7 +981,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1001,11 +1003,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1015,7 +1017,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1026,7 +1028,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1048,11 +1050,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1062,7 +1064,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1073,7 +1075,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1097,11 +1099,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1111,7 +1113,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1122,7 +1124,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1144,11 +1146,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1158,7 +1160,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1169,7 +1171,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1193,11 +1195,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1210,7 +1212,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1221,7 +1223,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1245,11 +1247,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
+            res: Res::Add,
             pc_update: PcUpdate::JNZ,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1259,7 +1261,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1270,7 +1272,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1292,11 +1294,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
+            res: Res::Add,
             pc_update: PcUpdate::JNZ,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1306,7 +1308,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1317,7 +1319,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1339,11 +1341,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1353,7 +1355,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1364,7 +1366,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1388,11 +1390,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP_REL,
-            ap_update: ApUpdate::ADD2,
-            fp_update: FpUpdate::DST,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::JumpRel,
+            ap_update: ApUpdate::Add2,
+            fp_update: FpUpdate::Dst,
+            opcode: Opcode::NOp,
         };
 
         let operands = Operands {
@@ -1402,7 +1404,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1413,7 +1415,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1464,14 +1466,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1479,10 +1481,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1506,14 +1508,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1521,10 +1523,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1552,14 +1554,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1567,10 +1569,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1590,14 +1592,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1605,10 +1607,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1636,14 +1638,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1651,10 +1653,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1679,14 +1681,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1694,10 +1696,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1722,14 +1724,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::RET,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Ret,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1737,10 +1739,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1765,14 +1767,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1780,10 +1782,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1804,14 +1806,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1819,10 +1821,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1850,14 +1852,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1865,10 +1867,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1888,14 +1890,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1903,10 +1905,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1934,14 +1936,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1949,10 +1951,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -1977,14 +1979,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -1992,10 +1994,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2019,14 +2021,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2034,10 +2036,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2064,14 +2066,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::OP1,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Op1,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2079,10 +2081,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2092,7 +2094,7 @@ mod tests {
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(7))))),
+            Ok(Some(MaybeRelocatable::Int(bigint!(7)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2107,14 +2109,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2122,10 +2124,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2135,7 +2137,7 @@ mod tests {
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(16))))),
+            Ok(Some(MaybeRelocatable::Int(bigint!(16)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2150,14 +2152,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2165,10 +2167,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2178,7 +2180,7 @@ mod tests {
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(63))))),
+            Ok(Some(MaybeRelocatable::Int(bigint!(63)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -2193,14 +2195,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::MUL,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Mul,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2208,10 +2210,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2242,14 +2244,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2257,10 +2259,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2282,14 +2284,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2297,10 +2299,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2324,14 +2326,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AsseertEq,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2339,10 +2341,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2362,14 +2364,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::CALL,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Call,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2377,10 +2379,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2403,14 +2405,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::UNCONSTRAINED,
-            pc_update: PcUpdate::JUMP,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::RET,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Jump,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::Ret,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2418,10 +2420,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2441,14 +2443,14 @@ mod tests {
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(0)),
             ap: MaybeRelocatable::Int(bigint!(0)),
@@ -2470,7 +2472,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: val_memory,
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2502,14 +2504,14 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::FP,
-            res: Res::MUL,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(0)),
             ap: MaybeRelocatable::Int(bigint!(0)),
@@ -2531,7 +2533,7 @@ mod tests {
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: val_memory,
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2564,11 +2566,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::AsseertEq,
         };
 
         let operands = Operands {
@@ -2578,7 +2580,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2586,10 +2588,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2611,11 +2613,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::ASSERT_EQ,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::AsseertEq,
         };
 
         let operands = Operands {
@@ -2625,7 +2627,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2633,10 +2635,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2660,11 +2662,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
         };
 
         let operands = Operands {
@@ -2674,7 +2676,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2682,10 +2684,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2709,11 +2711,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::AP_PLUS2,
-            opcode: Opcode::CALL,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
         };
 
         let operands = Operands {
@@ -2723,7 +2725,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(8)),
             ap: MaybeRelocatable::Int(bigint!(5)),
@@ -2731,10 +2733,10 @@ mod tests {
             prime: bigint!(127),
         };
 
-        let mut vm = VirtualMachine {
+        let vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2763,7 +2765,7 @@ mod tests {
     /// FP 1:2
     /// PC 0:0
     fn test_step_for_preset_memory() {
-        let mut run_context = RunContext {
+        let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
@@ -2795,7 +2797,7 @@ mod tests {
                     4294967295, 67108863,
                 ],
             ),
-            program_base: None,
+            _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),

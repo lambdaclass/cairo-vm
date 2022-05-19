@@ -1,6 +1,5 @@
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 use std::ops::Add;
 use std::ops::Rem;
 use std::ops::Sub;
@@ -216,6 +215,7 @@ mod tests {
     use crate::vm::vm_core::VirtualMachineError;
     use num_bigint::BigInt;
     use num_bigint::Sign;
+    use num_traits::FromPrimitive;
 
     ///Tests for MaybeRelocatable functions
 
@@ -274,7 +274,7 @@ mod tests {
         let added_addr = addr_a + addr_b;
         match added_addr {
             Err(error) => assert_eq!(error, VirtualMachineError::RelocatableAddError),
-            Ok(value) => assert!(false),
+            Ok(_value) => assert!(false),
         }
     }
 
@@ -584,7 +584,7 @@ mod tests {
         let added_addr = addr_a.add_addr(addr_b, None);
         match added_addr {
             Err(error) => assert_eq!(error, VirtualMachineError::RelocatableAddError),
-            Ok(value) => assert!(false),
+            Ok(_value) => assert!(false),
         }
     }
 
