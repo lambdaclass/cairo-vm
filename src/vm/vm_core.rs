@@ -93,7 +93,7 @@ impl VirtualMachine {
             PcUpdate::Regular => self
                 .run_context
                 .pc
-                .add_num_addr(bigint!(Instruction::size(&instruction)), None),
+                .add_num_addr(bigint!(Instruction::size(instruction)), None),
             PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJumpError),
@@ -112,7 +112,7 @@ impl VirtualMachine {
                 true => self
                     .run_context
                     .pc
-                    .add_num_addr(bigint!(Instruction::size(&instruction)), None),
+                    .add_num_addr(bigint!(Instruction::size(instruction)), None),
                 false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
             },
         };
@@ -164,7 +164,7 @@ impl VirtualMachine {
                     Some(
                         self.run_context
                             .pc
-                            .add_num_addr(bigint!(Instruction::size(&instruction)), None),
+                            .add_num_addr(bigint!(Instruction::size(instruction)), None),
                     ),
                     None,
                 ))
