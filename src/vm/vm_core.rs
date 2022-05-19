@@ -2919,6 +2919,7 @@ mod tests {
             })
         );
     }
+
     #[test]
     /// Test the following program:
     /// ...
@@ -3177,13 +3178,15 @@ mod tests {
         );
 
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.run_context.pc, 
+        assert_eq!(
+            vm.run_context.pc,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(2)
             })
         );
-        assert_eq!(vm.run_context.ap, 
+        assert_eq!(
+            vm.run_context.ap,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(2)
@@ -3196,13 +3199,15 @@ mod tests {
         );
 
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.run_context.pc, 
+        assert_eq!(
+            vm.run_context.pc,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(4)
             })
         );
-        assert_eq!(vm.run_context.ap, 
+        assert_eq!(
+            vm.run_context.ap,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(3)
@@ -3215,13 +3220,15 @@ mod tests {
         );
 
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.run_context.pc, 
+        assert_eq!(
+            vm.run_context.pc,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(6)
             })
         );
-        assert_eq!(vm.run_context.ap, 
+        assert_eq!(
+            vm.run_context.ap,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(4)
@@ -3233,13 +3240,15 @@ mod tests {
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x14).unwrap())),
         );
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(vm.run_context.pc, 
+        assert_eq!(
+            vm.run_context.pc,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(8)
             })
         );
-        assert_eq!(vm.run_context.ap, 
+        assert_eq!(
+            vm.run_context.ap,
             MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(4)
