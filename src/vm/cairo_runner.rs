@@ -46,7 +46,7 @@ impl CairoRunner {
             final_pc: None,
             program_base: None,
             execution_base: None,
-            builtin_runners: builtin_runners,
+            builtin_runners,
             initial_ap: None,
             initial_fp: None,
         }
