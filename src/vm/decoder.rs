@@ -31,9 +31,9 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
     const OFFX_MASK: i64 = 0xFFFF;
 
     // Grab offsets and convert them from little endian format.
-    let off0 = (encoded_instr >> OFF0_OFF & OFFX_MASK).reverse_bits() >> 48;
-    let off1 = (encoded_instr >> OFF1_OFF & OFFX_MASK).reverse_bits() >> 48;
-    let off2 = (encoded_instr >> OFF2_OFF & OFFX_MASK).reverse_bits() >> 48;
+    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
+    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK);
+    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK);
 
     // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;
@@ -122,6 +122,7 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
     }
 }
 
+#[allow(dead_code)]
 fn decode_offset(offset: i64) -> i64 {
     let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
