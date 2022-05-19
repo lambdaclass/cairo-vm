@@ -108,19 +108,20 @@ impl Sub<MaybeRelocatable> for MaybeRelocatable {
 impl MaybeRelocatable {
     ///Adds a number to the address, then performs mod prime if prime is given
     pub fn add_num_addr(&self, other: BigInt, prime: Option<BigInt>) -> MaybeRelocatable {
-        match self {
-            &MaybeRelocatable::Int(ref value) => {
+        match *self {
+            MaybeRelocatable::Int(ref value) => {
                 let mut num = Clone::clone(value);
                 num = other + num;
                 if let Some(num_prime) = prime {
-                    num = num % num_prime;
+                    num %= num_prime;
                 }
+
                 MaybeRelocatable::Int(num)
             }
-            &MaybeRelocatable::RelocatableValue(ref rel) => {
+            MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut new_offset = rel.offset.clone() + other;
                 if let Some(num_prime) = prime {
-                    new_offset = new_offset % num_prime;
+                    new_offset %= num_prime;
                 }
                 MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index.clone(),
