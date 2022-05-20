@@ -1,5 +1,6 @@
 use crate::vm::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
+use std::convert::From;
 
 pub struct Memory {
     data: HashMap<MaybeRelocatable, MaybeRelocatable>,
@@ -16,6 +17,14 @@ impl Memory {
     }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         self.data.get(addr)
+    }
+}
+
+impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for Memory {
+    fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
+        Memory {
+            data: HashMap::from(key_val_list),
+        }
     }
 }
 
