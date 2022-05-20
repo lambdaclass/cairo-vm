@@ -3296,105 +3296,97 @@ mod tests {
             }
         );
         //Check accessed_addresses
+        //Order will differ from python vm execution, (due to python version using set's update() method)
+        //We will instead check that all elements are contained and not duplicated
         assert_eq!(vm.accessed_addresses.len(), 14);
-        assert_eq!(
-            vm.accessed_addresses[0],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+        //Check if there are duplicates
+        vm.accessed_addresses.dedup();
+        assert_eq!(vm.accessed_addresses.len(), 14);
+        //Check each element individually
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(1)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[1],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(7)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[2],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(2)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[3],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(4)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[4],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[5],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(5)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[6],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[7],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(3)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[8],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(4)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[9],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(6)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[10],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(2)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[11],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(5)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[12],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(0)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[13],
-            MaybeRelocatable::RelocatableValue(Relocatable {
+            })));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(3)
-            })
-        );
+            })));
     }
 
     #[test]
