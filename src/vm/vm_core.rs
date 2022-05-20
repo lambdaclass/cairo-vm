@@ -108,7 +108,7 @@ impl VirtualMachine {
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRelError),
             },
-            PcUpdate::JNZ => match VirtualMachine::is_zero(operands.res.clone())? {
+            PcUpdate::Jnz => match VirtualMachine::is_zero(operands.res.clone())? {
                 true => self
                     .run_context
                     .pc
@@ -132,7 +132,7 @@ impl VirtualMachine {
     }
 
     /// Returns true if the value is zero
-    /// Used for JNZ instructions
+    /// Used for Jnz instructions
     fn is_zero(addr: Option<MaybeRelocatable>) -> Result<bool, VirtualMachineError> {
         if let Some(value) = addr {
             match value {
@@ -1239,7 +1239,7 @@ mod tests {
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
             res: Res::Add,
-            pc_update: PcUpdate::JNZ,
+            pc_update: PcUpdate::Jnz,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
@@ -1286,7 +1286,7 @@ mod tests {
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
             res: Res::Add,
-            pc_update: PcUpdate::JNZ,
+            pc_update: PcUpdate::Jnz,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,

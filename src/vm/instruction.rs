@@ -42,7 +42,7 @@ pub enum PcUpdate {
     Regular,
     Jump,
     JumpRel,
-    JNZ,
+    Jnz,
 }
 
 #[derive(Debug, PartialEq)]
