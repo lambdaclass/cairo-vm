@@ -2913,6 +2913,7 @@ mod tests {
         );
     }
 
+    #[test]
     /*
     Test for a simple program execution
     Used program code:
@@ -2997,16 +2998,9 @@ mod tests {
         vm.run_context.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
-                offset: bigint!(4),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.run_context.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
                 offset: bigint!(3),
             }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x1).unwrap()),
+            &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
         );
         vm.run_context.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
@@ -3198,6 +3192,7 @@ mod tests {
                 offset: bigint!(0)
             })
         );
+
         assert_eq!(
             vm.run_context.ap,
             MaybeRelocatable::RelocatableValue(Relocatable {
