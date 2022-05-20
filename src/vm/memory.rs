@@ -1,5 +1,6 @@
 use crate::vm::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
+use std::convert::From;
 
 pub struct Memory {
     data: HashMap<MaybeRelocatable, MaybeRelocatable>,
@@ -19,6 +20,14 @@ impl Memory {
     }
 }
 
+impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for Memory {
+    fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
+        Memory {
+            data: HashMap::from(key_val_list),
+        }
+    }
+}
+
 #[cfg(test)]
 mod memory_tests {
     use super::*;
@@ -33,5 +42,20 @@ mod memory_tests {
         let mut mem = Memory::new();
         mem.insert(&key, &val);
         assert_eq!(matches!(mem.get(&key), _val_clone), true);
+    }
+
+    #[test]
+    fn from_array_test() {
+        let mem = Memory::from([(
+            MaybeRelocatable::Int(BigInt::from_i32(2).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        )]);
+        assert_eq!(
+            matches!(
+                mem.get(&MaybeRelocatable::Int(BigInt::from_i32(2).unwrap())),
+                _val_clone
+            ),
+            true
+        );
     }
 }

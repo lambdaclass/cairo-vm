@@ -28,4 +28,14 @@ impl ValidatedMemoryDict {
     }
 }
 
+impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for ValidatedMemoryDict {
+    fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
+        ValidatedMemoryDict {
+            memory: Memory::from(key_val_list),
+            _validation_rules: HashMap::<BigInt, Vec<(ValidationRule, ())>>::new(),
+            _validated_addresses: Vec::<Relocatable>::new(),
+        }
+    }
+}
+
 pub struct ValidationRule(fn(Memory, MaybeRelocatable, ()) -> Relocatable);
