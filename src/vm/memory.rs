@@ -14,13 +14,6 @@ impl Memory {
     }
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
         self.data.insert(key.clone(), val.clone());
-
-
-
-
-
-
-        
     }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         self.data.get(addr)
