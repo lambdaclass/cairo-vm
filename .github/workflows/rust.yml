@@ -22,6 +22,8 @@ jobs:
           override: true
           components: rustfmt, clippy
     - uses: actions/checkout@v3
+    - name: format
+      run: cargo fmt --all -- --check
     - name: Build
       run: make build
     - name: Run tests
