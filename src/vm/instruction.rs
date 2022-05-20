@@ -23,49 +23,49 @@ pub struct Instruction {
 
 #[derive(Debug, PartialEq)]
 pub enum Op1Addr {
-    IMM,
+    Imm,
     AP,
     FP,
-    OP0,
+    Op0,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Res {
-    OP1,
-    ADD,
-    MUL,
-    UNCONSTRAINED,
+    Op1,
+    Add,
+    Mul,
+    Unconstrained,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum PcUpdate {
-    REGULAR,
-    JUMP,
-    JUMP_REL,
+    Regular,
+    Jump,
+    JumpRel,
     JNZ,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum ApUpdate {
-    REGULAR,
-    ADD,
-    ADD1,
-    ADD2,
+    Regular,
+    Add,
+    Add1,
+    Add2,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum FpUpdate {
-    REGULAR,
-    AP_PLUS2,
-    DST,
+    Regular,
+    APPlus2,
+    Dst,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Opcode {
-    NOP,
-    ASSERT_EQ,
-    CALL,
-    RET,
+    NOp,
+    AsseertEq,
+    Call,
+    Ret,
 }
 
 impl Instruction {

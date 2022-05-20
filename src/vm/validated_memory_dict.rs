@@ -6,16 +6,17 @@ use std::collections::HashMap;
 
 pub struct ValidatedMemoryDict {
     memory: Memory,
-    validation_rules: HashMap<BigInt, Vec<(ValidationRule, ())>>,
-    validated_addresses: Vec<Relocatable>,
+    _validation_rules: HashMap<BigInt, Vec<(ValidationRule, ())>>,
+    _validated_addresses: Vec<Relocatable>,
 }
 
 impl ValidatedMemoryDict {
+    #[allow(dead_code)]
     pub fn new() -> ValidatedMemoryDict {
         ValidatedMemoryDict {
             memory: Memory::new(),
-            validation_rules: HashMap::<BigInt, Vec<(ValidationRule, ())>>::new(),
-            validated_addresses: Vec::<Relocatable>::new(),
+            _validation_rules: HashMap::<BigInt, Vec<(ValidationRule, ())>>::new(),
+            _validated_addresses: Vec::<Relocatable>::new(),
         }
     }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {

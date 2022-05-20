@@ -16,6 +16,7 @@ pub struct RunContext {
 }
 
 impl RunContext {
+    #[allow(dead_code)]
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     pub fn get_instruction_encoding(
         &self,
@@ -59,11 +60,11 @@ impl RunContext {
         let base_addr = match instruction.op1_addr {
             Op1Addr::FP => &self.fp,
             Op1Addr::AP => &self.ap,
-            Op1Addr::IMM => match instruction.off2 == BigInt::from_i32(1).unwrap() {
+            Op1Addr::Imm => match instruction.off2 == BigInt::from_i32(1).unwrap() {
                 true => &self.pc,
                 false => return Err(VirtualMachineError::ImmShouldBe1Error),
             },
-            Op1Addr::OP0 => match op0.clone() {
+            Op1Addr::Op0 => match op0.clone() {
                 Some(addr) => {
                     return Ok(addr.clone() + instruction.off2.clone() % self.prime.clone())
                 }
@@ -79,7 +80,6 @@ mod tests {
     use super::*;
     use crate::vm::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::vm::vm_core::VirtualMachineError;
-    use std::collections::HashMap;
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -161,11 +161,11 @@ mod tests {
             dst_register: Register::AP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -192,11 +192,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -223,11 +223,11 @@ mod tests {
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -254,11 +254,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -285,11 +285,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::FP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -316,11 +316,11 @@ mod tests {
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -346,12 +346,12 @@ mod tests {
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
-            op1_addr: Op1Addr::IMM,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            op1_addr: Op1Addr::Imm,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -377,12 +377,12 @@ mod tests {
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
-            op1_addr: Op1Addr::IMM,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            op1_addr: Op1Addr::Imm,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -408,12 +408,12 @@ mod tests {
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
-            op1_addr: Op1Addr::OP0,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {
@@ -443,12 +443,12 @@ mod tests {
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
-            op1_addr: Op1Addr::OP0,
-            res: Res::ADD,
-            pc_update: PcUpdate::REGULAR,
-            ap_update: ApUpdate::REGULAR,
-            fp_update: FpUpdate::REGULAR,
-            opcode: Opcode::NOP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
         };
 
         let run_context = RunContext {

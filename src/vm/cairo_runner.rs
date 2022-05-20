@@ -1,5 +1,4 @@
 use crate::bigint;
-use crate::relocatable;
 use crate::vm::builtin_runner::BuiltinRunner;
 use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
@@ -13,7 +12,7 @@ use std::collections::HashMap;
 pub struct CairoRunner {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
-    layout: String,
+    _layout: String,
     builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
@@ -23,6 +22,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
 }
 
+#[allow(dead_code)]
 impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
         let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
@@ -41,7 +41,7 @@ impl CairoRunner {
         }
         CairoRunner {
             program: program.clone(),
-            layout: String::from("plain"),
+            _layout: String::from("plain"),
             segments: MemorySegmentManager::new(program.prime.clone()),
             final_pc: None,
             program_base: None,
@@ -123,8 +123,9 @@ impl CairoRunner {
         //Different process if proof_mode is enabled
         let return_fp = self.segments.add(None);
         if let Some(main) = &self.program.main {
+            let main_clone = main.clone();
             self.initialize_function_entrypoint(
-                main.clone(),
+                main_clone,
                 stack,
                 MaybeRelocatable::RelocatableValue(return_fp),
             )
@@ -137,6 +138,7 @@ impl CairoRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
 
     #[test]
     fn initialize_segments_with_base() {
@@ -475,9 +477,9 @@ mod tests {
             main: Some(bigint!(1)),
         };
         let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.program_base = Some(relocatable!(0,0));
-        cairo_runner.execution_base = Some(relocatable!(0,0));
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint();
-        assert_eq!(return_pc, relocatable!(1,0));
+        assert_eq!(return_pc, relocatable!(1, 0));
     }
 }
