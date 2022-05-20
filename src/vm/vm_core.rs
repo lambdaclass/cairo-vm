@@ -374,22 +374,13 @@ impl VirtualMachine {
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
-        let mut dst: Option<MaybeRelocatable> = match self.validated_memory.get(&dst_addr) {
-            Some(destination) => Some(destination.clone()),
-            None => None,
-        };
+        let mut dst: Option<MaybeRelocatable> = self.validated_memory.get(&dst_addr).cloned();
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
-        let mut op0: Option<MaybeRelocatable> = match self.validated_memory.get(&op0_addr) {
-            Some(operand0) => Some(operand0.clone()),
-            None => None,
-        };
+        let mut op0: Option<MaybeRelocatable> = self.validated_memory.get(&op0_addr).cloned();
         let op1_addr: MaybeRelocatable = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1: Option<MaybeRelocatable> = match self.validated_memory.get(&op1_addr) {
-            Some(operand1) => Some(operand1.clone()),
-            None => None,
-        };
+        let mut op1: Option<MaybeRelocatable> = self.validated_memory.get(&op1_addr).cloned();
         let mut res: Option<MaybeRelocatable> = None;
 
         let should_update_dst = matches!(dst, None);
