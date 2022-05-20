@@ -71,12 +71,12 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
         0 => instruction::PcUpdate::Regular,
         1 => instruction::PcUpdate::Jump,
         2 => instruction::PcUpdate::JumpRel,
-        4 => instruction::PcUpdate::JNZ,
+        4 => instruction::PcUpdate::Jnz,
         _ => panic!("Invalid instruction"),
     };
 
     let res = match res_logic_num {
-        0 if matches!(pc_update, instruction::PcUpdate::JNZ) => instruction::Res::Unconstrained,
+        0 if matches!(pc_update, instruction::PcUpdate::Jnz) => instruction::Res::Unconstrained,
         0 => instruction::Res::Op1,
         1 => instruction::Res::Add,
         2 => instruction::Res::Mul,
@@ -189,7 +189,7 @@ mod decoder_test {
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::AP), true);
         assert_eq!(matches!(inst.res, instruction::Res::Mul), true);
-        assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JNZ), true);
+        assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::Jnz), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::Add1), true);
         assert_eq!(matches!(inst.opcode, instruction::Opcode::AsseertEq), true);
         assert_eq!(
@@ -210,7 +210,7 @@ mod decoder_test {
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::Op0), true);
         assert_eq!(matches!(inst.res, instruction::Res::Unconstrained), true);
-        assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::JNZ), true);
+        assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::Jnz), true);
         assert_eq!(
             matches!(inst.ap_update, instruction::ApUpdate::Regular),
             true
