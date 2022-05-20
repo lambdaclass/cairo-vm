@@ -43,4 +43,12 @@ mod memory_tests {
         mem.insert(&key, &val);
         assert_eq!(matches!(mem.get(&key), _val_clone), true);
     }
+
+    #[test]
+    fn from_array_test() {
+        let mem = Memory::from([
+            (MaybeRelocatable::Int(BigInt::from_i32(2).unwrap()), MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()))
+        ]);
+        assert_eq!(matches!(mem.get(&MaybeRelocatable::Int(BigInt::from_i32(2).unwrap())), _val_clone), true);
+    }
 }
