@@ -40,7 +40,7 @@ impl Add<MaybeRelocatable> for MaybeRelocatable {
                 Ok(MaybeRelocatable::Int(num_a + num_b))
             }
             (MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
-                Err(VirtualMachineError::RelocatableAddError)
+                Err(VirtualMachineError::RelocatableAdd)
             }
             (
                 MaybeRelocatable::Int(num),
@@ -98,9 +98,9 @@ impl Sub<MaybeRelocatable> for MaybeRelocatable {
                         offset: rel_a.offset - rel_b.offset,
                     }));
                 }
-                Err(VirtualMachineError::DiffIndexSubError)
+                Err(VirtualMachineError::DiffIndexSub)
             }
-            _ => Err(VirtualMachineError::NotImplementedError),
+            _ => Err(VirtualMachineError::NotImplemented),
         }
     }
 }
@@ -147,7 +147,7 @@ impl MaybeRelocatable {
                 Ok(MaybeRelocatable::Int(num_a + num_b))
             }
             (&MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
-                Err(VirtualMachineError::RelocatableAddError)
+                Err(VirtualMachineError::RelocatableAdd)
             }
             (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
                 if let Some(num_prime) = prime {
@@ -198,9 +198,9 @@ impl MaybeRelocatable {
                         offset: rel_a.offset.clone() - rel_b.offset.clone(),
                     }));
                 }
-                Err(VirtualMachineError::DiffIndexSubError)
+                Err(VirtualMachineError::DiffIndexSub)
             }
-            _ => Err(VirtualMachineError::NotImplementedError),
+            _ => Err(VirtualMachineError::NotImplemented),
         }
     }
 }
@@ -268,7 +268,7 @@ mod tests {
         });
         let added_addr = addr_a + addr_b;
         match added_addr {
-            Err(error) => assert_eq!(error, VirtualMachineError::RelocatableAddError),
+            Err(error) => assert_eq!(error, VirtualMachineError::RelocatableAdd),
             Ok(_value) => assert!(false),
         }
     }
@@ -416,7 +416,7 @@ mod tests {
         });
         let sub_addr = addr_a - addr_b;
         match sub_addr {
-            Err(error) => assert_eq!(error, VirtualMachineError::DiffIndexSubError),
+            Err(error) => assert_eq!(error, VirtualMachineError::DiffIndexSub),
             Ok(_) => assert!(false),
         }
     }
@@ -430,7 +430,7 @@ mod tests {
         let addr_b = MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
         let sub_addr = addr_a - addr_b;
         match sub_addr {
-            Err(error) => assert_eq!(error, VirtualMachineError::NotImplementedError),
+            Err(error) => assert_eq!(error, VirtualMachineError::NotImplemented),
             Ok(_) => assert!(false),
         }
     }
@@ -578,7 +578,7 @@ mod tests {
         });
         let added_addr = addr_a.add_addr(addr_b, None);
         match added_addr {
-            Err(error) => assert_eq!(error, VirtualMachineError::RelocatableAddError),
+            Err(error) => assert_eq!(error, VirtualMachineError::RelocatableAdd),
             Ok(_value) => assert!(false),
         }
     }
@@ -705,7 +705,7 @@ mod tests {
         });
         let sub_addr = addr_a.sub_addr(addr_b);
         match sub_addr {
-            Err(error) => assert_eq!(error, VirtualMachineError::DiffIndexSubError),
+            Err(error) => assert_eq!(error, VirtualMachineError::DiffIndexSub),
             Ok(_) => assert!(false),
         }
     }
@@ -719,7 +719,7 @@ mod tests {
         let addr_b = &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
         let sub_addr = addr_a.sub_addr(addr_b);
         match sub_addr {
-            Err(error) => assert_eq!(error, VirtualMachineError::NotImplementedError),
+            Err(error) => assert_eq!(error, VirtualMachineError::NotImplemented),
             Ok(_) => assert!(false),
         }
     }

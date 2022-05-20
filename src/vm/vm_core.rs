@@ -74,7 +74,7 @@ impl VirtualMachine {
                     .ap
                     .add_addr(res, Some(self.prime.clone()))?,
 
-                None => return Err(VirtualMachineError::UnconstrainedResAddError),
+                None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.ap.add_num_addr(bigint!(1), None),
             ApUpdate::Add2 => self.run_context.ap.add_num_addr(bigint!(2), None),
@@ -96,7 +96,7 @@ impl VirtualMachine {
                 .add_num_addr(bigint!(Instruction::size(instruction)), None),
             PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res,
-                None => return Err(VirtualMachineError::UnconstrainedResJumpError),
+                None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
@@ -104,9 +104,9 @@ impl VirtualMachine {
                         self.run_context.pc.add_num_addr(num_res, None)
                     }
 
-                    _ => return Err(VirtualMachineError::PureValueError),
+                    _ => return Err(VirtualMachineError::PureValue),
                 },
-                None => return Err(VirtualMachineError::UnconstrainedResJumpRelError),
+                None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(operands.res.clone())? {
                 true => self
@@ -141,12 +141,12 @@ impl VirtualMachine {
                     if rel_value.offset >= bigint!(0) {
                         return Ok(false);
                     } else {
-                        return Err(VirtualMachineError::PureValueError);
+                        return Err(VirtualMachineError::PureValue);
                     }
                 }
             };
         }
-        Err(VirtualMachineError::NotImplementedError)
+        Err(VirtualMachineError::NotImplemented)
     }
 
     ///Returns a tuple (deduced_op0, deduced_res).
@@ -271,7 +271,7 @@ impl VirtualMachine {
                         MaybeRelocatable::Int(num_op0 * num_op1) % self.prime.clone(),
                     ));
                 }
-                Err(VirtualMachineError::PureValueError)
+                Err(VirtualMachineError::PureValue)
             }
             Res::Unconstrained => Ok(None),
         }
@@ -442,61 +442,61 @@ impl VirtualMachine {
 #[derive(Debug, PartialEq)]
 #[allow(dead_code)]
 pub enum VirtualMachineError {
-    //InvalidInstructionEncodingError(MaybeRelocatable), Impl fmt for MaybeRelocatable
-    InvalidInstructionEncodingError,
-    InvalidDstRegError,
-    InvalidOp0RegError,
-    InvalidOp1RegError,
-    ImmShouldBe1Error,
-    UnknownOp0Error,
-    InvalidFpUpdateError,
-    InvalidApUpdateError,
-    InvalidPcUpdateError,
-    UnconstrainedResAddError,
-    UnconstrainedResJumpError,
-    UnconstrainedResJumpRelError,
-    PureValueError,
-    InvalidResError,
-    RelocatableAddError,
-    NotImplementedError,
-    DiffIndexSubError,
+    //InvalidInstructionEncoding(MaybeRelocatable), Impl fmt for MaybeRelocatable
+    InvalidInstructionEncoding,
+    InvalidDstReg,
+    InvalidOp0Reg,
+    InvalidOp1Reg,
+    ImmShouldBe1,
+    UnknownOp0,
+    InvalidFpUpdate,
+    InvalidApUpdate,
+    InvalidPcUpdate,
+    UnconstrainedResAdd,
+    UnconstrainedResJump,
+    UnconstrainedResJumpRel,
+    PureValue,
+    InvalidRes,
+    RelocatableAdd,
+    NotImplemented,
+    DiffIndexSub,
 }
 
 impl fmt::Display for VirtualMachineError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            //VirtualMachineError::InvalidInstructionEncodingError(arg) => write!(f, "Instruction should be an int. Found: {}", arg),
-            VirtualMachineError::InvalidInstructionEncodingError => {
+            //VirtualMachineError::InvalidInstructionEncoding(arg) => write!(f, "Instruction should be an int. Found: {}", arg),
+            VirtualMachineError::InvalidInstructionEncoding => {
                 write!(f, "Instruction should be an int. Found:")
             }
-            VirtualMachineError::InvalidDstRegError => write!(f, "Invalid dst_register value"),
-            VirtualMachineError::InvalidOp0RegError => write!(f, "Invalid op0_register value"),
-            VirtualMachineError::InvalidOp1RegError => write!(f, "Invalid op1_register value"),
-            VirtualMachineError::ImmShouldBe1Error => {
+            VirtualMachineError::InvalidDstReg => write!(f, "Invalid dst_register value"),
+            VirtualMachineError::InvalidOp0Reg => write!(f, "Invalid op0_register value"),
+            VirtualMachineError::InvalidOp1Reg => write!(f, "Invalid op1_register value"),
+            VirtualMachineError::ImmShouldBe1 => {
                 write!(f, "In immediate mode, off2 should be 1")
             }
-            VirtualMachineError::UnknownOp0Error => {
+            VirtualMachineError::UnknownOp0 => {
                 write!(f, "op0 must be known in double dereference")
             }
-            VirtualMachineError::InvalidFpUpdateError => write!(f, "Invalid fp_update value"),
-            VirtualMachineError::InvalidApUpdateError => write!(f, "Invalid ap_update value"),
-            VirtualMachineError::InvalidPcUpdateError => write!(f, "Invalid pc_update value"),
-            VirtualMachineError::UnconstrainedResAddError => {
+            VirtualMachineError::InvalidFpUpdate => write!(f, "Invalid fp_update value"),
+            VirtualMachineError::InvalidApUpdate => write!(f, "Invalid ap_update value"),
+            VirtualMachineError::InvalidPcUpdate => write!(f, "Invalid pc_update value"),
+            VirtualMachineError::UnconstrainedResAdd => {
                 write!(f, "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")
             }
-            VirtualMachineError::UnconstrainedResJumpError => {
+            VirtualMachineError::UnconstrainedResJump => {
                 write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")
             }
-            VirtualMachineError::UnconstrainedResJumpRelError => {
+            VirtualMachineError::UnconstrainedResJumpRel => {
                 write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL")
             }
-            VirtualMachineError::InvalidResError => write!(f, "Invalid res value"),
-            VirtualMachineError::RelocatableAddError => {
+            VirtualMachineError::InvalidRes => write!(f, "Invalid res value"),
+            VirtualMachineError::RelocatableAdd => {
                 write!(f, "Cannot add two relocatable values")
             }
-            VirtualMachineError::NotImplementedError => write!(f, "This is not implemented"),
-            VirtualMachineError::PureValueError => Ok(()), //TODO
-            VirtualMachineError::DiffIndexSubError => write!(
+            VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
+            VirtualMachineError::PureValue => Ok(()), //TODO
+            VirtualMachineError::DiffIndexSub => write!(
                 f,
                 "Can only subtract two relocatable values of the same segment"
             ),
@@ -744,7 +744,7 @@ mod tests {
         };
 
         assert_eq!(
-            Err(VirtualMachineError::UnconstrainedResAddError),
+            Err(VirtualMachineError::UnconstrainedResAdd),
             vm.update_ap(&instruction, &operands)
         );
     }
@@ -1075,7 +1075,7 @@ mod tests {
         };
 
         assert_eq!(
-            Err(VirtualMachineError::UnconstrainedResJumpError),
+            Err(VirtualMachineError::UnconstrainedResJump),
             vm.update_pc(&instruction, &operands)
         );
     }
@@ -1171,7 +1171,7 @@ mod tests {
         };
 
         assert_eq!(
-            Err(VirtualMachineError::UnconstrainedResJumpRelError),
+            Err(VirtualMachineError::UnconstrainedResJumpRel),
             vm.update_pc(&instruction, &operands)
         );
     }
@@ -1223,7 +1223,7 @@ mod tests {
         };
 
         assert_eq!(
-            Err(VirtualMachineError::PureValueError),
+            Err(VirtualMachineError::PureValue),
             vm.update_pc(&instruction, &operands)
         );
     }
@@ -1442,7 +1442,7 @@ mod tests {
             offset: bigint!(-1),
         });
         assert_eq!(
-            Err(VirtualMachineError::PureValueError),
+            Err(VirtualMachineError::PureValue),
             VirtualMachine::is_zero(Some(value))
         );
     }
@@ -2220,7 +2220,7 @@ mod tests {
             offset: bigint!(6),
         });
         assert_eq!(
-            Err(VirtualMachineError::PureValueError),
+            Err(VirtualMachineError::PureValue),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }

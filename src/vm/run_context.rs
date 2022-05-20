@@ -26,7 +26,7 @@ impl RunContext {
             if let Some(&MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.pc) {
                 encoding_ref = encoding;
             } else {
-                return Err(VirtualMachineError::InvalidInstructionEncodingError);
+                return Err(VirtualMachineError::InvalidInstructionEncoding);
             }
             let imm_addr = self
                 .pc
@@ -62,13 +62,13 @@ impl RunContext {
             Op1Addr::AP => &self.ap,
             Op1Addr::Imm => match instruction.off2 == BigInt::from_i32(1).unwrap() {
                 true => &self.pc,
-                false => return Err(VirtualMachineError::ImmShouldBe1Error),
+                false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {
                 Some(addr) => {
                     return Ok(addr.clone() + instruction.off2.clone() % self.prime.clone())
                 }
-                None => return Err(VirtualMachineError::UnknownOp0Error),
+                None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
         Ok(base_addr.add_num_addr(instruction.off2.clone(), Some(self.prime.clone())))
@@ -145,7 +145,7 @@ mod tests {
             &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
         );
         if let Err(error) = run_context.get_instruction_encoding() {
-            assert_eq!(error, VirtualMachineError::InvalidInstructionEncodingError);
+            assert_eq!(error, VirtualMachineError::InvalidInstructionEncoding);
         } else {
             assert!(false);
         }
@@ -393,7 +393,7 @@ mod tests {
             prime: BigInt::from_i32(39).unwrap(),
         };
         if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, VirtualMachineError::ImmShouldBe1Error);
+            assert_eq!(error, VirtualMachineError::ImmShouldBe1);
         } else {
             assert!(false);
         }
@@ -459,7 +459,7 @@ mod tests {
             prime: BigInt::from_i32(39).unwrap(),
         };
         if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, VirtualMachineError::UnknownOp0Error);
+            assert_eq!(error, VirtualMachineError::UnknownOp0);
         } else {
             assert!(false);
         }
