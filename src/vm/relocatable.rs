@@ -1,8 +1,6 @@
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
-use std::ops::Add;
-use std::ops::Rem;
-use std::ops::Sub;
+use std::ops::{Add, Rem, Sub};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct Relocatable {
@@ -108,6 +106,27 @@ impl Sub<MaybeRelocatable> for MaybeRelocatable {
             }
             _ => return Err(VirtualMachineError::NotImplementedError),
         };
+    }
+}
+
+impl From<(BigInt, BigInt)> for Relocatable {
+    fn from(index_offset: (BigInt, BigInt)) -> Self {
+        Relocatable {
+            segment_index: index_offset.0,
+            offset: index_offset.1,
+        }
+    }
+}
+
+impl From<(BigInt, BigInt)> for MaybeRelocatable {
+    fn from(index_offset: (BigInt, BigInt)) -> Self {
+        MaybeRelocatable::RelocatableValue(Relocatable::from(index_offset))
+    }
+}
+
+impl From<BigInt> for MaybeRelocatable {
+    fn from(num: BigInt) -> Self {
+        MaybeRelocatable::Int(num)
     }
 }
 
