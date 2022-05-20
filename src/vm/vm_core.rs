@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::vm::decoder::decode_instruction;
 use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::vm::relocatable::MaybeRelocatable;
@@ -8,7 +9,6 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
 use std::fmt;
-use crate::bigint;
 
 #[derive(PartialEq)]
 pub struct Operands {
