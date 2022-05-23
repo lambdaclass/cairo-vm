@@ -152,7 +152,9 @@ impl CairoRunner {
         ));
         for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
             builtin_runner.add_validation_rules(&mut self.vm.validated_memory);
+            //Add auto_deduction rules (no auto-deduction rules for output and range-check)
         }
+        self.vm.validated_memory._validate_existing_memory();
     }
 }
 
