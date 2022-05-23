@@ -1,6 +1,8 @@
 use crate::vm::decoder::decode_instruction;
 use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
+use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
+use crate::vm::relocatable::Relocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
@@ -43,7 +45,7 @@ pub struct VirtualMachine {
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
     _program_base: Option<MaybeRelocatable>,
-    validated_memory: ValidatedMemoryDict,
+    pub validated_memory: ValidatedMemoryDict,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
@@ -53,6 +55,35 @@ pub struct VirtualMachine {
 
 #[allow(dead_code)]
 impl VirtualMachine {
+    pub fn new(prime: BigInt) -> VirtualMachine {
+        let run_context = RunContext {
+            memory: Memory::new(),
+            pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            prime: prime.clone(),
+        };
+
+        VirtualMachine {
+            run_context: run_context,
+            prime: prime.clone(),
+            _program_base: None,
+            validated_memory: ValidatedMemoryDict::new(),
+            accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(0),
+            skip_instruction_execution: false,
+        }
+    }
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
             FpUpdate::APPlus2 => self.run_context.ap.add_num_addr(bigint!(2), None),
