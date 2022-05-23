@@ -36,6 +36,11 @@ impl ValidatedMemoryDict {
         segment_index: BigInt,
         rule: Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)>,
     ) {
-        self.validation_rules.insert(segment_index, vec![rule]);
+        self.validation_rules
+            .entry(segment_index)
+            .or_insert(Vec::<
+                Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)>,
+            >::new())
+            .push(rule);
     }
 }
