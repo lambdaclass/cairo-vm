@@ -1,6 +1,7 @@
 use crate::vm::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct Memory {
     pub data: HashMap<MaybeRelocatable, MaybeRelocatable>,
 }

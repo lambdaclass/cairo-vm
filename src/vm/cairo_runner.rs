@@ -5,18 +5,16 @@ use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::program::Program;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
-
-use crate::vm::vm_core::VirtualMachine;
 
 pub struct CairoRunner {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
     pub vm: VirtualMachine,
     _layout: String,
-    builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
     program_base: Option<Relocatable>,
@@ -44,16 +42,14 @@ impl CairoRunner {
             }
         }
         //Initialize a vm, with empty values, will later be filled with actual data in initialize_vm
-        let vm = VirtualMachine::new(program.prime.clone());
         CairoRunner {
             program: program.clone(),
             _layout: String::from("plain"),
             segments: MemorySegmentManager::new(program.prime.clone()),
-            vm,
+            vm: VirtualMachine::new(program.prime.clone(), builtin_runners),
             final_pc: None,
             program_base: None,
             execution_base: None,
-            builtin_runners,
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
@@ -66,7 +62,7 @@ impl CairoRunner {
             None => Some(self.segments.add(None)),
         };
         self.execution_base = Some(self.segments.add(None));
-        for (_key, builtin_runner) in self.builtin_runners.iter_mut() {
+        for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.segments);
         }
     }
@@ -125,7 +121,7 @@ impl CairoRunner {
     pub fn initialize_main_entrypoint(&mut self) -> Relocatable {
         //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
-        for (_name, builtin_runner) in self.builtin_runners.iter() {
+        for (_name, builtin_runner) in self.vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
         //Different process if proof_mode is enabled
@@ -142,12 +138,18 @@ impl CairoRunner {
         }
     }
 
-    pub fn initialize_vm(&mut self){
+    pub fn initialize_vm(&mut self) {
         //TODO hint_locals and static_locals
-        self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
-        self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
-        self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
+        self.vm.run_context.pc =
+            MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
+        self.vm.run_context.ap =
+            MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
+        self.vm.run_context.fp =
+            MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
         self.vm.run_context.memory = self.segments.memory.clone();
+        self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
+            self.program_base.clone().unwrap(),
+        ));
     }
 }
 
@@ -188,7 +190,7 @@ mod tests {
         );
 
         assert_eq!(
-            cairo_runner.builtin_runners[&String::from("output")].base(),
+            cairo_runner.vm.builtin_runners[&String::from("output")].base(),
             Some(Relocatable {
                 segment_index: bigint!(7),
                 offset: bigint!(0),
@@ -225,7 +227,7 @@ mod tests {
         );
 
         assert_eq!(
-            cairo_runner.builtin_runners[&String::from("output")].base(),
+            cairo_runner.vm.builtin_runners[&String::from("output")].base(),
             Some(Relocatable {
                 segment_index: bigint!(2),
                 offset: bigint!(0)
@@ -293,7 +295,7 @@ mod tests {
             cairo_runner
                 .segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
             Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
