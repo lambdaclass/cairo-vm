@@ -138,7 +138,7 @@ impl CairoRunner {
         }
     }
 
-    pub fn initialize_vm(&mut self) {
+    pub fn initialize_vm(&'static mut self) {
         //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
@@ -150,6 +150,9 @@ impl CairoRunner {
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
+        for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
+            builtin_runner.add_validation_rules(&mut self.vm.validated_memory);
+        }
     }
 }
 

@@ -1,11 +1,12 @@
 use crate::bigint;
-use crate::vm::cairo_runner::CairoRunner;
 use crate::vm::memory::Memory;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
+
+use super::validated_memory_dict::ValidatedMemoryDict;
 
 pub struct RangeCheckBuiltinRunner {
     included: bool,
@@ -30,7 +31,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn add_validation_rules(&'static self, runner: &mut CairoRunner);
+    fn add_validation_rules(&'static self, validated_memory: &mut ValidatedMemoryDict);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -69,7 +70,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&'static self, runner: &mut CairoRunner) {
+    fn add_validation_rules(&'static self, validated_memory: &mut ValidatedMemoryDict) {
         if let Some(base) = self.base.clone() {
             let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)> = Box::new(
                 |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
@@ -85,10 +86,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                     }
                 },
             );
-            runner
-                .vm
-                .validated_memory
-                .add_validation_rule(base.segment_index, rule);
+            validated_memory.add_validation_rule(base.segment_index, rule);
         } else {
             panic!("Cant add validation rules without a base")
         }
@@ -126,7 +124,7 @@ impl BuiltinRunner for OutputRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&'static self, _runner: &mut CairoRunner) {}
+    fn add_validation_rules(&'static self, _validated_memory: &mut ValidatedMemoryDict) {}
 }
 
 #[cfg(test)]
