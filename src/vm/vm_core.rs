@@ -1,10 +1,10 @@
+use crate::bigint;
 use crate::vm::decoder::decode_instruction;
 use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
-use crate::bigint;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
@@ -164,7 +164,7 @@ impl VirtualMachine {
                     None,
                 ))
             }
-            Opcode::AsseertEq => {
+            Opcode::AssertEq => {
                 match instruction.res {
                     Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
@@ -211,7 +211,7 @@ impl VirtualMachine {
         dst: Option<&MaybeRelocatable>,
         op0: Option<MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
-        if let Opcode::AsseertEq = instruction.opcode {
+        if let Opcode::AssertEq = instruction.opcode {
             match instruction.res {
                 Res::Op1 => {
                     if let Some(dst_addr) = dst {
@@ -278,7 +278,7 @@ impl VirtualMachine {
         res: Option<&MaybeRelocatable>,
     ) -> Option<MaybeRelocatable> {
         match instruction.opcode {
-            Opcode::AsseertEq => {
+            Opcode::AssertEq => {
                 if let Some(res_addr) = res {
                     return Some(res_addr.clone());
                 }
@@ -291,7 +291,7 @@ impl VirtualMachine {
 
     fn opcode_assertions(&self, instruction: &Instruction, operands: &Operands) {
         match instruction.opcode {
-            Opcode::AsseertEq => {
+            Opcode::AssertEq => {
                 match &operands.res {
                     None => panic!("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ"),
                     Some(res) => {
@@ -417,7 +417,7 @@ impl VirtualMachine {
 
         if matches!(dst, None) {
             match instruction.opcode {
-                Opcode::AsseertEq if matches!(res, Some(_)) => dst = res.clone(),
+                Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
                 Opcode::Call => dst = Some(self.run_context.fp.clone()),
                 _ => panic!("Couldn't get or load dst"),
             }
@@ -519,8 +519,8 @@ mod tests {
     use crate::vm::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::vm::memory::Memory;
     use crate::vm::relocatable::Relocatable;
-    use num_bigint::Sign;
     use crate::{bigint64, bigint_str};
+    use num_bigint::Sign;
 
     #[test]
     fn update_fp_ap_plus2() {
@@ -1513,7 +1513,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1559,7 +1559,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1597,7 +1597,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1643,7 +1643,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1686,7 +1686,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1811,7 +1811,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1857,7 +1857,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1895,7 +1895,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1941,7 +1941,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -1984,7 +1984,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2026,7 +2026,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2071,7 +2071,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2114,7 +2114,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2157,7 +2157,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2200,7 +2200,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2249,7 +2249,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2289,7 +2289,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2331,7 +2331,7 @@ mod tests {
             pc_update: PcUpdate::Jump,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let run_context = RunContext {
@@ -2571,7 +2571,7 @@ mod tests {
             pc_update: PcUpdate::Regular,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let operands = Operands {
@@ -2618,7 +2618,7 @@ mod tests {
             pc_update: PcUpdate::Regular,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
-            opcode: Opcode::AsseertEq,
+            opcode: Opcode::AssertEq,
         };
 
         let operands = Operands {
@@ -3603,7 +3603,9 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(1))),
-                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020480")),
+                MaybeRelocatable::Int(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480"
+                )),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(2))),
@@ -3627,7 +3629,9 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(7))),
-                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020480")),
+                MaybeRelocatable::Int(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480"
+                )),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(8))),
@@ -3635,7 +3639,9 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(9))),
-                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020473")),
+                MaybeRelocatable::Int(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020473"
+                )),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(10))),
@@ -3659,7 +3665,9 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(15))),
-                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020467")),
+                MaybeRelocatable::Int(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020467"
+                )),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(16))),
@@ -3769,7 +3777,9 @@ mod tests {
                 segment_index: bigint!(1),
                 offset: bigint!(2),
             }),
-            prime: bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020481"),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
         };
 
         let mut vm = VirtualMachine {
