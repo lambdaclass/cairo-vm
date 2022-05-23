@@ -74,8 +74,8 @@ impl VirtualMachine {
         };
 
         VirtualMachine {
-            run_context: run_context,
-            prime: prime.clone(),
+            run_context,
+            prime,
             builtin_runners,
             _program_base: None,
             validated_memory: ValidatedMemoryDict::new(),
