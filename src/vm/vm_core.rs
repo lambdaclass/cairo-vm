@@ -1,10 +1,10 @@
-use crate::{bigint, bigint64};
 use crate::vm::decoder::decode_instruction;
 use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
 use crate::vm::validated_memory_dict::ValidatedMemoryDict;
+use crate::bigint;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
@@ -520,6 +520,7 @@ mod tests {
     use crate::vm::memory::Memory;
     use crate::vm::relocatable::Relocatable;
     use num_bigint::Sign;
+    use crate::{bigint64, bigint_str};
 
     #[test]
     fn update_fp_ap_plus2() {
@@ -3410,41 +3411,54 @@ mod tests {
     /// RelocatableValue(segment_index=1, offset=4): '0x14'
     fn multiplication_and_different_ap_increase() {
         let mem_arr = [
-            (MaybeRelocatable::from((bigint!(0), bigint!(0))), 
-             MaybeRelocatable::Int(bigint64!(0x400680017fff8000))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(1))),
-             MaybeRelocatable::Int(bigint64!(0x0000000000000004))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(2))), 
-             MaybeRelocatable::Int(bigint64!(0x40780017fff7fff))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(3))), 
-             MaybeRelocatable::Int(bigint64!(0x0000000000000001))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(4))), 
-             MaybeRelocatable::Int(bigint64!(0x480680017fff8000))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(5))), 
-             MaybeRelocatable::Int(bigint64!(0x0000000000000005))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(6))), 
-             MaybeRelocatable::Int(bigint64!(0x40507ffe7fff8000))),
-
-            (MaybeRelocatable::from((bigint!(0), bigint!(7))), 
-             MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe))),
-
-            (MaybeRelocatable::from((bigint!(1), bigint!(0))), 
-             MaybeRelocatable::from((bigint!(2), bigint!(0)))), 
-
-            (MaybeRelocatable::from((bigint!(1), bigint!(1))), 
-             MaybeRelocatable::from((bigint!(3), bigint!(0)))), 
-
-            (MaybeRelocatable::from((bigint!(1), bigint!(3))), 
-             MaybeRelocatable::Int(bigint64!(0x0000000000000005))),
-
-            (MaybeRelocatable::from((bigint!(1), bigint!(4))), 
-             MaybeRelocatable::Int(bigint64!(0x0000000000000014))),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(0))),
+                MaybeRelocatable::Int(bigint64!(0x400680017fff8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(1))),
+                MaybeRelocatable::Int(bigint64!(0x0000000000000004)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(2))),
+                MaybeRelocatable::Int(bigint64!(0x40780017fff7fff)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(3))),
+                MaybeRelocatable::Int(bigint64!(0x0000000000000001)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(4))),
+                MaybeRelocatable::Int(bigint64!(0x480680017fff8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(5))),
+                MaybeRelocatable::Int(bigint64!(0x0000000000000005)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(6))),
+                MaybeRelocatable::Int(bigint64!(0x40507ffe7fff8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(7))),
+                MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(0))),
+                MaybeRelocatable::from((bigint!(2), bigint!(0))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(1))),
+                MaybeRelocatable::from((bigint!(3), bigint!(0))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(3))),
+                MaybeRelocatable::Int(bigint64!(0x0000000000000005)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(4))),
+                MaybeRelocatable::Int(bigint64!(0x0000000000000014)),
+            ),
         ];
 
         let run_context = RunContext {
@@ -3561,7 +3575,226 @@ mod tests {
 
         assert_eq!(
             vm.validated_memory.get(&vm.run_context.ap),
-            Some(&MaybeRelocatable::Int(BigInt::from_i64(0x14).unwrap())),
+            Some(&MaybeRelocatable::Int(bigint64!(0x14))),
         );
+    }
+
+    /* tests the program:
+       func factorial(n) -> (result):
+            if n == 1:
+                return (n)
+            end
+            let (a) = factorial(n-1)
+            return (n*a)
+        end
+
+
+        func main():
+            let (y) = factorial(4)
+            return ()
+        end
+    */
+    #[test]
+    fn factorial_program() {
+        let mem_arr = [
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(0))),
+                MaybeRelocatable::Int(bigint64!(0x482680017ffd8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(1))),
+                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020480")),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(2))),
+                MaybeRelocatable::Int(bigint64!(0x20680017fff7fff)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(3))),
+                MaybeRelocatable::Int(bigint64!(0x4)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(4))),
+                MaybeRelocatable::Int(bigint64!(0x480a7ffd7fff8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(5))),
+                MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(6))),
+                MaybeRelocatable::Int(bigint64!(0x482680017ffd8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(7))),
+                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020480")),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(8))),
+                MaybeRelocatable::Int(bigint64!(0x1104800180018000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(9))),
+                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020473")),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(10))),
+                MaybeRelocatable::Int(bigint64!(0x48527fff7ffd8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(11))),
+                MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(12))),
+                MaybeRelocatable::Int(bigint64!(0x480680017fff8000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(13))),
+                MaybeRelocatable::Int(bigint64!(0x4)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(14))),
+                MaybeRelocatable::Int(bigint64!(0x1104800180018000)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(15))),
+                MaybeRelocatable::Int(bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020467")),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(0), bigint!(16))),
+                MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(0))),
+                MaybeRelocatable::from((bigint!(2), bigint!(0))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(1))),
+                MaybeRelocatable::from((bigint!(3), bigint!(0))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(2))),
+                MaybeRelocatable::Int(bigint64!(0x4)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(3))),
+                MaybeRelocatable::from((bigint!(1), bigint!(2))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(4))),
+                MaybeRelocatable::from((bigint!(0), bigint!(16))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(5))),
+                MaybeRelocatable::Int(bigint64!(0x3)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(6))),
+                MaybeRelocatable::Int(bigint64!(0x3)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(7))),
+                MaybeRelocatable::from((bigint!(1), bigint!(5))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(8))),
+                MaybeRelocatable::from((bigint!(0), bigint!(10))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(9))),
+                MaybeRelocatable::Int(bigint64!(0x2)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(10))),
+                MaybeRelocatable::Int(bigint64!(0x2)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(11))),
+                MaybeRelocatable::from((bigint!(1), bigint!(9))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(12))),
+                MaybeRelocatable::from((bigint!(0), bigint!(10))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(13))),
+                MaybeRelocatable::Int(bigint64!(0x1)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(14))),
+                MaybeRelocatable::Int(bigint64!(0x1)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(15))),
+                MaybeRelocatable::from((bigint!(1), bigint!(13))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(16))),
+                MaybeRelocatable::from((bigint!(0), bigint!(10))),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(17))),
+                MaybeRelocatable::Int(bigint64!(0x0)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(18))),
+                MaybeRelocatable::Int(bigint64!(0x1)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(19))),
+                MaybeRelocatable::Int(bigint64!(0x2)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(20))),
+                MaybeRelocatable::Int(bigint64!(0x6)),
+            ),
+            (
+                MaybeRelocatable::from((bigint!(1), bigint!(21))),
+                MaybeRelocatable::Int(bigint64!(0x18)),
+            ),
+        ];
+
+        let run_context = RunContext {
+            memory: Memory::from(mem_arr.clone()),
+            pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(0),
+                offset: bigint!(0),
+            }),
+            ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2),
+            }),
+            fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(2),
+            }),
+            prime: bigint_str!(b"3618502788666131213697322783095070105623107215331596699973092056135872020481"),
+        };
+
+        let mut vm = VirtualMachine {
+            run_context: run_context,
+            prime: BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967089, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+                    4294967295, 67108863,
+                ],
+            ),
+            _program_base: None,
+            validated_memory: ValidatedMemoryDict::from(mem_arr),
+            accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            trace: Vec::<TraceEntry>::new(),
+            current_step: bigint!(1),
+            skip_instruction_execution: false,
+        };
+        let final_pc = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: bigint!(0),
+            offset: bigint!(1),
+        });
+        //Run steps
+        while vm.run_context.pc != final_pc {
+            assert_eq!(vm.step(), Ok(()));
+        }
     }
 }
