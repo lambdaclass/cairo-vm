@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 pub struct ValidatedMemoryDict {
     memory: Memory,
-    _validation_rules:
+    validation_rules:
         HashMap<BigInt, Vec<Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)>>>,
     _validated_addresses: Vec<Relocatable>,
 }
@@ -16,7 +16,7 @@ impl ValidatedMemoryDict {
     pub fn new() -> ValidatedMemoryDict {
         ValidatedMemoryDict {
             memory: Memory::new(),
-            _validation_rules: HashMap::<
+            validation_rules: HashMap::<
                 BigInt,
                 Vec<Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)>>,
             >::new(),
@@ -29,5 +29,13 @@ impl ValidatedMemoryDict {
 
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
         self.memory.insert(&key.clone(), &val.clone());
+    }
+
+    pub fn add_validation_rule(
+        &mut self,
+        segment_index: BigInt,
+        rule: Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)>,
+    ) {
+        self.validation_rules.insert(segment_index, vec![rule]);
     }
 }
