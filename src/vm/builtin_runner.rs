@@ -1,9 +1,8 @@
 use crate::bigint;
-use crate::vm::memory_segments::MemorySegmentManager;
-use crate::vm::validated_memory_dict::ValidationRule;
 use crate::vm::cairo_runner::CairoRunner;
-use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::memory::Memory;
+use crate::vm::memory_segments::MemorySegmentManager;
+use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -16,7 +15,7 @@ pub struct RangeCheckBuiltinRunner {
     _cells_per_instance: i32,
     _n_input_cells: i32,
     _inner_rc_bound: BigInt,
-    _bound: BigInt,
+    bound: BigInt,
     _n_parts: u32,
 }
 pub struct OutputRunner {
@@ -31,7 +30,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn add_validation_rules(&self, runner: CairoRunner);
+    fn add_validation_rules(&self, runner: &mut CairoRunner);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -45,7 +44,7 @@ impl RangeCheckBuiltinRunner {
             _cells_per_instance: 1,
             _n_input_cells: 1,
             _inner_rc_bound: inner_rc_bound.clone(),
-            _bound: inner_rc_bound.pow(n_parts),
+            bound: inner_rc_bound.pow(n_parts),
             _n_parts: n_parts,
         }
     }
@@ -69,19 +68,29 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
     }
-    
-    fn add_validation_rules(&self, runner: CairoRunner) {
-        fn range_check_validation(memory:Memory, address:MaybeRelocatable) -> MaybeRelocatable {
-            let value = memory.get(&address);
-            if let Some(MaybeRelocatable::Int(ref num)) = value {
-                if bigint!(0) <= num.clone() < self.bound {
-                    address
-                }   else {
-                    panic!("Range-check validation failed, number is out of valid range")
-                }
-            } else {
-                panic!("Range-check validation failed, encountered non-int value")
-            }
+
+    fn add_validation_rules(&self, runner: &mut CairoRunner) {
+        if let Some(base) = self.base.clone() {
+            let rule: Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)> = Box::new(
+                |memory: Memory, address: MaybeRelocatable| -> MaybeRelocatable {
+                    let value = memory.get(&address);
+                    if let Some(MaybeRelocatable::Int(ref num)) = value {
+                        if bigint!(0) <= num.clone() && num.clone() < self.bound {
+                            address
+                        } else {
+                            panic!("Range-check validation failed, number is out of valid range")
+                        }
+                    } else {
+                        panic!("Range-check validation failed, encountered non-int value")
+                    }
+                },
+            );
+            runner
+                .vm
+                .validated_memory
+                .add_validation_rule(base.segment_index, rule);
+        } else {
+            panic!("Cant add validation rules without a base")
         }
     }
 }
@@ -117,7 +126,7 @@ impl BuiltinRunner for OutputRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&self, runner: CairoRunner){}
+    fn add_validation_rules(&self, _runner: &mut CairoRunner) {}
 }
 
 #[cfg(test)]
