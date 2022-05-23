@@ -9,9 +9,12 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
+use crate::vm::vm_core::VirtualMachine;
+
 pub struct CairoRunner {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
+    pub vm: VirtualMachine,
     _layout: String,
     builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     pub segments: MemorySegmentManager,
@@ -39,14 +42,17 @@ impl CairoRunner {
                 );
             }
         }
+        //Initialize a vm, with empty values, will later be filled with actual data in initialize_vm
+        let vm = VirtualMachine::new(program.prime.clone());
         CairoRunner {
             program: program.clone(),
             _layout: String::from("plain"),
             segments: MemorySegmentManager::new(program.prime.clone()),
+            vm,
             final_pc: None,
             program_base: None,
             execution_base: None,
-            builtin_runners: builtin_runners,
+            builtin_runners,
             initial_ap: None,
             initial_fp: None,
         }
