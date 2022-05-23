@@ -29,11 +29,11 @@ impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
         let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
         for builtin_name in program.builtins.iter() {
-            if *builtin_name == String::from("output") {
+            if builtin_name == "output" {
                 builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
             }
 
-            if *builtin_name == String::from("range_check") {
+            if builtin_name == "range_check" {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
                 builtin_runners.insert(
                     builtin_name.clone(),

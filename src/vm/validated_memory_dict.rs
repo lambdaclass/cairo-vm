@@ -57,3 +57,16 @@ impl ValidatedMemoryDict {
         }
     }
 }
+
+impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for ValidatedMemoryDict {
+    fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
+        ValidatedMemoryDict {
+            memory: Memory::from(key_val_list),
+            validation_rules: HashMap::<
+                BigInt,
+                Vec<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)>>,
+            >::new(),
+            _validated_addresses: Vec::<MaybeRelocatable>::new(),
+        }
+    }
+}
