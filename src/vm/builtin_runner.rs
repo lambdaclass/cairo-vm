@@ -71,8 +71,8 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
 
     fn add_validation_rules(&'static self, runner: &mut CairoRunner) {
         if let Some(base) = self.base.clone() {
-            let rule: Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)> = Box::new(
-                |memory: Memory, address: MaybeRelocatable| -> MaybeRelocatable {
+            let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)> = Box::new(
+                |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
                     let value = memory.get(&address);
                     if let Some(MaybeRelocatable::Int(ref num)) = value {
                         if bigint!(0) <= num.clone() && num.clone() < self.bound {

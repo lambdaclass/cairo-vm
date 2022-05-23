@@ -2,7 +2,7 @@ use crate::vm::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 
 pub struct Memory {
-    data: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    pub data: HashMap<MaybeRelocatable, MaybeRelocatable>,
 }
 
 impl Memory {
