@@ -30,7 +30,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn add_validation_rules(&self, runner: &mut CairoRunner);
+    fn add_validation_rules(&'static self, runner: &mut CairoRunner);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -69,7 +69,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&self, runner: &mut CairoRunner) {
+    fn add_validation_rules(&'static self, runner: &mut CairoRunner) {
         if let Some(base) = self.base.clone() {
             let rule: Box<dyn (Fn(Memory, MaybeRelocatable) -> MaybeRelocatable)> = Box::new(
                 |memory: Memory, address: MaybeRelocatable| -> MaybeRelocatable {
@@ -126,7 +126,7 @@ impl BuiltinRunner for OutputRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&self, _runner: &mut CairoRunner) {}
+    fn add_validation_rules(&'static self, _runner: &mut CairoRunner) {}
 }
 
 #[cfg(test)]
