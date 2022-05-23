@@ -23,6 +23,7 @@ pub struct CairoRunner {
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
+    initial_pc: Option<Relocatable>,
 }
 
 #[allow(dead_code)]
@@ -55,6 +56,7 @@ impl CairoRunner {
             builtin_runners,
             initial_ap: None,
             initial_fp: None,
+            initial_pc: None,
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
@@ -71,13 +73,13 @@ impl CairoRunner {
 
     fn initialize_state(&mut self, entrypoint: BigInt, stack: Vec<MaybeRelocatable>) {
         if let Some(prog_base) = self.program_base.clone() {
-            let new_prog_base = Relocatable {
-                segment_index: prog_base.segment_index,
-                offset: prog_base.offset + entrypoint,
+            let initial_pc = Relocatable {
+                segment_index: prog_base.clone().segment_index,
+                offset: prog_base.clone().offset + entrypoint,
             };
-            self.program_base = Some(new_prog_base.clone());
+            self.initial_pc = Some(initial_pc);
             self.segments.load_data(
-                &MaybeRelocatable::RelocatableValue(new_prog_base),
+                &MaybeRelocatable::RelocatableValue(prog_base),
                 self.program.data.clone(),
             );
             if let Some(exec_base) = &self.execution_base {
@@ -138,6 +140,14 @@ impl CairoRunner {
         } else {
             panic!("Missing main()")
         }
+    }
+
+    pub fn initialize_vm(&mut self){
+        //TODO hint_locals and static_locals
+        self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
+        self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
+        self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
+        self.vm.run_context.memory = self.segments.memory.clone();
     }
 }
 
@@ -241,7 +251,7 @@ mod tests {
         let entrypoint = bigint!(1);
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
-            cairo_runner.program_base,
+            cairo_runner.initial_pc,
             Some(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1)

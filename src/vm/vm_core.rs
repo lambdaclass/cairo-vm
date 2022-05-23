@@ -31,7 +31,7 @@ struct Rule {
 }
 
 pub struct VirtualMachine {
-    run_context: RunContext,
+    pub run_context: RunContext,
     prime: BigInt,
     //builtin_runners: Option<HashMap<String, BuiltinRunner>>,
     //exec_scopes: Vec<HashMap<..., ...>>,
