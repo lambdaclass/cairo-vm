@@ -25,13 +25,13 @@ pub struct OutputRunner {
     _stop_ptr: Option<Relocatable>,
 }
 
-pub trait BuiltinRunner {
+pub trait BuiltinRunner<'a> {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn add_validation_rules(&'static self, validated_memory: &mut ValidatedMemoryDict);
+    fn add_validation_rules(&'a self, validated_memory: &'a mut ValidatedMemoryDict);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -50,7 +50,7 @@ impl RangeCheckBuiltinRunner {
         }
     }
 }
-impl BuiltinRunner for RangeCheckBuiltinRunner {
+impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
@@ -70,9 +70,9 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&'static self, validated_memory: &mut ValidatedMemoryDict) {
+    fn add_validation_rules(&'a self, validated_memory: &'a mut ValidatedMemoryDict) {
         if let Some(base) = self.base.clone() {
-            let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)> = Box::new(
+            let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a> = Box::new(
                 |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
                     let value = memory.get(&address);
                     if let Some(MaybeRelocatable::Int(ref num)) = value {
@@ -103,7 +103,7 @@ impl OutputRunner {
     }
 }
 
-impl BuiltinRunner for OutputRunner {
+impl<'a> BuiltinRunner<'a> for OutputRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
@@ -124,7 +124,7 @@ impl BuiltinRunner for OutputRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&'static self, _validated_memory: &mut ValidatedMemoryDict) {}
+    fn add_validation_rules(&'a self, _validated_memory: &'a mut ValidatedMemoryDict) {}
 }
 
 #[cfg(test)]

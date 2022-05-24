@@ -3,16 +3,16 @@ use crate::vm::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
-pub struct ValidatedMemoryDict {
+pub struct ValidatedMemoryDict<'a> {
     memory: Memory,
     validation_rules:
-        HashMap<BigInt, Vec<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)>>>,
+        HashMap<BigInt, Vec<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>>,
     _validated_addresses: Vec<MaybeRelocatable>,
 }
 
-impl ValidatedMemoryDict {
+impl<'a> ValidatedMemoryDict<'a> {
     #[allow(dead_code)]
-    pub fn new() -> ValidatedMemoryDict {
+    pub fn new() -> ValidatedMemoryDict<'a> {
         ValidatedMemoryDict {
             memory: Memory::new(),
             validation_rules: HashMap::<
@@ -33,12 +33,12 @@ impl ValidatedMemoryDict {
     pub fn add_validation_rule(
         &mut self,
         segment_index: BigInt,
-        rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)>,
+        rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>,
     ) {
         self.validation_rules
             .entry(segment_index)
             .or_insert(Vec::<
-                Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)>,
+                Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)+ 'a>,
             >::new())
             .push(rule);
     }
@@ -58,7 +58,7 @@ impl ValidatedMemoryDict {
     }
 }
 
-impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for ValidatedMemoryDict {
+impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for ValidatedMemoryDict<'_> {
     fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
         ValidatedMemoryDict {
             memory: Memory::from(key_val_list),

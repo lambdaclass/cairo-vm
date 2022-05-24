@@ -10,10 +10,10 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
-pub struct CairoRunner {
+pub struct CairoRunner<'a> {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
-    pub vm: VirtualMachine,
+    pub vm: VirtualMachine<'a>,
     _layout: String,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
@@ -25,7 +25,7 @@ pub struct CairoRunner {
 }
 
 #[allow(dead_code)]
-impl CairoRunner {
+impl<'a> CairoRunner<'a> {
     pub fn new(program: &Program) -> CairoRunner {
         let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
         for builtin_name in program.builtins.iter() {
