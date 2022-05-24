@@ -3,6 +3,7 @@ use crate::vm::memory::Memory;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
+use crate::vm::validated_memory_dict::ValidationRule;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
@@ -29,9 +30,7 @@ pub trait BuiltinRunner<'a> {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn validation_rule(
-        &'a self,
-    ) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>;
+    fn validation_rule(&'a self) -> Option<ValidationRule<'a>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -70,10 +69,8 @@ impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn validation_rule(
-        &'a self,
-    ) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>> {
-        let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a> = Box::new(
+    fn validation_rule(&'a self) -> Option<ValidationRule<'a>> {
+        let rule: ValidationRule<'a> = ValidationRule(Box::new(
             |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
                 let value = memory.get(&address);
                 if let Some(MaybeRelocatable::Int(ref num)) = value {
@@ -86,7 +83,7 @@ impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
                     panic!("Range-check validation failed, encountered non-int value")
                 }
             },
-        );
+        ));
         Some(rule)
     }
 }
@@ -122,9 +119,7 @@ impl<'a> BuiltinRunner<'a> for OutputRunner {
         self.base.clone()
     }
 
-    fn validation_rule(
-        &'a self,
-    ) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>> {
+    fn validation_rule(&'a self) -> Option<ValidationRule<'a>> {
         None
     }
 }
