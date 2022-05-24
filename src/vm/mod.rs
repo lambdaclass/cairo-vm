@@ -11,3 +11,4 @@ pub mod trace_entry;
 pub mod utils;
 pub mod validated_memory_dict;
 pub mod vm_core;
+pub mod serializable_utils;
