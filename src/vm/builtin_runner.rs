@@ -214,4 +214,55 @@ mod tests {
             panic!("Test failed, rule should be None")
         }
     }
+
+    #[test]
+    fn get_validation_rule_for_range_check() {
+        let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let validation_rule = builtin.validation_rule();
+        if let None = validation_rule {
+            panic!("Test failed, no validation rule obtained for RangeCheckBuiltin")
+        }
+    }
+    #[test]
+    fn try_validation_rule_for_range_check_within_bounds() {
+        let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let validation_rule = builtin.validation_rule();
+        if let Some(rule) = validation_rule {
+            let addr = MaybeRelocatable::RelocatableValue(relocatable!(1, 2));
+            let mut memory = Memory::new();
+            memory.insert(&addr, &MaybeRelocatable::Int(bigint!(45)));
+            assert_eq!(rule.0(&memory, addr.clone()), addr);
+        } else {
+            panic!("Test failed, no validation rule obtained for RangeCheckBuiltin")
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn try_validation_rule_for_range_check_outside_bounds() {
+        let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let validation_rule = builtin.validation_rule();
+        if let Some(rule) = validation_rule {
+            let addr = MaybeRelocatable::RelocatableValue(relocatable!(1, 2));
+            let mut memory = Memory::new();
+            memory.insert(&addr, &MaybeRelocatable::Int(bigint!(-15)));
+            assert_eq!(rule.0(&memory, addr.clone()), addr);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn try_validation_rule_for_range_check_relocatable_value() {
+        let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let validation_rule = builtin.validation_rule();
+        if let Some(rule) = validation_rule {
+            let addr = MaybeRelocatable::RelocatableValue(relocatable!(1, 2));
+            let mut memory = Memory::new();
+            memory.insert(
+                &addr,
+                &MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
+            );
+            assert_eq!(rule.0(&memory, addr.clone()), addr);
+        }
+    }
 }
