@@ -38,7 +38,7 @@ impl<'a> ValidatedMemoryDict<'a> {
         self.validation_rules
             .entry(segment_index)
             .or_insert(Vec::<
-                Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable)+ 'a>,
+                Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>,
             >::new())
             .push(rule);
     }

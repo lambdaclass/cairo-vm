@@ -29,7 +29,9 @@ pub trait BuiltinRunner<'a> {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn validation_rule(&'a self) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>;
+    fn validation_rule(
+        &'a self,
+    ) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -68,21 +70,23 @@ impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn validation_rule(&'a self) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>> {
+    fn validation_rule(
+        &'a self,
+    ) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>> {
         let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a> = Box::new(
-                |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
-                    let value = memory.get(&address);
-                    if let Some(MaybeRelocatable::Int(ref num)) = value {
-                        if bigint!(0) <= num.clone() && num.clone() < self.bound {
-                            address
-                        } else {
-                            panic!("Range-check validation failed, number is out of valid range")
-                        }
+            |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
+                let value = memory.get(&address);
+                if let Some(MaybeRelocatable::Int(ref num)) = value {
+                    if bigint!(0) <= num.clone() && num.clone() < self.bound {
+                        address
                     } else {
-                        panic!("Range-check validation failed, encountered non-int value")
+                        panic!("Range-check validation failed, number is out of valid range")
                     }
-                },
-            );
+                } else {
+                    panic!("Range-check validation failed, encountered non-int value")
+                }
+            },
+        );
         Some(rule)
     }
 }
@@ -118,7 +122,9 @@ impl<'a> BuiltinRunner<'a> for OutputRunner {
         self.base.clone()
     }
 
-    fn validation_rule(&'a self) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>{
+    fn validation_rule(
+        &'a self,
+    ) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>> {
         None
     }
 }
