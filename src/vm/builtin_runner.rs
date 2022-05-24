@@ -205,4 +205,13 @@ mod tests {
         let initial_stack = builtin.initial_stack();
         assert_eq!(initial_stack.len(), 0);
     }
+
+    #[test]
+    fn get_validation_rule_for_output() {
+        let builtin = OutputRunner::new(false);
+        let validation_rule = builtin.validation_rule();
+        if let Some(_rule) = validation_rule {
+            panic!("Test failed, rule should be None")
+        }
+    }
 }

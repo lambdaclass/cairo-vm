@@ -36,7 +36,7 @@ impl<'a> ValidatedMemoryDict<'a> {
             .push(rule);
     }
 
-    pub fn _validate_existing_memory(&mut self) {
+    pub fn validate_existing_memory(&mut self) {
         for (addr, _value) in self.memory.data.iter() {
             if let MaybeRelocatable::RelocatableValue(address) = addr {
                 let rules = self.validation_rules.get(&address.segment_index).unwrap();

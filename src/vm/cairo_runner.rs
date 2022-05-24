@@ -159,7 +159,7 @@ impl<'a> CairoRunner<'a> {
             }
             //Add auto_deduction rules (no auto-deduction rules for output and range-check)
         }
-        self.vm.validated_memory._validate_existing_memory();
+        self.vm.validated_memory.validate_existing_memory();
     }
 }
 
