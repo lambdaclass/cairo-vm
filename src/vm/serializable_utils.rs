@@ -1,6 +1,6 @@
-use serde::{Deserialize, Deserializer};
 use num_bigint::{BigInt, Sign};
 use serde::de;
+use serde::{Deserialize, Deserializer};
 use std::fmt;
 
 struct BigIntVisitor;
@@ -27,14 +27,14 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
 
 fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
-}  
+}
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::BufReader};
-    use super::*; 
+    use super::*;
     use crate::bigint;
     use num_traits::FromPrimitive;
+    use std::{fs::File, io::BufReader};
 
     #[derive(Deserialize)]
     struct TestStruct {
@@ -44,12 +44,11 @@ mod tests {
 
     #[test]
     fn deserialize_bigint_from_string_json() {
-
         let valid_json_data = r#"
             {
                 "bigint": "0x000A"
             }"#;
-        
+
         let test_struct: TestStruct = serde_json::from_str(&valid_json_data).unwrap();
 
         assert_eq!(test_struct.bigint, bigint!(10));
@@ -57,12 +56,11 @@ mod tests {
 
     #[test]
     fn deserialize_bigint_from_string_json_gives_error() {
-
         let invalid_json_data = r#"
             {
                 "bigint": "0bx000A"
             }"#;
-        
+
         let result: Result<TestStruct, _> = serde_json::from_str(&invalid_json_data);
 
         assert!(result.is_err());
@@ -70,10 +68,9 @@ mod tests {
 
     #[test]
     fn deserialize_bigint_from_file_json() {
-
         let file = File::open("tests/support/valid_json_data.json").unwrap();
         let mut reader = BufReader::new(file);
-        
+
         let test_struct: TestStruct = serde_json::from_reader(&mut reader).unwrap();
 
         assert_eq!(test_struct.bigint, bigint!(10));
@@ -81,10 +78,9 @@ mod tests {
 
     #[test]
     fn deserialize_bigint_from_file_json_gives_error() {
-
         let file = File::open("tests/support/invalid_json_data.json").unwrap();
         let mut reader = BufReader::new(file);
-        
+
         let result: Result<TestStruct, _> = serde_json::from_reader(&mut reader);
 
         assert!(result.is_err());
