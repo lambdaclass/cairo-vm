@@ -151,7 +151,10 @@ impl<'a> CairoRunner<'a> {
             self.program_base.clone().unwrap(),
         ));
         for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
-            builtin_runner.add_validation_rules(&mut self.vm.validated_memory);
+            let validation_rule = builtin_runner.validation_rule();
+            if let Some(rule) = validation_rule {
+                self.vm.validated_memory.add_validation_rule(builtin_runner.base().unwrap().segment_index, rule)
+            }
             //Add auto_deduction rules (no auto-deduction rules for output and range-check)
         }
         self.vm.validated_memory._validate_existing_memory();

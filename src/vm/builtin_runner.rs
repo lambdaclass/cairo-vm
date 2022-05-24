@@ -6,8 +6,6 @@ use crate::vm::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
-use super::validated_memory_dict::ValidatedMemoryDict;
-
 pub struct RangeCheckBuiltinRunner {
     included: bool,
     _ratio: BigInt,
@@ -31,7 +29,7 @@ pub trait BuiltinRunner<'a> {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn add_validation_rules(&'a self, validated_memory: &'a mut ValidatedMemoryDict);
+    fn validation_rule(&'a self) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -70,9 +68,8 @@ impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&'a self, validated_memory: &'a mut ValidatedMemoryDict) {
-        if let Some(base) = self.base.clone() {
-            let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a> = Box::new(
+    fn validation_rule(&'a self) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>> {
+        let rule: Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a> = Box::new(
                 |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
                     let value = memory.get(&address);
                     if let Some(MaybeRelocatable::Int(ref num)) = value {
@@ -86,10 +83,7 @@ impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
                     }
                 },
             );
-            validated_memory.add_validation_rule(base.segment_index, rule);
-        } else {
-            panic!("Cant add validation rules without a base")
-        }
+        Some(rule)
     }
 }
 
@@ -124,7 +118,9 @@ impl<'a> BuiltinRunner<'a> for OutputRunner {
         self.base.clone()
     }
 
-    fn add_validation_rules(&'a self, _validated_memory: &'a mut ValidatedMemoryDict) {}
+    fn validation_rule(&'a self) -> Option<Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>>{
+        None
+    }
 }
 
 #[cfg(test)]
