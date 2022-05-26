@@ -42,7 +42,7 @@ pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt,
 // Checks if the hex string has an odd length.
 // If that is the case, prepends '0' to it.
 fn maybe_add_padding(mut hex: String) -> String {
-    if !(hex.len().rem(2) == 0) {
+    if hex.len().rem(2) != 0 {
         hex.insert(0, '0');
         return hex;
     }
