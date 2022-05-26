@@ -33,7 +33,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
 }
 
 // This directive should be removed once the entire Program struct is deserializable and the
-// '#[derive(Deserialize)]' directive is could be applied to it.
+// '#[derive(Deserialize)]' directive can be applied to it.
 #[allow(dead_code)]
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
