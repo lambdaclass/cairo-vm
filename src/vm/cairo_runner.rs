@@ -26,8 +26,8 @@ pub struct CairoRunner<'a> {
 
 #[allow(dead_code)]
 impl<'a> CairoRunner<'a> {
-    pub fn new(program: &Program) -> CairoRunner {
-        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
+    pub fn new(program: &Program) -> CairoRunner<'a> {
+        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner<'a> + 'a>>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
                 builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));

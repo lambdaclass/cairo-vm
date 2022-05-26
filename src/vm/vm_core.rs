@@ -30,7 +30,7 @@ struct Rule {
 pub struct VirtualMachine<'a> {
     pub run_context: RunContext,
     prime: BigInt,
-    pub builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'a>>>,
+    pub builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'a> + 'a>>,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope: ,
     //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
@@ -54,7 +54,7 @@ pub struct VirtualMachine<'a> {
 impl<'a> VirtualMachine<'a> {
     pub fn new(
         prime: BigInt,
-        builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'a>>>,
+        builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'a> + 'a>>,
     ) -> VirtualMachine<'a> {
         let run_context = RunContext {
             memory: Memory::new(),
