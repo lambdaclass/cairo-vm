@@ -3,21 +3,21 @@ use crate::vm::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
-pub struct ValidationRule<'a>(
-    pub Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'a>,
+pub struct ValidationRule<'builtin>(
+    pub Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'builtin>,
 );
-pub struct ValidatedMemoryDict<'a> {
+pub struct ValidatedMemoryDict<'builtin> {
     memory: Memory,
-    validation_rules: HashMap<BigInt, Vec<ValidationRule<'a>>>,
+    validation_rules: HashMap<BigInt, Vec<ValidationRule<'builtin>>>,
     _validated_addresses: Vec<MaybeRelocatable>,
 }
 
-impl<'a> ValidatedMemoryDict<'a> {
+impl<'builtin> ValidatedMemoryDict<'builtin> {
     #[allow(dead_code)]
-    pub fn new() -> ValidatedMemoryDict<'a> {
+    pub fn new() -> ValidatedMemoryDict<'builtin> {
         ValidatedMemoryDict {
             memory: Memory::new(),
-            validation_rules: HashMap::<BigInt, Vec<ValidationRule<'a>>>::new(),
+            validation_rules: HashMap::<BigInt, Vec<ValidationRule<'builtin>>>::new(),
             _validated_addresses: Vec::<MaybeRelocatable>::new(),
         }
     }
@@ -29,10 +29,10 @@ impl<'a> ValidatedMemoryDict<'a> {
         self.memory.insert(&key.clone(), &val.clone());
     }
 
-    pub fn add_validation_rule(&mut self, segment_index: BigInt, rule: ValidationRule<'a>) {
+    pub fn add_validation_rule(&mut self, segment_index: BigInt, rule: ValidationRule<'builtin>) {
         self.validation_rules
             .entry(segment_index)
-            .or_insert(Vec::<ValidationRule<'a>>::new())
+            .or_insert(Vec::<ValidationRule<'builtin>>::new())
             .push(rule);
     }
 

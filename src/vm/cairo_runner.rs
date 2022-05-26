@@ -10,10 +10,10 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
-pub struct CairoRunner<'a> {
+pub struct CairoRunner<'builtin> {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
-    pub vm: VirtualMachine<'a>,
+    pub vm: VirtualMachine<'builtin>,
     _layout: String,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
@@ -25,9 +25,9 @@ pub struct CairoRunner<'a> {
 }
 
 #[allow(dead_code)]
-impl<'a> CairoRunner<'a> {
-    pub fn new(program: &Program) -> CairoRunner<'a> {
-        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner<'a> + 'a>>::new();
+impl<'builtin> CairoRunner<'builtin> {
+    pub fn new(program: &Program) -> CairoRunner<'builtin> {
+        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner<'builtin> + 'builtin>>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
                 builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
@@ -138,7 +138,7 @@ impl<'a> CairoRunner<'a> {
         }
     }
 
-    pub fn initialize_vm(&'a mut self) {
+    pub fn initialize_vm(&'builtin mut self) {
         //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
@@ -150,7 +150,7 @@ impl<'a> CairoRunner<'a> {
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
-        for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
+        for (_key, builtin_runner) in self.vm.builtin_runners.iter() {
             let validation_rule = builtin_runner.validation_rule();
             if let Some(rule) = validation_rule {
                 self.vm

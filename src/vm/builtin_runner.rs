@@ -24,13 +24,13 @@ pub struct OutputRunner {
     _stop_ptr: Option<Relocatable>,
 }
 
-pub trait BuiltinRunner<'a> {
+pub trait BuiltinRunner<'builtin> {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn validation_rule(&'a self) -> Option<ValidationRule<'a>>;
+    fn validation_rule(&'builtin self) -> Option<ValidationRule<'builtin>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -49,7 +49,7 @@ impl RangeCheckBuiltinRunner {
         }
     }
 }
-impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
+impl<'builtin> BuiltinRunner<'builtin> for RangeCheckBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
@@ -69,8 +69,8 @@ impl<'a> BuiltinRunner<'a> for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn validation_rule(&'a self) -> Option<ValidationRule<'a>> {
-        let rule: ValidationRule<'a> = ValidationRule(Box::new(
+    fn validation_rule(&'builtin self) -> Option<ValidationRule<'builtin>> {
+        let rule: ValidationRule<'builtin> = ValidationRule(Box::new(
             |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
                 let value = memory.get(&address);
                 if let Some(MaybeRelocatable::Int(ref num)) = value {
@@ -98,7 +98,7 @@ impl OutputRunner {
     }
 }
 
-impl<'a> BuiltinRunner<'a> for OutputRunner {
+impl<'builtin> BuiltinRunner<'builtin> for OutputRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
@@ -119,7 +119,7 @@ impl<'a> BuiltinRunner<'a> for OutputRunner {
         self.base.clone()
     }
 
-    fn validation_rule(&'a self) -> Option<ValidationRule<'a>> {
+    fn validation_rule(&self) -> Option<ValidationRule<'builtin>> {
         None
     }
 }

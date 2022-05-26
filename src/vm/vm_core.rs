@@ -27,10 +27,10 @@ struct Rule {
     func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
 }
 
-pub struct VirtualMachine<'a> {
+pub struct VirtualMachine<'builtin> {
     pub run_context: RunContext,
     prime: BigInt,
-    pub builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'a> + 'a>>,
+    pub builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'builtin> + 'builtin>>,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope: ,
     //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
@@ -42,7 +42,7 @@ pub struct VirtualMachine<'a> {
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
     pub _program_base: Option<MaybeRelocatable>,
-    pub validated_memory: ValidatedMemoryDict<'a>,
+    pub validated_memory: ValidatedMemoryDict<'builtin>,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
@@ -51,11 +51,11 @@ pub struct VirtualMachine<'a> {
 }
 
 #[allow(dead_code)]
-impl<'a> VirtualMachine<'a> {
+impl<'builtin> VirtualMachine<'builtin> {
     pub fn new(
         prime: BigInt,
-        builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'a> + 'a>>,
-    ) -> VirtualMachine<'a> {
+        builtin_runners: HashMap<String, Box<dyn BuiltinRunner<'builtin> + 'builtin>>,
+    ) -> VirtualMachine<'builtin> {
         let run_context = RunContext {
             memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
