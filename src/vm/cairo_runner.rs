@@ -138,7 +138,7 @@ impl<'a> CairoRunner<'a> {
         }
     }
 
-    pub fn initialize_vm(&'static mut self) {
+    pub fn initialize_vm(&'a mut self) {
         //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
