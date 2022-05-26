@@ -21,9 +21,9 @@ dependencies = [
 name = "cleopatra_cairo"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "num-bigint",
  "num-traits",
- "prefix-hex",
  "rusty-hook",
  "serde",
  "serde_json",
@@ -116,15 +116,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "prefix-hex"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fcbbe2ed73512e511bc6a16a17d0c50b8c1543f9e3d1ef69b2639644160d72c"
-dependencies = [
- "hex",
 ]
 
 [[package]]
