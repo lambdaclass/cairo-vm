@@ -411,7 +411,7 @@ impl VirtualMachine {
         assert!(matches!(op0, Some(_)), "Couldn't compute or deduce op0");
         assert!(matches!(op1, Some(_)), "Couldn't compute or deduce op1");
 
-        if matches!(res, None) {
+        if matches!(res, None) && instruction.res != Res::Unconstrained {
             res = self.compute_res(instruction, op0.as_ref().unwrap(), op1.as_ref().unwrap())?;
         }
 
@@ -421,6 +421,24 @@ impl VirtualMachine {
                 Opcode::Call => dst = Some(self.run_context.fp.clone()),
                 _ => panic!("Couldn't get or load dst"),
             }
+        }
+        
+        if matches!(res, None) && instruction.res == Res::Unconstrained {
+            let aux_op0 = if matches!(dst, Some(MaybeRelocatable::Int(_))) {
+                op0.clone().unwrap()
+            } else {
+                panic!("Dst didn't have a value")
+            };
+            let aux_dst = if matches!(dst, Some(MaybeRelocatable::Int(_))) {
+                dst.clone().unwrap()
+            } else {
+                panic!("Dst didn't have a value")
+            };
+            let sub = aux_op0 - aux_dst;
+            if !matches!(&sub, Ok(MaybeRelocatable::Int(_))) {
+                panic!("Couldn't substract");
+            }
+            res = Some(sub.unwrap());
         }
 
         if should_update_dst {
@@ -2557,6 +2575,24 @@ mod tests {
     }
 
     #[test]
+    fn compute_jnz() {
+        let _inst = Instruction {
+            off0: bigint!(-1),
+            off1: bigint!(-1),
+            off2: bigint!(1),
+            imm: Some(bigint!(4)),
+            dst_register: Register::AP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::Imm,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::JNZ,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
+    }
+
+    #[test]
     #[should_panic(expected = "Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
@@ -3609,7 +3645,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(2))),
-                MaybeRelocatable::Int(bigint64!(0x20680017fff7fff)),
+                MaybeRelocatable::Int(bigint64!(0x020680017fff7fff)),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(3))),
@@ -3800,7 +3836,7 @@ mod tests {
         };
         let final_pc = MaybeRelocatable::RelocatableValue(Relocatable {
             segment_index: bigint!(0),
-            offset: bigint!(1),
+            offset: bigint!(4),
         });
         //Run steps
         while vm.run_context.pc != final_pc {
