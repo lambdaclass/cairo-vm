@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::vm::memory::Memory;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
@@ -28,6 +29,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
+    fn validate_existing_memory(&self, memory: &Memory) -> Option<Vec<MaybeRelocatable>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -66,23 +68,25 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    /* fn validation_rule(&'builtin self) -> Option<ValidationRule<'builtin>> {
-        let rule: ValidationRule<'builtin> = ValidationRule(Box::new(
-            |memory: &Memory, address: MaybeRelocatable| -> MaybeRelocatable {
-                let value = memory.get(&address);
-                if let Some(MaybeRelocatable::Int(ref num)) = value {
-                    if bigint!(0) <= num.clone() && num.clone() < self.bound {
-                        address
+    fn validate_existing_memory(&self, memory: &Memory) -> Option<Vec<MaybeRelocatable>> {
+        let mut validated_addresses = Vec::<MaybeRelocatable>::new();
+        for (addr, value) in memory.data.iter() {
+            if let MaybeRelocatable::RelocatableValue(_relocatable) = addr {
+                if let MaybeRelocatable::Int(ref num) = value {
+                    if bigint!(0) <= num.clone() && num.clone() < self._bound {
+                        validated_addresses.push(addr.clone());
                     } else {
-                        panic!("Range-check validation failed, number is out of valid range")
+                        panic!("Range-check validation failed, number is out of valid range");
                     }
                 } else {
-                    panic!("Range-check validation failed, encountered non-int value")
+                    panic!("Range-check validation failed, encountered non-int value");
                 }
-            },
-        ));
-        Some(rule)
-    }*/
+            } else {
+                panic!("Cant validate a Non-Relocatable address");
+            }
+        }
+        Some(validated_addresses)
+    }
 }
 
 impl OutputRunner {
@@ -114,6 +118,9 @@ impl BuiltinRunner for OutputRunner {
 
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
+    }
+    fn validate_existing_memory(&self, _memory: &Memory) -> Option<Vec<MaybeRelocatable>> {
+        None
     }
 }
 
