@@ -164,6 +164,8 @@ impl CairoRunner {
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::Sign;
+
     use super::*;
     use crate::relocatable;
 
@@ -610,5 +612,354 @@ mod tests {
             &MaybeRelocatable::Int(bigint!(-1)),
         );
         cairo_runner.initialize_vm();
+    }
+
+    //Integration tests for initialization phase
+
+    #[test]
+    /*Program used:
+    func myfunc(a: felt) -> (r: felt):
+        let b = a * 2
+        return(b)
+    end
+
+    func main():
+        let a = 1
+        let b = myfunc(a)
+        return()
+    end
+
+    main = 3
+    data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
+    */
+    fn initialization_phase_no_builtins() {
+        let program = Program {
+            builtins: vec![],
+            prime: bigint!(17),
+            data: vec![
+                MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
+                MaybeRelocatable::Int(bigint!(2)),
+                MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::Int(bigint!(1)),
+                MaybeRelocatable::Int(BigInt::new(
+                    Sign::Plus,
+                    vec![
+                        4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                        134217728,
+                    ],
+                )),
+                MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            ],
+            main: Some(bigint!(3)),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        cairo_runner.initialize_main_entrypoint();
+        cairo_runner.initialize_vm();
+
+        assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
+        assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
+
+        //RunContext check
+        //Registers
+        assert_eq!(
+            cairo_runner.vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(relocatable!(0, 3))
+        );
+        assert_eq!(
+            cairo_runner.vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 2))
+        );
+        assert_eq!(
+            cairo_runner.vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 2))
+        );
+        //Memory
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(5207990763031199744).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 1))),
+            Some(&MaybeRelocatable::Int(bigint!(2)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(2345108766317314046).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 3))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(5189976364521848832).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
+            Some(&MaybeRelocatable::Int(bigint!(1)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
+            Some(&MaybeRelocatable::Int(BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                    134217728,
+                ],
+            )))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 6))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(1226245742482522112).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 7))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(2345108766317314046).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(3, 0)))
+        );
+    }
+
+    #[test]
+    /*Program used:
+    %builtins output
+
+    from starkware.cairo.common.serialize import serialize_word
+
+    func main{output_ptr: felt*}():
+        let a = 1
+        serialize_word(a)
+        return()
+    end
+
+    main = 4
+    data = [4612671182993129469, 5198983563776393216, 1, 2345108766317314046, 5191102247248822272, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020474, 2345108766317314046]
+    */
+    fn initialization_phase_output_builtin() {
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint!(17),
+            data: vec![
+                MaybeRelocatable::Int(BigInt::from_i64(4612671182993129469).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5198983563776393216).unwrap()),
+                MaybeRelocatable::Int(bigint!(1)),
+                MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5191102247248822272).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::Int(bigint!(1)),
+                MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::Int(BigInt::new(
+                    Sign::Plus,
+                    vec![
+                        4294967290, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                        134217728,
+                    ],
+                )),
+                MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            ],
+            main: Some(bigint!(4)),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        cairo_runner.initialize_main_entrypoint();
+        cairo_runner.initialize_vm();
+
+        assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
+        assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
+
+        //RunContext check
+        //Registers
+        assert_eq!(
+            cairo_runner.vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(relocatable!(0, 4))
+        );
+        assert_eq!(
+            cairo_runner.vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 3))
+        );
+        assert_eq!(
+            cairo_runner.vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 3))
+        );
+        //Memory
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(4612671182993129469).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 1))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(5198983563776393216).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
+            Some(&MaybeRelocatable::Int(bigint!(1)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 3))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(2345108766317314046).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(5191102247248822272).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(5189976364521848832).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 6))),
+            Some(&MaybeRelocatable::Int(bigint!(1)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 7))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(1226245742482522112).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 8))),
+            Some(&MaybeRelocatable::Int(BigInt::new(
+                Sign::Plus,
+                vec![
+                    4294967290, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                    134217728
+                ]
+            )))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 9))),
+            Some(&MaybeRelocatable::Int(
+                BigInt::from_i64(2345108766317314046).unwrap()
+            ))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(3, 0)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .run_context
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(4, 0)))
+        );
     }
 }
