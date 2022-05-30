@@ -661,6 +661,7 @@ mod tests {
 
         assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
         assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
+        assert_eq!(cairo_runner.final_pc, Some(relocatable!(3, 0)));
 
         //RunContext check
         //Registers
@@ -821,6 +822,7 @@ mod tests {
 
         assert_eq!(cairo_runner.program_base, Some(relocatable!(0, 0)));
         assert_eq!(cairo_runner.execution_base, Some(relocatable!(1, 0)));
+        assert_eq!(cairo_runner.final_pc, Some(relocatable!(4, 0)));
 
         //RunContext check
         //Registers
