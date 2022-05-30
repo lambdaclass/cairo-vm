@@ -149,6 +149,16 @@ impl CairoRunner {
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
+        self.vm.validated_memory.memory = self.segments.memory.clone();
+        for (_key, builtin) in self.vm.builtin_runners.iter() {
+            let vec = builtin.validate_existing_memory(&self.vm.validated_memory.memory);
+            if let Some(mut validated_addresses) = vec {
+                self.vm
+                    .validated_memory
+                    .validated_addresses
+                    .append(&mut validated_addresses)
+            }
+        }
     }
 }
 
@@ -501,7 +511,7 @@ mod tests {
     }
 
     #[test]
-    fn initialize_vm() {
+    fn initialize_vm_no_builtins() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
             builtins: Vec::new(),
@@ -509,7 +519,96 @@ mod tests {
             data: Vec::new(),
             main: Some(bigint!(1)),
         };
-        let mut _cairo_runner = CairoRunner::new(&program);
-        //cairo_runner.initialize_vm()
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.program_base = Some(relocatable!(0, 0));
+        cairo_runner.initial_pc = Some(relocatable!(0, 1));
+        cairo_runner.initial_ap = Some(relocatable!(1, 2));
+        cairo_runner.initial_fp = Some(relocatable!(1, 2));
+        cairo_runner.initialize_vm();
+        assert_eq!(
+            cairo_runner.vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(relocatable!(0, 1))
+        );
+        assert_eq!(
+            cairo_runner.vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 2))
+        );
+        assert_eq!(
+            cairo_runner.vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 2))
+        );
+        assert_eq!(
+            cairo_runner.vm._program_base,
+            Some(MaybeRelocatable::RelocatableValue(relocatable!(0, 0)))
+        );
+    }
+
+    #[test]
+    fn initialize_vm_with_range_check_valid() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: Some(bigint!(1)),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initial_pc = Some(relocatable!(0, 1));
+        cairo_runner.initial_ap = Some(relocatable!(1, 2));
+        cairo_runner.initial_fp = Some(relocatable!(1, 2));
+        cairo_runner.initialize_segments(None);
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 1)),
+            &MaybeRelocatable::Int(bigint!(23)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 4)),
+            &MaybeRelocatable::Int(bigint!(233)),
+        );
+        cairo_runner.initialize_vm();
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[&String::from("range_check")].base(),
+            Some(relocatable!(2, 0))
+        );
+        assert!(cairo_runner
+            .vm
+            .validated_memory
+            .validated_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))));
+        assert!(cairo_runner
+            .vm
+            .validated_memory
+            .validated_addresses
+            .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 4))));
+        assert_eq!(
+            cairo_runner.vm.validated_memory.validated_addresses.len(),
+            2
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn initialize_vm_with_range_check_invalid() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: Some(bigint!(1)),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initial_pc = Some(relocatable!(0, 1));
+        cairo_runner.initial_ap = Some(relocatable!(1, 2));
+        cairo_runner.initial_fp = Some(relocatable!(1, 2));
+        cairo_runner.initialize_segments(None);
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 1)),
+            &MaybeRelocatable::Int(bigint!(23)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 4)),
+            &MaybeRelocatable::Int(bigint!(-1)),
+        );
+        cairo_runner.initialize_vm();
     }
 }

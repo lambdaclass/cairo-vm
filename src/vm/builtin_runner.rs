@@ -87,7 +87,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                 panic!("Cant validate a Non-Relocatable address");
             }
         }
-        if validated_addresses.len() == 0 {
+        if validated_addresses.is_empty() {
             return None;
         }
         Some(validated_addresses)
