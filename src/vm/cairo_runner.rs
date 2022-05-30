@@ -509,7 +509,7 @@ mod tests {
             data: Vec::new(),
             main: Some(bigint!(1)),
         };
-        let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.initialize_vm()
+        let mut _cairo_runner = CairoRunner::new(&program);
+        //cairo_runner.initialize_vm()
     }
 }
