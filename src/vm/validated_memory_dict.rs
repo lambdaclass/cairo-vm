@@ -1,24 +1,17 @@
 use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
-use num_bigint::BigInt;
-use std::collections::HashMap;
 
-pub struct ValidationRule<'builtin>(
-    pub Box<dyn (Fn(&Memory, MaybeRelocatable) -> MaybeRelocatable) + 'builtin>,
-);
-pub struct ValidatedMemoryDict<'builtin> {
-    memory: Memory,
-    validation_rules: HashMap<BigInt, Vec<ValidationRule<'builtin>>>,
-    _validated_addresses: Vec<MaybeRelocatable>,
+pub struct ValidatedMemoryDict {
+    pub memory: Memory,
+    pub validated_addresses: Vec<MaybeRelocatable>,
 }
 
-impl<'builtin> ValidatedMemoryDict<'builtin> {
+impl ValidatedMemoryDict {
     #[allow(dead_code)]
-    pub fn new() -> ValidatedMemoryDict<'builtin> {
+    pub fn new() -> ValidatedMemoryDict {
         ValidatedMemoryDict {
             memory: Memory::new(),
-            validation_rules: HashMap::<BigInt, Vec<ValidationRule<'builtin>>>::new(),
-            _validated_addresses: Vec::<MaybeRelocatable>::new(),
+            validated_addresses: Vec::<MaybeRelocatable>::new(),
         }
     }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
@@ -28,45 +21,21 @@ impl<'builtin> ValidatedMemoryDict<'builtin> {
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
         self.memory.insert(&key.clone(), &val.clone());
     }
-
-    pub fn add_validation_rule(&mut self, segment_index: BigInt, rule: ValidationRule<'builtin>) {
-        self.validation_rules
-            .entry(segment_index)
-            .or_insert(Vec::<ValidationRule<'builtin>>::new())
-            .push(rule);
-    }
-
-    pub fn validate_existing_memory(&mut self) {
-        for (addr, _value) in self.memory.data.iter() {
-            if let MaybeRelocatable::RelocatableValue(address) = addr {
-                let rules = self.validation_rules.get(&address.segment_index).unwrap();
-                for rule in rules {
-                    self._validated_addresses
-                        .push(rule.0(&self.memory, addr.clone()))
-                }
-            } else {
-                panic!("Cant validate a non-relocatable address");
-            }
-        }
-    }
 }
 
-impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for ValidatedMemoryDict<'_> {
+impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for ValidatedMemoryDict {
     fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
         ValidatedMemoryDict {
             memory: Memory::from(key_val_list),
-            validation_rules: HashMap::<BigInt, Vec<ValidationRule<'_>>>::new(),
-            _validated_addresses: Vec::<MaybeRelocatable>::new(),
+            validated_addresses: Vec::<MaybeRelocatable>::new(),
         }
     }
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::vm::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner};
+    /* use super::*;
     use crate::vm::relocatable::Relocatable;
     use crate::{bigint, relocatable};
-    use num_traits::FromPrimitive;
 
     #[test]
     fn add_validation_rule_to_empty_hash() {
@@ -143,5 +112,5 @@ mod tests {
             );
             validated_memory.validate_existing_memory();
         }
-    }
+    }*/
 }

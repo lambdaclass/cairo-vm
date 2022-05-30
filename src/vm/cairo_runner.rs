@@ -1,6 +1,5 @@
 use crate::bigint;
-use crate::vm::builtin_runner::BuiltinRunner;
-use crate::vm::builtin_runner::{OutputRunner, RangeCheckBuiltinRunner};
+use crate::vm::builtin_runner::{BuiltinRunner, OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::program::Program;
 use crate::vm::relocatable::MaybeRelocatable;
@@ -10,10 +9,10 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
-pub struct CairoRunner<'builtin> {
+pub struct CairoRunner {
     //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
-    pub vm: VirtualMachine<'builtin>,
+    pub vm: VirtualMachine,
     _layout: String,
     pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
@@ -25,10 +24,9 @@ pub struct CairoRunner<'builtin> {
 }
 
 #[allow(dead_code)]
-impl<'builtin> CairoRunner<'builtin> {
-    pub fn new(program: &Program) -> CairoRunner<'builtin> {
-        let mut builtin_runners =
-            HashMap::<String, Box<dyn BuiltinRunner<'builtin> + 'builtin>>::new();
+impl CairoRunner {
+    pub fn new(program: &Program) -> CairoRunner {
+        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
                 builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
@@ -139,7 +137,7 @@ impl<'builtin> CairoRunner<'builtin> {
         }
     }
 
-    pub fn initialize_vm(&'builtin mut self) {
+    pub fn initialize_vm(&mut self) {
         //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
@@ -151,16 +149,6 @@ impl<'builtin> CairoRunner<'builtin> {
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
-        for (_key, builtin_runner) in self.vm.builtin_runners.iter() {
-            let validation_rule = builtin_runner.validation_rule();
-            if let Some(rule) = validation_rule {
-                self.vm
-                    .validated_memory
-                    .add_validation_rule(builtin_runner.base().unwrap().segment_index, rule)
-            }
-            //Add auto_deduction rules (no auto-deduction rules for output and range-check)
-        }
-        self.vm.validated_memory.validate_existing_memory();
     }
 }
 
