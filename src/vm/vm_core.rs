@@ -7,7 +7,6 @@ use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
-use crate::vm::validated_memory_dict::ValidatedMemoryDict;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
@@ -42,7 +41,7 @@ pub struct VirtualMachine {
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
     pub _program_base: Option<MaybeRelocatable>,
-    pub validated_memory: ValidatedMemoryDict,
+    pub memory: Memory,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessed_addresses: Vec<MaybeRelocatable>,
     trace: Vec<TraceEntry>,
