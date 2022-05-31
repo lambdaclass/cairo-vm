@@ -5,12 +5,12 @@ use crate::vm::program::Program;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
 use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
 pub struct CairoRunner {
-    //Uses segment's memory as memory, in order to avoid maintaining two references to the same data
     program: Program,
     pub vm: VirtualMachine,
     _layout: String,
@@ -156,6 +156,13 @@ impl CairoRunner {
                 self.vm.validated_addresses.append(&mut validated_addresses)
             }
         }
+    }
+
+    pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
+        while self.vm.run_context.pc != address {
+            self.vm.step()?;
+        }
+        Ok(())
     }
 }
 
