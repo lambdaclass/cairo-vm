@@ -1,4 +1,4 @@
-use crate::vm::instruction;
+use crate::types::instruction;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 

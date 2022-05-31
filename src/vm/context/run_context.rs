@@ -1,7 +1,5 @@
-use crate::vm::instruction::Instruction;
-use crate::vm::instruction::Op1Addr;
-use crate::vm::instruction::Register;
-use crate::vm::relocatable::MaybeRelocatable;
+use crate::types::instruction::{Instruction, Op1Addr, Register};
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::cast::FromPrimitive;
@@ -57,7 +55,7 @@ impl RunContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
+    use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::vm::vm_core::VirtualMachineError;
 
     #[test]
