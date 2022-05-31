@@ -3563,7 +3563,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(1))),
-                MaybeRelocatable::Int(bigint64!(0x0000000000000004)),
+                MaybeRelocatable::Int(bigint!(0x4)),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(2))),
@@ -3571,7 +3571,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(3))),
-                MaybeRelocatable::Int(bigint64!(0x0000000000000001)),
+                MaybeRelocatable::Int(bigint!(0x1)),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(4))),
@@ -3579,7 +3579,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(5))),
-                MaybeRelocatable::Int(bigint64!(0x0000000000000005)),
+                MaybeRelocatable::Int(bigint!(0x5)),
             ),
             (
                 MaybeRelocatable::from((bigint!(0), bigint!(6))),
@@ -3598,12 +3598,16 @@ mod tests {
                 MaybeRelocatable::from((bigint!(3), bigint!(0))),
             ),
             (
+                MaybeRelocatable::from((bigint!(1), bigint!(2))),
+                MaybeRelocatable::Int(bigint!(0x4)),
+            ),
+            (
                 MaybeRelocatable::from((bigint!(1), bigint!(3))),
-                MaybeRelocatable::Int(bigint64!(0x0000000000000005)),
+                MaybeRelocatable::Int(bigint!(0x5)),
             ),
             (
                 MaybeRelocatable::from((bigint!(1), bigint!(4))),
-                MaybeRelocatable::Int(bigint64!(0x0000000000000014)),
+                MaybeRelocatable::Int(bigint64!(0x14)),
             ),
         ];
 
@@ -3641,7 +3645,7 @@ mod tests {
             ),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            validated_memory: ValidatedMemoryDict::from(mem_arr),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
