@@ -964,7 +964,7 @@ mod tests {
     */
     fn initialization_phase_range_check_builtin() {
         let program = Program {
-            builtins: vec![String::from("output")],
+            builtins: vec![String::from("range_check")],
             prime: bigint!(17),
             data: vec![
                 MaybeRelocatable::Int(BigInt::from_i64(4612671182993129469).unwrap()),
@@ -1164,6 +1164,8 @@ mod tests {
     }
 
     //Integration tests for initialization + execution phase
+
+    #[test]
     /*Program used:
     func myfunc(a: felt) -> (r: felt):
         let b = a * 2
@@ -1179,7 +1181,6 @@ mod tests {
     main = 3
     data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
     */
-    #[test]
     fn initialize_and_run_function_call() {
         //Initialization Phase
         let program = Program {
@@ -1205,12 +1206,12 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
-        let _end = cairo_runner.initialize_main_entrypoint();
-        assert_eq!(_end, relocatable!(3, 0));
+        let end = cairo_runner.initialize_main_entrypoint();
+        assert_eq!(end, relocatable!(3, 0));
         cairo_runner.initialize_vm();
         //Execution Phase
         assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(_end)),
+            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
             Ok(())
         );
         //Check final values against Python VM
@@ -1323,6 +1324,265 @@ mod tests {
                 fp: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(1),
                     offset: bigint!(2)
+                }),
+            }
+        );
+    }
+
+    #[test]
+    /*Program used:
+    %builtins range_check
+
+    func check_range{range_check_ptr}(num):
+
+        # Check that 0 <= num < 2**64.
+        [range_check_ptr] = num
+        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
+        let range_check_ptr = range_check_ptr + 2
+        return()
+    end
+
+    func main{range_check_ptr}():
+        check_range(7)
+        return()
+    end
+
+    main = 8
+    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
+    */
+    fn initializae_and_run_range_check_builtin() {
+        //Initialization Phase
+        let program = Program {
+            builtins: vec![String::from("range_check")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec![
+                MaybeRelocatable::Int(BigInt::from_i64(4612671182993129469).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i128(18446744073709551615).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5199546496550207487).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(4612389712311386111).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5198983563776393216).unwrap()),
+                MaybeRelocatable::Int(bigint!(2)),
+                MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5191102247248822272).unwrap()),
+                MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::Int(bigint!(7)),
+                MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::Int(BigInt::new(
+                    Sign::Plus,
+                    vec![
+                        4294967286, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                        134217728,
+                    ],
+                )),
+                MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            ],
+            main: Some(bigint!(8)),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        let end = cairo_runner.initialize_main_entrypoint();
+        cairo_runner.initialize_vm();
+        //Execution Phase
+        assert_eq!(
+            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
+            Ok(())
+        );
+        //Check final values against Python VM
+        //Check final register values
+        assert_eq!(
+            cairo_runner.vm.run_context.pc,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(4),
+                offset: bigint!(0)
+            })
+        );
+
+        assert_eq!(
+            cairo_runner.vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(10)
+            })
+        );
+
+        assert_eq!(
+            cairo_runner.vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0)
+            })
+        );
+
+        //Check each TraceEntry in trace
+        assert_eq!(cairo_runner.vm.trace.len(), 5);
+        assert_eq!(
+            cairo_runner.vm.trace[0],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(8)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[1],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(9)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(4)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[2],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(11)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[3],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(0)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(1)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(3)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(8)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(4)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(9),
+                    offset: bigint!(7)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(5)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(9)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(7)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(10)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(7)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(13)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(10)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
                 }),
             }
         );
