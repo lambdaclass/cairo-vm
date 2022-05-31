@@ -171,7 +171,7 @@ mod tests {
     use num_bigint::Sign;
 
     use super::*;
-    use crate::relocatable;
+    use crate::{relocatable, vm::trace_entry::TraceEntry};
 
     #[test]
     fn initialize_segments_with_base() {
@@ -1181,9 +1181,10 @@ mod tests {
     */
     #[test]
     fn initialize_and_run_function_call() {
+        //Initialization Phase
         let program = Program {
             builtins: vec![],
-            prime: bigint!(17),
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
                 MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
                 MaybeRelocatable::Int(bigint!(2)),
@@ -1205,26 +1206,125 @@ mod tests {
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
         let _end = cairo_runner.initialize_main_entrypoint();
+        assert_eq!(_end, relocatable!(3, 0));
         cairo_runner.initialize_vm();
-        //assert_eq!(cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)), Ok(()));
-        assert_eq!(cairo_runner.vm.step(), Ok(()));
+        //Execution Phase
+        assert_eq!(
+            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(_end)),
+            Ok(())
+        );
+        //Check final values against Python VM
+        //Check final register values
         assert_eq!(
             cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(relocatable!(0, 5))
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(3),
+                offset: bigint!(0)
+            })
         );
-        assert_eq!(cairo_runner.vm.step(), Ok(()));
+
         assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(relocatable!(0, 6))
+            cairo_runner.vm.run_context.ap,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(1),
+                offset: bigint!(6)
+            })
         );
-        //assert_eq!(cairo_runner.vm.step(), Ok(()));
-        //assert_eq!(cairo_runner.vm.step(), Ok(()));
-        //let _instruction = cairo_runner.vm.decode_current_instruction().unwrap();
+
         assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(relocatable!(0, 9))
+            cairo_runner.vm.run_context.fp,
+            MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: bigint!(2),
+                offset: bigint!(0)
+            })
         );
-        //let (_instruction_ref, _imm) = cairo_runner.vm.get_instruction_encoding().unwrap();
-        // assert_eq!(instruction_ref, &bigint!(2));
+
+        //Check each TraceEntry in trace
+        assert_eq!(cairo_runner.vm.trace.len(), 5);
+        assert_eq!(
+            cairo_runner.vm.trace[0],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(3)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[1],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(5)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(3)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[2],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(0)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[3],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(2)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(6)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(5)
+                }),
+            }
+        );
+        assert_eq!(
+            cairo_runner.vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(0),
+                    offset: bigint!(7)
+                }),
+                ap: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(6)
+                }),
+                fp: MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: bigint!(1),
+                    offset: bigint!(2)
+                }),
+            }
+        );
     }
 }
