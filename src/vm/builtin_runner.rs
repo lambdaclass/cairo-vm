@@ -34,7 +34,7 @@ impl RangeCheckBuiltinRunner {
     pub fn new(included: bool, ratio: BigInt, n_parts: u32) -> RangeCheckBuiltinRunner {
         let inner_rc_bound = bigint!(2_i32.pow(16));
         RangeCheckBuiltinRunner {
-            included: included,
+            included,
             _ratio: ratio,
             base: None,
             _stop_ptr: None,
@@ -70,7 +70,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
 impl OutputRunner {
     pub fn new(included: bool) -> OutputRunner {
         OutputRunner {
-            included: included,
+            included,
             base: None,
             _stop_ptr: None,
         }

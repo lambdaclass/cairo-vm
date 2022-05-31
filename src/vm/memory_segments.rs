@@ -41,7 +41,6 @@ impl MemorySegmentManager {
             );
         }
         ptr.add_num_addr(BigInt::from_usize(data.len()).unwrap(), None)
-            .clone()
     }
 
     pub fn new(prime: BigInt) -> MemorySegmentManager {

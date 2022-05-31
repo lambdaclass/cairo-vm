@@ -65,3 +65,5 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Using SHARP (Shared Prover)](https://www.cairo-lang.org/docs/sharp.html)
 * [Cairo for Blockchain Developers](https://www.cairo-lang.org/cairo-for-blockchain-developers/)
 
+## Code Coverage
+Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo)
