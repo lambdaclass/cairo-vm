@@ -144,18 +144,15 @@ impl CairoRunner {
             MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
         self.vm.run_context.fp =
             MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
-        self.vm.run_context.memory = self.segments.memory.clone();
+        self.vm.memory = self.segments.memory.clone();
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
-        self.vm.validated_memory.memory = self.segments.memory.clone();
+        self.vm.memory = self.segments.memory.clone();
         for (_key, builtin) in self.vm.builtin_runners.iter() {
-            let vec = builtin.validate_existing_memory(&self.vm.validated_memory.memory);
+            let vec = builtin.validate_existing_memory(&self.vm.memory);
             if let Some(mut validated_addresses) = vec {
-                self.vm
-                    .validated_memory
-                    .validated_addresses
-                    .append(&mut validated_addresses)
+                self.vm.validated_addresses.append(&mut validated_addresses)
             }
         }
     }
@@ -573,18 +570,13 @@ mod tests {
         );
         assert!(cairo_runner
             .vm
-            .validated_memory
             .validated_addresses
             .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))));
         assert!(cairo_runner
             .vm
-            .validated_memory
             .validated_addresses
             .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 4))));
-        assert_eq!(
-            cairo_runner.vm.validated_memory.validated_addresses.len(),
-            2
-        );
+        assert_eq!(cairo_runner.vm.validated_addresses.len(), 2);
     }
 
     #[test]
@@ -680,7 +672,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
             Some(&MaybeRelocatable::Int(
@@ -690,7 +681,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 1))),
             Some(&MaybeRelocatable::Int(bigint!(2)))
@@ -698,7 +688,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
             Some(&MaybeRelocatable::Int(
@@ -708,7 +697,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 3))),
             Some(&MaybeRelocatable::Int(
@@ -718,7 +706,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
             Some(&MaybeRelocatable::Int(bigint!(1)))
@@ -726,7 +713,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
             Some(&MaybeRelocatable::Int(BigInt::new(
@@ -740,7 +726,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 6))),
             Some(&MaybeRelocatable::Int(
@@ -750,7 +735,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 7))),
             Some(&MaybeRelocatable::Int(
@@ -760,7 +744,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
@@ -768,7 +751,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(3, 0)))
@@ -841,7 +823,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
             Some(&MaybeRelocatable::Int(
@@ -851,7 +832,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 1))),
             Some(&MaybeRelocatable::Int(
@@ -861,7 +841,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
             Some(&MaybeRelocatable::Int(bigint!(1)))
@@ -869,7 +848,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 3))),
             Some(&MaybeRelocatable::Int(
@@ -879,7 +857,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
             Some(&MaybeRelocatable::Int(
@@ -889,7 +866,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
             Some(&MaybeRelocatable::Int(
@@ -899,7 +875,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 6))),
             Some(&MaybeRelocatable::Int(bigint!(1)))
@@ -907,7 +882,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 7))),
             Some(&MaybeRelocatable::Int(
@@ -917,7 +891,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 8))),
             Some(&MaybeRelocatable::Int(BigInt::new(
@@ -931,7 +904,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 9))),
             Some(&MaybeRelocatable::Int(
@@ -941,7 +913,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
@@ -949,7 +920,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(3, 0)))
@@ -957,7 +927,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(4, 0)))
@@ -1040,7 +1009,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
             Some(&MaybeRelocatable::Int(
@@ -1050,7 +1018,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 1))),
             Some(&MaybeRelocatable::Int(
@@ -1060,7 +1027,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
             Some(&MaybeRelocatable::Int(
@@ -1070,7 +1036,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 3))),
             Some(&MaybeRelocatable::Int(
@@ -1080,7 +1045,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
             Some(&MaybeRelocatable::Int(
@@ -1090,7 +1054,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
             Some(&MaybeRelocatable::Int(
@@ -1100,7 +1063,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 6))),
             Some(&MaybeRelocatable::Int(bigint!(2)))
@@ -1108,7 +1070,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 7))),
             Some(&MaybeRelocatable::Int(
@@ -1118,7 +1079,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 8))),
             Some(&MaybeRelocatable::Int(
@@ -1128,7 +1088,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 9))),
             Some(&MaybeRelocatable::Int(
@@ -1138,7 +1097,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 10))),
             Some(&MaybeRelocatable::Int(bigint!(7)))
@@ -1146,7 +1104,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 11))),
             Some(&MaybeRelocatable::Int(
@@ -1156,7 +1113,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 12))),
             Some(&MaybeRelocatable::Int(BigInt::new(
@@ -1170,7 +1126,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 13))),
             Some(&MaybeRelocatable::Int(
@@ -1180,7 +1135,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
@@ -1188,7 +1142,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(3, 0)))
@@ -1196,7 +1149,6 @@ mod tests {
         assert_eq!(
             cairo_runner
                 .vm
-                .run_context
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
             Some(&MaybeRelocatable::RelocatableValue(relocatable!(4, 0)))

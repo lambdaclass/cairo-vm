@@ -63,7 +63,7 @@ pub enum FpUpdate {
 #[derive(Debug, PartialEq)]
 pub enum Opcode {
     NOp,
-    AsseertEq,
+    AssertEq,
     Call,
     Ret,
 }
