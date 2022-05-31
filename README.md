@@ -64,6 +64,7 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [STARK Math Series](https://medium.com/starkware/tagged/stark-math)
 * [Using SHARP (Shared Prover)](https://www.cairo-lang.org/docs/sharp.html)
 * [Cairo for Blockchain Developers](https://www.cairo-lang.org/cairo-for-blockchain-developers/)
+* [Why STARKs are the key to unlocking blockchain scalability](https://twitter.com/0xalec/status/1529915544324800512?s=12&t=FX6TgXCZY1iWcWmbc7oqSw)
 
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo)
