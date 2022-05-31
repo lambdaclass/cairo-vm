@@ -85,7 +85,7 @@ impl VirtualMachine {
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
-    fn get_instruction_encoding(
+    pub fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt;
@@ -408,7 +408,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
+    pub fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
         if let Some(&MaybeRelocatable::Int(ref imm_ref)) = imm {
