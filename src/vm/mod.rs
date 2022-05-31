@@ -10,5 +10,4 @@ pub mod run_context;
 pub mod serializable_utils;
 pub mod trace_entry;
 pub mod utils;
-pub mod validated_memory_dict;
 pub mod vm_core;

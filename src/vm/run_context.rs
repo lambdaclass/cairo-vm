@@ -1,14 +1,12 @@
 use crate::vm::instruction::Instruction;
 use crate::vm::instruction::Op1Addr;
 use crate::vm::instruction::Register;
-use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::cast::FromPrimitive;
 
 pub struct RunContext {
-    pub memory: Memory,
     pub pc: MaybeRelocatable,
     pub ap: MaybeRelocatable,
     pub fp: MaybeRelocatable,
@@ -17,25 +15,6 @@ pub struct RunContext {
 
 impl RunContext {
     #[allow(dead_code)]
-    ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
-    pub fn get_instruction_encoding(
-        &self,
-    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt;
-        {
-            if let Some(&MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.pc) {
-                encoding_ref = encoding;
-            } else {
-                return Err(VirtualMachineError::InvalidInstructionEncoding);
-            }
-            let imm_addr = self
-                .pc
-                .add_num_addr(BigInt::from_i32(1).unwrap(), Some(self.prime.clone()));
-            let optional_imm = self.memory.get(&imm_addr);
-            Ok((encoding_ref, optional_imm))
-        }
-    }
-
     pub fn compute_dst_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
         let base_addr = match instruction.dst_register {
             Register::AP => &self.ap,
@@ -82,76 +61,6 @@ mod tests {
     use crate::vm::vm_core::VirtualMachineError;
 
     #[test]
-    fn get_instruction_encoding_successful_without_imm() {
-        let mut run_context = RunContext {
-            memory: Memory::new(),
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
-        };
-
-        run_context.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        );
-        if let Ok((num_ref, None)) = run_context.get_instruction_encoding() {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-        } else {
-            assert!(false);
-        }
-    }
-
-    #[test]
-    fn get_instruction_encoding_successful_with_imm() {
-        let mut run_context = RunContext {
-            memory: Memory::new(),
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
-        };
-
-        run_context.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        );
-        run_context.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-        );
-        if let Ok((num_ref, Some(&MaybeRelocatable::Int(ref imm_addr_num_ref)))) =
-            run_context.get_instruction_encoding()
-        {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-            assert_eq!(imm_addr_num_ref.clone(), BigInt::from_i32(6).unwrap());
-        } else {
-            assert!(false);
-        }
-    }
-
-    #[test]
-    fn get_instruction_encoding_unsuccesful() {
-        let mut run_context = RunContext {
-            memory: Memory::new(),
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
-        };
-
-        run_context.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        );
-        if let Err(error) = run_context.get_instruction_encoding() {
-            assert_eq!(error, VirtualMachineError::InvalidInstructionEncoding);
-        } else {
-            assert!(false);
-        }
-    }
-
-    #[test]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
             off0: BigInt::from_i32(1).unwrap(),
@@ -169,7 +78,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -200,7 +108,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -231,7 +138,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -262,7 +168,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -293,7 +198,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -324,7 +228,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -355,7 +258,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -386,7 +288,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -417,7 +318,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -452,7 +352,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
