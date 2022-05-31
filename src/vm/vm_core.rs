@@ -103,7 +103,7 @@ impl VirtualMachine {
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
-            PcUpdate::JNZ => match VirtualMachine::is_zero(operands.dst.clone())? {
+            PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
                 true => self
                     .run_context
                     .pc
@@ -130,12 +130,12 @@ impl VirtualMachine {
     /// Used for JNZ instructions
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
-            MaybeRelocatable::Int(num) => return Ok(num == bigint!(0)),
+            MaybeRelocatable::Int(num) => Ok(num == bigint!(0)),
             MaybeRelocatable::RelocatableValue(rel_value) => {
                 if rel_value.offset >= bigint!(0) {
                     Ok(false)
                 } else {
-                    Err(VirtualMachineError::PureValueError)
+                    Err(VirtualMachineError::PureValue)
                 }
             }
         }
@@ -504,10 +504,10 @@ impl fmt::Display for VirtualMachineError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint64;
     use crate::vm::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::vm::memory::Memory;
     use crate::vm::relocatable::Relocatable;
-    use crate::{bigint64, bigint_str};
     use num_bigint::Sign;
 
     #[test]
@@ -1430,7 +1430,7 @@ mod tests {
             segment_index: bigint!(1),
             offset: bigint!(2),
         });
-        assert_eq!(Ok(false), VirtualMachine::is_zero(Some(value)));
+        assert_eq!(Ok(false), VirtualMachine::is_zero(value));
     }
 
     #[test]
@@ -1440,8 +1440,8 @@ mod tests {
             offset: bigint!(-1),
         });
         assert_eq!(
-            Err(VirtualMachineError::PureValueError),
-            VirtualMachine::is_zero(Some(value))
+            Err(VirtualMachineError::PureValue),
+            VirtualMachine::is_zero(value)
         );
     }
 
@@ -2555,7 +2555,7 @@ mod tests {
             op0_register: Register::AP,
             op1_addr: Op1Addr::Imm,
             res: Res::Unconstrained,
-            pc_update: PcUpdate::JNZ,
+            pc_update: PcUpdate::Jnz,
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
