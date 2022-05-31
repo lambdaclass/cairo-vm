@@ -87,7 +87,7 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
         0 => instruction::Opcode::NOp,
         1 => instruction::Opcode::Call,
         2 => instruction::Opcode::Ret,
-        4 => instruction::Opcode::AsseertEq,
+        4 => instruction::Opcode::AssertEq,
         _ => panic!("Invalid instruction"),
     };
 
@@ -191,7 +191,7 @@ mod decoder_test {
         assert_eq!(matches!(inst.res, instruction::Res::Mul), true);
         assert_eq!(matches!(inst.pc_update, instruction::PcUpdate::Jnz), true);
         assert_eq!(matches!(inst.ap_update, instruction::ApUpdate::Add1), true);
-        assert_eq!(matches!(inst.opcode, instruction::Opcode::AsseertEq), true);
+        assert_eq!(matches!(inst.opcode, instruction::Opcode::AssertEq), true);
         assert_eq!(
             matches!(inst.fp_update, instruction::FpUpdate::Regular),
             true
@@ -215,7 +215,7 @@ mod decoder_test {
             matches!(inst.ap_update, instruction::ApUpdate::Regular),
             true
         );
-        assert_eq!(matches!(inst.opcode, instruction::Opcode::AsseertEq), true);
+        assert_eq!(matches!(inst.opcode, instruction::Opcode::AssertEq), true);
         assert_eq!(
             matches!(inst.fp_update, instruction::FpUpdate::Regular),
             true
