@@ -4,8 +4,6 @@ use num_traits::FromPrimitive;
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-// 0x4826
-//  0  1  0  0      1  0   0  0  0      0  1 0  0  1       1       0
 
 #[allow(dead_code)]
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
