@@ -15,25 +15,6 @@ pub struct RunContext {
 
 impl RunContext {
     #[allow(dead_code)]
-    ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
-    pub fn get_instruction_encoding(
-        &self,
-    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt;
-        {
-            if let Some(&MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.pc) {
-                encoding_ref = encoding;
-            } else {
-                return Err(VirtualMachineError::InvalidInstructionEncoding);
-            }
-            let imm_addr = self
-                .pc
-                .add_num_addr(BigInt::from_i32(1).unwrap(), Some(self.prime.clone()));
-            let optional_imm = self.memory.get(&imm_addr);
-            Ok((encoding_ref, optional_imm))
-        }
-    }
-
     pub fn compute_dst_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
         let base_addr = match instruction.dst_register {
             Register::AP => &self.ap,

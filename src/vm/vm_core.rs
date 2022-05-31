@@ -9,7 +9,6 @@ use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-use num_traits::ToPrimitive;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -81,6 +80,27 @@ impl VirtualMachine {
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(0),
             skip_instruction_execution: false,
+        }
+    }
+    ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
+    fn get_instruction_encoding(
+        &self,
+    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
+        let encoding_ref: &BigInt;
+        {
+            if let Some(&MaybeRelocatable::Int(ref encoding)) =
+                self.memory.get(&self.run_context.pc)
+            {
+                encoding_ref = encoding;
+            } else {
+                return Err(VirtualMachineError::InvalidInstructionEncoding);
+            }
+            let imm_addr = self
+                .run_context
+                .pc
+                .add_num_addr(BigInt::from_i32(1).unwrap(), Some(self.prime.clone()));
+            let optional_imm = self.memory.get(&imm_addr);
+            Ok((encoding_ref, optional_imm))
         }
     }
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
