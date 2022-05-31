@@ -61,6 +61,7 @@ mod tests {
     struct TestStruct {
         #[serde(deserialize_with = "deserialize_bigint_hex")]
         bigint: BigInt,
+        builtins: Vec<String>,
     }
 
     #[test]
