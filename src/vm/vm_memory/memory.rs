@@ -2,8 +2,9 @@ use crate::types::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 use std::convert::From;
 
+#[derive(Clone)]
 pub struct Memory {
-    data: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    pub data: HashMap<MaybeRelocatable, MaybeRelocatable>,
 }
 
 impl Memory {
