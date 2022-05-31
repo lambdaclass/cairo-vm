@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::vm::memory::Memory;
 use crate::vm::memory_segments::MemorySegmentManager;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::relocatable::Relocatable;
@@ -28,6 +29,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
+    fn validate_existing_memory(&self, memory: &Memory) -> Option<Vec<MaybeRelocatable>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -65,6 +67,31 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
     }
+
+    fn validate_existing_memory(&self, memory: &Memory) -> Option<Vec<MaybeRelocatable>> {
+        let mut validated_addresses = Vec::<MaybeRelocatable>::new();
+        for (addr, value) in memory.data.iter() {
+            if let MaybeRelocatable::RelocatableValue(relocatable) = addr {
+                if relocatable.segment_index == self.base()?.segment_index {
+                    if let MaybeRelocatable::Int(ref num) = value {
+                        if bigint!(0) <= num.clone() && num.clone() < self._bound {
+                            validated_addresses.push(addr.clone());
+                        } else {
+                            panic!("Range-check validation failed, number is out of valid range");
+                        }
+                    } else {
+                        panic!("Range-check validation failed, encountered non-int value");
+                    }
+                }
+            } else {
+                panic!("Cant validate a Non-Relocatable address");
+            }
+        }
+        if validated_addresses.is_empty() {
+            return None;
+        }
+        Some(validated_addresses)
+    }
 }
 
 impl OutputRunner {
@@ -96,6 +123,9 @@ impl BuiltinRunner for OutputRunner {
 
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
+    }
+    fn validate_existing_memory(&self, _memory: &Memory) -> Option<Vec<MaybeRelocatable>> {
+        None
     }
 }
 
@@ -179,5 +209,60 @@ mod tests {
         let builtin = OutputRunner::new(false);
         let initial_stack = builtin.initial_stack();
         assert_eq!(initial_stack.len(), 0);
+    }
+
+    #[test]
+    fn validate_existing_memory_for_range_check_within_bounds() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        builtin.base = Some(relocatable!(1, 0));
+        let mut memory = Memory::new();
+        memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
+            &MaybeRelocatable::Int(bigint!(45)),
+        );
+        let vec = builtin.validate_existing_memory(&memory).unwrap();
+        assert_eq!(
+            vec[0],
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 7))
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn validate_existing_memory_for_range_check_outside_bounds() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        builtin.base = Some(relocatable!(1, 0));
+        let mut memory = Memory::new();
+        memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
+            &MaybeRelocatable::Int(bigint!(-10)),
+        );
+        builtin.validate_existing_memory(&memory);
+    }
+
+    #[test]
+    #[should_panic]
+    fn validate_existing_memory_for_range_check_relocatable_value() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        builtin.base = Some(relocatable!(1, 0));
+        let mut memory = Memory::new();
+        memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
+            &MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
+        );
+        builtin.validate_existing_memory(&memory);
+    }
+
+    #[test]
+    fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        builtin.base = Some(relocatable!(1, 0));
+        let mut memory = Memory::new();
+        memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 7)),
+            &MaybeRelocatable::Int(bigint!(-45)),
+        );
+        let vec = builtin.validate_existing_memory(&memory);
+        assert_eq!(vec, None);
     }
 }
