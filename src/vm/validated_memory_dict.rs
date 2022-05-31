@@ -1,13 +1,9 @@
 use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
-use crate::vm::relocatable::Relocatable;
-use num_bigint::BigInt;
-use std::collections::HashMap;
 
 pub struct ValidatedMemoryDict {
-    memory: Memory,
-    _validation_rules: HashMap<BigInt, Vec<(ValidationRule, ())>>,
-    _validated_addresses: Vec<Relocatable>,
+    pub memory: Memory,
+    pub validated_addresses: Vec<MaybeRelocatable>,
 }
 
 impl ValidatedMemoryDict {
@@ -15,8 +11,7 @@ impl ValidatedMemoryDict {
     pub fn new() -> ValidatedMemoryDict {
         ValidatedMemoryDict {
             memory: Memory::new(),
-            _validation_rules: HashMap::<BigInt, Vec<(ValidationRule, ())>>::new(),
-            _validated_addresses: Vec::<Relocatable>::new(),
+            validated_addresses: Vec::<MaybeRelocatable>::new(),
         }
     }
     pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
@@ -32,10 +27,7 @@ impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for Validat
     fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
         ValidatedMemoryDict {
             memory: Memory::from(key_val_list),
-            _validation_rules: HashMap::<BigInt, Vec<(ValidationRule, ())>>::new(),
-            _validated_addresses: Vec::<Relocatable>::new(),
+            validated_addresses: Vec::<MaybeRelocatable>::new(),
         }
     }
 }
-
-pub struct ValidationRule(fn(Memory, MaybeRelocatable, ()) -> Relocatable);
