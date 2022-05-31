@@ -1,14 +1,12 @@
 use crate::vm::instruction::Instruction;
 use crate::vm::instruction::Op1Addr;
 use crate::vm::instruction::Register;
-use crate::vm::memory::Memory;
 use crate::vm::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::cast::FromPrimitive;
 
 pub struct RunContext {
-    pub memory: Memory,
     pub pc: MaybeRelocatable,
     pub ap: MaybeRelocatable,
     pub fp: MaybeRelocatable,
