@@ -72,7 +72,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         let mut validated_addresses = Vec::<MaybeRelocatable>::new();
         for (addr, value) in memory.data.iter() {
             if let MaybeRelocatable::RelocatableValue(relocatable) = addr {
-                if relocatable.segment_index == self.base().unwrap().segment_index {
+                if relocatable.segment_index == self.base()?.segment_index {
                     if let MaybeRelocatable::Int(ref num) = value {
                         if bigint!(0) <= num.clone() && num.clone() < self._bound {
                             validated_addresses.push(addr.clone());
