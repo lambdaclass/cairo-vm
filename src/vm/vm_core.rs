@@ -76,7 +76,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             _program_base: None,
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(0),
@@ -409,13 +409,13 @@ impl VirtualMachine {
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
-        let mut dst: Option<MaybeRelocatable> = self.validated_memory.get(&dst_addr).cloned();
+        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).cloned();
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
-        let mut op0: Option<MaybeRelocatable> = self.validated_memory.get(&op0_addr).cloned();
+        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).cloned();
         let op1_addr: MaybeRelocatable = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1: Option<MaybeRelocatable> = self.validated_memory.get(&op1_addr).cloned();
+        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).cloned();
         let mut res: Option<MaybeRelocatable> = None;
 
         let should_update_dst = matches!(dst, None);
@@ -450,16 +450,13 @@ impl VirtualMachine {
         }
 
         if should_update_dst {
-            self.validated_memory
-                .insert(&dst_addr, dst.as_ref().unwrap());
+            self.memory.insert(&dst_addr, dst.as_ref().unwrap());
         }
         if should_update_op0 {
-            self.validated_memory
-                .insert(&op0_addr, op0.as_ref().unwrap());
+            self.memory.insert(&op0_addr, op0.as_ref().unwrap());
         }
         if should_update_op1 {
-            self.validated_memory
-                .insert(&op1_addr, op1.as_ref().unwrap());
+            self.memory.insert(&op1_addr, op1.as_ref().unwrap());
         }
 
         Ok((
@@ -582,7 +579,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -629,7 +626,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -676,7 +673,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -723,7 +720,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -770,7 +767,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -819,7 +816,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -866,7 +863,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -913,7 +910,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -960,7 +957,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1007,7 +1004,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1054,7 +1051,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1101,7 +1098,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1150,7 +1147,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1197,7 +1194,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1249,7 +1246,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1298,7 +1295,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1345,7 +1342,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1392,7 +1389,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1441,7 +1438,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1510,7 +1507,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1552,7 +1549,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1598,7 +1595,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1636,7 +1633,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1682,7 +1679,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1725,7 +1722,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1768,7 +1765,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1811,7 +1808,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1850,7 +1847,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1896,7 +1893,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1934,7 +1931,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -1980,7 +1977,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2023,7 +2020,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2065,7 +2062,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2110,7 +2107,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2153,7 +2150,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2196,7 +2193,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2239,7 +2236,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2288,7 +2285,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2328,7 +2325,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2370,7 +2367,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2408,7 +2405,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2449,7 +2446,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2488,17 +2485,17 @@ mod tests {
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
         let op1_addr = MaybeRelocatable::Int(bigint!(2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        let mut val_memory = ValidatedMemoryDict::new();
-        val_memory.insert(&dst_addr, &dst_addr_value);
-        val_memory.insert(&op0_addr, &op0_addr_value);
-        val_memory.insert(&op1_addr, &op1_addr_value);
+        let mut memory = Memory::new();
+        memory.insert(&dst_addr, &dst_addr_value);
+        memory.insert(&op0_addr, &op0_addr_value);
+        memory.insert(&op1_addr, &op1_addr_value);
 
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: val_memory,
+            memory,
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2549,17 +2546,17 @@ mod tests {
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
         let op1_addr = MaybeRelocatable::Int(bigint!(2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        let mut val_memory = ValidatedMemoryDict::new();
-        val_memory.insert(&dst_addr, &dst_addr_value);
-        val_memory.insert(&op0_addr, &op0_addr_value);
-        val_memory.insert(&op1_addr, &op1_addr_value);
+        let mut memory = Memory::new();
+        memory.insert(&dst_addr, &dst_addr_value);
+        memory.insert(&op0_addr, &op0_addr_value);
+        memory.insert(&op1_addr, &op1_addr_value);
 
         let mut vm = VirtualMachine {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: val_memory,
+            memory,
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2617,7 +2614,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2664,7 +2661,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2713,7 +2710,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2762,7 +2759,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2811,7 +2808,7 @@ mod tests {
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -2835,34 +2832,6 @@ mod tests {
             }),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0),
-            }),
-        );
-
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0),
-            }),
-        );
-        vm.validated_memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1),
@@ -2988,7 +2957,7 @@ mod tests {
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -3069,90 +3038,6 @@ mod tests {
             }),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0),
-            }),
-        );
-        //Insert same values into validated_memory
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::Int(bigint!(2)),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(2),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(3),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4),
-            }),
-            &MaybeRelocatable::Int(bigint!(1)),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(5),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6),
-            }),
-            &MaybeRelocatable::Int(BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                    134217728,
-                ],
-            )),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(7),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0),
-            }),
-        );
-
-        vm.validated_memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1),
@@ -3467,7 +3352,7 @@ mod tests {
             ),
             _program_base: None,
             builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
-            validated_memory: ValidatedMemoryDict::new(),
+            memory: Memory::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: bigint!(1),
@@ -3570,104 +3455,6 @@ mod tests {
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x14).unwrap()),
         );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x400680017fff8000).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(2),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x40780017fff7fff).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(3),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x1).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x480680017fff8000).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(5),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x40507ffe7fff8000).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(7),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x208b7fff7fff7ffe).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0),
-            }),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0),
-            }),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(3),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap()),
-        );
-        vm.validated_memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(4),
-            }),
-            &MaybeRelocatable::Int(BigInt::from_i64(0x14).unwrap()),
-        );
-
         assert_eq!(
             vm.run_context.pc,
             MaybeRelocatable::RelocatableValue(Relocatable {
@@ -3684,7 +3471,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.validated_memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.ap),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
         assert_eq!(vm.step(), Ok(()));
@@ -3704,7 +3491,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.validated_memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.ap),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
@@ -3725,7 +3512,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.validated_memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.ap),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x14).unwrap())),
         );
     }
