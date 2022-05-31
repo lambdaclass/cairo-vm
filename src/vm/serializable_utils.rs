@@ -65,10 +65,11 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_bigint_from_string_json() {
+    fn deserialize_from_string_json() {
         let valid_even_length_hex_json = r#"
             {
-                "bigint": "0x000A"
+                "bigint": "0x000A",
+                "builtins": []
             }"#;
 
         // TestStruct instance for the json with an even length encoded hex.
@@ -76,23 +77,30 @@ mod tests {
             serde_json::from_str(&valid_even_length_hex_json).unwrap();
 
         assert_eq!(even_test_struct.bigint, bigint!(10));
+        let builtins: Vec<String> = Vec::new();
+
+        assert_eq!(even_test_struct.builtins, builtins);
 
         let valid_odd_length_hex_json = r#"
             {
-                "bigint": "0x00A"
+                "bigint": "0x00A",
+                "builtins": ["output","pedersen"]
             }"#;
 
         // TestStruct instance for the json with an odd length encoded hex.
         let odd_test_struct: TestStruct = serde_json::from_str(&valid_odd_length_hex_json).unwrap();
+        let builtins: Vec<String> = vec![String::from("output"), String::from("pedersen")];
 
         assert_eq!(odd_test_struct.bigint, bigint!(10));
+        assert_eq!(odd_test_struct.builtins, builtins);
     }
 
     #[test]
     fn deserialize_bigint_from_string_json_gives_error() {
         let invalid_even_length_hex_json = r#"
             {
-                "bigint": "0bx000A"
+                "bigint": "0bx000A",
+                "builtins": []
             }"#;
 
         // TestStruct result instance for the json with an even length encoded hex.
@@ -103,7 +111,8 @@ mod tests {
 
         let invalid_odd_length_hex_json = r#"
             {
-                "bigint": "0bx00A"
+                "bigint": "0bx00A",
+                "builtins": []
             }"#;
 
         // TestStruct result instance for the json with an odd length encoded hex.
@@ -119,16 +128,20 @@ mod tests {
         let mut reader = BufReader::new(even_length_file);
 
         let even_test_struct: TestStruct = serde_json::from_reader(&mut reader).unwrap();
+        let builtins: Vec<String> = vec![String::from("output")];
 
         assert_eq!(even_test_struct.bigint, bigint!(10));
+        assert_eq!(even_test_struct.builtins, builtins);
 
         // Open json file with (valid) odd length encoded hex
         let odd_length_file = File::open("tests/support/valid_odd_length_hex.json").unwrap();
         let mut reader = BufReader::new(odd_length_file);
 
         let odd_test_struct: TestStruct = serde_json::from_reader(&mut reader).unwrap();
+        let builtins: Vec<String> = Vec::new();
 
         assert_eq!(odd_test_struct.bigint, bigint!(10));
+        assert_eq!(odd_test_struct.builtins, builtins);
     }
 
     #[test]
