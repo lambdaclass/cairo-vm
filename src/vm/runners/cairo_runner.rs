@@ -1,8 +1,8 @@
 use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::vm::runners::builtin_runner::{BuiltinRunner, OutputRunner, RangeCheckBuiltinRunner};
+use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
