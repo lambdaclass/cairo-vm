@@ -8,7 +8,7 @@ use crate::vm::relocatable::Relocatable;
 use crate::vm::run_context::RunContext;
 use crate::vm::trace_entry::TraceEntry;
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -407,7 +407,7 @@ impl VirtualMachine {
     }
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
-        let (instruction_ref, imm) = self.run_context.get_instruction_encoding()?;
+        let (instruction_ref, imm) = self.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
         if let Some(&MaybeRelocatable::Int(ref imm_ref)) = imm {
             return Ok(decode_instruction(instruction, Some(imm_ref.clone())));
@@ -562,6 +562,71 @@ mod tests {
     use crate::vm::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::vm::relocatable::Relocatable;
     use num_bigint::Sign;
+
+    #[test]
+    fn get_instruction_encoding_successful_without_imm() {
+        let mut vm = VirtualMachine::new(bigint!(39), HashMap::new());
+        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
+
+        vm.memory.insert(
+            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        );
+        if let Ok((num_ref, None)) = vm.get_instruction_encoding() {
+            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
+        } else {
+            assert!(false);
+        }
+
+        vm.memory.insert(
+            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        );
+        if let Ok((num_ref, None)) = vm.get_instruction_encoding() {
+            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn get_instruction_encoding_successful_with_imm() {
+        let mut vm = VirtualMachine::new(bigint!(39), HashMap::new());
+        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
+
+        vm.memory.insert(
+            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
+            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            &MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+        );
+        if let Ok((num_ref, Some(&MaybeRelocatable::Int(ref imm_addr_num_ref)))) =
+            vm.get_instruction_encoding()
+        {
+            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
+            assert_eq!(imm_addr_num_ref.clone(), BigInt::from_i32(6).unwrap());
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[test]
+    fn get_instruction_encoding_unsuccesful() {
+        let mut vm = VirtualMachine::new(bigint!(39), HashMap::new());
+        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
+
+        vm.memory.insert(
+            &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap()),
+            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        );
+        if let Err(error) = vm.get_instruction_encoding() {
+            assert_eq!(error, VirtualMachineError::InvalidInstructionEncoding);
+        } else {
+            assert!(false);
+        }
+    }
 
     #[test]
     fn update_fp_ap_plus2() {
