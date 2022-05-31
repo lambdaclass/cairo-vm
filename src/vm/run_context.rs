@@ -78,7 +78,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -109,7 +108,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -140,7 +138,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -171,7 +168,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -202,7 +198,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -233,7 +228,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -264,7 +258,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -295,7 +288,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -326,7 +318,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
@@ -361,7 +352,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
             ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
