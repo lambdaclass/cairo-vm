@@ -1,3 +1,4 @@
+use crate::vm::relocatable::MaybeRelocatable;
 use num_bigint::{BigInt, Sign};
 use serde::de;
 use serde::Deserializer;
@@ -32,11 +33,28 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
     }
 }
 
+struct MaybeRelocatableVisitor;
+
+impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
+    type Value = Vec<MaybeRelocatable>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a MaybeRelocatable")
+    }
+}
+
 // This directive should be removed once the entire Program struct is deserializable and the
 // '#[derive(Deserialize)]' directive can be applied to it.
 #[allow(dead_code)]
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
+}
+
+#[allow(dead_code)]
+pub fn deserialize_maybe_recolocatable<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<Vec<MaybeRelocatable>, D::Error> {
+    d.deserialize_str(MaybeRelocatableVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -62,6 +80,8 @@ mod tests {
         #[serde(deserialize_with = "deserialize_bigint_hex")]
         bigint: BigInt,
         builtins: Vec<String>,
+        #[serde(deserialize_with = "deserialize_maybe_recolocatable")]
+        data: Vec<MaybeRelocatable>,
     }
 
     #[test]
