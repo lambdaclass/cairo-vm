@@ -2667,6 +2667,7 @@ mod tests {
             run_context: run_context,
             prime: bigint!(127),
             _program_base: None,
+            builtin_runners: HashMap::<String, Box<dyn BuiltinRunner>>::new(),
             validated_memory,
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
