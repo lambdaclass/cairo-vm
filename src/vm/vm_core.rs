@@ -32,7 +32,7 @@ pub struct VirtualMachine {
     prime: BigInt,
     pub builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     //exec_scopes: Vec<HashMap<..., ...>>,
-    //enter_scope: ,
+    //enter_scope:
     //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
@@ -57,7 +57,6 @@ impl VirtualMachine {
         builtin_runners: HashMap<String, Box<dyn BuiltinRunner>>,
     ) -> VirtualMachine {
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
@@ -545,7 +544,6 @@ impl fmt::Display for VirtualMachineError {
 mod tests {
     use super::*;
     use crate::vm::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::vm::memory::Memory;
     use crate::vm::relocatable::Relocatable;
     use num_bigint::Sign;
 
@@ -574,7 +572,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -622,7 +619,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -670,7 +666,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -718,7 +713,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -766,7 +760,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -816,7 +809,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -864,7 +856,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -912,7 +903,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -960,7 +950,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1008,7 +997,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1056,7 +1044,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1104,7 +1091,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1154,7 +1140,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1202,7 +1187,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1255,7 +1239,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1305,7 +1288,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1353,7 +1335,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1401,7 +1382,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1451,7 +1431,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1521,7 +1500,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1564,7 +1542,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1611,7 +1588,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1650,7 +1626,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1697,7 +1672,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1741,7 +1715,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1785,7 +1758,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1829,7 +1801,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1869,7 +1840,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1916,7 +1886,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -1955,7 +1924,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2002,7 +1970,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2046,7 +2013,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2089,7 +2055,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2135,7 +2100,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2179,7 +2143,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2223,7 +2186,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2267,7 +2229,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2317,7 +2278,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2358,7 +2318,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2401,7 +2360,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2440,7 +2398,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2482,7 +2439,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2521,7 +2477,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(0)),
             ap: MaybeRelocatable::Int(bigint!(0)),
             fp: MaybeRelocatable::Int(bigint!(0)),
@@ -2583,7 +2538,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(0)),
             ap: MaybeRelocatable::Int(bigint!(0)),
             fp: MaybeRelocatable::Int(bigint!(0)),
@@ -2653,7 +2607,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2701,7 +2654,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2751,7 +2703,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(4)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2801,7 +2752,6 @@ mod tests {
         };
 
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::Int(bigint!(8)),
             ap: MaybeRelocatable::Int(bigint!(5)),
             fp: MaybeRelocatable::Int(bigint!(6)),
@@ -2842,7 +2792,6 @@ mod tests {
     /// PC 0:0
     fn test_step_for_preset_memory() {
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
@@ -2869,14 +2818,14 @@ mod tests {
             current_step: bigint!(1),
             skip_instruction_execution: false,
         };
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(0),
@@ -2886,7 +2835,7 @@ mod tests {
                 offset: bigint!(0),
             }),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1),
@@ -3020,7 +2969,6 @@ mod tests {
     */
     fn test_step_for_preset_memory_function_call() {
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(3),
@@ -3049,49 +2997,49 @@ mod tests {
         };
 
         //Insert values into memory
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(1),
             }),
             &MaybeRelocatable::Int(bigint!(2)),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(2),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(3),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(4),
             }),
             &MaybeRelocatable::Int(bigint!(1)),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(5),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(6),
@@ -3104,14 +3052,14 @@ mod tests {
                 ],
             )),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(7),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(0),
@@ -3121,7 +3069,7 @@ mod tests {
                 offset: bigint!(0),
             }),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1),
@@ -3488,7 +3436,6 @@ mod tests {
     /// RelocatableValue(segment_index=1, offset=4): '0x14'
     fn multiplication_and_different_ap_increase() {
         let run_context = RunContext {
-            memory: Memory::new(),
             pc: MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
@@ -3527,63 +3474,63 @@ mod tests {
             current_step: bigint!(1),
             skip_instruction_execution: false,
         };
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(0),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(1),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(2),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x40780017fff7fff).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(3),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x1).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(4),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x480680017fff8000).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(5),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(6),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x40507ffe7fff8000).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(0),
                 offset: bigint!(7),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x208b7fff7fff7ffe).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(0),
@@ -3593,7 +3540,7 @@ mod tests {
                 offset: bigint!(0),
             }),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(1),
@@ -3603,21 +3550,21 @@ mod tests {
                 offset: bigint!(0),
             }),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(2),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(3),
             }),
             &MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap()),
         );
-        vm.run_context.memory.insert(
+        vm.memory.insert(
             &MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: bigint!(1),
                 offset: bigint!(4),
