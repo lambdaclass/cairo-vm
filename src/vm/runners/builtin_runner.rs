@@ -1,7 +1,6 @@
 use crate::bigint;
-use crate::vm::memory_segments::MemorySegmentManager;
-use crate::vm::relocatable::MaybeRelocatable;
-use crate::vm::relocatable::Relocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 

@@ -1,4 +1,4 @@
-use crate::vm::relocatable::MaybeRelocatable;
+use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
 
 #[derive(Clone)]

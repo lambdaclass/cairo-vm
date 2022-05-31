@@ -1,13 +1,12 @@
 use crate::bigint;
-use crate::vm::decoder::decode_instruction;
-use crate::vm::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::vm::relocatable::MaybeRelocatable;
-use crate::vm::run_context::RunContext;
-use crate::vm::trace_entry::TraceEntry;
-use crate::vm::validated_memory_dict::ValidatedMemoryDict;
+use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
+use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::context::run_context::RunContext;
+use crate::vm::decoding::decoder::decode_instruction;
+use crate::vm::vm_memory::validated_memory_dict::ValidatedMemoryDict;
+use crate::vm::trace::trace_entry::TraceEntry;
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
-use num_traits::ToPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::fmt;
 
 #[derive(PartialEq)]
@@ -507,9 +506,9 @@ impl fmt::Display for VirtualMachineError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::vm::memory::Memory;
-    use crate::vm::relocatable::Relocatable;
+    use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
+    use crate::types::relocatable::Relocatable;
+    use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
 
     #[test]

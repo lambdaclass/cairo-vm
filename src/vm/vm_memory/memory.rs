@@ -1,4 +1,4 @@
-use crate::vm::relocatable::MaybeRelocatable;
+use crate::types::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 use std::convert::From;
 

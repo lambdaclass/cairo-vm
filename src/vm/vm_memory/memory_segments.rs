@@ -1,8 +1,6 @@
-use crate::bigint;
-use crate::relocatable;
-use crate::vm::memory::Memory;
-use crate::vm::relocatable::MaybeRelocatable;
-use crate::vm::relocatable::Relocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::vm_memory::memory::Memory;
+use crate::{bigint, relocatable};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
