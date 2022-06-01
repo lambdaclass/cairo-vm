@@ -1623,7 +1623,7 @@ mod tests {
     fn initializae_and_run_output_builtin() {
         //Initialization Phase
         let program = Program {
-            builtins: vec![String::from("range_check")],
+            builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
                 MaybeRelocatable::Int(BigInt::from_i64(4612671182993129469).unwrap()),
@@ -1887,6 +1887,32 @@ mod tests {
                     offset: bigint!(3)
                 }),
             }
+        );
+        //Check that the output to be printed is correct
+        assert_eq!(
+            cairo_runner.vm.builtin_runners["output"].base(),
+            Some(relocatable!(2, 0))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0))),
+            Some(&MaybeRelocatable::Int(bigint!(1)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))),
+            Some(&MaybeRelocatable::Int(bigint!(17)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 2))),
+            None
         );
     }
 }
