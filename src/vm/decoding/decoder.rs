@@ -7,7 +7,7 @@ use num_traits::FromPrimitive;
 
 #[allow(dead_code)]
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
-pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instruction::Instruction {
+pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> instruction::Instruction {
     const DST_REG_MASK: i64 = 0x0001;
     const DST_REG_OFF: i64 = 0;
     const OP0_REG_MASK: i64 = 0x0002;
@@ -66,6 +66,15 @@ pub fn decode_instruction(encoded_instr: i64, imm: Option<BigInt>) -> instructio
         4 => instruction::Op1Addr::AP,
         _ => panic!("Invalid instruction"),
     };
+
+    if op1_addr == instruction::Op1Addr::Imm {
+        assert!(
+            imm.is_some(),
+            "op1_addr is Op1Addr.IMM, but no immediate given"
+        )
+    } else {
+        imm = None
+    }
 
     let pc_update = match pc_update_num {
         0 => instruction::PcUpdate::Regular,
@@ -133,6 +142,8 @@ fn decode_offset(offset: i64) -> i64 {
 
 #[cfg(test)]
 mod decoder_test {
+    use crate::bigint;
+
     use super::*;
 
     #[test]
@@ -142,7 +153,7 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, None);
+        let inst = decode_instruction(0x14A7800080008000, Some(bigint!(7)));
         assert_eq!(matches!(inst.dst_register, instruction::Register::FP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::FP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::Imm), true);
