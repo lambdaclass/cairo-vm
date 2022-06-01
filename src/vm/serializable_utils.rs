@@ -1,6 +1,7 @@
 use crate::vm::relocatable::MaybeRelocatable;
 use num_bigint::{BigInt, Sign};
 use serde::de;
+use serde::de::SeqAccess;
 use serde::Deserializer;
 use std::{fmt, ops::Rem};
 
@@ -39,7 +40,36 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     type Value = Vec<MaybeRelocatable>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a MaybeRelocatable")
+        formatter.write_str("a list of hexadecimals")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut data: Vec<MaybeRelocatable> = vec![];
+
+        while let Some(value) = seq.next_element::<&str>()? {
+            if let Some(no_prefix_hex) = value.strip_prefix("0x") {
+                // Add padding if necessary
+                let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+                let decoded_result: Result<Vec<u8>, hex::FromHexError> =
+                    hex::decode(&no_prefix_hex);
+
+                match decoded_result {
+                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
+                        Sign::Plus,
+                        &decoded_hex,
+                    ))),
+                    Err(e) => return Err(e).map_err(de::Error::custom),
+                    // panic!("failt to decode data hex"),
+                };
+            } else {
+                // Err(_e) => panic!("failt to decode data hex"),
+                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
+            };
+        }
+        Ok(data)
     }
 }
 
@@ -51,10 +81,10 @@ pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt,
 }
 
 #[allow(dead_code)]
-pub fn deserialize_maybe_recolocatable<'de, D: Deserializer<'de>>(
+pub fn deserialize_maybe_relocatable<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
-    d.deserialize_str(MaybeRelocatableVisitor)
+    d.deserialize_seq(MaybeRelocatableVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -80,7 +110,7 @@ mod tests {
         #[serde(deserialize_with = "deserialize_bigint_hex")]
         bigint: BigInt,
         builtins: Vec<String>,
-        #[serde(deserialize_with = "deserialize_maybe_recolocatable")]
+        #[serde(deserialize_with = "deserialize_maybe_relocatable")]
         data: Vec<MaybeRelocatable>,
     }
 
@@ -89,30 +119,66 @@ mod tests {
         let valid_even_length_hex_json = r#"
             {
                 "bigint": "0x000A",
-                "builtins": []
+                "builtins": [],
+                "data": [
+                    "0x480680017fff8000",
+                    "0x3e8",
+                    "0x480680017fff8000",
+                    "0x7d0",
+                    "0x48307fff7ffe8000",
+                    "0x208b7fff7fff7ffe"
+                ]            
             }"#;
 
         // TestStruct instance for the json with an even length encoded hex.
         let even_test_struct: TestStruct =
             serde_json::from_str(&valid_even_length_hex_json).unwrap();
 
-        assert_eq!(even_test_struct.bigint, bigint!(10));
         let builtins: Vec<String> = Vec::new();
 
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"1000", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"2000", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"5201798304953696256", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"2345108766317314046", 10).unwrap()),
+        ];
+
+        assert_eq!(even_test_struct.bigint, bigint!(10));
         assert_eq!(even_test_struct.builtins, builtins);
+        assert_eq!(even_test_struct.data, data);
 
         let valid_odd_length_hex_json = r#"
             {
                 "bigint": "0x00A",
-                "builtins": ["output","pedersen"]
+                "builtins": ["output","pedersen"],
+                "data": [
+                    "0x480680017fff8000",
+                    "0x3",
+                    "0x480680017fff8000",
+                    "0x7",
+                    "0x48307fff7ffe8000",
+                    "0x208b7fff7fff7ffe"
+                ]
             }"#;
 
         // TestStruct instance for the json with an odd length encoded hex.
         let odd_test_struct: TestStruct = serde_json::from_str(&valid_odd_length_hex_json).unwrap();
         let builtins: Vec<String> = vec![String::from("output"), String::from("pedersen")];
 
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"3", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"7", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"5201798304953696256", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::parse_bytes(b"2345108766317314046", 10).unwrap()),
+        ];
+
         assert_eq!(odd_test_struct.bigint, bigint!(10));
         assert_eq!(odd_test_struct.builtins, builtins);
+        assert_eq!(odd_test_struct.data, data);
     }
 
     #[test]
