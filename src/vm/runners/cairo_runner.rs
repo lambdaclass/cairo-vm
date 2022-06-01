@@ -1586,6 +1586,32 @@ mod tests {
                 }),
             }
         );
+        //Check the range_check builtin segment
+        assert_eq!(
+            cairo_runner.vm.builtin_runners["range_check"].base(),
+            Some(relocatable!(2, 0))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0))),
+            Some(&MaybeRelocatable::Int(bigint!(7)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))),
+            Some(&MaybeRelocatable::Int(bigint!(2).pow(64) - bigint!(8)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(2, 2))),
+            None
+        );
     }
 
     #[test]
