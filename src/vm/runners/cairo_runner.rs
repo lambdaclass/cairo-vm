@@ -1993,7 +1993,7 @@ mod tests {
     fn initialize_and_run_output_range_check_builtin() {
         //Initialization Phase
         let program = Program {
-            builtins: vec![String::from("range_check")],
+            builtins: vec![String::from("range_check"), String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
                 MaybeRelocatable::Int(BigInt::from_i64(4612671182993129469).unwrap()),
@@ -2063,7 +2063,7 @@ mod tests {
         );
 
         //Check each TraceEntry in trace
-        assert_eq!(cairo_runner.vm.trace.len(), 10);
+        assert_eq!(cairo_runner.vm.trace.len(), 18);
         assert_eq!(
             cairo_runner.vm.trace[0],
             TraceEntry {
@@ -2371,6 +2371,46 @@ mod tests {
             }
         );
         //Check the range_check builtin segment
-        //Check the output segment
+        assert!(cairo_runner
+            .vm
+            .builtin_runners
+            .contains_key(&String::from("range_check")));
+        let range_check_base = MaybeRelocatable::RelocatableValue(
+            cairo_runner.vm.builtin_runners["range_check"]
+                .base()
+                .unwrap(),
+        );
+        assert_eq!(
+            cairo_runner.vm.memory.get(&range_check_base),
+            Some(&MaybeRelocatable::Int(bigint!(7)))
+        );
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .get(&(range_check_base.clone() + bigint!(1))),
+            Some(&MaybeRelocatable::Int(bigint!(2).pow(64) - bigint!(8)))
+        );
+        assert_eq!(
+            cairo_runner.vm.memory.get(&(range_check_base + bigint!(2))),
+            None
+        );
+
+        //Check the output segment*/
+        assert!(cairo_runner
+            .vm
+            .builtin_runners
+            .contains_key(&String::from("output")));
+        let range_check_base = MaybeRelocatable::RelocatableValue(
+            cairo_runner.vm.builtin_runners["output"].base().unwrap(),
+        );
+        assert_eq!(
+            cairo_runner.vm.memory.get(&range_check_base),
+            Some(&MaybeRelocatable::Int(bigint!(7)))
+        );
+        assert_eq!(
+            cairo_runner.vm.memory.get(&(range_check_base + bigint!(1))),
+            None
+        );
     }
 }
