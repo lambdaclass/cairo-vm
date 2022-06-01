@@ -2396,7 +2396,7 @@ mod tests {
             None
         );
 
-        //Check the output segment*/
+        //Check the output segment
         assert!(cairo_runner
             .vm
             .builtin_runners
