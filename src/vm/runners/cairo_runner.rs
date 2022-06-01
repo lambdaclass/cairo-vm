@@ -1350,7 +1350,7 @@ mod tests {
     main = 8
     data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
     */
-    fn initializae_and_run_range_check_builtin() {
+    fn initialize_and_run_range_check_builtin() {
         //Initialization Phase
         let program = Program {
             builtins: vec![String::from("range_check")],
@@ -1620,7 +1620,7 @@ mod tests {
     2345108766317314046
     ]
     */
-    fn initializae_and_run_output_builtin() {
+    fn initialize_and_run_output_builtin() {
         //Initialization Phase
         let program = Program {
             builtins: vec![String::from("output")],
