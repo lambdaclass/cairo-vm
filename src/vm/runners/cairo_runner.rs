@@ -1415,7 +1415,7 @@ mod tests {
         );
 
         //Check each TraceEntry in trace
-        assert_eq!(cairo_runner.vm.trace.len(), 5);
+        assert_eq!(cairo_runner.vm.trace.len(), 10);
         assert_eq!(
             cairo_runner.vm.trace[0],
             TraceEntry {
@@ -1502,7 +1502,7 @@ mod tests {
             }
         );
         assert_eq!(
-            cairo_runner.vm.trace[4],
+            cairo_runner.vm.trace[5],
             TraceEntry {
                 pc: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(0),
@@ -1519,15 +1519,15 @@ mod tests {
             }
         );
         assert_eq!(
-            cairo_runner.vm.trace[4],
+            cairo_runner.vm.trace[6],
             TraceEntry {
                 pc: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(0),
                     offset: bigint!(4)
                 }),
                 ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(9),
-                    offset: bigint!(7)
+                    segment_index: bigint!(1),
+                    offset: bigint!(9)
                 }),
                 fp: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(1),
@@ -1536,7 +1536,7 @@ mod tests {
             }
         );
         assert_eq!(
-            cairo_runner.vm.trace[4],
+            cairo_runner.vm.trace[7],
             TraceEntry {
                 pc: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(0),
@@ -1553,7 +1553,7 @@ mod tests {
             }
         );
         assert_eq!(
-            cairo_runner.vm.trace[4],
+            cairo_runner.vm.trace[8],
             TraceEntry {
                 pc: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(0),
@@ -1570,7 +1570,7 @@ mod tests {
             }
         );
         assert_eq!(
-            cairo_runner.vm.trace[4],
+            cairo_runner.vm.trace[9],
             TraceEntry {
                 pc: MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: bigint!(0),
