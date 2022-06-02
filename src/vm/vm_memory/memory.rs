@@ -48,6 +48,8 @@ impl<const N: usize> From<[(Relocatable, MaybeRelocatable); N]> for Memory {
 
 #[cfg(test)]
 mod memory_tests {
+    use crate::relocatable;
+
     use super::*;
     use num_bigint::BigInt;
     use num_traits::FromPrimitive;
@@ -65,12 +67,12 @@ mod memory_tests {
     #[test]
     fn from_array_test() {
         let mem = Memory::from([(
-            MaybeRelocatable::Int(BigInt::from_i32(2).unwrap()),
+            relocatable!(1, 2),
             MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
         )]);
         assert_eq!(
             matches!(
-                mem.get(&MaybeRelocatable::Int(BigInt::from_i32(2).unwrap())),
+                mem.get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
                 _val_clone
             ),
             true
