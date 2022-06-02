@@ -137,6 +137,7 @@ impl BuiltinRunner for OutputRunner {
 mod tests {
     use super::*;
     use crate::relocatable;
+    use crate::vm::vm_memory::memory::Memory;
 
     #[test]
     fn initialize_segments_for_output() {
