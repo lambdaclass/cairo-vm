@@ -18,7 +18,7 @@ impl RunContext {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
         };
-        base_addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone()))
+        base_addr.add_int_mod(instruction.off0.clone(), self.prime.clone())
     }
 
     pub fn compute_op0_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
@@ -26,7 +26,7 @@ impl RunContext {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
         };
-        base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone()))
+        base_addr.add_int_mod(instruction.off1.clone(), self.prime.clone())
     }
 
     pub fn compute_op1_addr(
@@ -43,12 +43,12 @@ impl RunContext {
             },
             Op1Addr::Op0 => match op0 {
                 Some(addr) => {
-                    return Ok(addr.clone() + instruction.off2.clone() % self.prime.clone())
+                    return Ok(addr.add_int_mod(instruction.off2.clone(), self.prime.clone()))
                 }
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        Ok(base_addr.add_num_addr(instruction.off2.clone(), Some(self.prime.clone())))
+        Ok(base_addr.add_int_mod(instruction.off2.clone(), self.prime.clone()))
     }
 }
 
