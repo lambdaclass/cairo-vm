@@ -1,31 +1,48 @@
-use crate::types::relocatable::MaybeRelocatable;
-use std::collections::HashMap;
+use crate::{
+    types::relocatable::{MaybeRelocatable, Relocatable},
+    utils::from_relocatable_to_indexes,
+};
 use std::convert::From;
 
 #[derive(Clone)]
 pub struct Memory {
-    pub data: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    pub data: Vec<Vec<MaybeRelocatable>>,
 }
 
 impl Memory {
     pub fn new() -> Memory {
-        Memory {
-            data: HashMap::new(),
-        }
+        Memory { data: Vec::new() }
     }
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
-        self.data.insert(key.clone(), val.clone());
+        if let &MaybeRelocatable::RelocatableValue(relocatable) = key {
+            let (i, j) = from_relocatable_to_indexes(relocatable);
+            self.data[i][j] = val.clone()
+        } else {
+            panic!("Memory addresses must be relocatable")
+        }
     }
-    pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
-        self.data.get(addr)
+    pub fn get(&self, key: &MaybeRelocatable) -> Option<MaybeRelocatable> {
+        if let &MaybeRelocatable::RelocatableValue(relocatable) = key {
+            let (i, j) = from_relocatable_to_indexes(relocatable);
+            if self.data.len() <= i && self.data[i].len() <= j {
+                Some(self.data[i][j])
+            } else {
+                None
+            }
+        } else {
+            panic!("Memory addresses must be relocatable")
+        }
     }
 }
 
-impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for Memory {
-    fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
-        Memory {
-            data: HashMap::from(key_val_list),
+impl<const N: usize> From<[(Relocatable, MaybeRelocatable); N]> for Memory {
+    fn from(key_val_list: [(Relocatable, MaybeRelocatable); N]) -> Self {
+        let memory = Vec::<Vec<MaybeRelocatable>>::new();
+        for (key, val) in key_val_list.iter() {
+            let (i, j) = from_relocatable_to_indexes(key.clone());
+            memory[i][j] = val.clone();
         }
+        Memory { data: memory }
     }
 }
 
