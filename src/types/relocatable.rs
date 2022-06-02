@@ -1,11 +1,11 @@
 use crate::vm::vm_core::VirtualMachineError;
 use num_bigint::BigInt;
-use std::ops::{Add, Rem, Sub};
+use num_traits::ToPrimitive;
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct Relocatable {
-    pub segment_index: BigInt,
-    pub offset: BigInt,
+    pub segment_index: usize,
+    pub offset: usize,
 }
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
@@ -14,97 +14,8 @@ pub enum MaybeRelocatable {
     Int(BigInt),
 }
 
-impl Add<BigInt> for MaybeRelocatable {
-    type Output = MaybeRelocatable;
-    fn add(self, other: BigInt) -> MaybeRelocatable {
-        match self {
-            MaybeRelocatable::Int(num) => MaybeRelocatable::Int(num + other),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index,
-                offset,
-            }) => MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index,
-                offset: offset + other,
-            }),
-        }
-    }
-}
-
-impl Add<MaybeRelocatable> for MaybeRelocatable {
-    type Output = Result<MaybeRelocatable, VirtualMachineError>;
-    fn add(self, other: MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
-        match (self, other) {
-            (MaybeRelocatable::Int(num_a), MaybeRelocatable::Int(num_b)) => {
-                Ok(MaybeRelocatable::Int(num_a + num_b))
-            }
-            (MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
-                Err(VirtualMachineError::RelocatableAdd)
-            }
-            (
-                MaybeRelocatable::Int(num),
-                MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index,
-                    offset,
-                }),
-            ) => Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index,
-                offset: offset + num,
-            })),
-            (
-                MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index,
-                    offset,
-                }),
-                MaybeRelocatable::Int(num),
-            ) => Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index,
-                offset: offset + num,
-            })),
-        }
-    }
-}
-
-impl Rem<BigInt> for MaybeRelocatable {
-    type Output = MaybeRelocatable;
-    fn rem(self, other: BigInt) -> MaybeRelocatable {
-        match self {
-            MaybeRelocatable::Int(num) => MaybeRelocatable::Int(num % other),
-            MaybeRelocatable::RelocatableValue(value) => {
-                MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: value.segment_index,
-                    offset: value.offset % other,
-                })
-            }
-        }
-    }
-}
-
-impl Sub<MaybeRelocatable> for MaybeRelocatable {
-    type Output = Result<MaybeRelocatable, VirtualMachineError>;
-    fn sub(self, other: MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
-        match (self, other) {
-            (MaybeRelocatable::Int(num_a), MaybeRelocatable::Int(num_b)) => {
-                Ok(MaybeRelocatable::Int(num_a - num_b))
-            }
-            (
-                MaybeRelocatable::RelocatableValue(rel_a),
-                MaybeRelocatable::RelocatableValue(rel_b),
-            ) => {
-                if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel_a.segment_index,
-                        offset: rel_a.offset - rel_b.offset,
-                    }));
-                }
-                Err(VirtualMachineError::DiffIndexSub)
-            }
-            _ => Err(VirtualMachineError::NotImplemented),
-        }
-    }
-}
-
-impl From<(BigInt, BigInt)> for Relocatable {
-    fn from(index_offset: (BigInt, BigInt)) -> Self {
+impl From<(usize, usize)> for Relocatable {
+    fn from(index_offset: (usize, usize)) -> Self {
         Relocatable {
             segment_index: index_offset.0,
             offset: index_offset.1,
@@ -112,8 +23,8 @@ impl From<(BigInt, BigInt)> for Relocatable {
     }
 }
 
-impl From<(BigInt, BigInt)> for MaybeRelocatable {
-    fn from(index_offset: (BigInt, BigInt)) -> Self {
+impl From<(usize, usize)> for MaybeRelocatable {
+    fn from(index_offset: (usize, usize)) -> Self {
         MaybeRelocatable::RelocatableValue(Relocatable::from(index_offset))
     }
 }
@@ -125,8 +36,27 @@ impl From<BigInt> for MaybeRelocatable {
 }
 
 impl MaybeRelocatable {
-    ///Adds a number to the address, then performs mod prime if prime is given
-    pub fn add_num_addr(&self, other: BigInt, prime: Option<BigInt>) -> MaybeRelocatable {
+    ///Adds a bigint to self, then performs mod prime
+    pub fn add_int_mod(&self, other: BigInt, prime: BigInt) -> MaybeRelocatable {
+        match *self {
+            MaybeRelocatable::Int(ref value) => {
+                let mut num = Clone::clone(value);
+                num = (other + num) % prime;
+                MaybeRelocatable::Int(num)
+            }
+            MaybeRelocatable::RelocatableValue(ref rel) => {
+                let mut new_offset = rel.offset.clone() + other;
+                new_offset %= prime;
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: rel.segment_index.clone(),
+                    //TODO: check this unwrap
+                    offset: new_offset.to_usize().unwrap(),
+                })
+            }
+        }
+    }
+    ///Adds a usize to self, then performs mod prime if prime is given
+    pub fn add_usize_mod(&self, other: usize, prime: Option<BigInt>) -> MaybeRelocatable {
         match *self {
             MaybeRelocatable::Int(ref value) => {
                 let mut num = Clone::clone(value);
@@ -134,14 +64,10 @@ impl MaybeRelocatable {
                 if let Some(num_prime) = prime {
                     num %= num_prime;
                 }
-
                 MaybeRelocatable::Int(num)
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut new_offset = rel.offset.clone() + other;
-                if let Some(num_prime) = prime {
-                    new_offset %= num_prime;
-                }
                 MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index.clone(),
                     offset: new_offset,
