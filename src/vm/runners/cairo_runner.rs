@@ -7,7 +7,7 @@ use crate::vm::vm_core::VirtualMachineError;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub struct CairoRunner {
     program: Program,
@@ -25,7 +25,7 @@ pub struct CairoRunner {
 #[allow(dead_code)]
 impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
-        let mut builtin_runners = HashMap::<String, Box<dyn BuiltinRunner>>::new();
+        let mut builtin_runners = BTreeMap::<String, Box<dyn BuiltinRunner>>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
                 builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
