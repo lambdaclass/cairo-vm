@@ -67,7 +67,7 @@ impl MaybeRelocatable {
                 MaybeRelocatable::Int(num)
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
-                let mut new_offset = rel.offset.clone() + other;
+                let new_offset = rel.offset.clone() + other;
                 MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index.clone(),
                     offset: new_offset,
@@ -125,8 +125,8 @@ impl MaybeRelocatable {
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
                     return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel_a.segment_index.clone(),
-                        offset: rel_a.offset.clone() - rel_b.offset.clone(),
+                        segment_index: rel_a.segment_index,
+                        offset: rel_a.offset - rel_b.offset,
                     }));
                 }
                 Err(VirtualMachineError::DiffIndexSub)

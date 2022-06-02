@@ -14,18 +14,18 @@ impl Memory {
         Memory { data: Vec::new() }
     }
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
-        if let &MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (i, j) = from_relocatable_to_indexes(relocatable);
+        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
+            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
             self.data[i][j] = val.clone()
         } else {
             panic!("Memory addresses must be relocatable")
         }
     }
-    pub fn get(&self, key: &MaybeRelocatable) -> Option<MaybeRelocatable> {
-        if let &MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (i, j) = from_relocatable_to_indexes(relocatable);
+    pub fn get(&self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
+        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
+            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
             if self.data.len() <= i && self.data[i].len() <= j {
-                Some(self.data[i][j].clone())
+                Some(&self.data[i][j])
             } else {
                 None
             }
@@ -37,7 +37,7 @@ impl Memory {
 
 impl<const N: usize> From<[(Relocatable, MaybeRelocatable); N]> for Memory {
     fn from(key_val_list: [(Relocatable, MaybeRelocatable); N]) -> Self {
-        let memory = Vec::<Vec<MaybeRelocatable>>::new();
+        let mut memory = Vec::<Vec<MaybeRelocatable>>::new();
         for (key, val) in key_val_list.iter() {
             let (i, j) = from_relocatable_to_indexes(key.clone());
             memory[i][j] = val.clone();

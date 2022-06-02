@@ -80,8 +80,8 @@ impl CairoRunner {
     fn initialize_state(&mut self, entrypoint: usize, stack: Vec<MaybeRelocatable>) {
         if let Some(prog_base) = self.program_base.clone() {
             let initial_pc = Relocatable {
-                segment_index: prog_base.clone().segment_index,
-                offset: prog_base.clone().offset + entrypoint,
+                segment_index: prog_base.segment_index,
+                offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
             self.segments.load_data(
@@ -114,8 +114,8 @@ impl CairoRunner {
         ]);
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
-                segment_index: base.segment_index.clone(),
-                offset: base.offset.clone() + stack.len(),
+                segment_index: base.segment_index,
+                offset: base.offset + stack.len(),
             });
             self.initial_ap = self.initial_fp.clone();
         } else {
@@ -137,7 +137,7 @@ impl CairoRunner {
         //Different process if proof_mode is enabled
         let return_fp = self.segments.add(None);
         if let Some(main) = &self.program.main {
-            let main_clone = main.clone();
+            let main_clone = *main;
             self.initialize_function_entrypoint(
                 main_clone,
                 stack,

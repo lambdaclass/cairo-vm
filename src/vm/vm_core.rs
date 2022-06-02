@@ -86,7 +86,7 @@ impl VirtualMachine {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(&BigInt, Option<MaybeRelocatable>), VirtualMachineError> {
+    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt;
         {
             if let Some(MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.run_context.pc)
@@ -188,13 +188,7 @@ impl VirtualMachine {
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
             MaybeRelocatable::Int(num) => Ok(num == bigint!(0)),
-            MaybeRelocatable::RelocatableValue(rel_value) => {
-                if rel_value.offset >= 0 {
-                    Ok(false)
-                } else {
-                    Err(VirtualMachineError::PureValue)
-                }
-            }
+            MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
         }
     }
 
@@ -236,7 +230,7 @@ impl VirtualMachine {
                                 if num_op1 != bigint!(0) {
                                     return Ok((
                                         Some(MaybeRelocatable::Int(
-                                            (num_dst / num_op1) % self.prime,
+                                            (num_dst / num_op1) % self.prime.clone(),
                                         )),
                                         Some(dst_addr.clone()),
                                     ));
@@ -280,7 +274,9 @@ impl VirtualMachine {
                         {
                             if num_op0 != bigint!(0) {
                                 return Ok((
-                                    Some(MaybeRelocatable::Int((num_dst / num_op0) % self.prime)),
+                                    Some(MaybeRelocatable::Int(
+                                        (num_dst / num_op0) % self.prime.clone(),
+                                    )),
                                     Some(dst_addr.clone()),
                                 ));
                             }
@@ -307,7 +303,7 @@ impl VirtualMachine {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
                     return Ok(Some(MaybeRelocatable::Int(
-                        (num_op0 * num_op1) % self.prime,
+                        (num_op0 * num_op1) % self.prime.clone(),
                     )));
                 }
                 Err(VirtualMachineError::PureValue)
@@ -398,8 +394,8 @@ impl VirtualMachine {
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
-        if let Some(MaybeRelocatable::Int(imm)) = imm {
-            return Ok(decode_instruction(instruction, Some(imm)));
+        if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
+            return Ok(decode_instruction(instruction, Some(imm_ref.clone())));
         }
         Ok(decode_instruction(instruction, None))
     }
@@ -418,13 +414,13 @@ impl VirtualMachine {
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
-        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr);
+        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).cloned();
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
-        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr);
+        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).cloned();
         let op1_addr: MaybeRelocatable = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr);
+        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).cloned();
         let mut res: Option<MaybeRelocatable> = None;
 
         let should_update_dst = matches!(dst, None);
@@ -593,9 +589,9 @@ mod tests {
             &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
             &MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
         );
-        if let Ok((num_ref, Some(MaybeRelocatable::Int(imm)))) = vm.get_instruction_encoding() {
+        if let Ok((num_ref, Some(MaybeRelocatable::Int(imm_ref)))) = vm.get_instruction_encoding() {
             assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-            assert_eq!(imm, BigInt::from_i32(6).unwrap());
+            assert_eq!(imm_ref.clone(), BigInt::from_i32(6).unwrap());
         } else {
             assert!(false);
         }
@@ -2834,14 +2830,8 @@ mod tests {
                 relocatable!(0, 7),
                 MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
             ),
-            (
-                relocatable!(1, 0),
-                MaybeRelocatable::from((bigint!(2), bigint!(0))),
-            ),
-            (
-                relocatable!(1, 1),
-                MaybeRelocatable::from((bigint!(3), bigint!(0))),
-            ),
+            (relocatable!(1, 0), MaybeRelocatable::from((2, 0))),
+            (relocatable!(1, 1), MaybeRelocatable::from((3, 0))),
             (relocatable!(1, 2), MaybeRelocatable::Int(bigint!(0x4))),
             (relocatable!(1, 3), MaybeRelocatable::Int(bigint!(0x5))),
             (relocatable!(1, 4), MaybeRelocatable::Int(bigint64!(0x14))),

@@ -44,5 +44,5 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
 }
 
 pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
-    return (relocatable.segment_index, relocatable.offset);
+    (relocatable.segment_index, relocatable.offset)
 }
