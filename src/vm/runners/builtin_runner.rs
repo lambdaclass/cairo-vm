@@ -1,6 +1,5 @@
 use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -28,7 +27,10 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn validate_existing_memory(&self, memory: &Memory) -> Option<Vec<MaybeRelocatable>>;
+    fn validate_existing_memory(
+        &self,
+        memory: &Vec<MaybeRelocatable>,
+    ) -> Option<Vec<MaybeRelocatable>>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -67,23 +69,23 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn validate_existing_memory(&self, memory: &Memory) -> Option<Vec<MaybeRelocatable>> {
+    fn validate_existing_memory(
+        &self,
+        builtin_memory: &Vec<MaybeRelocatable>,
+    ) -> Option<Vec<MaybeRelocatable>> {
         let mut validated_addresses = Vec::<MaybeRelocatable>::new();
-        for (addr, value) in memory.data.iter() {
-            if let MaybeRelocatable::RelocatableValue(relocatable) = addr {
-                if relocatable.segment_index == self.base()?.segment_index {
-                    if let MaybeRelocatable::Int(ref num) = value {
-                        if bigint!(0) <= num.clone() && num.clone() < self._bound {
-                            validated_addresses.push(addr.clone());
-                        } else {
-                            panic!("Range-check validation failed, number is out of valid range");
-                        }
-                    } else {
-                        panic!("Range-check validation failed, encountered non-int value");
-                    }
+        for (offset, value) in builtin_memory.iter().enumerate() {
+            if let MaybeRelocatable::Int(ref num) = value {
+                if bigint!(0) <= num.clone() && num.clone() < self._bound {
+                    validated_addresses.push(MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: self.base()?.segment_index,
+                        offset,
+                    }));
+                } else {
+                    panic!("Range-check validation failed, number is out of valid range");
                 }
             } else {
-                panic!("Cant validate a Non-Relocatable address");
+                panic!("Range-check validation failed, encountered non-int value");
             }
         }
         if validated_addresses.is_empty() {
@@ -123,7 +125,10 @@ impl BuiltinRunner for OutputRunner {
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
     }
-    fn validate_existing_memory(&self, _memory: &Memory) -> Option<Vec<MaybeRelocatable>> {
+    fn validate_existing_memory(
+        &self,
+        _memory: &Vec<MaybeRelocatable>,
+    ) -> Option<Vec<MaybeRelocatable>> {
         None
     }
 }
@@ -219,7 +224,7 @@ mod tests {
             &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
             &MaybeRelocatable::Int(bigint!(45)),
         );
-        let vec = builtin.validate_existing_memory(&memory).unwrap();
+        let vec = builtin.validate_existing_memory(&memory.data[1]).unwrap();
         assert_eq!(
             vec[0],
             MaybeRelocatable::RelocatableValue(relocatable!(1, 7))
@@ -236,7 +241,7 @@ mod tests {
             &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
             &MaybeRelocatable::Int(bigint!(-10)),
         );
-        builtin.validate_existing_memory(&memory);
+        builtin.validate_existing_memory(&memory.data[1]);
     }
 
     #[test]
@@ -249,7 +254,7 @@ mod tests {
             &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
             &MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
         );
-        builtin.validate_existing_memory(&memory);
+        builtin.validate_existing_memory(&memory.data[1]);
     }
 
     #[test]
@@ -261,7 +266,7 @@ mod tests {
             &MaybeRelocatable::RelocatableValue(relocatable!(2, 7)),
             &MaybeRelocatable::Int(bigint!(-45)),
         );
-        let vec = builtin.validate_existing_memory(&memory);
+        let vec = builtin.validate_existing_memory(&memory.data[1]);
         assert_eq!(vec, None);
     }
 }
