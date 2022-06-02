@@ -6,5 +6,5 @@ pub struct Program {
     pub builtins: Vec<String>,
     pub prime: BigInt,
     pub data: Vec<MaybeRelocatable>,
-    pub main: Option<BigInt>,
+    pub main: Option<usize>,
 }
