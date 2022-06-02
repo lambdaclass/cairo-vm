@@ -1,30 +1,31 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
-use crate::{bigint, relocatable};
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
 pub struct MemorySegmentManager {
     pub memory: Memory,
     _prime: BigInt,
-    pub num_segments: i32,
-    _segment_sizes: HashMap<BigInt, BigInt>,
-    _segment_used_sizes: Option<HashMap<BigInt, BigInt>>,
-    _public_memory_offsets: HashMap<BigInt, Vec<(BigInt, BigInt)>>,
-    _num_temp_segments: i32,
+    pub num_segments: usize,
+    _segment_sizes: HashMap<usize, usize>,
+    _segment_used_sizes: Option<HashMap<usize, usize>>,
+    _public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
+    _num_temp_segments: usize,
 }
 
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)
-    pub fn add(&mut self, size: Option<i32>) -> Relocatable {
+    pub fn add(&mut self, size: Option<usize>) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
         if let Some(_segment_size) = size {
             //TODO self.finalize(segment_index, size);
         }
-        relocatable!(segment_index, 0)
+        Relocatable {
+            segment_index,
+            offset: 0,
+        }
     }
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
@@ -33,12 +34,9 @@ impl MemorySegmentManager {
         data: Vec<MaybeRelocatable>,
     ) -> MaybeRelocatable {
         for (num, value) in data.iter().enumerate() {
-            self.memory.insert(
-                &ptr.add_num_addr(BigInt::from_usize(num).unwrap(), None),
-                value,
-            );
+            self.memory.insert(&ptr.add_usize_mod(num, None), value);
         }
-        ptr.add_num_addr(BigInt::from_usize(data.len()).unwrap(), None)
+        ptr.add_usize_mod(data.len(), None)
     }
 
     pub fn new(prime: BigInt) -> MemorySegmentManager {
@@ -46,9 +44,9 @@ impl MemorySegmentManager {
             memory: Memory::new(),
             _prime: prime,
             num_segments: 0,
-            _segment_sizes: HashMap::<BigInt, BigInt>::new(),
+            _segment_sizes: HashMap::<usize, usize>::new(),
             _segment_used_sizes: None,
-            _public_memory_offsets: HashMap::<BigInt, Vec<(BigInt, BigInt)>>::new(),
+            _public_memory_offsets: HashMap::<usize, Vec<(usize, usize)>>::new(),
             _num_temp_segments: 0,
         }
     }
@@ -56,6 +54,8 @@ impl MemorySegmentManager {
 
 #[cfg(test)]
 mod tests {
+    use crate::{bigint, relocatable};
+
     use super::*;
 
     #[test]
@@ -105,7 +105,7 @@ mod tests {
         );
         assert_eq!(
             segments.memory.get(&ptr),
-            Some(&MaybeRelocatable::Int(bigint!(4)))
+            Some(MaybeRelocatable::Int(bigint!(4)))
         );
     }
 
@@ -125,19 +125,19 @@ mod tests {
         );
         assert_eq!(
             segments.memory.get(&ptr),
-            Some(&MaybeRelocatable::Int(bigint!(4)))
+            Some(MaybeRelocatable::Int(bigint!(4)))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
-            Some(&MaybeRelocatable::Int(bigint!(5)))
+            Some(MaybeRelocatable::Int(bigint!(5)))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
-            Some(&MaybeRelocatable::Int(bigint!(6)))
+            Some(MaybeRelocatable::Int(bigint!(6)))
         );
     }
 }
