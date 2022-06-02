@@ -29,3 +29,13 @@ macro_rules! relocatable {
         }
     };
 }
+pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
+    for search in subsequence {
+        if let Some(index) = sequence.iter().position(|element| search == element) {
+            sequence = &sequence[index + 1..];
+        } else {
+            return false;
+        }
+    }
+    true
+}

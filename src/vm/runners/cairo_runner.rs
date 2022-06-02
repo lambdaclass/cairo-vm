@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::utils::is_subsequence;
 use crate::vm::runners::builtin_runner::{BuiltinRunner, OutputRunner, RangeCheckBuiltinRunner};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_core::VirtualMachineError;
@@ -25,6 +26,17 @@ pub struct CairoRunner {
 #[allow(dead_code)]
 impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
+        let builtin_ordered_list = vec![
+            String::from("output"),
+            String::from("pedersen"),
+            String::from("range_check"),
+            String::from("ecdsa"),
+            String::from("bitwise"),
+        ];
+        assert!(
+            is_subsequence(&program.builtins, &builtin_ordered_list),
+            "Given builtins are not in appropiate order"
+        );
         let mut builtin_runners = BTreeMap::<String, Box<dyn BuiltinRunner>>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
@@ -1993,7 +2005,7 @@ mod tests {
     fn initialize_and_run_output_range_check_builtin() {
         //Initialization Phase
         let program = Program {
-            builtins: vec![String::from("range_check"), String::from("output")],
+            builtins: vec![String::from("output"), String::from("range_check")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
                 MaybeRelocatable::Int(BigInt::from_i64(4612671182993129469).unwrap()),
