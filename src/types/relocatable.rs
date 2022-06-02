@@ -76,47 +76,36 @@ impl MaybeRelocatable {
         }
     }
 
-    ///Adds a number to the address, then performs mod prime if prime is given
+    ///Adds a MaybeRelocatable to self, then performs mod prime
     /// Cant add two relocatable values
-    pub fn add_addr(
+    pub fn add_mod(
         &self,
         other: MaybeRelocatable,
-        prime: Option<BigInt>,
+        prime: BigInt,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
                 let num_a = Clone::clone(num_a_ref);
-                if let Some(num_prime) = prime {
-                    return Ok(MaybeRelocatable::Int((num_a + num_b) % num_prime));
-                }
-                Ok(MaybeRelocatable::Int(num_a + num_b))
+                return Ok(MaybeRelocatable::Int((num_a + num_b) % prime));
             }
             (&MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
                 Err(VirtualMachineError::RelocatableAdd)
             }
             (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
-                if let Some(num_prime) = prime {
-                    return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel.segment_index.clone(),
-                        offset: (rel.offset.clone() + num) % num_prime,
-                    }));
-                }
-                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                let new_offset: BigInt = num + rel.offset % prime;
+                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index.clone(),
-                    offset: rel.offset.clone() + num,
-                }))
+                    //TODO check this unwrap
+                    offset: new_offset.to_usize().unwrap(),
+                }));
             }
             (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
-                if let Some(num_prime) = prime {
-                    return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel.segment_index,
-                        offset: (rel.offset + num_ref.clone()) % num_prime,
-                    }));
-                }
-                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                let new_offset: BigInt = num_ref.clone() + rel.offset % prime;
+                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
-                    offset: rel.offset + num_ref.clone(),
-                }))
+                    //TODO check this unwrap
+                    offset: new_offset.to_usize().unwrap(),
+                }));
             }
         }
     }
