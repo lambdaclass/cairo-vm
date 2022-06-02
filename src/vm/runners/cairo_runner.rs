@@ -186,6 +186,32 @@ mod tests {
     use crate::{bigint_str, relocatable};
 
     #[test]
+    #[should_panic]
+    fn create_cairo_runner_with_disordered_builtins() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("range_check"), String::from("output")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: None,
+        };
+        let _cairo_runner = CairoRunner::new(&program);
+    }
+
+    #[test]
+    fn create_cairo_runner_with_ordered_but_missing_builtins() {
+        //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
+        let program = Program {
+            builtins: vec![String::from("output"), String::from("ecdsa")],
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: None,
+        };
+        //We only check that the creation doesnt panic
+        let _cairo_runner = CairoRunner::new(&program);
+    }
+
+    #[test]
     fn initialize_segments_with_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
