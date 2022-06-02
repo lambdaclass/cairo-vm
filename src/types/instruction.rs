@@ -69,7 +69,7 @@ pub enum Opcode {
 }
 
 impl Instruction {
-    pub fn size(&self) -> i32 {
+    pub fn size(&self) -> usize {
         match self.imm {
             Some(_) => 2,
             None => 1,

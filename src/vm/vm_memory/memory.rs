@@ -25,7 +25,7 @@ impl Memory {
         if let &MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (i, j) = from_relocatable_to_indexes(relocatable);
             if self.data.len() <= i && self.data[i].len() <= j {
-                Some(self.data[i][j])
+                Some(self.data[i][j].clone())
             } else {
                 None
             }
