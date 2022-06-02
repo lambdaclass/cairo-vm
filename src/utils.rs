@@ -29,6 +29,7 @@ macro_rules! relocatable {
         }
     };
 }
+
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
     for search in subsequence {
         if let Some(index) = sequence.iter().position(|element| search == element) {
@@ -38,4 +39,8 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
         }
     }
     true
+}
+
+pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
+    return (relocatable.segment_index, relocatable.offset);
 }
