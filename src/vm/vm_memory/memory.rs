@@ -91,6 +91,14 @@ mod memory_tests {
 
     #[test]
     #[should_panic]
+    fn get_non_relocatable_key() {
+        let key = MaybeRelocatable::from(bigint!(0));
+        let memory = Memory::new();
+        memory.get(&key);
+    }
+
+    #[test]
+    #[should_panic]
     fn insert_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let val = MaybeRelocatable::from(bigint!(5));
