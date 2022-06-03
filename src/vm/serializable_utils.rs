@@ -3,6 +3,7 @@ use num_bigint::{BigInt, Sign};
 use serde::de;
 use serde::de::SeqAccess;
 use serde::Deserializer;
+use std::collections::HashMap;
 use std::{fmt, ops::Rem};
 
 struct BigIntVisitor;
@@ -112,6 +113,12 @@ mod tests {
         builtins: Vec<String>,
         #[serde(deserialize_with = "deserialize_maybe_relocatable")]
         data: Vec<MaybeRelocatable>,
+        identifiers: HashMap<String, Identifier>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct Identifier {
+        pc: Option<u64>,
     }
 
     #[test]
@@ -127,7 +134,26 @@ mod tests {
                     "0x7d0",
                     "0x48307fff7ffe8000",
                     "0x208b7fff7fff7ffe"
-                ]            
+                ],
+                "identifiers": {
+                    "__main__.main": {
+                        "decorators": [],
+                        "pc": 0,
+                        "type": "function"
+                    },
+                    "__main__.main.Args": {
+                        "full_name": "__main__.main.Args",
+                        "members": {},
+                        "size": 0,
+                        "type": "struct"
+                    },
+                    "__main__.main.ImplicitArgs": {
+                        "full_name": "__main__.main.ImplicitArgs",
+                        "members": {},
+                        "size": 0,
+                        "type": "struct"
+                    }
+                }
             }"#;
 
         // TestStruct instance for the json with an even length encoded hex.
@@ -148,6 +174,7 @@ mod tests {
         assert_eq!(even_test_struct.bigint, bigint!(10));
         assert_eq!(even_test_struct.builtins, builtins);
         assert_eq!(even_test_struct.data, data);
+        assert_eq!(even_test_struct.identifiers["__main__.main"].pc, Some(0));
 
         let valid_odd_length_hex_json = r#"
             {
@@ -160,8 +187,15 @@ mod tests {
                     "0x7",
                     "0x48307fff7ffe8000",
                     "0x208b7fff7fff7ffe"
-                ]
-            }"#;
+                ],
+                "identifiers": {
+                    "__main__.main": {
+                        "decorators": [],
+                        "pc": 1,
+                        "type": "function"
+                    }
+                }
+       }"#;
 
         // TestStruct instance for the json with an odd length encoded hex.
         let odd_test_struct: TestStruct = serde_json::from_str(&valid_odd_length_hex_json).unwrap();
@@ -179,6 +213,7 @@ mod tests {
         assert_eq!(odd_test_struct.bigint, bigint!(10));
         assert_eq!(odd_test_struct.builtins, builtins);
         assert_eq!(odd_test_struct.data, data);
+        assert_eq!(odd_test_struct.identifiers["__main__.main"].pc, Some(1));
     }
 
     #[test]
