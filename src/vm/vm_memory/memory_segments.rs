@@ -1,10 +1,8 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
-use num_bigint::BigInt;
 
 pub struct MemorySegmentManager {
     pub memory: Memory,
-    _prime: BigInt,
     pub num_segments: usize,
     segment_used_sizes: Option<Vec<usize>>,
 }
@@ -36,10 +34,9 @@ impl MemorySegmentManager {
         ptr.add_usize_mod(data.len(), None)
     }
 
-    pub fn new(prime: BigInt) -> MemorySegmentManager {
+    pub fn new() -> MemorySegmentManager {
         MemorySegmentManager {
             memory: Memory::new(),
-            _prime: prime,
             num_segments: 0,
             segment_used_sizes: None,
         }
@@ -61,13 +58,12 @@ impl MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use crate::{bigint, relocatable};
-    use num_traits::FromPrimitive;
 
     use super::*;
 
     #[test]
     fn add_segment_no_size() {
-        let mut segments = MemorySegmentManager::new(bigint!(17));
+        let mut segments = MemorySegmentManager::new();
         let base = segments.add(None);
         assert_eq!(base, relocatable!(0, 0));
         assert_eq!(segments.num_segments, 1);
@@ -75,7 +71,7 @@ mod tests {
 
     #[test]
     fn add_segment_no_size_test_two_segments() {
-        let mut segments = MemorySegmentManager::new(bigint!(17));
+        let mut segments = MemorySegmentManager::new();
         let mut _base = segments.add(None);
         _base = segments.add(None);
         assert_eq!(
@@ -92,7 +88,7 @@ mod tests {
     fn load_data_empty() {
         let data = Vec::new();
         let ptr = MaybeRelocatable::from((0, 3));
-        let mut segments = MemorySegmentManager::new(bigint!(17));
+        let mut segments = MemorySegmentManager::new();
         let current_ptr = segments.load_data(&ptr, data);
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)))
     }
@@ -101,7 +97,7 @@ mod tests {
     fn load_data_one_element() {
         let data = vec![MaybeRelocatable::from(bigint!(4))];
         let ptr = MaybeRelocatable::from((0, 0));
-        let mut segments = MemorySegmentManager::new(bigint!(17));
+        let mut segments = MemorySegmentManager::new();
         segments.add(None);
         let current_ptr = segments.load_data(&ptr, data);
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
@@ -119,7 +115,7 @@ mod tests {
             MaybeRelocatable::from(bigint!(6)),
         ];
         let ptr = MaybeRelocatable::from((0, 0));
-        let mut segments = MemorySegmentManager::new(bigint!(17));
+        let mut segments = MemorySegmentManager::new();
         segments.add(None);
         let current_ptr = segments.load_data(&ptr, data);
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));

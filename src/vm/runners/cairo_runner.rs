@@ -60,7 +60,7 @@ impl CairoRunner {
         CairoRunner {
             program: program.clone(),
             _layout: String::from("plain"),
-            segments: MemorySegmentManager::new(program.prime.clone()),
+            segments: MemorySegmentManager::new(),
             vm: VirtualMachine::new(program.prime.clone(), builtin_runners),
             final_pc: None,
             program_base: None,
