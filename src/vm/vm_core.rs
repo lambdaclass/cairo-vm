@@ -2101,10 +2101,13 @@ mod tests {
 
         let mem_arr = vec![
             (
-                relocatable!(0, 0),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 0)),
                 MaybeRelocatable::Int(bigint64!(0x206800180018001)),
             ),
-            (relocatable!(0, 1), MaybeRelocatable::Int(bigint64!(0x4))),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
+                MaybeRelocatable::Int(bigint64!(0x4)),
+            ),
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
@@ -2808,33 +2811,57 @@ mod tests {
     fn multiplication_and_different_ap_increase() {
         let mem_arr = vec![
             (
-                relocatable!(0, 0),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 0)),
                 MaybeRelocatable::Int(bigint64!(0x400680017fff8000)),
             ),
-            (relocatable!(0, 1), MaybeRelocatable::Int(bigint!(0x4))),
             (
-                relocatable!(0, 2),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
+                MaybeRelocatable::Int(bigint!(0x4)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 2)),
                 MaybeRelocatable::Int(bigint64!(0x40780017fff7fff)),
             ),
-            (relocatable!(0, 3), MaybeRelocatable::Int(bigint!(0x1))),
             (
-                relocatable!(0, 4),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 3)),
+                MaybeRelocatable::Int(bigint!(0x1)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 4)),
                 MaybeRelocatable::Int(bigint64!(0x480680017fff8000)),
             ),
-            (relocatable!(0, 5), MaybeRelocatable::Int(bigint!(0x5))),
             (
-                relocatable!(0, 6),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 5)),
+                MaybeRelocatable::Int(bigint!(0x5)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 6)),
                 MaybeRelocatable::Int(bigint64!(0x40507ffe7fff8000)),
             ),
             (
-                relocatable!(0, 7),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 7)),
                 MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
             ),
-            (relocatable!(1, 0), MaybeRelocatable::from((2, 0))),
-            (relocatable!(1, 1), MaybeRelocatable::from((3, 0))),
-            (relocatable!(1, 2), MaybeRelocatable::Int(bigint!(0x4))),
-            (relocatable!(1, 3), MaybeRelocatable::Int(bigint!(0x5))),
-            (relocatable!(1, 4), MaybeRelocatable::Int(bigint64!(0x14))),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
+                MaybeRelocatable::from((2, 0)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 1)),
+                MaybeRelocatable::from((3, 0)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 2)),
+                MaybeRelocatable::Int(bigint!(0x4)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 3)),
+                MaybeRelocatable::Int(bigint!(0x5)),
+            ),
+            (
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
+                MaybeRelocatable::Int(bigint64!(0x14)),
+            ),
         ];
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
