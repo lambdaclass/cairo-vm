@@ -15,7 +15,7 @@ pub struct RangeCheckBuiltinRunner {
     _bound: BigInt,
     _n_parts: u32,
 }
-pub struct OutputRunner {
+pub struct OutputBuiltinRunner {
     included: bool,
     base: Option<Relocatable>,
     _stop_ptr: Option<Relocatable>,
@@ -95,9 +95,9 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     }
 }
 
-impl OutputRunner {
-    pub fn new(included: bool) -> OutputRunner {
-        OutputRunner {
+impl OutputBuiltinRunner {
+    pub fn new(included: bool) -> OutputBuiltinRunner {
+        OutputBuiltinRunner {
             included,
             base: None,
             _stop_ptr: None,
@@ -105,7 +105,7 @@ impl OutputRunner {
     }
 }
 
-impl BuiltinRunner for OutputRunner {
+impl BuiltinRunner for OutputBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = Some(segments.add(None))
     }
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn initialize_segments_for_output() {
-        let mut builtin = OutputRunner::new(true);
+        let mut builtin = OutputBuiltinRunner::new(true);
         let mut segments = MemorySegmentManager::new(bigint!(7));
         builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, Some(relocatable!(0, 0)));
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn get_initial_stack_for_output_included_with_base() {
-        let mut builtin = OutputRunner::new(true);
+        let mut builtin = OutputBuiltinRunner::new(true);
         builtin.base = Some(Relocatable {
             segment_index: 1,
             offset: 0,
@@ -205,13 +205,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn get_initial_stack_for_output_included_without_base() {
-        let builtin = OutputRunner::new(true);
+        let builtin = OutputBuiltinRunner::new(true);
         let _initial_stack = builtin.initial_stack();
     }
 
     #[test]
     fn get_initial_stack_for_output_not_included() {
-        let builtin = OutputRunner::new(false);
+        let builtin = OutputBuiltinRunner::new(false);
         let initial_stack = builtin.initial_stack();
         assert_eq!(initial_stack.len(), 0);
     }

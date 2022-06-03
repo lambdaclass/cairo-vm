@@ -2,7 +2,9 @@ use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::utils::is_subsequence;
-use crate::vm::runners::builtin_runner::{BuiltinRunner, OutputRunner, RangeCheckBuiltinRunner};
+use crate::vm::runners::builtin_runner::{
+    BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
+};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_core::VirtualMachineError;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -40,7 +42,10 @@ impl CairoRunner {
         let mut builtin_runners = BTreeMap::<String, Box<dyn BuiltinRunner>>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
-                builtin_runners.insert(builtin_name.clone(), Box::new(OutputRunner::new(true)));
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(OutputBuiltinRunner::new(true)),
+                );
             }
 
             if builtin_name == "range_check" {
