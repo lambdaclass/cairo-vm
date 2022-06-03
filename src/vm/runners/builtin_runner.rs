@@ -29,7 +29,7 @@ pub trait BuiltinRunner {
     fn base(&self) -> Option<Relocatable>;
     fn validate_existing_memory(
         &self,
-        memory: &Vec<MaybeRelocatable>,
+        memory: &[MaybeRelocatable],
     ) -> Option<Vec<MaybeRelocatable>>;
 }
 
@@ -71,7 +71,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
 
     fn validate_existing_memory(
         &self,
-        builtin_memory: &Vec<MaybeRelocatable>,
+        builtin_memory: &[MaybeRelocatable],
     ) -> Option<Vec<MaybeRelocatable>> {
         let mut validated_addresses = Vec::<MaybeRelocatable>::new();
         for (offset, value) in builtin_memory.iter().enumerate() {
@@ -127,7 +127,7 @@ impl BuiltinRunner for OutputRunner {
     }
     fn validate_existing_memory(
         &self,
-        _memory: &Vec<MaybeRelocatable>,
+        _memory: &[MaybeRelocatable],
     ) -> Option<Vec<MaybeRelocatable>> {
         None
     }
@@ -242,7 +242,7 @@ mod tests {
             &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
             &MaybeRelocatable::Int(bigint!(-10)),
         );
-        builtin.validate_existing_memory(&memory.data[1]);
+        builtin.validate_existing_memory(memory.data[1]);
     }
 
     #[test]

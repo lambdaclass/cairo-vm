@@ -45,10 +45,10 @@ impl MaybeRelocatable {
                 MaybeRelocatable::Int(num)
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
-                let mut new_offset = rel.offset.clone() + other;
+                let mut new_offset = rel.offset + other;
                 new_offset %= prime;
                 MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index.clone(),
+                    segment_index: rel.segment_index,
                     //TODO: check this unwrap
                     offset: new_offset.to_usize().unwrap(),
                 })
@@ -67,9 +67,9 @@ impl MaybeRelocatable {
                 MaybeRelocatable::Int(num)
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
-                let new_offset = rel.offset.clone() + other;
+                let new_offset = rel.offset + other;
                 MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index.clone(),
+                    segment_index: rel.segment_index,
                     offset: new_offset,
                 })
             }
@@ -86,26 +86,26 @@ impl MaybeRelocatable {
         match (self, other) {
             (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
                 let num_a = Clone::clone(num_a_ref);
-                return Ok(MaybeRelocatable::Int((num_a + num_b) % prime));
+                Ok(MaybeRelocatable::Int((num_a + num_b) % prime))
             }
             (&MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
                 Err(VirtualMachineError::RelocatableAdd)
             }
             (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
                 let new_offset: BigInt = num + rel.offset % prime;
-                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index.clone(),
-                    //TODO check this unwrap
-                    offset: new_offset.to_usize().unwrap(),
-                }));
-            }
-            (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
-                let new_offset: BigInt = num_ref.clone() + rel.offset % prime;
-                return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     //TODO check this unwrap
                     offset: new_offset.to_usize().unwrap(),
-                }));
+                }))
+            }
+            (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
+                let new_offset: BigInt = num_ref + rel.offset % prime;
+                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: rel.segment_index,
+                    //TODO check this unwrap
+                    offset: new_offset.to_usize().unwrap(),
+                }))
             }
         }
     }

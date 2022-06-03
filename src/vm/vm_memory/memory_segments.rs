@@ -105,7 +105,7 @@ mod tests {
         );
         assert_eq!(
             segments.memory.get(&ptr),
-            Some(MaybeRelocatable::Int(bigint!(4)))
+            Some(&MaybeRelocatable::Int(bigint!(4)))
         );
     }
 
