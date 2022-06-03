@@ -1274,7 +1274,7 @@ mod tests {
     fn is_zero_relocatable_value_negative() {
         let value = MaybeRelocatable::RelocatableValue(Relocatable {
             segment_index: 1,
-            offset: bigint!(-1),
+            offset: 1,
         });
         assert_eq!(
             Err(VirtualMachineError::PureValue),
@@ -2886,7 +2886,7 @@ mod tests {
 
         assert_eq!(
             vm.memory.get(&vm.run_context.ap),
-            Some(MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
+            Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
         assert_eq!(vm.step(), Ok(()));
         assert_eq!(
@@ -2906,7 +2906,7 @@ mod tests {
 
         assert_eq!(
             vm.memory.get(&vm.run_context.ap),
-            Some(MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
+            Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
         assert_eq!(vm.step(), Ok(()));

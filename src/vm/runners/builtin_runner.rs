@@ -155,8 +155,8 @@ mod tests {
         assert_eq!(
             builtin.base,
             Some(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
+                segment_index: 0,
+                offset: 0
             })
         );
     }
@@ -191,8 +191,8 @@ mod tests {
     fn get_initial_stack_for_output_included_with_base() {
         let mut builtin = OutputRunner::new(true);
         builtin.base = Some(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(0),
+            segment_index: 1,
+            offset: 0,
         });
         let initial_stack = builtin.initial_stack();
         assert_eq!(
@@ -220,15 +220,22 @@ mod tests {
     fn validate_existing_memory_for_range_check_within_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
-        let mut memory = Memory::new();
-        memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
+
+        let mut segments = MemorySegmentManager::new(bigint!(121));
+        for _ in 0..3 {
+            segments.add(None);
+        }
+
+        segments.memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
             &MaybeRelocatable::Int(bigint!(45)),
         );
-        let vec = builtin.validate_existing_memory(&memory.data[1]).unwrap();
+        let vec = builtin
+            .validate_existing_memory(&segments.memory.data[1])
+            .unwrap();
         assert_eq!(
             vec[0],
-            MaybeRelocatable::RelocatableValue(relocatable!(1, 7))
+            MaybeRelocatable::RelocatableValue(relocatable!(1, 0))
         );
     }
 
@@ -242,7 +249,7 @@ mod tests {
             &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
             &MaybeRelocatable::Int(bigint!(-10)),
         );
-        builtin.validate_existing_memory(memory.data[1]);
+        builtin.validate_existing_memory(&memory.data[1]);
     }
 
     #[test]
@@ -262,12 +269,16 @@ mod tests {
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
-        let mut memory = Memory::new();
-        memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(2, 7)),
+
+        let mut segments = MemorySegmentManager::new(bigint!(121));
+        for _ in 0..3 {
+            segments.add(None);
+        }
+        segments.memory.insert(
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 0)),
             &MaybeRelocatable::Int(bigint!(-45)),
         );
-        let vec = builtin.validate_existing_memory(&memory.data[1]);
+        let vec = builtin.validate_existing_memory(&segments.memory.data[1]);
         assert_eq!(vec, None);
     }
 }

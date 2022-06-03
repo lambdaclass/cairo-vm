@@ -11,12 +11,23 @@ pub struct Memory {
 
 impl Memory {
     pub fn new() -> Memory {
-        Memory { data: Vec::new() }
+        Memory {
+            data: Vec::<Vec<MaybeRelocatable>>::new(),
+        }
     }
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (i, j) = from_relocatable_to_indexes(relocatable.clone());
-            self.data[i][j] = val.clone()
+            //Check that the memory segment exists
+            if self.data.len() < i {
+                panic!("Cant insert to a non-allocated memory segment")
+            }
+            //Check that the element is inserted next to the las one on the segment
+            //Forgoing this check would allow data to be inserted in a different index
+            if self.data[i].len() < j {
+                panic!("Memory must be continuous")
+            }
+            self.data[i].push(val.clone())
         } else {
             panic!("Memory addresses must be relocatable")
         }

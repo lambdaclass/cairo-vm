@@ -22,6 +22,7 @@ impl MemorySegmentManager {
         if let Some(_segment_size) = size {
             //TODO self.finalize(segment_index, size);
         }
+        self.memory.data.push(Vec::new());
         Relocatable {
             segment_index,
             offset: 0,
@@ -55,6 +56,7 @@ impl MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use crate::{bigint, relocatable};
+    use num_traits::FromPrimitive;
 
     use super::*;
 
@@ -74,8 +76,8 @@ mod tests {
         assert_eq!(
             _base,
             Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0)
+                segment_index: 1,
+                offset: 0
             }
         );
         assert_eq!(segments.num_segments, 2);
@@ -125,19 +127,19 @@ mod tests {
         );
         assert_eq!(
             segments.memory.get(&ptr),
-            Some(MaybeRelocatable::Int(bigint!(4)))
+            Some(&MaybeRelocatable::Int(bigint!(4)))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 4))),
-            Some(MaybeRelocatable::Int(bigint!(5)))
+            Some(&MaybeRelocatable::Int(bigint!(5)))
         );
         assert_eq!(
             segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 5))),
-            Some(MaybeRelocatable::Int(bigint!(6)))
+            Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
 }
