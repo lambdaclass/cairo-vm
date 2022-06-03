@@ -1,5 +1,5 @@
+use crate::serde::deserialize_program;
 use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::serializable_utils;
 use num_bigint::BigInt;
 
 #[derive(Clone)]
@@ -9,10 +9,10 @@ pub struct Program {
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
 }
-
+#[allow(dead_code)]
 impl Program {
     fn new(path: &str) -> Program {
-        serializable_utils::deserialize_program(path)
+        deserialize_program::deserialize_program(path)
     }
 }
 

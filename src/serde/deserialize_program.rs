@@ -1,13 +1,7 @@
-use crate::types::program::Program;
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::{program::Program, relocatable::MaybeRelocatable};
 use num_bigint::{BigInt, Sign};
-use serde::de;
-use serde::de::SeqAccess;
-use serde::Deserialize;
-use serde::Deserializer;
-use std::collections::HashMap;
-use std::{fmt, ops::Rem};
-use std::{fs::File, io::BufReader};
+use serde::{de, de::SeqAccess, Deserialize, Deserializer};
+use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem};
 
 #[derive(Deserialize)]
 pub struct ProgramJson {
@@ -90,8 +84,6 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     }
 }
 
-// This directive should be removed once the entire Program struct is deserializable and the
-// '#[derive(Deserialize)]' directive can be applied to it.
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
 }
@@ -134,7 +126,6 @@ mod tests {
     use super::*;
     use crate::bigint;
     use num_traits::FromPrimitive;
-    use std::{fs::File, io::BufReader};
 
     #[test]
     fn deserialize_bigint_from_string_json_gives_error() {
