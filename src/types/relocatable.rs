@@ -92,19 +92,25 @@ impl MaybeRelocatable {
                 Err(VirtualMachineError::RelocatableAdd)
             }
             (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
-                let new_offset: BigInt = (num + rel.offset) % prime;
+                let big_offset: BigInt = (num + rel.offset) % prime;
+                let new_offset = match big_offset.to_usize() {
+                    Some(usize) => usize,
+                    None => panic!("Offset exeeds maximum offset value"),
+                };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
-                    //TODO check this unwrap
-                    offset: new_offset.to_usize().unwrap(),
+                    offset: new_offset,
                 }))
             }
             (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
-                let new_offset: BigInt = num_ref + rel.offset % prime;
+                let big_offset: BigInt = num_ref + rel.offset % prime;
+                let new_offset = match big_offset.to_usize() {
+                    Some(usize) => usize,
+                    None => panic!("Offset exeeds maximum offset value"),
+                };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
-                    //TODO check this unwrap
-                    offset: new_offset.to_usize().unwrap(),
+                    offset: new_offset,
                 }))
             }
         }

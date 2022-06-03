@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
@@ -44,7 +44,7 @@ pub struct VirtualMachine {
     pub validated_addresses: Vec<MaybeRelocatable>,
     accessed_addresses: Vec<MaybeRelocatable>,
     pub trace: Vec<TraceEntry>,
-    current_step: BigInt,
+    current_step: usize,
     skip_instruction_execution: bool,
 }
 
@@ -55,18 +55,9 @@ impl VirtualMachine {
         builtin_runners: BTreeMap<String, Box<dyn BuiltinRunner>>,
     ) -> VirtualMachine {
         let run_context = RunContext {
-            pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: 0,
-                offset: 0,
-            }),
-            ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: 0,
-                offset: 0,
-            }),
-            fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: 0,
-                offset: 0,
-            }),
+            pc: MaybeRelocatable::from((0, 0)),
+            ap: MaybeRelocatable::from((0, 0)),
+            fp: MaybeRelocatable::from((0, 0)),
             prime: prime.clone(),
         };
 
@@ -79,7 +70,7 @@ impl VirtualMachine {
             validated_addresses: Vec::<MaybeRelocatable>::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(0),
+            current_step: 0,
             skip_instruction_execution: false,
         }
     }
@@ -117,7 +108,6 @@ impl VirtualMachine {
         let new_ap: MaybeRelocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
                 Some(res) => self.run_context.ap.add_mod(res, self.prime.clone())?,
-
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.ap.add_usize_mod(1, None),
@@ -384,7 +374,7 @@ impl VirtualMachine {
             self.accessed_addresses.push(self.run_context.pc.clone());
         }
         self.update_registers(instruction, operands)?;
-        self.current_step += bigint!(1);
+        self.current_step += 1;
         Ok(())
     }
 
@@ -2200,7 +2190,7 @@ mod tests {
             validated_addresses: Vec::<MaybeRelocatable>::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
+            current_step: 1,
             skip_instruction_execution: false,
         };
 
