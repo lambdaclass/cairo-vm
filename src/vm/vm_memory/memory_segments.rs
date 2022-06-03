@@ -1,16 +1,12 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
 use num_bigint::BigInt;
-use std::collections::HashMap;
 
 pub struct MemorySegmentManager {
     pub memory: Memory,
     _prime: BigInt,
     pub num_segments: usize,
-    _segment_sizes: HashMap<usize, usize>,
-    _segment_used_sizes: Option<HashMap<usize, usize>>,
-    _public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
-    _num_temp_segments: usize,
+    segment_used_sizes: Option<Vec<usize>>,
 }
 
 impl MemorySegmentManager {
@@ -45,11 +41,20 @@ impl MemorySegmentManager {
             memory: Memory::new(),
             _prime: prime,
             num_segments: 0,
-            _segment_sizes: HashMap::<usize, usize>::new(),
-            _segment_used_sizes: None,
-            _public_memory_offsets: HashMap::<usize, Vec<(usize, usize)>>::new(),
-            _num_temp_segments: 0,
+            segment_used_sizes: None,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn compute_effective_sizes(&mut self) {
+        if self.segment_used_sizes == None {
+            return;
+        }
+        let mut segment_used_sizes = Vec::new();
+        for segment in self.memory.data.iter() {
+            segment_used_sizes.push(segment.len());
+        }
+        self.segment_used_sizes = Some(segment_used_sizes);
     }
 }
 
