@@ -58,6 +58,8 @@ impl MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use crate::{bigint, relocatable};
+    use num_bigint::BigInt;
+    use num_traits::FromPrimitive;
 
     use super::*;
 
@@ -132,5 +134,28 @@ mod tests {
             segments.memory.get(&MaybeRelocatable::from((0, 2))),
             Some(&MaybeRelocatable::from(bigint!(6)))
         );
+    }
+    #[test]
+    fn compute_effective_sizes_for_one_segment_memory() {
+        let mut segments = MemorySegmentManager::new();
+        segments.memory = Memory::from(
+            vec![
+                (
+                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from(bigint!(1)),
+                ),
+                (
+                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from(bigint!(1)),
+                ),
+                (
+                    MaybeRelocatable::from((0, 2)),
+                    MaybeRelocatable::from(bigint!(1)),
+                ),
+            ],
+            1,
+        );
+        segments.compute_effective_sizes();
+        assert_eq!(Some(vec![3]), segments.segment_used_sizes);
     }
 }
