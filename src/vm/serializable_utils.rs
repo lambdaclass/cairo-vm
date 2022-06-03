@@ -1,3 +1,4 @@
+use crate::types::program::Program;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::{BigInt, Sign};
 use serde::de;
@@ -6,20 +7,21 @@ use serde::Deserialize;
 use serde::Deserializer;
 use std::collections::HashMap;
 use std::{fmt, ops::Rem};
+use std::{fs::File, io::BufReader};
 
 #[derive(Deserialize)]
 pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_bigint_hex")]
-    prime: BigInt,
-    builtins: Vec<String>,
+    pub prime: BigInt,
+    pub builtins: Vec<String>,
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
-    data: Vec<MaybeRelocatable>,
-    identifiers: HashMap<String, Identifier>,
+    pub data: Vec<MaybeRelocatable>,
+    pub identifiers: HashMap<String, Identifier>,
 }
 
 #[derive(Deserialize, Debug)]
-struct Identifier {
-    pc: Option<u64>,
+pub struct Identifier {
+    pub pc: Option<usize>,
 }
 
 struct BigIntVisitor;
@@ -90,12 +92,10 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
 
 // This directive should be removed once the entire Program struct is deserializable and the
 // '#[derive(Deserialize)]' directive can be applied to it.
-#[allow(dead_code)]
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
 }
 
-#[allow(dead_code)]
 pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
@@ -110,6 +110,23 @@ fn maybe_add_padding(mut hex: String) -> String {
         return hex;
     }
     hex
+}
+
+pub fn deserialize_program_json(path: &str) -> ProgramJson {
+    let file = File::open(path).unwrap();
+    let mut reader = BufReader::new(file);
+
+    serde_json::from_reader(&mut reader).unwrap()
+}
+
+pub fn deserialize_program(path: &str) -> Program {
+    let program_json: ProgramJson = deserialize_program_json(path);
+    Program {
+        builtins: program_json.builtins,
+        prime: program_json.prime,
+        data: program_json.data,
+        main: program_json.identifiers["__main__.main"].pc,
+    }
 }
 
 #[cfg(test)]
@@ -259,5 +276,32 @@ mod tests {
         let odd_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
 
         assert!(odd_result.is_err());
+    }
+
+    #[test]
+    fn deserialize_program_test() {
+        let program: Program = deserialize_program("tests/support/valid_program_a.json");
+
+        let builtins: Vec<String> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+        ];
+
+        assert_eq!(
+            program.prime,
+            BigInt::parse_bytes(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.data, data);
+        assert_eq!(program.main, Some(0));
     }
 }

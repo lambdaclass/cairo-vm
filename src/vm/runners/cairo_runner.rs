@@ -77,7 +77,7 @@ impl CairoRunner {
         }
     }
 
-    fn initialize_state(&mut self, entrypoint: BigInt, stack: Vec<MaybeRelocatable>) {
+    fn initialize_state(&mut self, entrypoint: usize, stack: Vec<MaybeRelocatable>) {
         if let Some(prog_base) = self.program_base.clone() {
             let initial_pc = Relocatable {
                 segment_index: prog_base.clone().segment_index,
@@ -103,7 +103,7 @@ impl CairoRunner {
 
     fn initialize_function_entrypoint(
         &mut self,
-        entrypoint: BigInt,
+        entrypoint: usize,
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Relocatable {
@@ -137,7 +137,7 @@ impl CairoRunner {
         //Different process if proof_mode is enabled
         let return_fp = self.segments.add(None);
         if let Some(main) = &self.program.main {
-            let main_clone = main.clone();
+            let main_clone = *main;
             self.initialize_function_entrypoint(
                 main_clone,
                 stack,
@@ -303,7 +303,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
             cairo_runner.initial_pc,
@@ -333,7 +333,7 @@ mod tests {
         });
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
             cairo_runner
@@ -369,7 +369,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(4)),
             MaybeRelocatable::Int(bigint!(6)),
         ];
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         cairo_runner.initialize_state(entrypoint, stack);
         assert_eq!(
             cairo_runner
@@ -408,7 +408,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(4)),
             MaybeRelocatable::Int(bigint!(6)),
         ];
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         cairo_runner.initialize_state(entrypoint, stack);
     }
 
@@ -428,7 +428,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(4)),
             MaybeRelocatable::Int(bigint!(6)),
         ];
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         cairo_runner.initialize_state(entrypoint, stack);
     }
 
@@ -445,7 +445,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = Vec::new();
-        let entrypoint = bigint!(0);
+        let entrypoint = 0;
         let return_fp = MaybeRelocatable::Int(bigint!(9));
         cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
@@ -479,7 +479,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = vec![MaybeRelocatable::Int(bigint!(7))];
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         let return_fp = MaybeRelocatable::Int(bigint!(9));
         cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
@@ -519,7 +519,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let stack = vec![MaybeRelocatable::Int(bigint!(7))];
-        let entrypoint = bigint!(1);
+        let entrypoint = 1;
         let return_fp = MaybeRelocatable::Int(bigint!(9));
         cairo_runner.initialize_function_entrypoint(entrypoint, stack, return_fp);
     }
@@ -545,7 +545,7 @@ mod tests {
             builtins: Vec::new(),
             prime: bigint!(17),
             data: Vec::new(),
-            main: Some(bigint!(1)),
+            main: Some(1),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -561,7 +561,7 @@ mod tests {
             builtins: Vec::new(),
             prime: bigint!(17),
             data: Vec::new(),
-            main: Some(bigint!(1)),
+            main: Some(1),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -594,7 +594,7 @@ mod tests {
             builtins: vec![String::from("range_check")],
             prime: bigint!(17),
             data: Vec::new(),
-            main: Some(bigint!(1)),
+            main: Some(1),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -633,7 +633,7 @@ mod tests {
             builtins: vec![String::from("range_check")],
             prime: bigint!(17),
             data: Vec::new(),
-            main: Some(bigint!(1)),
+            main: Some(1),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -689,7 +689,7 @@ mod tests {
                 )),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(3)),
+            main: Some(3),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -840,7 +840,7 @@ mod tests {
                 )),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(4)),
+            main: Some(4),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1026,7 +1026,7 @@ mod tests {
                 )),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(8)),
+            main: Some(8),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
