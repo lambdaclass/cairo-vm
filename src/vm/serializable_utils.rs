@@ -2,9 +2,25 @@ use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::{BigInt, Sign};
 use serde::de;
 use serde::de::SeqAccess;
+use serde::Deserialize;
 use serde::Deserializer;
 use std::collections::HashMap;
 use std::{fmt, ops::Rem};
+
+#[derive(Deserialize)]
+pub struct ProgramJson {
+    #[serde(deserialize_with = "deserialize_bigint_hex")]
+    prime: BigInt,
+    builtins: Vec<String>,
+    #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
+    data: Vec<MaybeRelocatable>,
+    identifiers: HashMap<String, Identifier>,
+}
+
+#[derive(Deserialize, Debug)]
+struct Identifier {
+    pc: Option<u64>,
+}
 
 struct BigIntVisitor;
 
@@ -12,7 +28,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
     type Value = BigInt;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a hexadecimal string")
+        formatter.write_str("Could not deserialize hexadecimal string")
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -41,7 +57,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     type Value = Vec<MaybeRelocatable>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a list of hexadecimals")
+        formatter.write_str("Could not deserialize array of hexadecimal")
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -50,7 +66,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     {
         let mut data: Vec<MaybeRelocatable> = vec![];
 
-        while let Some(value) = seq.next_element::<&str>()? {
+        while let Some(value) = seq.next_element::<String>()? {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
                 let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
@@ -63,10 +79,8 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                         &decoded_hex,
                     ))),
                     Err(e) => return Err(e).map_err(de::Error::custom),
-                    // panic!("failt to decode data hex"),
                 };
             } else {
-                // Err(_e) => panic!("failt to decode data hex"),
                 return Err(String::from("hex prefix error")).map_err(de::Error::custom);
             };
         }
@@ -82,7 +96,7 @@ pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt,
 }
 
 #[allow(dead_code)]
-pub fn deserialize_maybe_relocatable<'de, D: Deserializer<'de>>(
+pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
     d.deserialize_seq(MaybeRelocatableVisitor)
@@ -103,29 +117,37 @@ mod tests {
     use super::*;
     use crate::bigint;
     use num_traits::FromPrimitive;
-    use serde::Deserialize;
     use std::{fs::File, io::BufReader};
 
-    #[derive(Deserialize)]
-    struct TestStruct {
-        #[serde(deserialize_with = "deserialize_bigint_hex")]
-        bigint: BigInt,
-        builtins: Vec<String>,
-        #[serde(deserialize_with = "deserialize_maybe_relocatable")]
-        data: Vec<MaybeRelocatable>,
-        identifiers: HashMap<String, Identifier>,
-    }
+    #[test]
+    fn deserialize_bigint_from_string_json_gives_error() {
+        let invalid_even_length_hex_json = r#"
+            {
+                "prime": "0bx000A"
+            }"#;
 
-    #[derive(Deserialize, Debug)]
-    struct Identifier {
-        pc: Option<u64>,
+        // ProgramJson result instance for the json with an even length encoded hex.
+        let even_result: Result<ProgramJson, _> =
+            serde_json::from_str(&invalid_even_length_hex_json);
+
+        assert!(even_result.is_err());
+
+        let invalid_odd_length_hex_json = r#"
+            {
+                "prime": "0bx00A"
+            }"#;
+
+        // ProgramJson result instance for the json with an odd length encoded hex.
+        let odd_result: Result<ProgramJson, _> = serde_json::from_str(&invalid_odd_length_hex_json);
+
+        assert!(odd_result.is_err());
     }
 
     #[test]
     fn deserialize_from_string_json() {
-        let valid_even_length_hex_json = r#"
+        let valid_json = r#"
             {
-                "bigint": "0x000A",
+                "prime": "0x000A",
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -156,122 +178,77 @@ mod tests {
                 }
             }"#;
 
-        // TestStruct instance for the json with an even length encoded hex.
-        let even_test_struct: TestStruct =
-            serde_json::from_str(&valid_even_length_hex_json).unwrap();
+        // ProgramJson instance for the json with an even length encoded hex.
+        let program_json: ProgramJson = serde_json::from_str(&valid_json).unwrap();
 
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"1000", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"2000", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"5201798304953696256", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"2345108766317314046", 10).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
-        assert_eq!(even_test_struct.bigint, bigint!(10));
-        assert_eq!(even_test_struct.builtins, builtins);
-        assert_eq!(even_test_struct.data, data);
-        assert_eq!(even_test_struct.identifiers["__main__.main"].pc, Some(0));
-
-        let valid_odd_length_hex_json = r#"
-            {
-                "bigint": "0x00A",
-                "builtins": ["output","pedersen"],
-                "data": [
-                    "0x480680017fff8000",
-                    "0x3",
-                    "0x480680017fff8000",
-                    "0x7",
-                    "0x48307fff7ffe8000",
-                    "0x208b7fff7fff7ffe"
-                ],
-                "identifiers": {
-                    "__main__.main": {
-                        "decorators": [],
-                        "pc": 1,
-                        "type": "function"
-                    }
-                }
-       }"#;
-
-        // TestStruct instance for the json with an odd length encoded hex.
-        let odd_test_struct: TestStruct = serde_json::from_str(&valid_odd_length_hex_json).unwrap();
-        let builtins: Vec<String> = vec![String::from("output"), String::from("pedersen")];
-
-        let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"3", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"5189976364521848832", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"7", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"5201798304953696256", 10).unwrap()),
-            MaybeRelocatable::Int(BigInt::parse_bytes(b"2345108766317314046", 10).unwrap()),
-        ];
-
-        assert_eq!(odd_test_struct.bigint, bigint!(10));
-        assert_eq!(odd_test_struct.builtins, builtins);
-        assert_eq!(odd_test_struct.data, data);
-        assert_eq!(odd_test_struct.identifiers["__main__.main"].pc, Some(1));
+        assert_eq!(program_json.prime, bigint!(10));
+        assert_eq!(program_json.builtins, builtins);
+        assert_eq!(program_json.data, data);
+        assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
     }
 
     #[test]
-    fn deserialize_bigint_from_string_json_gives_error() {
-        let invalid_even_length_hex_json = r#"
-            {
-                "bigint": "0bx000A",
-                "builtins": []
-            }"#;
-
-        // TestStruct result instance for the json with an even length encoded hex.
-        let even_result: Result<TestStruct, _> =
-            serde_json::from_str(&invalid_even_length_hex_json);
-
-        assert!(even_result.is_err());
-
-        let invalid_odd_length_hex_json = r#"
-            {
-                "bigint": "0bx00A",
-                "builtins": []
-            }"#;
-
-        // TestStruct result instance for the json with an odd length encoded hex.
-        let odd_result: Result<TestStruct, _> = serde_json::from_str(&invalid_odd_length_hex_json);
-
-        assert!(odd_result.is_err());
-    }
-
-    #[test]
-    fn deserialize_bigint_from_file_json() {
+    fn deserialize_program_json_from_json_file_a() {
         // Open json file with (valid) even length encoded hex
-        let even_length_file = File::open("tests/support/valid_even_length_hex.json").unwrap();
-        let mut reader = BufReader::new(even_length_file);
+        let file = File::open("tests/support/valid_program_a.json").unwrap();
+        let mut reader = BufReader::new(file);
 
-        let even_test_struct: TestStruct = serde_json::from_reader(&mut reader).unwrap();
-        let builtins: Vec<String> = vec![String::from("output")];
-
-        assert_eq!(even_test_struct.bigint, bigint!(10));
-        assert_eq!(even_test_struct.builtins, builtins);
-
-        // Open json file with (valid) odd length encoded hex
-        let odd_length_file = File::open("tests/support/valid_odd_length_hex.json").unwrap();
-        let mut reader = BufReader::new(odd_length_file);
-
-        let odd_test_struct: TestStruct = serde_json::from_reader(&mut reader).unwrap();
+        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
         let builtins: Vec<String> = Vec::new();
 
-        assert_eq!(odd_test_struct.bigint, bigint!(10));
-        assert_eq!(odd_test_struct.builtins, builtins);
+        assert_eq!(
+            program_json.prime,
+            BigInt::parse_bytes(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(program_json.builtins, builtins);
+        assert_eq!(program_json.data.len(), 6);
+        assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
     }
 
     #[test]
-    fn deserialize_bigint_from_file_json_gives_error() {
+    fn deserialize_program_json_from_json_file_b() {
+        // Open json file with (valid) odd length encoded hex
+        let file = File::open("tests/support/valid_program_b.json").unwrap();
+        let mut reader = BufReader::new(file);
+
+        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
+        let builtins: Vec<String> = vec![String::from("output"), String::from("range_check")];
+
+        assert_eq!(
+            program_json.prime,
+            BigInt::parse_bytes(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10
+            )
+            .unwrap()
+        );
+        assert_eq!(program_json.builtins, builtins);
+        assert_eq!(program_json.data.len(), 24);
+        assert_eq!(program_json.identifiers["__main__.main"].pc, Some(13));
+    }
+
+    #[test]
+    fn deserialize_program_json_from_json_file_gives_error() {
         // Open json file with (invalid) even length encoded hex
         let even_length_file = File::open("tests/support/invalid_even_length_hex.json").unwrap();
         let mut reader = BufReader::new(even_length_file);
 
-        let even_result: Result<TestStruct, _> = serde_json::from_reader(&mut reader);
+        let even_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
 
         assert!(even_result.is_err());
 
@@ -279,7 +256,7 @@ mod tests {
         let odd_length_file = File::open("tests/support/invalid_odd_length_hex.json").unwrap();
         let mut reader = BufReader::new(odd_length_file);
 
-        let odd_result: Result<TestStruct, _> = serde_json::from_reader(&mut reader);
+        let odd_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
 
         assert!(odd_result.is_err());
     }
