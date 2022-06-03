@@ -328,6 +328,9 @@ mod tests {
             main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..2 {
+            cairo_runner.segments.add(None);
+        }
         cairo_runner.program_base = Some(Relocatable {
             segment_index: 1,
             offset: 0,
@@ -363,6 +366,9 @@ mod tests {
             main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..3 {
+            cairo_runner.segments.add(None);
+        }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = vec![
@@ -399,6 +405,9 @@ mod tests {
             main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..2 {
+            cairo_runner.segments.add(None);
+        }
         cairo_runner.execution_base = Some(Relocatable {
             segment_index: 2,
             offset: 0,
@@ -421,6 +430,9 @@ mod tests {
             main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..2 {
+            cairo_runner.segments.add(None);
+        }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
             MaybeRelocatable::Int(bigint!(4)),
@@ -439,6 +451,9 @@ mod tests {
             main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..2 {
+            cairo_runner.segments.add(None);
+        }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = Vec::new();
@@ -458,7 +473,7 @@ mod tests {
                 .segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 1))),
-            Some(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0)))
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
         );
     }
 
@@ -472,6 +487,9 @@ mod tests {
             main: None,
         };
         let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..2 {
+            cairo_runner.segments.add(None);
+        }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = vec![MaybeRelocatable::Int(bigint!(7))];
@@ -498,7 +516,7 @@ mod tests {
                 .segments
                 .memory
                 .get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
-            Some(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0)))
+            Some(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0)))
         );
     }
 
@@ -596,11 +614,11 @@ mod tests {
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_segments(None);
         cairo_runner.segments.memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(2, 1)),
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 0)),
             &MaybeRelocatable::Int(bigint!(23)),
         );
         cairo_runner.segments.memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(2, 4)),
+            &MaybeRelocatable::RelocatableValue(relocatable!(2, 1)),
             &MaybeRelocatable::Int(bigint!(233)),
         );
         cairo_runner.initialize_vm();
@@ -611,11 +629,11 @@ mod tests {
         assert!(cairo_runner
             .vm
             .validated_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))));
+            .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 0))));
         assert!(cairo_runner
             .vm
             .validated_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 4))));
+            .contains(&MaybeRelocatable::RelocatableValue(relocatable!(2, 1))));
         assert_eq!(cairo_runner.vm.validated_addresses.len(), 2);
     }
 
@@ -2388,18 +2406,9 @@ mod tests {
         assert_eq!(
             cairo_runner.vm.trace[17],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: 0,
-                    offset: 23
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: 1,
-                    offset: 18
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                }),
+                pc: MaybeRelocatable::from((0, 23)),
+                ap: MaybeRelocatable::from((1, 18)),
+                fp: MaybeRelocatable::from((1, 4)),
             }
         );
         //Check the range_check builtin segment
@@ -2408,17 +2417,17 @@ mod tests {
             .builtin_runners
             .contains_key(&String::from("range_check")));
         assert_eq!(
-            relocatable!(2, 0),
+            relocatable!(3, 0),
             cairo_runner.vm.builtin_runners["range_check"]
                 .base()
                 .unwrap(),
         );
         assert_eq!(
-            cairo_runner.vm.memory.get(&MaybeRelocatable::from((2, 0))),
+            cairo_runner.vm.memory.get(&MaybeRelocatable::from((3, 0))),
             Some(&MaybeRelocatable::Int(bigint!(7)))
         );
         assert_eq!(
-            cairo_runner.vm.memory.get(&MaybeRelocatable::from((2, 1))),
+            cairo_runner.vm.memory.get(&MaybeRelocatable::from((3, 1))),
             Some(&MaybeRelocatable::Int(bigint!(2).pow(64) - bigint!(8)))
         );
         assert_eq!(
@@ -2432,21 +2441,21 @@ mod tests {
             .builtin_runners
             .contains_key(&String::from("output")));
         assert_eq!(
-            relocatable!(3, 0),
+            relocatable!(2, 0),
             cairo_runner.vm.builtin_runners["output"].base().unwrap(),
         );
         assert_eq!(
             cairo_runner
                 .vm
                 .memory
-                .get(&(MaybeRelocatable::from((3, 0)))),
+                .get(&(MaybeRelocatable::from((2, 0)))),
             Some(&MaybeRelocatable::Int(bigint!(7)))
         );
         assert_eq!(
             cairo_runner
                 .vm
                 .memory
-                .get(&(MaybeRelocatable::from((3, 1)))),
+                .get(&(MaybeRelocatable::from((2, 1)))),
             None
         );
     }

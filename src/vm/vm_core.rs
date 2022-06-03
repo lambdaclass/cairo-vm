@@ -95,10 +95,7 @@ impl VirtualMachine {
             } else {
                 return Err(VirtualMachineError::InvalidInstructionEncoding);
             }
-            let imm_addr = self
-                .run_context
-                .pc
-                .add_int_mod(BigInt::from_i32(1).unwrap(), self.prime.clone());
+            let imm_addr = self.run_context.pc.add_usize_mod(1, None);
             let optional_imm = self.memory.get(&imm_addr);
             Ok((encoding_ref, optional_imm))
         }
@@ -544,54 +541,40 @@ impl fmt::Display for VirtualMachineError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint64;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint64, relocatable};
+    use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-
+        vm.memory.data.push(Vec::new());
+        vm.run_context.pc = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
         vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::Int(bigint!(5)),
         );
-        if let Ok((num_ref, None)) = vm.get_instruction_encoding() {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-        } else {
-            assert!(false);
-        }
-
-        vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        );
-        if let Ok((num_ref, None)) = vm.get_instruction_encoding() {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
     }
 
     #[test]
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
+        vm.memory.data.push(Vec::new());
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
 
         vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::from(bigint!(5)),
         );
         vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            &MaybeRelocatable::from((0, 1)),
+            &MaybeRelocatable::from(bigint!(6)),
         );
         if let Ok((num_ref, Some(MaybeRelocatable::Int(imm_ref)))) = vm.get_instruction_encoding() {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-            assert_eq!(imm_ref.clone(), BigInt::from_i32(6).unwrap());
+            assert_eq!(num_ref.clone(), bigint!(5));
+            assert_eq!(imm_ref.clone(), bigint!(6));
         } else {
             assert!(false);
         }
@@ -600,17 +583,11 @@ mod tests {
     #[test]
     fn get_instruction_encoding_unsuccesful() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-
-        vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        assert_eq!(
+            Err(VirtualMachineError::InvalidInstructionEncoding),
+            vm.get_instruction_encoding()
         );
-        if let Err(error) = vm.get_instruction_encoding() {
-            assert_eq!(error, VirtualMachineError::InvalidInstructionEncoding);
-        } else {
-            assert!(false);
-        }
     }
 
     #[test]
@@ -1257,8 +1234,8 @@ mod tests {
 
     #[test]
     fn is_zero_int_value() {
-        let _value = MaybeRelocatable::Int(bigint!(1));
-        //assert_eq!(Ok(false), VirtualMachine::is_zero(Some(value)));
+        let value = MaybeRelocatable::Int(bigint!(1));
+        assert_eq!(Ok(false), VirtualMachine::is_zero(value));
     }
 
     #[test]
@@ -1267,7 +1244,10 @@ mod tests {
             segment_index: 1,
             offset: 2,
         });
-        assert_eq!(Ok(false), VirtualMachine::is_zero(value));
+        assert_eq!(
+            Err(VirtualMachineError::PureValue),
+            VirtualMachine::is_zero(value)
+        );
     }
 
     #[test]
@@ -1975,36 +1955,17 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let run_context = RunContext {
-            pc: MaybeRelocatable::Int(bigint!(0)),
-            ap: MaybeRelocatable::Int(bigint!(0)),
-            fp: MaybeRelocatable::Int(bigint!(0)),
-            prime: bigint!(127),
-        };
-
-        let dst_addr = MaybeRelocatable::Int(bigint!(0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.memory.data.push(Vec::new());
+        let dst_addr = MaybeRelocatable::from((0, 0));
         let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
-        let op0_addr = MaybeRelocatable::Int(bigint!(1));
+        let op0_addr = MaybeRelocatable::from((0, 1));
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr = MaybeRelocatable::Int(bigint!(2));
+        let op1_addr = MaybeRelocatable::from((0, 2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        let mut memory = Memory::new();
-        memory.insert(&dst_addr, &dst_addr_value);
-        memory.insert(&op0_addr, &op0_addr_value);
-        memory.insert(&op1_addr, &op1_addr_value);
-
-        let mut vm = VirtualMachine {
-            run_context: run_context,
-            prime: bigint!(127),
-            _program_base: None,
-            builtin_runners: BTreeMap::<String, Box<dyn BuiltinRunner>>::new(),
-            memory,
-            validated_addresses: Vec::<MaybeRelocatable>::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
-        };
+        vm.memory.insert(&dst_addr, &dst_addr_value);
+        vm.memory.insert(&op0_addr, &op0_addr_value);
+        vm.memory.insert(&op1_addr, &op1_addr_value);
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2036,37 +1997,17 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
         };
-
-        let run_context = RunContext {
-            pc: MaybeRelocatable::Int(bigint!(0)),
-            ap: MaybeRelocatable::Int(bigint!(0)),
-            fp: MaybeRelocatable::Int(bigint!(0)),
-            prime: bigint!(127),
-        };
-
-        let dst_addr = MaybeRelocatable::Int(bigint!(0));
-        let dst_addr_value = MaybeRelocatable::Int(bigint!(6));
-        let op0_addr = MaybeRelocatable::Int(bigint!(1));
-        let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        let mut memory = Memory::new();
-        memory.insert(&dst_addr, &dst_addr_value);
-        memory.insert(&op0_addr, &op0_addr_value);
-        memory.insert(&op1_addr, &op1_addr_value);
-
-        let mut vm = VirtualMachine {
-            run_context: run_context,
-            prime: bigint!(127),
-            _program_base: None,
-            builtin_runners: BTreeMap::<String, Box<dyn BuiltinRunner>>::new(),
-            memory,
-            validated_addresses: Vec::<MaybeRelocatable>::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
-        };
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.memory.data.push(Vec::new());
+        let dst_addr = MaybeRelocatable::from((0, 0));
+        let dst_addr_value = MaybeRelocatable::from(bigint!(6));
+        let op0_addr = MaybeRelocatable::from((0, 1));
+        let op0_addr_value = MaybeRelocatable::from(bigint!(2));
+        let op1_addr = MaybeRelocatable::from((0, 2));
+        let op1_addr_value = MaybeRelocatable::from(bigint!(3));
+        vm.memory.insert(&dst_addr, &dst_addr_value);
+        vm.memory.insert(&op0_addr, &op0_addr_value);
+        vm.memory.insert(&op1_addr, &op1_addr_value);
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2101,7 +2042,7 @@ mod tests {
 
         let mem_arr = vec![
             (
-                MaybeRelocatable::RelocatableValue(relocatable!(0, 0)),
+                MaybeRelocatable::from((0, 0)),
                 MaybeRelocatable::Int(bigint64!(0x206800180018001)),
             ),
             (
@@ -2303,6 +2244,9 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             BTreeMap::new(),
         );
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
         vm.run_context.pc = MaybeRelocatable::RelocatableValue(Relocatable {
             segment_index: 0,
             offset: 0,
@@ -2441,6 +2385,9 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             BTreeMap::new(),
         );
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
         vm.run_context.pc = MaybeRelocatable::RelocatableValue(Relocatable {
             segment_index: 0,
             offset: 3,

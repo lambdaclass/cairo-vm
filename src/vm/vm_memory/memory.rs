@@ -15,7 +15,7 @@ impl Memory {
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (i, j) = from_relocatable_to_indexes(relocatable.clone());
             //Check that the memory segment exists
-            if self.data.len() < i {
+            if self.data.len() < i + 1 {
                 panic!("Cant insert to a non-allocated memory segment")
             }
             //Check that the element is inserted next to the las one on the segment
@@ -31,7 +31,7 @@ impl Memory {
     pub fn get(&self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (i, j) = from_relocatable_to_indexes(relocatable.clone());
-            if self.data.len() <= i && self.data[i].len() <= j {
+            if self.data.len() > i && self.data[i].len() > j {
                 Some(&self.data[i][j])
             } else {
                 None
@@ -60,6 +60,7 @@ impl Memory {
 #[cfg(test)]
 mod memory_tests {
     use crate::relocatable;
+    use crate::types::relocatable::Relocatable;
 
     use super::*;
     use num_bigint::BigInt;

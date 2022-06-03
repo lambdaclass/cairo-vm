@@ -127,6 +127,7 @@ mod tests {
             current_ptr,
             MaybeRelocatable::RelocatableValue(relocatable!(0, 3))
         );
+
         assert_eq!(
             segments.memory.get(&ptr),
             Some(&MaybeRelocatable::Int(bigint!(4)))
@@ -140,7 +141,7 @@ mod tests {
         assert_eq!(
             segments
                 .memory
-                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
+                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
             Some(&MaybeRelocatable::Int(bigint!(6)))
         );
     }
