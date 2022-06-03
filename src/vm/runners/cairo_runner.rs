@@ -1240,7 +1240,7 @@ mod tests {
                 )),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(3)),
+            main: Some(3),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1415,7 +1415,7 @@ mod tests {
                 )),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(8)),
+            main: Some(8),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1709,7 +1709,7 @@ mod tests {
                 )),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(4)),
+            main: Some(4),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2063,7 +2063,7 @@ mod tests {
                 MaybeRelocatable::Int(BigInt::from_i64(5193354029882638336).unwrap()),
                 MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
-            main: Some(bigint!(13)),
+            main: Some(13),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
