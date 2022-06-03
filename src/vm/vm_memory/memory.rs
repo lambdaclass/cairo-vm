@@ -59,22 +59,54 @@ impl Memory {
 
 #[cfg(test)]
 mod memory_tests {
-    use crate::types::relocatable::Relocatable;
-    use crate::{bigint, relocatable};
+    use crate::bigint;
 
     use super::*;
     use num_bigint::BigInt;
     use num_traits::FromPrimitive;
 
     #[test]
-    fn get_test() {
-        let key = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
-        let val = MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
-        let _val_clone = val.clone();
-        let mut mem = Memory::new();
-        mem.data.push(Vec::new());
-        mem.insert(&key, &val);
-        assert_eq!(matches!(mem.get(&key), _val_clone), true);
+    fn insert_and_get_succesful() {
+        let key = MaybeRelocatable::from((0, 0));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory.insert(&key, &val);
+        assert_eq!(memory.get(&key), Some(&MaybeRelocatable::from(bigint!(5))));
+    }
+
+    #[test]
+    fn get_non_allocated_memory() {
+        let key = MaybeRelocatable::from((0, 0));
+        let memory = Memory::new();
+        assert_eq!(memory.get(&key), None);
+    }
+
+    #[test]
+    fn get_non_existant_element() {
+        let key = MaybeRelocatable::from((0, 0));
+        let memory = Memory::new();
+        assert_eq!(memory.get(&key), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn insert_non_allocated_memory() {
+        let key = MaybeRelocatable::from((0, 0));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.insert(&key, &val);
+    }
+
+    #[test]
+    #[should_panic]
+    fn insert_non_contiguous_element() {
+        let key_a = MaybeRelocatable::from((0, 0));
+        let key_b = MaybeRelocatable::from((0, 2));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.insert(&key_a, &val);
+        memory.insert(&key_b, &val);
     }
 
     #[test]
