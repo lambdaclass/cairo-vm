@@ -2099,7 +2099,7 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mem_arr = [
+        let mem_arr = vec![
             (
                 relocatable!(0, 0),
                 MaybeRelocatable::Int(bigint64!(0x206800180018001)),
@@ -2108,7 +2108,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.memory = Memory::from(mem_arr.clone());
+        vm.memory = Memory::from(mem_arr.clone(), 2);
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2806,7 +2806,7 @@ mod tests {
     /// RelocatableValue(segment_index=1, offset=3): '0x5',
     /// RelocatableValue(segment_index=1, offset=4): '0x14'
     fn multiplication_and_different_ap_increase() {
-        let mem_arr = [
+        let mem_arr = vec![
             (
                 relocatable!(0, 0),
                 MaybeRelocatable::Int(bigint64!(0x400680017fff8000)),
@@ -2852,7 +2852,7 @@ mod tests {
             segment_index: 1,
             offset: 2,
         });
-        vm.memory = Memory::from(mem_arr.clone());
+        vm.memory = Memory::from(mem_arr.clone(), 2);
 
         assert_eq!(
             vm.run_context.pc,

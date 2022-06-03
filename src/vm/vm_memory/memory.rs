@@ -2,7 +2,6 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
 };
-use std::convert::From;
 
 #[derive(Clone)]
 pub struct Memory {
@@ -44,11 +43,13 @@ impl Memory {
             panic!("Memory addresses must be relocatable")
         }
     }
-}
 
-impl<const N: usize> From<[(Relocatable, MaybeRelocatable); N]> for Memory {
-    fn from(key_val_list: [(Relocatable, MaybeRelocatable); N]) -> Self {
+    #[allow(dead_code)]
+    pub fn from(key_val_list: Vec<(Relocatable, MaybeRelocatable)>, num_segements: usize) -> Self {
         let mut memory = Vec::<Vec<MaybeRelocatable>>::new();
+        for _ in 0..num_segements {
+            memory.push(Vec::new());
+        }
         for (key, val) in key_val_list.iter() {
             let (i, j) = from_relocatable_to_indexes(key.clone());
             memory[i][j] = val.clone();
@@ -67,23 +68,27 @@ mod memory_tests {
 
     #[test]
     fn get_test() {
-        let key = MaybeRelocatable::Int(BigInt::from_i32(2).unwrap());
+        let key = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
         let val = MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
         let _val_clone = val.clone();
         let mut mem = Memory::new();
+        mem.data.push(Vec::new());
         mem.insert(&key, &val);
         assert_eq!(matches!(mem.get(&key), _val_clone), true);
     }
 
     #[test]
     fn from_array_test() {
-        let mem = Memory::from([(
-            relocatable!(1, 2),
-            MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        )]);
+        let mem = Memory::from(
+            vec![(
+                relocatable!(1, 0),
+                MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            )],
+            2,
+        );
         assert_eq!(
             matches!(
-                mem.get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 2))),
+                mem.get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 0))),
                 _val_clone
             ),
             true
