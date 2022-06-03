@@ -268,8 +268,8 @@ mod decoder_test {
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800180007FFF, None);
-        assert_eq!(inst.off0, BigInt::from_i32(-1).unwrap());
-        assert_eq!(inst.off1, BigInt::from_i32(0).unwrap());
-        assert_eq!(inst.off2, BigInt::from_i32(1).unwrap());
+        assert_eq!(inst.off0, bigint!(-1));
+        assert_eq!(inst.off1, bigint!(0));
+        assert_eq!(inst.off2, bigint!(1));
     }
 }

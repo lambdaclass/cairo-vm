@@ -86,63 +86,50 @@ mod tests {
     #[test]
     fn load_data_empty() {
         let data = Vec::new();
-        let ptr = MaybeRelocatable::RelocatableValue(relocatable!(0, 3));
+        let ptr = MaybeRelocatable::from((0, 3));
         let mut segments = MemorySegmentManager::new(bigint!(17));
         let current_ptr = segments.load_data(&ptr, data);
-        assert_eq!(
-            current_ptr,
-            MaybeRelocatable::RelocatableValue(relocatable!(0, 3))
-        )
+        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)))
     }
 
     #[test]
     fn load_data_one_element() {
-        let data = vec![MaybeRelocatable::Int(bigint!(4))];
-        let ptr = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
+        let data = vec![MaybeRelocatable::from(bigint!(4))];
+        let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new(bigint!(17));
         segments.add(None);
         let current_ptr = segments.load_data(&ptr, data);
-        assert_eq!(
-            current_ptr,
-            MaybeRelocatable::RelocatableValue(relocatable!(0, 1))
-        );
+        assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(
             segments.memory.get(&ptr),
-            Some(&MaybeRelocatable::Int(bigint!(4)))
+            Some(&MaybeRelocatable::from(bigint!(4)))
         );
     }
 
     #[test]
     fn load_data_three_elements() {
         let data = vec![
-            MaybeRelocatable::Int(bigint!(4)),
-            MaybeRelocatable::Int(bigint!(5)),
-            MaybeRelocatable::Int(bigint!(6)),
+            MaybeRelocatable::from(bigint!(4)),
+            MaybeRelocatable::from(bigint!(5)),
+            MaybeRelocatable::from(bigint!(6)),
         ];
-        let ptr = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
+        let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new(bigint!(17));
         segments.add(None);
         let current_ptr = segments.load_data(&ptr, data);
-        assert_eq!(
-            current_ptr,
-            MaybeRelocatable::RelocatableValue(relocatable!(0, 3))
-        );
+        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
         assert_eq!(
             segments.memory.get(&ptr),
-            Some(&MaybeRelocatable::Int(bigint!(4)))
+            Some(&MaybeRelocatable::from(bigint!(4)))
         );
         assert_eq!(
-            segments
-                .memory
-                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 1))),
-            Some(&MaybeRelocatable::Int(bigint!(5)))
+            segments.memory.get(&MaybeRelocatable::from((0, 1))),
+            Some(&MaybeRelocatable::from(bigint!(5)))
         );
         assert_eq!(
-            segments
-                .memory
-                .get(&MaybeRelocatable::RelocatableValue(relocatable!(0, 2))),
-            Some(&MaybeRelocatable::Int(bigint!(6)))
+            segments.memory.get(&MaybeRelocatable::from((0, 2))),
+            Some(&MaybeRelocatable::from(bigint!(6)))
         );
     }
 }

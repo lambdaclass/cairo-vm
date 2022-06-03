@@ -147,56 +147,30 @@ mod tests {
 
     #[test]
     fn add_bigint_to_int() {
-        let addr = MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
-        let added_addr = addr.add_int_mod(BigInt::from_i32(2).unwrap(), bigint!(17));
-        if let MaybeRelocatable::Int(num) = added_addr {
-            assert_eq!(num, BigInt::from_i32(9).unwrap());
-        } else {
-            assert!(false);
-        }
+        let addr = MaybeRelocatable::from(bigint!(7));
+        let added_addr = addr.add_int_mod(bigint!(2), bigint!(17));
+        assert_eq!(MaybeRelocatable::Int(bigint!(9)), added_addr);
     }
 
     #[test]
     fn add_usize_to_int() {
-        let addr = MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
+        let addr = MaybeRelocatable::from(bigint!(7));
         let added_addr = addr.add_usize_mod(2, Some(bigint!(17)));
-        if let MaybeRelocatable::Int(num) = added_addr {
-            assert_eq!(num, BigInt::from_i32(9).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(MaybeRelocatable::Int(bigint!(9)), added_addr);
     }
 
     #[test]
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let added_addr = addr.add_int_mod(BigInt::from_i32(2).unwrap(), bigint!(121));
-        if let MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index,
-            offset,
-        }) = added_addr
-        {
-            assert_eq!(offset, 67);
-            assert_eq!(segment_index, 7);
-        } else {
-            assert!(false);
-        }
+        let added_addr = addr.add_int_mod(bigint!(2), bigint!(121));
+        assert_eq!(MaybeRelocatable::from((7, 67)), added_addr);
     }
 
     #[test]
     fn add_usize_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let added_addr = addr.add_int_mod(BigInt::from_i32(2).unwrap(), bigint!(121));
-        if let MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index,
-            offset,
-        }) = added_addr
-        {
-            assert_eq!(offset, 67);
-            assert_eq!(segment_index, 7);
-        } else {
-            assert!(false);
-        }
+        let added_addr = addr.add_int_mod(bigint!(2), bigint!(121));
+        assert_eq!(MaybeRelocatable::from((7, 67)), added_addr);
     }
 
     #[test]
@@ -209,7 +183,7 @@ mod tests {
             ],
         ));
         let added_addr = addr.add_int_mod(
-            BigInt::from_i32(1).unwrap(),
+            bigint!(1),
             BigInt::new(
                 Sign::Plus,
                 vec![
@@ -218,11 +192,7 @@ mod tests {
                 ],
             ),
         );
-        if let MaybeRelocatable::Int(num) = added_addr {
-            assert_eq!(num, BigInt::from_i32(4).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(MaybeRelocatable::Int(bigint!(4)), added_addr);
     }
 
     #[test]
@@ -240,10 +210,10 @@ mod tests {
 
     #[test]
     fn add_int_to_int() {
-        let addr_a = &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
-        let addr_b = MaybeRelocatable::Int(BigInt::from_i32(17).unwrap());
+        let addr_a = &MaybeRelocatable::from(bigint!(7));
+        let addr_b = MaybeRelocatable::from(bigint!(17));
         let added_addr = addr_a.add_mod(addr_b, bigint!(71));
-        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(24))), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(24))), added_addr);
     }
 
     #[test]
@@ -252,17 +222,17 @@ mod tests {
             Sign::Plus,
             vec![1, 0, 0, 0, 0, 0, 17, 134217728],
         ));
-        let addr_b = MaybeRelocatable::Int(BigInt::from_i32(17).unwrap());
+        let addr_b = MaybeRelocatable::from(bigint!(17));
         let added_addr = addr_a.add_mod(
             addr_b,
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         );
-        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(17))), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(17))), added_addr);
     }
 
     #[test]
     fn add_relocatable_to_relocatable_should_fail() {
-        let addr_a = &MaybeRelocatable::RelocatableValue(relocatable!(7, 5));
+        let addr_a = &MaybeRelocatable::from((7, 5));
         let addr_b = MaybeRelocatable::RelocatableValue(relocatable!(7, 10));
         let added_addr = addr_a.add_mod(addr_b, bigint!(17));
         assert_eq!(Err(VirtualMachineError::RelocatableAdd), added_addr);
@@ -270,8 +240,8 @@ mod tests {
 
     #[test]
     fn add_int_to_relocatable() {
-        let addr_a = &MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
-        let addr_b = MaybeRelocatable::Int(BigInt::from_i32(10).unwrap());
+        let addr_a = &MaybeRelocatable::from((7, 7));
+        let addr_b = MaybeRelocatable::from(bigint!(10));
         let added_addr = addr_a.add_mod(addr_b, bigint!(21));
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 17))),
@@ -281,7 +251,7 @@ mod tests {
 
     #[test]
     fn add_relocatable_to_int() {
-        let addr_a = &MaybeRelocatable::Int(BigInt::from_i32(10).unwrap());
+        let addr_a = &MaybeRelocatable::from(bigint!(10));
         let addr_b = MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
         let added_addr = addr_a.add_mod(addr_b, bigint!(21));
         assert_eq!(
@@ -292,7 +262,7 @@ mod tests {
 
     #[test]
     fn add_int_to_relocatable_prime() {
-        let addr_a = &MaybeRelocatable::RelocatableValue(relocatable!(7, 14));
+        let addr_a = &MaybeRelocatable::from((7, 14));
         let addr_b = MaybeRelocatable::Int(BigInt::new(
             Sign::Plus,
             vec![1, 0, 0, 0, 0, 0, 17, 134217728],
@@ -309,16 +279,16 @@ mod tests {
 
     #[test]
     fn sub_int_from_int() {
-        let addr_a = &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
-        let addr_b = &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
+        let addr_a = &MaybeRelocatable::from(bigint!(7));
+        let addr_b = &MaybeRelocatable::from(bigint!(5));
         let sub_addr = addr_a.sub(addr_b);
-        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(2))), sub_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(2))), sub_addr);
     }
 
     #[test]
     fn sub_relocatable_from_relocatable_same_offset() {
-        let addr_a = &MaybeRelocatable::RelocatableValue(relocatable!(7, 17));
-        let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
+        let addr_a = &MaybeRelocatable::from((7, 17));
+        let addr_b = &MaybeRelocatable::from((7, 7));
         let sub_addr = addr_a.sub(addr_b);
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 10))),
@@ -328,16 +298,16 @@ mod tests {
 
     #[test]
     fn sub_relocatable_from_relocatable_diff_offset() {
-        let addr_a = &MaybeRelocatable::RelocatableValue(relocatable!(7, 17));
-        let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(8, 7));
+        let addr_a = &MaybeRelocatable::from((7, 17));
+        let addr_b = &MaybeRelocatable::from((8, 7));
         let sub_addr = addr_a.sub(addr_b);
         assert_eq!(Err(VirtualMachineError::DiffIndexSub), sub_addr);
     }
 
     #[test]
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
-        let addr_a = &MaybeRelocatable::RelocatableValue(relocatable!(7, 17));
-        let addr_b = &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
+        let addr_a = &MaybeRelocatable::from((7, 17));
+        let addr_b = &MaybeRelocatable::from(bigint!(5));
         let sub_addr = addr_a.sub(addr_b);
         assert_eq!(Err(VirtualMachineError::NotImplemented), sub_addr);
     }

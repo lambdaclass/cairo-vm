@@ -227,16 +227,13 @@ mod tests {
         }
 
         segments.memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
-            &MaybeRelocatable::Int(bigint!(45)),
+            &MaybeRelocatable::from((1, 0)),
+            &MaybeRelocatable::from(bigint!(45)),
         );
         let vec = builtin
             .validate_existing_memory(&segments.memory.data[1])
             .unwrap();
-        assert_eq!(
-            vec[0],
-            MaybeRelocatable::RelocatableValue(relocatable!(1, 0))
-        );
+        assert_eq!(vec[0], MaybeRelocatable::from((1, 0)));
     }
 
     #[test]
@@ -246,8 +243,8 @@ mod tests {
         builtin.base = Some(relocatable!(1, 0));
         let mut memory = Memory::new();
         memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
-            &MaybeRelocatable::Int(bigint!(-10)),
+            &MaybeRelocatable::from((1, 7)),
+            &MaybeRelocatable::from(bigint!(-10)),
         );
         builtin.validate_existing_memory(&memory.data[1]);
     }
@@ -259,8 +256,8 @@ mod tests {
         builtin.base = Some(relocatable!(1, 0));
         let mut memory = Memory::new();
         memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(1, 7)),
-            &MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
+            &MaybeRelocatable::from((1, 7)),
+            &MaybeRelocatable::from((1, 4)),
         );
         builtin.validate_existing_memory(&memory.data[1]);
     }
@@ -275,8 +272,8 @@ mod tests {
             segments.add(None);
         }
         segments.memory.insert(
-            &MaybeRelocatable::RelocatableValue(relocatable!(2, 0)),
-            &MaybeRelocatable::Int(bigint!(-45)),
+            &MaybeRelocatable::from((2, 0)),
+            &MaybeRelocatable::from(bigint!(-45)),
         );
         let vec = builtin.validate_existing_memory(&segments.memory.data[1]);
         assert_eq!(vec, None);

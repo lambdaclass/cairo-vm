@@ -59,8 +59,8 @@ impl Memory {
 
 #[cfg(test)]
 mod memory_tests {
-    use crate::relocatable;
     use crate::types::relocatable::Relocatable;
+    use crate::{bigint, relocatable};
 
     use super::*;
     use num_bigint::BigInt;
@@ -81,16 +81,13 @@ mod memory_tests {
     fn from_array_test() {
         let mem = Memory::from(
             vec![(
-                MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
-                MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+                MaybeRelocatable::from((1, 0)),
+                MaybeRelocatable::from(bigint!(5)),
             )],
             2,
         );
         assert_eq!(
-            matches!(
-                mem.get(&MaybeRelocatable::RelocatableValue(relocatable!(1, 0))),
-                _val_clone
-            ),
+            matches!(mem.get(&MaybeRelocatable::from((1, 0))), _val_clone),
             true
         );
     }
