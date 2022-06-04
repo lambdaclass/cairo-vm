@@ -2,6 +2,10 @@
 
 Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet. We are working on it.
 
+
+## Code Coverage
+Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
+
 ## Cairo
 
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
@@ -65,6 +69,3 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Using SHARP (Shared Prover)](https://www.cairo-lang.org/docs/sharp.html)
 * [Cairo for Blockchain Developers](https://www.cairo-lang.org/cairo-for-blockchain-developers/)
 * [Why STARKs are the key to unlocking blockchain scalability](https://twitter.com/0xalec/status/1529915544324800512?s=12&t=FX6TgXCZY1iWcWmbc7oqSw)
-
-## Code Coverage
-Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo)
