@@ -60,13 +60,26 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Dark forest's intro + circuits PART 2](https://blog.zkga.me/df-init-circuit)
 
 ### ZK STARKs
+
+Introduction:
 * [Cryptography Stack Exchange Answer](https://crypto.stackexchange.com/questions/56327/what-are-zk-starks)
 * [Hasu gets STARK-pilled - with Eli Ben-Sasson](https://youtu.be/-6BtBUbiUIU)
-* [STARKs, Part I: Proofs with Polynomials](https://vitalik.ca/general/2017/11/09/starks_part_1.html)
-* [STARKs, Part II: Thank Goodness It's FRI-day](https://vitalik.ca/general/2017/11/22/starks_part_2.html)
-* [STARKs, Part 3: Into the Weeds](https://vitalik.ca/general/2018/07/21/starks_part_3.html)
-* [StarkDEX Deep Dive: the STARK Core Engine](https://medium.com/starkware/starkdex-deep-dive-the-stark-core-engine-497942d0f0ab)
-* [STARK Math Series](https://medium.com/starkware/tagged/stark-math)
-* [Using SHARP (Shared Prover)](https://www.cairo-lang.org/docs/sharp.html)
 * [Cairo for Blockchain Developers](https://www.cairo-lang.org/cairo-for-blockchain-developers/)
 * [Why STARKs are the key to unlocking blockchain scalability](https://twitter.com/0xalec/status/1529915544324800512?s=12&t=FX6TgXCZY1iWcWmbc7oqSw)
+* STARKs whitepaper: [Scalable, transparent, and post-quantum secure computational integrity](https://eprint.iacr.org/2018/046)
+* STARKs vs. SNARKs: [A Cambrian Explosion of Crypto Proofs](https://nakamoto.com/cambrian-explosion-of-crypto-proofs/)
+
+Vitalik Buterin's blog series on zk-STARKs:
+* [STARKs, part 1: Proofs with Polynomials](https://vitalik.ca/general/2017/11/09/starks_part_1.html)
+* [STARKs, part 2: Thank Goodness it's FRI-day](https://vitalik.ca/general/2017/11/22/starks_part_2.html)
+* [STARKs, part 3: Into the Weeds](https://vitalik.ca/general/2018/07/21/starks_part_3.html)
+
+Alan Szepieniec's STARK tutorial:
+* [Anatomy of a STARK](https://aszepieniec.github.io/stark-anatomy/)
+
+StarkWare's STARK Math blog series:
+* [STARK Math: The Journey Begins](https://medium.com/starkware/stark-math-the-journey-begins-51bd2b063c71)
+* [Arithmetization I](https://medium.com/starkware/arithmetization-i-15c046390862)
+* [Arithmetization II](https://medium.com/starkware/arithmetization-ii-403c3b3f4355)
+* [Low Degree Testing](https://medium.com/starkware/low-degree-testing-f7614f5172db)
+* [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
