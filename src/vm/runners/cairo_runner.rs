@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::types::program::Program;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::is_subsequence;
 use crate::vm::runners::builtin_runner::{
     BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
@@ -23,7 +23,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
-    //relocated_memory: Vec<BigInt>,
+    relocated_memory: Vec<Option<BigInt>>,
 }
 
 #[allow(dead_code)]
@@ -69,7 +69,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
-            //relocated_memory: Vec::new(),
+            relocated_memory: Vec::new(),
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
@@ -183,6 +183,27 @@ impl CairoRunner {
             self.vm.step()?;
         }
         Ok(())
+    }
+    pub fn relocate_memory(&mut self) {
+        assert!(
+            self.relocated_memory != vec![],
+            "Memory has been already relocated"
+        );
+        let relocation_table = self.segments.relocate_segments();
+        self.relocated_memory.push(None);
+        for (index, segment) in self.segments.memory.data.iter().enumerate() {
+            assert_eq!(self.relocated_memory.len() + 1, relocation_table[index]);
+            for element in segment {
+                if element != &None {
+                    self.relocated_memory.push(Some(relocate_value(
+                        element.clone().unwrap(),
+                        relocation_table.clone(),
+                    )));
+                } else {
+                    self.relocated_memory.push(None);
+                }
+            }
+        }
     }
 }
 
