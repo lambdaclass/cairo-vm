@@ -4,7 +4,7 @@ use crate::vm::vm_memory::memory::Memory;
 pub struct MemorySegmentManager {
     pub memory: Memory,
     pub num_segments: usize,
-    segment_used_sizes: Option<Vec<usize>>,
+    _segment_used_sizes: Option<Vec<usize>>,
 }
 
 impl MemorySegmentManager {
@@ -38,20 +38,8 @@ impl MemorySegmentManager {
         MemorySegmentManager {
             memory: Memory::new(),
             num_segments: 0,
-            segment_used_sizes: None,
+            _segment_used_sizes: None,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn compute_effective_sizes(&mut self) {
-        if self.segment_used_sizes == None {
-            return;
-        }
-        let mut segment_used_sizes = Vec::new();
-        for segment in self.memory.data.iter() {
-            segment_used_sizes.push(segment.len());
-        }
-        self.segment_used_sizes = Some(segment_used_sizes);
     }
 }
 
