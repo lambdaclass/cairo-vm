@@ -186,13 +186,13 @@ impl CairoRunner {
     }
     pub fn relocate_memory(&mut self) {
         assert!(
-            self.relocated_memory != vec![],
+            self.relocated_memory.is_empty(),
             "Memory has been already relocated"
         );
         let relocation_table = self.segments.relocate_segments();
         self.relocated_memory.push(None);
         for (index, segment) in self.segments.memory.data.iter().enumerate() {
-            assert_eq!(self.relocated_memory.len() + 1, relocation_table[index]);
+            assert_eq!(self.relocated_memory.len(), relocation_table[index]);
             for element in segment {
                 if element != &None {
                     self.relocated_memory.push(Some(relocate_value(
@@ -213,7 +213,7 @@ mod tests {
 
     use super::*;
     use crate::vm::trace::trace_entry::TraceEntry;
-    use crate::{bigint_str, relocatable};
+    use crate::{bigint64, bigint_str, relocatable};
 
     #[test]
     #[should_panic]
@@ -1916,5 +1916,85 @@ mod tests {
                 .get(&(MaybeRelocatable::from((2, 1)))),
             None
         );
+    }
+
+    #[test]
+    /*Memory from this test is taken from a cairo program execution
+    Program used:
+        func main():
+        let a = 1
+        [ap + 3] = 5
+        return()
+
+    end
+    Final Memory:
+    {RelocatableValue(segment_index=0, offset=0): 4613515612218425347,
+     RelocatableValue(segment_index=0, offset=1): 5,
+     RelocatableValue(segment_index=0, offset=2): 2345108766317314046,
+     RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+     RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0),
+     RelocatableValue(segment_index=1, offset=5): 5}
+    Relocated Memory:
+        1     4613515612218425347
+        2     5
+        3     2345108766317314046
+        4     10
+        5     10
+        ⋮
+        9     5
+    */
+    fn relocate_memory_with_gap() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint!(17),
+            data: Vec::new(),
+            main: None,
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        for _ in 0..4 {
+            cairo_runner.segments.add(None);
+        }
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::from(bigint64!(4613515612218425347)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::from((0, 1)),
+            &MaybeRelocatable::from(bigint!(5)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::from((0, 2)),
+            &MaybeRelocatable::from(bigint64!(2345108766317314046)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::from((1, 0)),
+            &MaybeRelocatable::from((2, 0)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::from((1, 1)),
+            &MaybeRelocatable::from((3, 0)),
+        );
+        cairo_runner.segments.memory.insert(
+            &MaybeRelocatable::from((1, 5)),
+            &MaybeRelocatable::from(bigint!(5)),
+        );
+        cairo_runner.segments.compute_effective_sizes();
+        cairo_runner.relocate_memory();
+        assert_eq!(cairo_runner.relocated_memory[0], None);
+        assert_eq!(
+            cairo_runner.relocated_memory[1],
+            Some(bigint64!(4613515612218425347))
+        );
+        assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(5)));
+        assert_eq!(
+            cairo_runner.relocated_memory[3],
+            Some(bigint64!(2345108766317314046))
+        );
+        assert_eq!(cairo_runner.relocated_memory[4], Some(bigint!(10)));
+        assert_eq!(cairo_runner.relocated_memory[5], Some(bigint!(10)));
+        assert_eq!(cairo_runner.relocated_memory[6], None);
+        assert_eq!(cairo_runner.relocated_memory[7], None);
+        assert_eq!(cairo_runner.relocated_memory[8], None);
+        assert_eq!(cairo_runner.relocated_memory[9], Some(bigint!(5)));
     }
 }
