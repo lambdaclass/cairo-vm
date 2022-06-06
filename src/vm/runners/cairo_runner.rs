@@ -5,6 +5,7 @@ use crate::utils::is_subsequence;
 use crate::vm::runners::builtin_runner::{
     BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
 };
+use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_core::VirtualMachineError;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -24,6 +25,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     relocated_memory: Vec<Option<BigInt>>,
+    relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
 #[allow(dead_code)]
@@ -70,6 +72,7 @@ impl CairoRunner {
             initial_fp: None,
             initial_pc: None,
             relocated_memory: Vec::new(),
+            relocated_trace: Vec::new(),
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
@@ -184,7 +187,7 @@ impl CairoRunner {
         }
         Ok(())
     }
-    pub fn relocate_memory(&mut self) {
+    fn relocate_memory(&mut self) {
         assert!(
             self.relocated_memory.is_empty(),
             "Memory has been already relocated"
@@ -203,6 +206,20 @@ impl CairoRunner {
                     self.relocated_memory.push(None);
                 }
             }
+        }
+    }
+
+    fn relocate_trace(&mut self, relocation_table: Vec<usize>) {
+        assert!(
+            self.relocated_trace.is_empty(),
+            "Trace has already been relocated"
+        );
+        for entry in self.vm.trace.iter() {
+            self.relocated_trace.push(RelocatedTraceEntry {
+                pc: relocate_trace_register(entry.pc.clone(), relocation_table.clone()),
+                ap: relocate_trace_register(entry.ap.clone(), relocation_table.clone()),
+                fp: relocate_trace_register(entry.fp.clone(), relocation_table.clone()),
+            })
         }
     }
 }
