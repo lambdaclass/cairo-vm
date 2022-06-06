@@ -7,6 +7,7 @@ pub struct MemorySegmentManager {
     segment_used_sizes: Option<Vec<usize>>,
 }
 
+#[allow(dead_code)]
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)
@@ -41,7 +42,8 @@ impl MemorySegmentManager {
             segment_used_sizes: None,
         }
     }
-    #[allow(dead_code)]
+
+    ///Calculates the size (number of non-none elements) of each memory segment
     pub fn compute_effective_sizes(&mut self) {
         if self.segment_used_sizes != None {
             return;
@@ -52,6 +54,21 @@ impl MemorySegmentManager {
                 .push(segment.len() - segment.iter().filter(|elem| elem == &&None).count());
         }
         self.segment_used_sizes = Some(segment_used_sizes);
+    }
+
+    ///Returns a vector that contains the first relocated address of each memory segment
+    pub fn relocate_segments(&self) -> Vec<usize> {
+        if self.segment_used_sizes == None {
+            panic!("compute_effective_sizes should be called before relocate_segments");
+        }
+        let first_addr = 1;
+        let mut relocation_table = Vec::new();
+        relocation_table.push(first_addr);
+        for (i, size) in self.segment_used_sizes.as_ref().unwrap().iter().enumerate() {
+            relocation_table.push(relocation_table[i] + size);
+        }
+        relocation_table.pop();
+        relocation_table
     }
 }
 
