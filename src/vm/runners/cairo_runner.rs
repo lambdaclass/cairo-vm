@@ -23,6 +23,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    //relocated_memory: Vec<BigInt>,
 }
 
 #[allow(dead_code)]
@@ -68,6 +69,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            //relocated_memory: Vec::new(),
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base

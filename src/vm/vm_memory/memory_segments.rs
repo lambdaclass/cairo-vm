@@ -50,8 +50,7 @@ impl MemorySegmentManager {
         }
         let mut segment_used_sizes = Vec::new();
         for segment in self.memory.data.iter() {
-            segment_used_sizes
-                .push(segment.len() - segment.iter().filter(|elem| elem == &&None).count());
+            segment_used_sizes.push(segment.len());
         }
         self.segment_used_sizes = Some(segment_used_sizes);
     }
@@ -181,7 +180,7 @@ mod tests {
             &MaybeRelocatable::from(bigint!(1)),
         );
         segments.compute_effective_sizes();
-        assert_eq!(Some(vec![1]), segments.segment_used_sizes);
+        assert_eq!(Some(vec![7]), segments.segment_used_sizes);
     }
 
     #[test]
@@ -204,12 +203,8 @@ mod tests {
             &MaybeRelocatable::from((0, 9)),
             &MaybeRelocatable::from(bigint!(1)),
         );
-        segments.memory.insert(
-            &MaybeRelocatable::from((0, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
         segments.compute_effective_sizes();
-        assert_eq!(Some(vec![5]), segments.segment_used_sizes);
+        assert_eq!(Some(vec![10]), segments.segment_used_sizes);
     }
 
     #[test]
@@ -266,15 +261,11 @@ mod tests {
         segments.add(None);
         segments.add(None);
         segments.memory.insert(
-            &MaybeRelocatable::from((0, 5)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        segments.memory.insert(
-            &MaybeRelocatable::from((0, 8)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        segments.memory.insert(
             &MaybeRelocatable::from((0, 2)),
+            &MaybeRelocatable::from(bigint!(1)),
+        );
+        segments.memory.insert(
+            &MaybeRelocatable::from((0, 5)),
             &MaybeRelocatable::from(bigint!(1)),
         );
         segments.memory.insert(
@@ -298,7 +289,7 @@ mod tests {
             &MaybeRelocatable::from(bigint!(1)),
         );
         segments.compute_effective_sizes();
-        assert_eq!(Some(vec![4, 1, 3]), segments.segment_used_sizes);
+        assert_eq!(Some(vec![8, 2, 8]), segments.segment_used_sizes);
     }
 
     #[test]
