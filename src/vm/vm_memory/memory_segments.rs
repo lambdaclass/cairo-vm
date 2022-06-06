@@ -300,4 +300,18 @@ mod tests {
         segments.compute_effective_sizes();
         assert_eq!(Some(vec![4, 1, 3]), segments.segment_used_sizes);
     }
+
+    #[test]
+    fn relocate_segments_one_segment() {
+        let mut segments = MemorySegmentManager::new();
+        segments.segment_used_sizes = Some(vec![3]);
+        assert_eq!(segments.relocate_segments(), vec![1])
+    }
+
+    #[test]
+    fn relocate_segments_five_segment() {
+        let mut segments = MemorySegmentManager::new();
+        segments.segment_used_sizes = Some(vec![3, 3, 56, 78, 8]);
+        assert_eq!(segments.relocate_segments(), vec![1, 4, 7, 63, 141])
+    }
 }
