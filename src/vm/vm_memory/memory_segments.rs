@@ -4,7 +4,7 @@ use crate::vm::vm_memory::memory::Memory;
 pub struct MemorySegmentManager {
     pub memory: Memory,
     pub num_segments: usize,
-    segment_used_sizes: Option<Vec<usize>>,
+    pub segment_used_sizes: Option<Vec<usize>>,
 }
 
 #[allow(dead_code)]
@@ -61,8 +61,7 @@ impl MemorySegmentManager {
             panic!("compute_effective_sizes should be called before relocate_segments");
         }
         let first_addr = 1;
-        let mut relocation_table = Vec::new();
-        relocation_table.push(first_addr);
+        let mut relocation_table = vec![first_addr];
         for (i, size) in self.segment_used_sizes.as_ref().unwrap().iter().enumerate() {
             relocation_table.push(relocation_table[i] + size);
         }
