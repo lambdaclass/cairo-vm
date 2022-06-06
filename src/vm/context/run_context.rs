@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::types::instruction::{Instruction, Op1Addr, Register};
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachineError;
@@ -18,7 +19,7 @@ impl RunContext {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
         };
-        base_addr.add_num_addr(instruction.off0.clone(), Some(self.prime.clone()))
+        base_addr.add_int_mod(instruction.off0.clone(), self.prime.clone())
     }
 
     pub fn compute_op0_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
@@ -26,7 +27,7 @@ impl RunContext {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
         };
-        base_addr.add_num_addr(instruction.off1.clone(), Some(self.prime.clone()))
+        base_addr.add_int_mod(instruction.off1.clone(), self.prime.clone())
     }
 
     pub fn compute_op1_addr(
@@ -37,33 +38,33 @@ impl RunContext {
         let base_addr = match instruction.op1_addr {
             Op1Addr::FP => &self.fp,
             Op1Addr::AP => &self.ap,
-            Op1Addr::Imm => match instruction.off2 == BigInt::from_i32(1).unwrap() {
+            Op1Addr::Imm => match instruction.off2 == bigint!(1) {
                 true => &self.pc,
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {
                 Some(addr) => {
-                    return Ok(addr.clone() + instruction.off2.clone() % self.prime.clone())
+                    return Ok(addr.add_int_mod(instruction.off2.clone(), self.prime.clone()))
                 }
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        Ok(base_addr.add_num_addr(instruction.off2.clone(), Some(self.prime.clone())))
+        Ok(base_addr.add_int_mod(instruction.off2.clone(), self.prime.clone()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
-    use crate::vm::vm_core::VirtualMachineError;
 
     #[test]
     fn compute_dst_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
@@ -76,24 +77,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let MaybeRelocatable::Int(num) = run_context.compute_dst_addr(&instruction) {
-            assert_eq!(num, BigInt::from_i32(6).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            MaybeRelocatable::Int(bigint!(6)),
+            run_context.compute_dst_addr(&instruction)
+        );
     }
 
     #[test]
     fn compute_dst_addr_for_fp_register() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -106,24 +106,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let MaybeRelocatable::Int(num) = run_context.compute_dst_addr(&instruction) {
-            assert_eq!(num, BigInt::from_i32(7).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            MaybeRelocatable::Int(bigint!(7)),
+            run_context.compute_dst_addr(&instruction)
+        );
     }
 
     #[test]
     fn compute_op0_addr_for_ap_register() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
@@ -136,24 +135,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let MaybeRelocatable::Int(num) = run_context.compute_op0_addr(&instruction) {
-            assert_eq!(num, BigInt::from_i32(7).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            MaybeRelocatable::Int(bigint!(7)),
+            run_context.compute_op0_addr(&instruction)
+        );
     }
 
     #[test]
     fn compute_op0_addr_for_fp_register() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
@@ -166,24 +164,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let MaybeRelocatable::Int(num) = run_context.compute_op0_addr(&instruction) {
-            assert_eq!(num, BigInt::from_i32(8).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            MaybeRelocatable::Int(bigint!(8)),
+            run_context.compute_op0_addr(&instruction)
+        );
     }
 
     #[test]
     fn compute_op1_addr_for_fp_op1_addr() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -196,24 +193,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(num, BigInt::from_i32(9).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            Ok(MaybeRelocatable::Int(bigint!(9))),
+            run_context.compute_op1_addr(&instruction, None)
+        );
     }
 
     #[test]
     fn compute_op1_addr_for_ap_op1_addr() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -226,24 +222,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(num, BigInt::from_i32(8).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            Ok(MaybeRelocatable::Int(bigint!(8))),
+            run_context.compute_op1_addr(&instruction, None)
+        );
     }
 
     #[test]
     fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(1).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(1),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -256,24 +251,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let Ok(MaybeRelocatable::Int(num)) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(num, BigInt::from_i32(5).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            Ok(MaybeRelocatable::Int(bigint!(5))),
+            run_context.compute_op1_addr(&instruction, None)
+        );
     }
 
     #[test]
     fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -286,24 +280,23 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, VirtualMachineError::ImmShouldBe1);
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            Err(VirtualMachineError::ImmShouldBe1),
+            run_context.compute_op1_addr(&instruction, None)
+        );
     }
 
     #[test]
     fn compute_op1_addr_for_op0_op1_addr_with_op0() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(1).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(1),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -316,28 +309,25 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
 
-        let op0 = MaybeRelocatable::Int(BigInt::from_i32(7).unwrap());
-        if let Ok(MaybeRelocatable::Int(num)) =
+        let op0 = MaybeRelocatable::from(bigint!(7));
+        assert_eq!(
+            Ok(MaybeRelocatable::Int(bigint!(8))),
             run_context.compute_op1_addr(&instruction, Some(&op0))
-        {
-            assert_eq!(num, BigInt::from_i32(8).unwrap());
-        } else {
-            assert!(false);
-        }
+        );
     }
 
     #[test]
     fn compute_op1_addr_for_op0_op1_addr_without_op0() {
         let instruction = Instruction {
-            off0: BigInt::from_i32(1).unwrap(),
-            off1: BigInt::from_i32(2).unwrap(),
-            off2: BigInt::from_i32(3).unwrap(),
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
             imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
@@ -350,15 +340,14 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            ap: MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            fp: MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
-            prime: BigInt::from_i32(39).unwrap(),
+            pc: MaybeRelocatable::from(bigint!(4)),
+            ap: MaybeRelocatable::from(bigint!(5)),
+            fp: MaybeRelocatable::from(bigint!(6)),
+            prime: bigint!(39),
         };
-        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, VirtualMachineError::UnknownOp0);
-        } else {
-            assert!(false);
-        }
+        assert_eq!(
+            Err(VirtualMachineError::UnknownOp0),
+            run_context.compute_op1_addr(&instruction, None)
+        );
     }
 }

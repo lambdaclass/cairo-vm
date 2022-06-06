@@ -1,3 +1,5 @@
+use crate::types::relocatable::Relocatable;
+
 #[macro_export]
 macro_rules! bigint {
     ($val : expr) => {
@@ -24,11 +26,12 @@ macro_rules! bigint_str {
 macro_rules! relocatable {
     ($val1 : expr, $val2 : expr) => {
         Relocatable {
-            segment_index: bigint!($val1),
-            offset: bigint!($val2),
+            segment_index: ($val1),
+            offset: ($val2),
         }
     };
 }
+
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
     for search in subsequence {
         if let Some(index) = sequence.iter().position(|element| search == element) {
@@ -38,4 +41,8 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
         }
     }
     true
+}
+
+pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
+    (relocatable.segment_index, relocatable.offset)
 }

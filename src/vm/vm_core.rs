@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
@@ -44,7 +44,7 @@ pub struct VirtualMachine {
     pub validated_addresses: Vec<MaybeRelocatable>,
     accessed_addresses: Vec<MaybeRelocatable>,
     pub trace: Vec<TraceEntry>,
-    current_step: BigInt,
+    current_step: usize,
     skip_instruction_execution: bool,
 }
 
@@ -55,18 +55,9 @@ impl VirtualMachine {
         builtin_runners: BTreeMap<String, Box<dyn BuiltinRunner>>,
     ) -> VirtualMachine {
         let run_context = RunContext {
-            pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
-            ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
-            fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
+            pc: MaybeRelocatable::from((0, 0)),
+            ap: MaybeRelocatable::from((0, 0)),
+            fp: MaybeRelocatable::from((0, 0)),
             prime: prime.clone(),
         };
 
@@ -79,7 +70,7 @@ impl VirtualMachine {
             validated_addresses: Vec::<MaybeRelocatable>::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(0),
+            current_step: 0,
             skip_instruction_execution: false,
         }
     }
@@ -89,24 +80,20 @@ impl VirtualMachine {
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt;
         {
-            if let Some(&MaybeRelocatable::Int(ref encoding)) =
-                self.memory.get(&self.run_context.pc)
+            if let Some(MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.run_context.pc)
             {
                 encoding_ref = encoding;
             } else {
                 return Err(VirtualMachineError::InvalidInstructionEncoding);
             }
-            let imm_addr = self
-                .run_context
-                .pc
-                .add_num_addr(BigInt::from_i32(1).unwrap(), Some(self.prime.clone()));
+            let imm_addr = self.run_context.pc.add_usize_mod(1, None);
             let optional_imm = self.memory.get(&imm_addr);
             Ok((encoding_ref, optional_imm))
         }
     }
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
-            FpUpdate::APPlus2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            FpUpdate::APPlus2 => self.run_context.ap.add_usize_mod(2, None),
             FpUpdate::Dst => operands.dst.clone(),
             FpUpdate::Regular => return,
         };
@@ -120,18 +107,14 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap: MaybeRelocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self
-                    .run_context
-                    .ap
-                    .add_addr(res, Some(self.prime.clone()))?,
-
+                Some(res) => self.run_context.ap.add_mod(res, self.prime.clone())?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
-            ApUpdate::Add1 => self.run_context.ap.add_num_addr(bigint!(1), None),
-            ApUpdate::Add2 => self.run_context.ap.add_num_addr(bigint!(2), None),
+            ApUpdate::Add1 => self.run_context.ap.add_usize_mod(1, None),
+            ApUpdate::Add2 => self.run_context.ap.add_usize_mod(2, None),
             ApUpdate::Regular => return Ok(()),
         };
-        self.run_context.ap = new_ap % self.prime.clone();
+        self.run_context.ap = new_ap;
         Ok(())
     }
 
@@ -144,7 +127,7 @@ impl VirtualMachine {
             PcUpdate::Regular => self
                 .run_context
                 .pc
-                .add_num_addr(bigint!(Instruction::size(instruction)), None),
+                .add_usize_mod(Instruction::size(instruction), Some(self.prime.clone())),
             PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res,
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
@@ -152,7 +135,7 @@ impl VirtualMachine {
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_num_addr(num_res, None)
+                        self.run_context.pc.add_int_mod(num_res, self.prime.clone())
                     }
 
                     _ => return Err(VirtualMachineError::PureValue),
@@ -163,11 +146,16 @@ impl VirtualMachine {
                 true => self
                     .run_context
                     .pc
-                    .add_num_addr(bigint!(Instruction::size(instruction)), None),
-                false => (self.run_context.pc.add_addr(operands.op1.clone(), None))?,
+                    .add_usize_mod(Instruction::size(instruction), None),
+                false => {
+                    (self
+                        .run_context
+                        .pc
+                        .add_mod(operands.op1.clone(), self.prime.clone()))?
+                }
             },
         };
-        self.run_context.pc = new_pc % self.prime.clone();
+        self.run_context.pc = new_pc;
         Ok(())
     }
 
@@ -187,13 +175,7 @@ impl VirtualMachine {
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
             MaybeRelocatable::Int(num) => Ok(num == bigint!(0)),
-            MaybeRelocatable::RelocatableValue(rel_value) => {
-                if rel_value.offset >= bigint!(0) {
-                    Ok(false)
-                } else {
-                    Err(VirtualMachineError::PureValue)
-                }
-            }
+            MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
         }
     }
 
@@ -212,7 +194,7 @@ impl VirtualMachine {
                     Some(
                         self.run_context
                             .pc
-                            .add_num_addr(bigint!(Instruction::size(instruction)), None),
+                            .add_usize_mod(Instruction::size(instruction), None),
                     ),
                     None,
                 ))
@@ -221,10 +203,7 @@ impl VirtualMachine {
                 match instruction.res {
                     Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
-                            return Ok((
-                                Some((dst_addr.sub_addr(op1_addr))? % self.prime.clone()),
-                                Some(dst_addr.clone()),
-                            ));
+                            return Ok((Some((dst_addr.sub(op1_addr))?), Some(dst_addr.clone())));
                         }
                     }
                     Res::Mul => {
@@ -237,10 +216,9 @@ impl VirtualMachine {
                                 let num_op1 = Clone::clone(num_op1_ref);
                                 if num_op1 != bigint!(0) {
                                     return Ok((
-                                        Some(
-                                            MaybeRelocatable::Int(num_dst / num_op1)
-                                                % self.prime.clone(),
-                                        ),
+                                        Some(MaybeRelocatable::Int(
+                                            (num_dst / num_op1) % self.prime.clone(),
+                                        )),
                                         Some(dst_addr.clone()),
                                     ));
                                 }
@@ -273,10 +251,7 @@ impl VirtualMachine {
                 }
                 Res::Add => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
-                        return Ok((
-                            Some((dst_addr.sub_addr(&op0_addr))?),
-                            Some(dst_addr.clone()),
-                        ));
+                        return Ok((Some((dst_addr.sub(&op0_addr))?), Some(dst_addr.clone())));
                     }
                 }
                 Res::Mul => {
@@ -286,10 +261,9 @@ impl VirtualMachine {
                         {
                             if num_op0 != bigint!(0) {
                                 return Ok((
-                                    Some(
-                                        MaybeRelocatable::Int(num_dst / num_op0)
-                                            % self.prime.clone(),
-                                    ),
+                                    Some(MaybeRelocatable::Int(
+                                        (num_dst / num_op0) % self.prime.clone(),
+                                    )),
                                     Some(dst_addr.clone()),
                                 ));
                             }
@@ -311,13 +285,13 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add_addr(op1.clone(), Some(self.prime.clone()))?)),
+            Res::Add => Ok(Some(op0.add_mod(op1.clone(), self.prime.clone())?)),
             Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
-                    return Ok(Some(
-                        MaybeRelocatable::Int(num_op0 * num_op1) % self.prime.clone(),
-                    ));
+                    return Ok(Some(MaybeRelocatable::Int(
+                        (num_op0 * num_op1) % self.prime.clone(),
+                    )));
                 }
                 Err(VirtualMachineError::PureValue)
             }
@@ -365,7 +339,7 @@ impl VirtualMachine {
                 if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
                     (&operands.op0, &self.run_context.pc)
                 {
-                    let return_pc = run_pc + bigint!(instruction.size());
+                    let return_pc = run_pc + instruction.size();
                     if op0_num != &return_pc {
                         panic!("Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0_num, return_pc);
                     };
@@ -400,14 +374,14 @@ impl VirtualMachine {
             self.accessed_addresses.push(self.run_context.pc.clone());
         }
         self.update_registers(instruction, operands)?;
-        self.current_step += bigint!(1);
+        self.current_step += 1;
         Ok(())
     }
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
-        if let Some(&MaybeRelocatable::Int(ref imm_ref)) = imm {
+        if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
             return Ok(decode_instruction(instruction, Some(imm_ref.clone())));
         }
         Ok(decode_instruction(instruction, None))
@@ -559,54 +533,38 @@ mod tests {
     use super::*;
     use crate::bigint64;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_memory::memory::Memory;
+    use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-
+        vm.memory.data.push(Vec::new());
+        vm.run_context.pc = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
         vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::Int(bigint!(5)),
         );
-        if let Ok((num_ref, None)) = vm.get_instruction_encoding() {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-        } else {
-            assert!(false);
-        }
-
-        vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        );
-        if let Ok((num_ref, None)) = vm.get_instruction_encoding() {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-        } else {
-            assert!(false);
-        }
+        assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
     }
 
     #[test]
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
+        vm.memory.data.push(Vec::new());
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
 
         vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(4).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::from(bigint!(5)),
         );
         vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(6).unwrap()),
+            &MaybeRelocatable::from((0, 1)),
+            &MaybeRelocatable::from(bigint!(6)),
         );
-        if let Ok((num_ref, Some(&MaybeRelocatable::Int(ref imm_addr_num_ref)))) =
-            vm.get_instruction_encoding()
-        {
-            assert_eq!(num_ref.clone(), BigInt::from_i32(5).unwrap());
-            assert_eq!(imm_addr_num_ref.clone(), BigInt::from_i32(6).unwrap());
+        if let Ok((num_ref, Some(MaybeRelocatable::Int(imm_ref)))) = vm.get_instruction_encoding() {
+            assert_eq!(num_ref.clone(), bigint!(5));
+            assert_eq!(imm_ref.clone(), bigint!(6));
         } else {
             assert!(false);
         }
@@ -615,17 +573,11 @@ mod tests {
     #[test]
     fn get_instruction_encoding_unsuccesful() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-
-        vm.memory.insert(
-            &MaybeRelocatable::Int(BigInt::from_i32(7).unwrap()),
-            &MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        assert_eq!(
+            Err(VirtualMachineError::InvalidInstructionEncoding),
+            vm.get_instruction_encoding()
         );
-        if let Err(error) = vm.get_instruction_encoding() {
-            assert_eq!(error, VirtualMachineError::InvalidInstructionEncoding);
-        } else {
-            assert!(false);
-        }
     }
 
     #[test]
@@ -1115,10 +1067,7 @@ mod tests {
 
         let operands = Operands {
             dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(4),
-            })),
+            res: Some(MaybeRelocatable::from((1, 4))),
             op0: MaybeRelocatable::Int(bigint!(9)),
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
@@ -1272,25 +1221,22 @@ mod tests {
 
     #[test]
     fn is_zero_int_value() {
-        let _value = MaybeRelocatable::Int(bigint!(1));
-        //assert_eq!(Ok(false), VirtualMachine::is_zero(Some(value)));
-    }
-
-    #[test]
-    fn is_zero_relocatable_value() {
-        let value = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
+        let value = MaybeRelocatable::Int(bigint!(1));
         assert_eq!(Ok(false), VirtualMachine::is_zero(value));
     }
 
     #[test]
+    fn is_zero_relocatable_value() {
+        let value = MaybeRelocatable::from((1, 2));
+        assert_eq!(
+            Err(VirtualMachineError::PureValue),
+            VirtualMachine::is_zero(value)
+        );
+    }
+
+    #[test]
     fn is_zero_relocatable_value_negative() {
-        let value = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(-1),
-        });
+        let value = MaybeRelocatable::from((1, 1));
         assert_eq!(
             Err(VirtualMachineError::PureValue),
             VirtualMachine::is_zero(value)
@@ -1825,14 +1771,8 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        let op1 = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(2),
-            offset: bigint!(3),
-        });
-        let op0 = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(2),
-            offset: bigint!(6),
-        });
+        let op1 = MaybeRelocatable::from((2, 3));
+        let op0 = MaybeRelocatable::from((2, 6));
         assert_eq!(
             Err(VirtualMachineError::PureValue),
             vm.compute_res(&instruction, &op0, &op1)
@@ -1990,36 +1930,17 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let run_context = RunContext {
-            pc: MaybeRelocatable::Int(bigint!(0)),
-            ap: MaybeRelocatable::Int(bigint!(0)),
-            fp: MaybeRelocatable::Int(bigint!(0)),
-            prime: bigint!(127),
-        };
-
-        let dst_addr = MaybeRelocatable::Int(bigint!(0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.memory.data.push(Vec::new());
+        let dst_addr = MaybeRelocatable::from((0, 0));
         let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
-        let op0_addr = MaybeRelocatable::Int(bigint!(1));
+        let op0_addr = MaybeRelocatable::from((0, 1));
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr = MaybeRelocatable::Int(bigint!(2));
+        let op1_addr = MaybeRelocatable::from((0, 2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        let mut memory = Memory::new();
-        memory.insert(&dst_addr, &dst_addr_value);
-        memory.insert(&op0_addr, &op0_addr_value);
-        memory.insert(&op1_addr, &op1_addr_value);
-
-        let mut vm = VirtualMachine {
-            run_context: run_context,
-            prime: bigint!(127),
-            _program_base: None,
-            builtin_runners: BTreeMap::<String, Box<dyn BuiltinRunner>>::new(),
-            memory,
-            validated_addresses: Vec::<MaybeRelocatable>::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
-        };
+        vm.memory.insert(&dst_addr, &dst_addr_value);
+        vm.memory.insert(&op0_addr, &op0_addr_value);
+        vm.memory.insert(&op1_addr, &op1_addr_value);
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2051,37 +1972,17 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
         };
-
-        let run_context = RunContext {
-            pc: MaybeRelocatable::Int(bigint!(0)),
-            ap: MaybeRelocatable::Int(bigint!(0)),
-            fp: MaybeRelocatable::Int(bigint!(0)),
-            prime: bigint!(127),
-        };
-
-        let dst_addr = MaybeRelocatable::Int(bigint!(0));
-        let dst_addr_value = MaybeRelocatable::Int(bigint!(6));
-        let op0_addr = MaybeRelocatable::Int(bigint!(1));
-        let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        let mut memory = Memory::new();
-        memory.insert(&dst_addr, &dst_addr_value);
-        memory.insert(&op0_addr, &op0_addr_value);
-        memory.insert(&op1_addr, &op1_addr_value);
-
-        let mut vm = VirtualMachine {
-            run_context: run_context,
-            prime: bigint!(127),
-            _program_base: None,
-            builtin_runners: BTreeMap::<String, Box<dyn BuiltinRunner>>::new(),
-            memory,
-            validated_addresses: Vec::<MaybeRelocatable>::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
-            trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
-            skip_instruction_execution: false,
-        };
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.memory.data.push(Vec::new());
+        let dst_addr = MaybeRelocatable::from((0, 0));
+        let dst_addr_value = MaybeRelocatable::from(bigint!(6));
+        let op0_addr = MaybeRelocatable::from((0, 1));
+        let op0_addr_value = MaybeRelocatable::from(bigint!(2));
+        let op1_addr = MaybeRelocatable::from((0, 2));
+        let op1_addr_value = MaybeRelocatable::from(bigint!(3));
+        vm.memory.insert(&dst_addr, &dst_addr_value);
+        vm.memory.insert(&op0_addr, &op0_addr_value);
+        vm.memory.insert(&op1_addr, &op1_addr_value);
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2114,19 +2015,19 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mem_arr = [
+        let mem_arr = vec![
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(0))),
+                MaybeRelocatable::from((0, 0)),
                 MaybeRelocatable::Int(bigint64!(0x206800180018001)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(1))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
                 MaybeRelocatable::Int(bigint64!(0x4)),
             ),
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.memory = Memory::from(mem_arr.clone());
+        vm.memory = Memory::from(mem_arr.clone(), 2);
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2135,18 +2036,14 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint64!(0x4)),
         };
 
-        let expected_addresses: Vec<MaybeRelocatable> =
-            vec![MaybeRelocatable::from((bigint!(0), bigint!(1))); 3];
+        let expected_addresses: Vec<MaybeRelocatable> = vec![MaybeRelocatable::from((0, 1)); 3];
 
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
 
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::from((bigint!(0), bigint!(4)))
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
     }
 
     #[test]
@@ -2293,7 +2190,7 @@ mod tests {
             validated_addresses: Vec::<MaybeRelocatable>::new(),
             accessed_addresses: Vec::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
-            current_step: bigint!(1),
+            current_step: 1,
             skip_instruction_execution: false,
         };
 
@@ -2322,106 +2219,40 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             BTreeMap::new(),
         );
-        vm.run_context.pc = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(0),
-            offset: bigint!(0),
-        });
-        vm.run_context.ap = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
-        vm.run_context.fp = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        vm.run_context.ap = MaybeRelocatable::from((1, 2));
+        vm.run_context.fp = MaybeRelocatable::from((1, 2));
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
+            &MaybeRelocatable::from((0, 0)),
             &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0),
-            }),
+            &MaybeRelocatable::from((1, 0)),
+            &MaybeRelocatable::from((2, 0)),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0),
-            }),
+            &MaybeRelocatable::from((1, 1)),
+            &MaybeRelocatable::from((3, 0)),
         );
         assert_eq!(vm.step(), Ok(()));
         assert_eq!(
             vm.trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(0)
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                })
+                pc: MaybeRelocatable::from((0, 0)),
+                fp: MaybeRelocatable::from((1, 2)),
+                ap: MaybeRelocatable::from((1, 2))
             }
         );
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0)
-            })
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
 
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2)
-            })
-        );
-        assert_eq!(
-            vm.run_context.fp,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[0],
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[1],
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1)
-            })
-        );
-        assert_eq!(
-            vm.accessed_addresses[2],
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
-            })
-        );
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
+        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
+        assert_eq!(vm.accessed_addresses[0], MaybeRelocatable::from((1, 0)));
+        assert_eq!(vm.accessed_addresses[1], MaybeRelocatable::from((1, 1)));
+        assert_eq!(vm.accessed_addresses[2], MaybeRelocatable::from((0, 0)));
     }
 
     #[test]
@@ -2460,67 +2291,40 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             BTreeMap::new(),
         );
-        vm.run_context.pc = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(0),
-            offset: bigint!(3),
-        });
-        vm.run_context.ap = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
-        vm.run_context.fp = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
+        vm.run_context.pc = MaybeRelocatable::from((0, 3));
+        vm.run_context.ap = MaybeRelocatable::from((1, 2));
+        vm.run_context.fp = MaybeRelocatable::from((1, 2));
 
         //Insert values into memory
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
+            &MaybeRelocatable::from((0, 0)),
             &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(1),
-            }),
+            &MaybeRelocatable::from((0, 1)),
             &MaybeRelocatable::Int(bigint!(2)),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(2),
-            }),
+            &MaybeRelocatable::from((0, 2)),
             &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(3),
-            }),
+            &MaybeRelocatable::from((0, 3)),
             &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4),
-            }),
+            &MaybeRelocatable::from((0, 4)),
             &MaybeRelocatable::Int(bigint!(1)),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(5),
-            }),
+            &MaybeRelocatable::from((0, 5)),
             &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6),
-            }),
+            &MaybeRelocatable::from((0, 6)),
             &MaybeRelocatable::Int(BigInt::new(
                 Sign::Plus,
                 vec![
@@ -2530,185 +2334,80 @@ mod tests {
             )),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(7),
-            }),
+            &MaybeRelocatable::from((0, 7)),
             &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0),
-            }),
+            &MaybeRelocatable::from((1, 0)),
+            &MaybeRelocatable::from((2, 0)),
         );
         vm.memory.insert(
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1),
-            }),
-            &MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0),
-            }),
+            &MaybeRelocatable::from((1, 1)),
+            &MaybeRelocatable::from((3, 0)),
         );
         //Insert values into accessed_addresses
         vm.accessed_addresses = vec![
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(1),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(7),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(3),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(2),
-            }),
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(5),
-            }),
+            MaybeRelocatable::from((0, 1)),
+            MaybeRelocatable::from((0, 7)),
+            MaybeRelocatable::from((0, 4)),
+            MaybeRelocatable::from((0, 0)),
+            MaybeRelocatable::from((0, 3)),
+            MaybeRelocatable::from((0, 6)),
+            MaybeRelocatable::from((0, 2)),
+            MaybeRelocatable::from((0, 5)),
         ];
 
-        let final_pc = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(3),
-            offset: bigint!(0),
-        });
+        let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(vm.step(), Ok(()));
         }
         //Check final register values
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(3),
-                offset: bigint!(0)
-            })
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
 
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(6)
-            })
-        );
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 6)));
 
-        assert_eq!(
-            vm.run_context.fp,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(2),
-                offset: bigint!(0)
-            })
-        );
+        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
         //Check each TraceEntry in trace
         assert_eq!(vm.trace.len(), 5);
         assert_eq!(
             vm.trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(3)
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                }),
+                pc: MaybeRelocatable::from((0, 3)),
+                ap: MaybeRelocatable::from((1, 2)),
+                fp: MaybeRelocatable::from((1, 2)),
             }
         );
         assert_eq!(
             vm.trace[1],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(5)
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(3)
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                }),
+                pc: MaybeRelocatable::from((0, 5)),
+                ap: MaybeRelocatable::from((1, 3)),
+                fp: MaybeRelocatable::from((1, 2)),
             }
         );
         assert_eq!(
             vm.trace[2],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(0)
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(5)
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(5)
-                }),
+                pc: MaybeRelocatable::from((0, 0)),
+                ap: MaybeRelocatable::from((1, 5)),
+                fp: MaybeRelocatable::from((1, 5)),
             }
         );
         assert_eq!(
             vm.trace[3],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(2)
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(6)
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(5)
-                }),
+                pc: MaybeRelocatable::from((0, 2)),
+                ap: MaybeRelocatable::from((1, 6)),
+                fp: MaybeRelocatable::from((1, 5)),
             }
         );
         assert_eq!(
             vm.trace[4],
             TraceEntry {
-                pc: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(0),
-                    offset: bigint!(7)
-                }),
-                ap: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(6)
-                }),
-                fp: MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: bigint!(1),
-                    offset: bigint!(2)
-                }),
+                pc: MaybeRelocatable::from((0, 7)),
+                ap: MaybeRelocatable::from((1, 6)),
+                fp: MaybeRelocatable::from((1, 2)),
             }
         );
         //Check accessed_addresses
@@ -2721,88 +2420,46 @@ mod tests {
         //Check each element individually
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(1)
-            })));
+            .contains(&MaybeRelocatable::from((0, 1))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(7)
-            })));
+            .contains(&MaybeRelocatable::from((0, 7))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2)
-            })));
+            .contains(&MaybeRelocatable::from((1, 2))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4)
-            })));
+            .contains(&MaybeRelocatable::from((0, 4))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
-            })));
+            .contains(&MaybeRelocatable::from((0, 0))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(5)
-            })));
+            .contains(&MaybeRelocatable::from((1, 5))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(1)
-            })));
+            .contains(&MaybeRelocatable::from((1, 1))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(3)
-            })));
+            .contains(&MaybeRelocatable::from((0, 3))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(4)
-            })));
+            .contains(&MaybeRelocatable::from((1, 4))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6)
-            })));
+            .contains(&MaybeRelocatable::from((0, 6))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(2)
-            })));
+            .contains(&MaybeRelocatable::from((0, 2))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(5)
-            })));
+            .contains(&MaybeRelocatable::from((0, 5))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(0)
-            })));
+            .contains(&MaybeRelocatable::from((1, 0))));
         assert!(vm
             .accessed_addresses
-            .contains(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(3)
-            })));
+            .contains(&MaybeRelocatable::from((1, 3))));
     }
 
     #[test]
@@ -2828,57 +2485,57 @@ mod tests {
     /// RelocatableValue(segment_index=1, offset=3): '0x5',
     /// RelocatableValue(segment_index=1, offset=4): '0x14'
     fn multiplication_and_different_ap_increase() {
-        let mem_arr = [
+        let mem_arr = vec![
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(0))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 0)),
                 MaybeRelocatable::Int(bigint64!(0x400680017fff8000)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(1))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
                 MaybeRelocatable::Int(bigint!(0x4)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(2))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 2)),
                 MaybeRelocatable::Int(bigint64!(0x40780017fff7fff)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(3))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 3)),
                 MaybeRelocatable::Int(bigint!(0x1)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(4))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 4)),
                 MaybeRelocatable::Int(bigint64!(0x480680017fff8000)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(5))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 5)),
                 MaybeRelocatable::Int(bigint!(0x5)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(6))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 6)),
                 MaybeRelocatable::Int(bigint64!(0x40507ffe7fff8000)),
             ),
             (
-                MaybeRelocatable::from((bigint!(0), bigint!(7))),
+                MaybeRelocatable::RelocatableValue(relocatable!(0, 7)),
                 MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
             ),
             (
-                MaybeRelocatable::from((bigint!(1), bigint!(0))),
-                MaybeRelocatable::from((bigint!(2), bigint!(0))),
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
+                MaybeRelocatable::from((2, 0)),
             ),
             (
-                MaybeRelocatable::from((bigint!(1), bigint!(1))),
-                MaybeRelocatable::from((bigint!(3), bigint!(0))),
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 1)),
+                MaybeRelocatable::from((3, 0)),
             ),
             (
-                MaybeRelocatable::from((bigint!(1), bigint!(2))),
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 2)),
                 MaybeRelocatable::Int(bigint!(0x4)),
             ),
             (
-                MaybeRelocatable::from((bigint!(1), bigint!(3))),
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 3)),
                 MaybeRelocatable::Int(bigint!(0x5)),
             ),
             (
-                MaybeRelocatable::from((bigint!(1), bigint!(4))),
+                MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
                 MaybeRelocatable::Int(bigint64!(0x14)),
             ),
         ];
@@ -2886,69 +2543,24 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             BTreeMap::new(),
         );
-        vm.run_context.pc = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(0),
-            offset: bigint!(0),
-        });
-        vm.run_context.ap = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
-        vm.run_context.fp = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: bigint!(1),
-            offset: bigint!(2),
-        });
-        vm.memory = Memory::from(mem_arr.clone());
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        vm.run_context.ap = MaybeRelocatable::from((1, 2));
+        vm.run_context.fp = MaybeRelocatable::from((1, 2));
+        vm.memory = Memory::from(mem_arr.clone(), 2);
 
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(0)
-            })
-        );
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2)
-            })
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(2)
-            })
-        );
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(2)
-            })
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 2)));
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
 
         assert_eq!(
             vm.memory.get(&vm.run_context.ap),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(4)
-            })
-        );
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(3)
-            })
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 3)));
 
         assert_eq!(
             vm.memory.get(&vm.run_context.ap),
@@ -2956,20 +2568,8 @@ mod tests {
         );
 
         assert_eq!(vm.step(), Ok(()));
-        assert_eq!(
-            vm.run_context.pc,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(0),
-                offset: bigint!(6)
-            })
-        );
-        assert_eq!(
-            vm.run_context.ap,
-            MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: bigint!(1),
-                offset: bigint!(4)
-            })
-        );
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 6)));
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 4)));
 
         assert_eq!(
             vm.memory.get(&vm.run_context.ap),

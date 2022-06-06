@@ -1,61 +1,133 @@
-use crate::types::relocatable::MaybeRelocatable;
-use std::collections::HashMap;
-use std::convert::From;
+use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 
 #[derive(Clone)]
 pub struct Memory {
-    pub data: HashMap<MaybeRelocatable, MaybeRelocatable>,
+    pub data: Vec<Vec<MaybeRelocatable>>,
 }
 
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            data: HashMap::new(),
+            data: Vec::<Vec<MaybeRelocatable>>::new(),
         }
     }
     pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
-        self.data.insert(key.clone(), val.clone());
-    }
-    pub fn get(&self, addr: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
-        self.data.get(addr)
-    }
-}
-
-impl<const N: usize> From<[(MaybeRelocatable, MaybeRelocatable); N]> for Memory {
-    fn from(key_val_list: [(MaybeRelocatable, MaybeRelocatable); N]) -> Self {
-        Memory {
-            data: HashMap::from(key_val_list),
+        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
+            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
+            //Check that the memory segment exists
+            if self.data.len() < i + 1 {
+                panic!("Cant insert to a non-allocated memory segment")
+            }
+            //Check that the element is inserted next to the las one on the segment
+            //Forgoing this check would allow data to be inserted in a different index
+            if self.data[i].len() < j {
+                panic!("Memory must be continuous")
+            }
+            self.data[i].push(val.clone())
+        } else {
+            panic!("Memory addresses must be relocatable")
         }
+    }
+    pub fn get(&self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
+        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
+            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
+            if self.data.len() > i && self.data[i].len() > j {
+                Some(&self.data[i][j])
+            } else {
+                None
+            }
+        } else {
+            panic!("Memory addresses must be relocatable")
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn from(
+        key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
+        num_segements: usize,
+    ) -> Self {
+        let mut memory = Memory::new();
+        for _ in 0..num_segements {
+            memory.data.push(Vec::new());
+        }
+        for (key, val) in key_val_list.iter() {
+            memory.insert(key, val);
+        }
+        memory
     }
 }
 
 #[cfg(test)]
 mod memory_tests {
+    use crate::bigint;
+
     use super::*;
     use num_bigint::BigInt;
     use num_traits::FromPrimitive;
 
     #[test]
-    fn get_test() {
-        let key = MaybeRelocatable::Int(BigInt::from_i32(2).unwrap());
-        let val = MaybeRelocatable::Int(BigInt::from_i32(5).unwrap());
-        let _val_clone = val.clone();
-        let mut mem = Memory::new();
-        mem.insert(&key, &val);
-        assert_eq!(matches!(mem.get(&key), _val_clone), true);
+    fn insert_and_get_succesful() {
+        let key = MaybeRelocatable::from((0, 0));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory.insert(&key, &val);
+        assert_eq!(memory.get(&key), Some(&MaybeRelocatable::from(bigint!(5))));
+    }
+
+    #[test]
+    fn get_non_allocated_memory() {
+        let key = MaybeRelocatable::from((0, 0));
+        let memory = Memory::new();
+        assert_eq!(memory.get(&key), None);
+    }
+
+    #[test]
+    fn get_non_existant_element() {
+        let key = MaybeRelocatable::from((0, 0));
+        let memory = Memory::new();
+        assert_eq!(memory.get(&key), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn get_non_relocatable_key() {
+        let key = MaybeRelocatable::from(bigint!(0));
+        let memory = Memory::new();
+        memory.get(&key);
+    }
+
+    #[test]
+    #[should_panic]
+    fn insert_non_allocated_memory() {
+        let key = MaybeRelocatable::from((0, 0));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.insert(&key, &val);
+    }
+
+    #[test]
+    #[should_panic]
+    fn insert_non_contiguous_element() {
+        let key_a = MaybeRelocatable::from((0, 0));
+        let key_b = MaybeRelocatable::from((0, 2));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.insert(&key_a, &val);
+        memory.insert(&key_b, &val);
     }
 
     #[test]
     fn from_array_test() {
-        let mem = Memory::from([(
-            MaybeRelocatable::Int(BigInt::from_i32(2).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i32(5).unwrap()),
-        )]);
+        let mem = Memory::from(
+            vec![(
+                MaybeRelocatable::from((1, 0)),
+                MaybeRelocatable::from(bigint!(5)),
+            )],
+            2,
+        );
         assert_eq!(
-            matches!(
-                mem.get(&MaybeRelocatable::Int(BigInt::from_i32(2).unwrap())),
-                _val_clone
-            ),
+            matches!(mem.get(&MaybeRelocatable::from((1, 0))), _val_clone),
             true
         );
     }
