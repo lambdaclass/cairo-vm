@@ -1,7 +1,7 @@
 .PHONY: build run check test clippy coverage
 
 build:
-	cargo build
+	nix-shell
 
 run: 
 	cargo run
