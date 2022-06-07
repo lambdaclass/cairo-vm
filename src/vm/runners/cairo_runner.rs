@@ -237,6 +237,26 @@ impl CairoRunner {
         self.relocate_memory(&relocation_table);
         self.relocate_trace(&relocation_table);
     }
+
+    pub fn print_output(&self) {
+        if let Some(builtin) = self.vm.builtin_runners.get("output") {
+            assert!(
+                self.segments.segment_used_sizes != None,
+                "compute_effective_sizes should be called before print_output"
+            );
+            println!("Program Output: ");
+            let base = builtin.base().unwrap();
+            for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
+                let value = self
+                    .vm
+                    .memory
+                    .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None));
+                if let Some(&MaybeRelocatable::Int(ref num)) = value {
+                    println!("{}", num);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
