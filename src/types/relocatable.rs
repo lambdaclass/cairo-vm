@@ -46,9 +46,7 @@ impl MaybeRelocatable {
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
-                if big_offset < bigint!(0) {
-                    panic!("Address Offset cant be negative");
-                }
+                assert!(big_offset > bigint!(0), "Address offsets cant be negative");
                 big_offset %= prime;
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
