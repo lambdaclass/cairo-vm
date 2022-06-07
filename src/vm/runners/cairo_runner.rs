@@ -244,8 +244,11 @@ impl CairoRunner {
                 self.segments.segment_used_sizes != None,
                 "compute_effective_sizes should be called before print_output"
             );
+            let base = match builtin.base() {
+                Some(base) => base,
+                None => panic!("Uninitialized Output Builtin Base"),
+            };
             println!("Program Output: ");
-            let base = builtin.base().unwrap();
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
                 let value = self
                     .vm
