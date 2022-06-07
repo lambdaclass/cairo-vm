@@ -58,7 +58,7 @@ impl MemorySegmentManager {
     ///Returns a vector that contains the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Vec<usize> {
         assert!(
-            self.segment_used_sizes == None,
+            self.segment_used_sizes != None,
             "compute_effective_sizes should be called before relocate_segments"
         );
         let first_addr = 1;
