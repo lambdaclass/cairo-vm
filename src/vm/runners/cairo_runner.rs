@@ -187,12 +187,11 @@ impl CairoRunner {
         }
         Ok(())
     }
-    fn relocate_memory(&mut self) {
+    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) {
         assert!(
             self.relocated_memory.is_empty(),
             "Memory has been already relocated"
         );
-        let relocation_table = self.segments.relocate_segments();
         self.relocated_memory.push(None);
         for (index, segment) in self.segments.memory.data.iter().enumerate() {
             assert_eq!(self.relocated_memory.len(), relocation_table[index]);
@@ -200,7 +199,7 @@ impl CairoRunner {
                 if element != &None {
                     self.relocated_memory.push(Some(relocate_value(
                         element.clone().unwrap(),
-                        relocation_table.clone(),
+                        relocation_table,
                     )));
                 } else {
                     self.relocated_memory.push(None);
@@ -209,16 +208,16 @@ impl CairoRunner {
         }
     }
 
-    fn relocate_trace(&mut self, relocation_table: Vec<usize>) {
+    fn relocate_trace(&mut self, relocation_table: &Vec<usize>) {
         assert!(
             self.relocated_trace.is_empty(),
             "Trace has already been relocated"
         );
         for entry in self.vm.trace.iter() {
             self.relocated_trace.push(RelocatedTraceEntry {
-                pc: relocate_trace_register(entry.pc.clone(), relocation_table.clone()),
-                ap: relocate_trace_register(entry.ap.clone(), relocation_table.clone()),
-                fp: relocate_trace_register(entry.fp.clone(), relocation_table.clone()),
+                pc: relocate_trace_register(entry.pc.clone(), relocation_table),
+                ap: relocate_trace_register(entry.ap.clone(), relocation_table),
+                fp: relocate_trace_register(entry.fp.clone(), relocation_table),
             })
         }
     }
@@ -1996,7 +1995,8 @@ mod tests {
             &MaybeRelocatable::from(bigint!(5)),
         );
         cairo_runner.segments.compute_effective_sizes();
-        cairo_runner.relocate_memory();
+        let rel_table = cairo_runner.segments.relocate_segments();
+        cairo_runner.relocate_memory(&rel_table);
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2015,6 +2015,7 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[9], Some(bigint!(5)));
     }
 
+    #[test]
     /* Program used:
     %builtins output
 
@@ -2057,8 +2058,6 @@ mod tests {
         27    1
         28    17
      */
-
-    #[test]
     fn initialize_run_and_relocate_output_builtin() {
         let program = Program {
             builtins: vec![String::from("output")],
@@ -2095,7 +2094,8 @@ mod tests {
         );
         cairo_runner.segments.memory = cairo_runner.vm.memory.clone();
         cairo_runner.segments.compute_effective_sizes();
-        cairo_runner.relocate_memory();
+        let rel_table = cairo_runner.segments.relocate_segments();
+        cairo_runner.relocate_memory(&rel_table);
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2162,5 +2162,165 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[26], Some(bigint!(29)));
         assert_eq!(cairo_runner.relocated_memory[27], Some(bigint!(1)));
         assert_eq!(cairo_runner.relocated_memory[28], Some(bigint!(17)));
+    }
+
+    #[test]
+    /* Program used:
+    %builtins output
+
+    from starkware.cairo.common.serialize import serialize_word
+
+    func main{output_ptr: felt*}():
+        let a = 1
+        serialize_word(a)
+        let b = 17 * a
+        serialize_word(b)
+        return()
+    end
+
+    Relocated Trace:
+    [TraceEntry(pc=5, ap=18, fp=18),
+     TraceEntry(pc=6, ap=19, fp=18),
+     TraceEntry(pc=8, ap=20, fp=18),
+     TraceEntry(pc=1, ap=22, fp=22),
+     TraceEntry(pc=2, ap=22, fp=22),
+     TraceEntry(pc=4, ap=23, fp=22),
+     TraceEntry(pc=10, ap=23, fp=18),
+    */
+    fn relocate_trace_output_builtin() {
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            data: vec![
+                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
+                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
+                MaybeRelocatable::from(bigint!(1)),
+                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
+                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(1)),
+                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+                )),
+                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(17)),
+                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                )),
+                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
+            ],
+            main: Some(4),
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        let end = cairo_runner.initialize_main_entrypoint();
+        cairo_runner.initialize_vm();
+        assert_eq!(
+            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
+            Ok(())
+        );
+        cairo_runner.segments.memory = cairo_runner.vm.memory.clone();
+        cairo_runner.segments.compute_effective_sizes();
+        let rel_table = cairo_runner.segments.relocate_segments();
+        cairo_runner.relocate_trace(&rel_table);
+        assert_eq!(cairo_runner.relocated_trace.len(), 12);
+        assert_eq!(
+            cairo_runner.relocated_trace[0],
+            RelocatedTraceEntry {
+                pc: 5,
+                ap: 18,
+                fp: 18
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[1],
+            RelocatedTraceEntry {
+                pc: 6,
+                ap: 19,
+                fp: 18
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[2],
+            RelocatedTraceEntry {
+                pc: 8,
+                ap: 20,
+                fp: 18
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[3],
+            RelocatedTraceEntry {
+                pc: 1,
+                ap: 22,
+                fp: 22
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[4],
+            RelocatedTraceEntry {
+                pc: 2,
+                ap: 22,
+                fp: 22
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[5],
+            RelocatedTraceEntry {
+                pc: 4,
+                ap: 23,
+                fp: 22
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[6],
+            RelocatedTraceEntry {
+                pc: 10,
+                ap: 23,
+                fp: 18
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[7],
+            RelocatedTraceEntry {
+                pc: 12,
+                ap: 24,
+                fp: 18
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[8],
+            RelocatedTraceEntry {
+                pc: 1,
+                ap: 26,
+                fp: 26
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[9],
+            RelocatedTraceEntry {
+                pc: 2,
+                ap: 26,
+                fp: 26
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[10],
+            RelocatedTraceEntry {
+                pc: 4,
+                ap: 27,
+                fp: 26
+            }
+        );
+        assert_eq!(
+            cairo_runner.relocated_trace[11],
+            RelocatedTraceEntry {
+                pc: 14,
+                ap: 27,
+                fp: 18
+            }
+        );
     }
 }

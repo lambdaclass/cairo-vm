@@ -142,7 +142,7 @@ impl MaybeRelocatable {
     }
 }
 
-pub fn relocate_value(value: MaybeRelocatable, relocation_table: Vec<usize>) -> BigInt {
+pub fn relocate_value(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> BigInt {
     match value {
         MaybeRelocatable::Int(num) => num,
         MaybeRelocatable::RelocatableValue(relocatable) => {
@@ -337,14 +337,14 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, relocation_table), bigint!(12));
+        assert_eq!(relocate_value(value, &relocation_table), bigint!(12));
     }
 
     #[test]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, relocation_table), bigint!(7));
+        assert_eq!(relocate_value(value, &relocation_table), bigint!(7));
     }
 
     #[test]
@@ -352,6 +352,6 @@ mod tests {
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        relocate_value(value, relocation_table);
+        relocate_value(value, &relocation_table);
     }
 }

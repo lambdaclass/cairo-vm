@@ -15,7 +15,7 @@ pub struct RelocatedTraceEntry {
     pub fp: usize,
 }
 
-pub fn relocate_trace_register(value: MaybeRelocatable, relocation_table: Vec<usize>) -> usize {
+pub fn relocate_trace_register(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> usize {
     match value {
         MaybeRelocatable::Int(_num) => panic!("Trace register must be relocatable"),
         MaybeRelocatable::RelocatableValue(relocatable) => {
@@ -38,7 +38,7 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_trace_register(value, relocation_table), 12);
+        assert_eq!(relocate_trace_register(value, &relocation_table), 12);
     }
 
     #[test]
@@ -46,7 +46,7 @@ mod tests {
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        relocate_trace_register(value, relocation_table);
+        relocate_trace_register(value, &relocation_table);
     }
 
     #[test]
@@ -54,6 +54,6 @@ mod tests {
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        relocate_trace_register(value, relocation_table);
+        relocate_trace_register(value, &relocation_table);
     }
 }
