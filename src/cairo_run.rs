@@ -7,6 +7,7 @@ pub fn cairo_run(path: &str) {
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint();
+    cairo_runner.initialize_vm();
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
     cairo_runner.relocate()
 }
