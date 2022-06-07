@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn initialize_segments_for_output() {
         let mut builtin = OutputBuiltinRunner::new(true);
-        let mut segments = MemorySegmentManager::new(bigint!(7));
+        let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, Some(relocatable!(0, 0)));
     }
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn initialize_segments_for_range_check() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
-        let mut segments = MemorySegmentManager::new(bigint!(7));
+        let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
         assert_eq!(
             builtin.base,
@@ -221,7 +221,7 @@ mod tests {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
 
-        let mut segments = MemorySegmentManager::new(bigint!(121));
+        let mut segments = MemorySegmentManager::new();
         for _ in 0..3 {
             segments.add(None);
         }
@@ -267,7 +267,7 @@ mod tests {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
 
-        let mut segments = MemorySegmentManager::new(bigint!(121));
+        let mut segments = MemorySegmentManager::new();
         for _ in 0..3 {
             segments.add(None);
         }
