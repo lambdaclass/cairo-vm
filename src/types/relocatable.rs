@@ -142,6 +142,9 @@ impl MaybeRelocatable {
     }
 }
 
+///Turns a MaybeRelocatable into a BigInt value
+/// If the value is an Int, it will extract the BigInt value from it
+/// If the value is Relocatable, it will relocate it using the relocation_table
 pub fn relocate_value(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> BigInt {
     match value {
         MaybeRelocatable::Int(num) => num,
