@@ -118,7 +118,7 @@ impl CairoRunner {
         entrypoint: usize,
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
-    ) -> Relocatable {
+    ) -> MaybeRelocatable {
         let end = self.segments.add(&mut self.vm.memory, None);
         stack.append(&mut vec![
             return_fp,
@@ -135,12 +135,12 @@ impl CairoRunner {
         }
         self.initialize_state(entrypoint, stack);
         self.final_pc = Some(end.clone());
-        end
+        MaybeRelocatable::RelocatableValue(end)
     }
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
-    pub fn initialize_main_entrypoint(&mut self) -> Relocatable {
+    pub fn initialize_main_entrypoint(&mut self) -> MaybeRelocatable {
         //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
         for (_name, builtin_runner) in self.vm.builtin_runners.iter() {
@@ -231,7 +231,7 @@ impl CairoRunner {
         }
     }
 
-    fn relocate(&mut self) {
+    pub fn relocate(&mut self) {
         self.segments.compute_effective_sizes(&self.vm.memory);
         let relocation_table = self.segments.relocate_segments();
         self.relocate_memory(&relocation_table);
@@ -602,7 +602,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint();
-        assert_eq!(return_pc, relocatable!(1, 0));
+        assert_eq!(return_pc, MaybeRelocatable::from((1, 0)));
     }
 
     #[test]
@@ -1176,13 +1176,10 @@ mod tests {
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint();
-        assert_eq!(end, relocatable!(3, 0));
+        assert_eq!(end, MaybeRelocatable::from((3, 0)));
         cairo_runner.initialize_vm();
         //Execution Phase
-        assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
-            Ok(())
-        );
+        assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
         assert_eq!(
@@ -1299,10 +1296,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint();
         cairo_runner.initialize_vm();
         //Execution Phase
-        assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
-            Ok(())
-        );
+        assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
         assert_eq!(
@@ -1485,10 +1479,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint();
         cairo_runner.initialize_vm();
         //Execution Phase
-        assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
-            Ok(())
-        );
+        assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
         assert_eq!(
@@ -1713,10 +1704,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint();
         cairo_runner.initialize_vm();
         //Execution Phase
-        assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
-            Ok(())
-        );
+        assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
         assert_eq!(
@@ -2085,10 +2073,7 @@ mod tests {
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint();
         cairo_runner.initialize_vm();
-        assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
-            Ok(())
-        );
+        assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         cairo_runner
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
@@ -2215,10 +2200,7 @@ mod tests {
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint();
         cairo_runner.initialize_vm();
-        assert_eq!(
-            cairo_runner.run_until_pc(MaybeRelocatable::RelocatableValue(end)),
-            Ok(())
-        );
+        assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         cairo_runner
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
