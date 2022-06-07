@@ -79,11 +79,11 @@ impl CairoRunner {
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
-            None => Some(self.segments.add(&self.vm.memory, None)),
+            None => Some(self.segments.add(&mut self.vm.memory, None)),
         };
-        self.execution_base = Some(self.segments.add(&self.vm.memory, None));
+        self.execution_base = Some(self.segments.add(&mut self.vm.memory, None));
         for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
-            builtin_runner.initialize_segments(&mut self.segments);
+            builtin_runner.initialize_segments(&mut self.segments, &mut self.vm.memory);
         }
     }
 
@@ -95,13 +95,13 @@ impl CairoRunner {
             };
             self.initial_pc = Some(initial_pc);
             self.segments.load_data(
-                &self.vm.memory,
+                &mut self.vm.memory,
                 &MaybeRelocatable::RelocatableValue(prog_base),
                 self.program.data.clone(),
             );
             if let Some(exec_base) = &self.execution_base {
                 self.segments.load_data(
-                    &self.vm.memory,
+                    &mut self.vm.memory,
                     &MaybeRelocatable::RelocatableValue(exec_base.clone()),
                     stack,
                 );
@@ -119,7 +119,7 @@ impl CairoRunner {
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Relocatable {
-        let end = self.segments.add(&self.vm.memory, None);
+        let end = self.segments.add(&mut self.vm.memory, None);
         stack.append(&mut vec![
             return_fp,
             MaybeRelocatable::RelocatableValue(end.clone()),
@@ -147,7 +147,7 @@ impl CairoRunner {
             stack.append(&mut builtin_runner.initial_stack());
         }
         //Different process if proof_mode is enabled
-        let return_fp = self.segments.add(&self.vm.memory, None);
+        let return_fp = self.segments.add(&mut self.vm.memory, None);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
             self.initialize_function_entrypoint(
@@ -389,7 +389,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(Relocatable {
             segment_index: 1,
@@ -424,7 +424,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..3 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
@@ -460,7 +460,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.execution_base = Some(Relocatable {
             segment_index: 2,
@@ -485,7 +485,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
@@ -506,7 +506,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -536,7 +536,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -1963,7 +1963,7 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..4 {
-            cairo_runner.segments.add(&cairo_runner.vm.memory, None);
+            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.vm.memory.insert(
             &MaybeRelocatable::from((0, 0)),

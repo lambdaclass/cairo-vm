@@ -1,5 +1,6 @@
 use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -23,7 +24,7 @@ pub struct OutputBuiltinRunner {
 
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
@@ -50,8 +51,8 @@ impl RangeCheckBuiltinRunner {
     }
 }
 impl BuiltinRunner for RangeCheckBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = Some(segments.add(None))
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+        self.base = Some(segments.add(memory, None))
     }
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         if self.included {
@@ -106,8 +107,8 @@ impl OutputBuiltinRunner {
 }
 
 impl BuiltinRunner for OutputBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
-        self.base = Some(segments.add(None))
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+        self.base = Some(segments.add(memory, None))
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -143,7 +144,8 @@ mod tests {
     fn initialize_segments_for_output() {
         let mut builtin = OutputBuiltinRunner::new(true);
         let mut segments = MemorySegmentManager::new();
-        builtin.initialize_segments(&mut segments);
+        let mut memory = Memory::new();
+        builtin.initialize_segments(&mut segments, &mut memory);
         assert_eq!(builtin.base, Some(relocatable!(0, 0)));
     }
 
@@ -151,7 +153,8 @@ mod tests {
     fn initialize_segments_for_range_check() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         let mut segments = MemorySegmentManager::new();
-        builtin.initialize_segments(&mut segments);
+        let mut memory = Memory::new();
+        builtin.initialize_segments(&mut segments, &mut memory);
         assert_eq!(
             builtin.base,
             Some(Relocatable {
@@ -222,17 +225,16 @@ mod tests {
         builtin.base = Some(relocatable!(1, 0));
 
         let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
         for _ in 0..3 {
-            segments.add(None);
+            segments.add(&mut memory, None);
         }
 
-        segments.memory.insert(
+        memory.insert(
             &MaybeRelocatable::from((1, 0)),
             &MaybeRelocatable::from(bigint!(45)),
         );
-        let vec = builtin
-            .validate_existing_memory(&segments.memory.data[1])
-            .unwrap();
+        let vec = builtin.validate_existing_memory(&memory.data[1]).unwrap();
         assert_eq!(vec[0], MaybeRelocatable::from((1, 0)));
     }
 
@@ -268,14 +270,15 @@ mod tests {
         builtin.base = Some(relocatable!(1, 0));
 
         let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
         for _ in 0..3 {
-            segments.add(None);
+            segments.add(&mut memory, None);
         }
-        segments.memory.insert(
+        memory.insert(
             &MaybeRelocatable::from((2, 0)),
             &MaybeRelocatable::from(bigint!(-45)),
         );
-        let vec = builtin.validate_existing_memory(&segments.memory.data[1]);
+        let vec = builtin.validate_existing_memory(&memory.data[1]);
         assert_eq!(vec, None);
     }
 }
