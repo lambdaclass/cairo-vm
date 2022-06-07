@@ -221,6 +221,13 @@ impl CairoRunner {
             })
         }
     }
+
+    fn relocate(&mut self) {
+        self.segments.compute_effective_sizes();
+        let relocation_table = self.segments.relocate_segments();
+        self.relocate_memory(&relocation_table);
+        self.relocate_trace(&relocation_table);
+    }
 }
 
 #[cfg(test)]
