@@ -11,7 +11,7 @@ pub struct Program {
 }
 #[allow(dead_code)]
 impl Program {
-    fn new(path: &str) -> Program {
+    pub fn new(path: &str) -> Program {
         deserialize_program::deserialize_program(path)
     }
 }
