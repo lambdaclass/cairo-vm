@@ -65,6 +65,12 @@ impl Memory {
     }
 }
 
+impl Default for Memory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod memory_tests {
     use crate::bigint;
