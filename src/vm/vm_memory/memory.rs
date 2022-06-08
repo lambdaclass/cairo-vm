@@ -36,22 +36,22 @@ impl Memory {
             }
             self.data[i].push(Some(val.clone()))
         } else {
-            panic!("Memory addresses must be relocatable")
+            return Err(MemoryError::AddressNotRelocatable);
         }
         Ok(())
     }
 
-    pub fn get(&self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
+    pub fn get(&self, key: &MaybeRelocatable) -> Result<Option<&MaybeRelocatable>, MemoryError> {
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (i, j) = from_relocatable_to_indexes(relocatable.clone());
             if self.data.len() > i && self.data[i].len() > j {
                 if let Some(ref element) = self.data[i][j] {
-                    return Some(element);
+                    return Ok(Some(element));
                 }
             }
-            None
+            Ok(None)
         } else {
-            panic!("Memory addresses must be relocatable")
+            Err(MemoryError::AddressNotRelocatable)
         }
     }
 
@@ -86,21 +86,24 @@ mod memory_tests {
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
-        assert_eq!(memory.get(&key), Some(&MaybeRelocatable::from(bigint!(5))));
+        assert_eq!(
+            memory.get(&key).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(5)))
+        );
     }
 
     #[test]
     fn get_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
-        assert_eq!(memory.get(&key), None);
+        assert_eq!(memory.get(&key).unwrap(), None);
     }
 
     #[test]
     fn get_non_existant_element() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
-        assert_eq!(memory.get(&key), None);
+        assert_eq!(memory.get(&key).unwrap(), None);
     }
 
     #[test]
@@ -108,7 +111,7 @@ mod memory_tests {
     fn get_non_relocatable_key() {
         let key = MaybeRelocatable::from(bigint!(0));
         let memory = Memory::new();
-        memory.get(&key);
+        memory.get(&key).unwrap();
     }
 
     #[test]
@@ -129,7 +132,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
         memory.insert(&key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b), Some(&val));
+        assert_eq!(memory.get(&key_b).unwrap(), Some(&val));
     }
 
     #[test]
@@ -141,11 +144,11 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
         memory.insert(&key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b), Some(&val));
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))), None);
-        assert_eq!(memory.get(&MaybeRelocatable::from((0, 4))), None);
+        assert_eq!(memory.get(&key_b).unwrap(), Some(&val));
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))).unwrap(), None);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))).unwrap(), None);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))).unwrap(), None);
+        assert_eq!(memory.get(&MaybeRelocatable::from((0, 4))).unwrap(), None);
     }
 
     #[test]

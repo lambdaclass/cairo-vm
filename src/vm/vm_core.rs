@@ -80,14 +80,15 @@ impl VirtualMachine {
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt;
         {
-            if let Some(MaybeRelocatable::Int(ref encoding)) = self.memory.get(&self.run_context.pc)
+            if let Some(MaybeRelocatable::Int(ref encoding)) =
+                self.memory.get(&self.run_context.pc).unwrap()
             {
                 encoding_ref = encoding;
             } else {
                 return Err(VirtualMachineError::InvalidInstructionEncoding);
             }
             let imm_addr = self.run_context.pc.add_usize_mod(1, None);
-            let optional_imm = self.memory.get(&imm_addr);
+            let optional_imm = self.memory.get(&imm_addr).unwrap();
             Ok((encoding_ref, optional_imm))
         }
     }
@@ -401,13 +402,13 @@ impl VirtualMachine {
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
-        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).cloned();
+        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).unwrap().cloned();
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
-        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).cloned();
+        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).unwrap().cloned();
         let op1_addr: MaybeRelocatable = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).cloned();
+        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).unwrap().cloned();
         let mut res: Option<MaybeRelocatable> = None;
 
         let should_update_dst = matches!(dst, None);
@@ -2528,7 +2529,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
         assert_eq!(vm.step(), Ok(()));
@@ -2536,7 +2537,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 3)));
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
@@ -2545,7 +2546,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 4)));
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(bigint64!(0x14))),
         );
     }

@@ -124,7 +124,10 @@ mod tests {
         segments.add(&mut memory, None);
         let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
-        assert_eq!(memory.get(&ptr), Some(&MaybeRelocatable::from(bigint!(4))));
+        assert_eq!(
+            memory.get(&ptr).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(4)))
+        );
     }
 
     #[test]
@@ -141,13 +144,16 @@ mod tests {
         let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
-        assert_eq!(memory.get(&ptr), Some(&MaybeRelocatable::from(bigint!(4))));
         assert_eq!(
-            memory.get(&MaybeRelocatable::from((0, 1))),
+            memory.get(&ptr).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(4)))
+        );
+        assert_eq!(
+            memory.get(&MaybeRelocatable::from((0, 1))).unwrap(),
             Some(&MaybeRelocatable::from(bigint!(5)))
         );
         assert_eq!(
-            memory.get(&MaybeRelocatable::from((0, 2))),
+            memory.get(&MaybeRelocatable::from((0, 2))).unwrap(),
             Some(&MaybeRelocatable::from(bigint!(6)))
         );
     }
