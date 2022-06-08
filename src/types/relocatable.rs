@@ -164,7 +164,6 @@ mod tests {
     use super::*;
     use crate::bigint;
     use crate::relocatable;
-    use crate::vm::vm_core::VirtualMachineError;
     use num_bigint::BigInt;
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
