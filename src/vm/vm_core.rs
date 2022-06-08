@@ -317,24 +317,29 @@ impl VirtualMachine {
         None
     }
 
-    fn opcode_assertions(&self, instruction: &Instruction, operands: &Operands) {
+    fn opcode_assertions(
+        &self,
+        instruction: &Instruction,
+        operands: &Operands,
+    ) -> Result<(), VirtualMachineError> {
         match instruction.opcode {
             Opcode::AssertEq => {
                 match &operands.res {
-                    None => panic!("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ"),
+                    None => return Err(VirtualMachineError::UnconstrainedResAssertEq),
                     Some(res) => {
                         if let (MaybeRelocatable::Int(res_num), MaybeRelocatable::Int(dst_num)) =
                             (res, &operands.dst)
                         {
                             if res_num != dst_num {
-                                panic!(
-                                    "An ASSERT_EQ instruction failed: {} != {}",
-                                    res_num, dst_num
-                                );
+                                return Err(VirtualMachineError::DiffAssertValues(
+                                    res_num.clone(),
+                                    dst_num.clone(),
+                                ));
                             };
                         };
                     }
                 };
+                Ok(())
             }
             Opcode::Call => {
                 if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
@@ -342,7 +347,10 @@ impl VirtualMachine {
                 {
                     let return_pc = run_pc + instruction.size();
                     if op0_num != &return_pc {
-                        panic!("Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0_num, return_pc);
+                        return Err(VirtualMachineError::CantWriteReturnPc(
+                            op0_num.clone(),
+                            return_pc,
+                        ));
                     };
                 };
 
@@ -350,17 +358,21 @@ impl VirtualMachine {
                     (&self.run_context.fp, &operands.dst)
                 {
                     if dst_num != return_fp {
-                        panic!("Call failed to write return-fp (inconsistent dst): fp->{} != dst->{}. Did you forget to increment ap?",return_fp,dst_num);
+                        return Err(VirtualMachineError::CantWriteReturnFp(
+                            dst_num.clone(),
+                            return_fp.clone(),
+                        ));
                     };
                 };
+                Ok(())
             }
-            _ => {}
+            _ => Ok(()),
         }
     }
 
     fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_mem_addresses) = self.compute_operands(&instruction)?;
-        self.opcode_assertions(&instruction, &operands);
+        self.opcode_assertions(&instruction, &operands)?;
         self.trace.push(TraceEntry {
             pc: self.run_context.pc.clone(),
             ap: self.run_context.ap.clone(),
@@ -438,7 +450,7 @@ impl VirtualMachine {
             match instruction.opcode {
                 Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
                 Opcode::Call => dst = Some(self.run_context.fp.clone()),
-                _ => panic!("Couldn't get or load dst"),
+                _ => return Err(VirtualMachineError::NoDst),
             }
         }
 
@@ -1995,7 +2007,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
             off0: bigint!(1),
@@ -2024,11 +2035,13 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        vm.opcode_assertions(&instruction, &operands)
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::UnconstrainedResAssertEq)
+        );
     }
 
     #[test]
-    #[should_panic(expected = "An ASSERT_EQ instruction failed: 8 != 9")]
     fn opcode_assertions_instruction_failed() {
         let instruction = Instruction {
             off0: bigint!(1),
@@ -2057,13 +2070,16 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        vm.opcode_assertions(&instruction, &operands)
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::DiffAssertValues(
+                bigint!(8),
+                bigint!(9)
+            ))
+        );
     }
 
     #[test]
-    #[should_panic(
-        expected = "Call failed to write return-pc (inconsistent op0): 9 != 5. Did you forget to increment ap?"
-    )]
     fn opcode_assertions_inconsistent_op0() {
         let instruction = Instruction {
             off0: bigint!(1),
@@ -2092,13 +2108,16 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        vm.opcode_assertions(&instruction, &operands);
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::CantWriteReturnPc(
+                bigint!(9),
+                bigint!(5)
+            ))
+        );
     }
 
     #[test]
-    #[should_panic(
-        expected = "Call failed to write return-fp (inconsistent dst): fp->6 != dst->8. Did you forget to increment ap?"
-    )]
     fn opcode_assertions_inconsistent_dst() {
         let instruction = Instruction {
             off0: bigint!(1),
@@ -2142,7 +2161,13 @@ mod tests {
             skip_instruction_execution: false,
         };
 
-        vm.opcode_assertions(&instruction, &operands);
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::CantWriteReturnFp(
+                bigint!(8),
+                bigint!(6)
+            ))
+        );
     }
 
     #[test]

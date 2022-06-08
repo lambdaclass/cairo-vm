@@ -10,7 +10,7 @@ pub enum RunnerError {
 
 impl fmt::Display for RunnerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             RunnerError::NoExecBase => {
                 write!(f, "Can't initialize state without an execution base")
             }
