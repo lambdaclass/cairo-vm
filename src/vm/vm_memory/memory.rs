@@ -1,3 +1,4 @@
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 
 #[derive(Clone)]
@@ -14,12 +15,16 @@ impl Memory {
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
     /// Will panic if the segment index given by the address corresponds to a non-allocated segment
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
-    pub fn insert(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
+    pub fn insert(
+        &mut self,
+        key: &MaybeRelocatable,
+        val: &MaybeRelocatable,
+    ) -> Result<(), MemoryError> {
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (i, j) = from_relocatable_to_indexes(relocatable.clone());
             //Check that the memory segment exists
             if self.data.len() < i + 1 {
-                panic!("Cant insert to a non-allocated memory segment")
+                return Err(MemoryError::UnallocatedSegment(self.data.len(), i + 1));
             }
             //Check if the element is inserted next to the last one on the segment
             //Forgoing this check would allow data to be inserted in a different index
@@ -33,6 +38,7 @@ impl Memory {
         } else {
             panic!("Memory addresses must be relocatable")
         }
+        Ok(())
     }
 
     pub fn get(&self, key: &MaybeRelocatable) -> Option<&MaybeRelocatable> {
@@ -53,15 +59,15 @@ impl Memory {
     pub fn from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
         num_segements: usize,
-    ) -> Self {
+    ) -> Result<Memory, MemoryError> {
         let mut memory = Memory::new();
         for _ in 0..num_segements {
             memory.data.push(Vec::new());
         }
         for (key, val) in key_val_list.iter() {
-            memory.insert(key, val);
+            memory.insert(key, val)?;
         }
-        memory
+        Ok(memory)
     }
 }
 
@@ -79,7 +85,7 @@ mod memory_tests {
         let val = MaybeRelocatable::from(bigint!(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
-        memory.insert(&key, &val);
+        memory.insert(&key, &val).unwrap();
         assert_eq!(memory.get(&key), Some(&MaybeRelocatable::from(bigint!(5))));
     }
 
@@ -111,7 +117,7 @@ mod memory_tests {
         let key = MaybeRelocatable::from((0, 0));
         let val = MaybeRelocatable::from(bigint!(5));
         let mut memory = Memory::new();
-        memory.insert(&key, &val);
+        memory.insert(&key, &val).unwrap();
     }
 
     #[test]
@@ -121,8 +127,8 @@ mod memory_tests {
         let val = MaybeRelocatable::from(bigint!(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
-        memory.insert(&key_a, &val);
-        memory.insert(&key_b, &val);
+        memory.insert(&key_a, &val).unwrap();
+        memory.insert(&key_b, &val).unwrap();
         assert_eq!(memory.get(&key_b), Some(&val));
     }
 
@@ -133,8 +139,8 @@ mod memory_tests {
         let val = MaybeRelocatable::from(bigint!(5));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
-        memory.insert(&key_a, &val);
-        memory.insert(&key_b, &val);
+        memory.insert(&key_a, &val).unwrap();
+        memory.insert(&key_b, &val).unwrap();
         assert_eq!(memory.get(&key_b), Some(&val));
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))), None);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))), None);
@@ -150,7 +156,8 @@ mod memory_tests {
                 MaybeRelocatable::from(bigint!(5)),
             )],
             2,
-        );
+        )
+        .unwrap();
         assert_eq!(
             matches!(mem.get(&MaybeRelocatable::from((1, 0))), _val_clone),
             true

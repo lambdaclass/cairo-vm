@@ -442,13 +442,19 @@ impl VirtualMachine {
         }
 
         if should_update_dst {
-            self.memory.insert(&dst_addr, dst.as_ref().unwrap());
+            self.memory
+                .insert(&dst_addr, dst.as_ref().unwrap())
+                .unwrap();
         }
         if should_update_op0 {
-            self.memory.insert(&op0_addr, op0.as_ref().unwrap());
+            self.memory
+                .insert(&op0_addr, op0.as_ref().unwrap())
+                .unwrap();
         }
         if should_update_op1 {
-            self.memory.insert(&op1_addr, op1.as_ref().unwrap());
+            self.memory
+                .insert(&op1_addr, op1.as_ref().unwrap())
+                .unwrap();
         }
 
         Ok((
@@ -476,10 +482,12 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
         vm.memory.data.push(Vec::new());
         vm.run_context.pc = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 0)),
-            &MaybeRelocatable::Int(bigint!(5)),
-        );
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::Int(bigint!(5)),
+            )
+            .unwrap();
         assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
     }
 
@@ -489,14 +497,18 @@ mod tests {
         vm.memory.data.push(Vec::new());
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
 
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 0)),
-            &MaybeRelocatable::from(bigint!(5)),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 1)),
-            &MaybeRelocatable::from(bigint!(6)),
-        );
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(6)),
+            )
+            .unwrap();
         if let Ok((num_ref, Some(MaybeRelocatable::Int(imm_ref)))) = vm.get_instruction_encoding() {
             assert_eq!(num_ref.clone(), bigint!(5));
             assert_eq!(imm_ref.clone(), bigint!(6));
@@ -1873,9 +1885,9 @@ mod tests {
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
         let op1_addr = MaybeRelocatable::from((0, 2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        vm.memory.insert(&dst_addr, &dst_addr_value);
-        vm.memory.insert(&op0_addr, &op0_addr_value);
-        vm.memory.insert(&op1_addr, &op1_addr_value);
+        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
+        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
+        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -1915,9 +1927,9 @@ mod tests {
         let op0_addr_value = MaybeRelocatable::from(bigint!(2));
         let op1_addr = MaybeRelocatable::from((0, 2));
         let op1_addr_value = MaybeRelocatable::from(bigint!(3));
-        vm.memory.insert(&dst_addr, &dst_addr_value);
-        vm.memory.insert(&op0_addr, &op0_addr_value);
-        vm.memory.insert(&op1_addr, &op1_addr_value);
+        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
+        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
+        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -1962,7 +1974,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.memory = Memory::from(mem_arr.clone(), 2);
+        vm.memory = Memory::from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2160,18 +2172,24 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 0)),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((1, 0)),
-            &MaybeRelocatable::from((2, 0)),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((1, 1)),
-            &MaybeRelocatable::from((3, 0)),
-        );
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((3, 0)),
+            )
+            .unwrap();
         assert_eq!(vm.step(), Ok(()));
         assert_eq!(
             vm.trace[0],
@@ -2234,52 +2252,72 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
 
         //Insert values into memory
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 0)),
-            &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 1)),
-            &MaybeRelocatable::Int(bigint!(2)),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 2)),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 3)),
-            &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 4)),
-            &MaybeRelocatable::Int(bigint!(1)),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 5)),
-            &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 6)),
-            &MaybeRelocatable::Int(BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                    134217728,
-                ],
-            )),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((0, 7)),
-            &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((1, 0)),
-            &MaybeRelocatable::from((2, 0)),
-        );
-        vm.memory.insert(
-            &MaybeRelocatable::from((1, 1)),
-            &MaybeRelocatable::from((3, 0)),
-        );
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::Int(bigint!(2)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::Int(bigint!(1)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 6)),
+                &MaybeRelocatable::Int(BigInt::new(
+                    Sign::Plus,
+                    vec![
+                        4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
+                        134217728,
+                    ],
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 7)),
+                &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((3, 0)),
+            )
+            .unwrap();
         //Insert values into accessed_addresses
         vm.accessed_addresses = vec![
             MaybeRelocatable::from((0, 1)),
@@ -2481,7 +2519,7 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
-        vm.memory = Memory::from(mem_arr.clone(), 2);
+        vm.memory = Memory::from(mem_arr.clone(), 2).unwrap();
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));

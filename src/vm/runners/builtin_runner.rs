@@ -230,10 +230,12 @@ mod tests {
             segments.add(&mut memory, None);
         }
 
-        memory.insert(
-            &MaybeRelocatable::from((1, 0)),
-            &MaybeRelocatable::from(bigint!(45)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(45)),
+            )
+            .unwrap();
         let vec = builtin.validate_existing_memory(&memory.data[1]).unwrap();
         assert_eq!(vec[0], MaybeRelocatable::from((1, 0)));
     }
@@ -244,10 +246,12 @@ mod tests {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
         let mut memory = Memory::new();
-        memory.insert(
-            &MaybeRelocatable::from((1, 7)),
-            &MaybeRelocatable::from(bigint!(-10)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint!(-10)),
+            )
+            .unwrap();
         builtin.validate_existing_memory(&memory.data[1]);
     }
 
@@ -257,10 +261,12 @@ mod tests {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
         let mut memory = Memory::new();
-        memory.insert(
-            &MaybeRelocatable::from((1, 7)),
-            &MaybeRelocatable::from((1, 4)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from((1, 4)),
+            )
+            .unwrap();
         builtin.validate_existing_memory(&memory.data[1]);
     }
 
@@ -274,10 +280,12 @@ mod tests {
         for _ in 0..3 {
             segments.add(&mut memory, None);
         }
-        memory.insert(
-            &MaybeRelocatable::from((2, 0)),
-            &MaybeRelocatable::from(bigint!(-45)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint!(-45)),
+            )
+            .unwrap();
         let vec = builtin.validate_existing_memory(&memory.data[1]);
         assert_eq!(vec, None);
     }
