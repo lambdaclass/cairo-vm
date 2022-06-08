@@ -182,12 +182,10 @@ impl HashBuiltinRunner {
                 self.verified_addresses.push(address.clone());
 
                 //Convert MaybeRelocatable to FieldElement
-                let (_, a_bytes) = num_a.to_bytes_be();
-                let a_byte_slice: &[u8; 32] = &a_bytes.try_into().unwrap();
-                let (_, b_bytes) = num_b.to_bytes_be();
-                let b_byte_slice: &[u8; 32] = &b_bytes.try_into().unwrap();
-                let x = FieldElement::from_bytes_be(a_byte_slice).unwrap();
-                let y = FieldElement::from_bytes_be(b_byte_slice).unwrap();
+                let a_string = num_a.to_str_radix(10);
+                let b_string = num_b.to_str_radix(10);
+                let x = FieldElement::from_dec_str(&a_string).unwrap();
+                let y = FieldElement::from_dec_str(&b_string).unwrap();
                 //Compute pedersen Hash
                 let fe_result = pedersen_hash(&x, &y);
                 //Convert result from FieldElement to MaybeRelocatable
@@ -376,5 +374,25 @@ mod tests {
         );
         let vec = builtin.validate_existing_memory(&memory.data[1]);
         assert_eq!(vec, None);
+    }
+
+    #[test]
+    fn deduce_memory_cell_for_preset_memory_valid() {
+        let mut memory = Memory::new();
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::Int(bigint!(32)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 1)),
+            &MaybeRelocatable::Int(bigint!(72)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 2)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let _result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 2)), &memory);
     }
 }
