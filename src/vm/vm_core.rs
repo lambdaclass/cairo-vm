@@ -6,10 +6,10 @@ use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
-use std::fmt;
 
 #[derive(PartialEq)]
 pub struct Operands {
@@ -382,9 +382,9 @@ impl VirtualMachine {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
         if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
-            return Ok(decode_instruction(instruction, Some(imm_ref.clone())));
+            return Ok(decode_instruction(instruction, Some(imm_ref.clone()))?);
         }
-        Ok(decode_instruction(instruction, None))
+        Ok(decode_instruction(instruction, None)?)
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
@@ -460,71 +460,6 @@ impl VirtualMachine {
             },
             [dst_addr, op0_addr, op1_addr].to_vec(),
         ))
-    }
-}
-
-#[derive(Debug, PartialEq)]
-#[allow(dead_code)]
-pub enum VirtualMachineError {
-    //InvalidInstructionEncoding(MaybeRelocatable), Impl fmt for MaybeRelocatable
-    InvalidInstructionEncoding,
-    InvalidDstReg,
-    InvalidOp0Reg,
-    InvalidOp1Reg,
-    ImmShouldBe1,
-    UnknownOp0,
-    InvalidFpUpdate,
-    InvalidApUpdate,
-    InvalidPcUpdate,
-    UnconstrainedResAdd,
-    UnconstrainedResJump,
-    UnconstrainedResJumpRel,
-    PureValue,
-    InvalidRes,
-    RelocatableAdd,
-    NotImplemented,
-    DiffIndexSub,
-}
-
-impl fmt::Display for VirtualMachineError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            //VirtualMachineError::InvalidInstructionEncoding(arg) => write!(f, "Instruction should be an int. Found: {}", arg),
-            VirtualMachineError::InvalidInstructionEncoding => {
-                write!(f, "Instruction should be an int. Found:")
-            }
-            VirtualMachineError::InvalidDstReg => write!(f, "Invalid dst_register value"),
-            VirtualMachineError::InvalidOp0Reg => write!(f, "Invalid op0_register value"),
-            VirtualMachineError::InvalidOp1Reg => write!(f, "Invalid op1_register value"),
-            VirtualMachineError::ImmShouldBe1 => {
-                write!(f, "In immediate mode, off2 should be 1")
-            }
-            VirtualMachineError::UnknownOp0 => {
-                write!(f, "op0 must be known in double dereference")
-            }
-            VirtualMachineError::InvalidFpUpdate => write!(f, "Invalid fp_update value"),
-            VirtualMachineError::InvalidApUpdate => write!(f, "Invalid ap_update value"),
-            VirtualMachineError::InvalidPcUpdate => write!(f, "Invalid pc_update value"),
-            VirtualMachineError::UnconstrainedResAdd => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")
-            }
-            VirtualMachineError::UnconstrainedResJump => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")
-            }
-            VirtualMachineError::UnconstrainedResJumpRel => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL")
-            }
-            VirtualMachineError::InvalidRes => write!(f, "Invalid res value"),
-            VirtualMachineError::RelocatableAdd => {
-                write!(f, "Cannot add two relocatable values")
-            }
-            VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
-            VirtualMachineError::PureValue => Ok(()), //TODO
-            VirtualMachineError::DiffIndexSub => write!(
-                f,
-                "Can only subtract two relocatable values of the same segment"
-            ),
-        }
     }
 }
 
