@@ -3,6 +3,7 @@ use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::is_subsequence;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::{
     BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
@@ -227,25 +228,27 @@ impl CairoRunner {
     }
 
     ///Relocates the VM's trace, turning relocatable registers to numbered ones
-    fn relocate_trace(&mut self, relocation_table: &Vec<usize>) {
+    fn relocate_trace(&mut self, relocation_table: &Vec<usize>) -> Result<(), TraceError> {
         assert!(
             self.relocated_trace.is_empty(),
             "Trace has already been relocated"
         );
         for entry in self.vm.trace.iter() {
             self.relocated_trace.push(RelocatedTraceEntry {
-                pc: relocate_trace_register(entry.pc.clone(), relocation_table),
-                ap: relocate_trace_register(entry.ap.clone(), relocation_table),
-                fp: relocate_trace_register(entry.fp.clone(), relocation_table),
+                pc: relocate_trace_register(entry.pc.clone(), relocation_table)?,
+                ap: relocate_trace_register(entry.ap.clone(), relocation_table)?,
+                fp: relocate_trace_register(entry.fp.clone(), relocation_table)?,
             })
         }
+        Ok(())
     }
 
-    pub fn relocate(&mut self) {
+    pub fn relocate(&mut self) -> Result<(), TraceError> {
         self.segments.compute_effective_sizes(&self.vm.memory);
         let relocation_table = self.segments.relocate_segments();
         self.relocate_memory(&relocation_table);
-        self.relocate_trace(&relocation_table);
+        self.relocate_trace(&relocation_table)?;
+        Ok(())
     }
 }
 
@@ -2489,7 +2492,7 @@ mod tests {
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
         let rel_table = cairo_runner.segments.relocate_segments();
-        cairo_runner.relocate_trace(&rel_table);
+        cairo_runner.relocate_trace(&rel_table).unwrap();
         assert_eq!(cairo_runner.relocated_trace.len(), 12);
         assert_eq!(
             cairo_runner.relocated_trace[0],
