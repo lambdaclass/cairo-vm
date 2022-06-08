@@ -156,7 +156,7 @@ mod decoder_test {
         //   |    CALL|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
         //  0  0  0  1      0  1   0  0  1      0  1 0  0  1       1       1
         //  0001 0100 1010 0111 = 0x14A7; offx = 0
-        let inst = decode_instruction(0x14A7800080008000, Some(bigint!(7)));
+        let inst = decode_instruction(0x14A7800080008000, Some(bigint!(7))).unwrap();
         assert_eq!(matches!(inst.dst_register, instruction::Register::FP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::FP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::Imm), true);
@@ -177,7 +177,7 @@ mod decoder_test {
         //   |     RET|     ADD1| JUMP_REL|      MUL|     FP|     AP|     AP
         //  0  0  1  0      1  0   0  1  0      1  0 0  1  0       0       0
         //  0010 1001 0100 1000 = 0x2948; offx = 0
-        let inst = decode_instruction(0x2948800080008000, None);
+        let inst = decode_instruction(0x2948800080008000, None).unwrap();
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::FP), true);
@@ -198,7 +198,7 @@ mod decoder_test {
         //   |ASSRT_EQ|      ADD|      JNZ|      MUL|     AP|     AP|     AP
         //  0  1  0  0      1  0   1  0  0      1  0 1  0  0       0       0
         //  0100 1010 0101 0000 = 0x4A50; offx = 0
-        let inst = decode_instruction(0x4A50800080008000, None);
+        let inst = decode_instruction(0x4A50800080008000, None).unwrap();
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::AP), true);
@@ -219,7 +219,7 @@ mod decoder_test {
         //   |ASSRT_EQ|     ADD2|      JNZ|UNCONSTRD|    OP0|     AP|     AP
         //  0  1  0  0      0  0   1  0  0      0  0 0  0  0       0       0
         //  0100 0010 0000 0000 = 0x4200; offx = 0
-        let inst = decode_instruction(0x4200800080008000, None);
+        let inst = decode_instruction(0x4200800080008000, None).unwrap();
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::Op0), true);
@@ -243,7 +243,7 @@ mod decoder_test {
         //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
-        let inst = decode_instruction(0x0000800080008000, None);
+        let inst = decode_instruction(0x0000800080008000, None).unwrap();
         assert_eq!(matches!(inst.dst_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op0_register, instruction::Register::AP), true);
         assert_eq!(matches!(inst.op1_addr, instruction::Op1Addr::Op0), true);
@@ -270,7 +270,7 @@ mod decoder_test {
         //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
         //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
-        let inst = decode_instruction(0x0000800180007FFF, None);
+        let inst = decode_instruction(0x0000800180007FFF, None).unwrap();
         assert_eq!(inst.off0, bigint!(-1));
         assert_eq!(inst.off1, bigint!(0));
         assert_eq!(inst.off2, bigint!(1));
