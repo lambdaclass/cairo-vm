@@ -8,7 +8,10 @@ use num_traits::FromPrimitive;
 
 #[allow(dead_code)]
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
-pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result<instruction::Instruction, VirtualMachineError> {
+pub fn decode_instruction(
+    encoded_instr: i64,
+    mut imm: Option<BigInt>,
+) -> Result<instruction::Instruction, VirtualMachineError> {
     const DST_REG_MASK: i64 = 0x0001;
     const DST_REG_OFF: i64 = 0;
     const OP0_REG_MASK: i64 = 0x0002;
@@ -51,13 +54,13 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
     let dst_register = match dst_reg_num {
         0 => instruction::Register::AP,
         1 => instruction::Register::FP,
-        _ => return Err(VirtualMachineError::InvalidDstReg(dst_reg_num))
+        _ => return Err(VirtualMachineError::InvalidDstReg(dst_reg_num)),
     };
 
     let op0_register = match op0_reg_num {
         0 => instruction::Register::AP,
         1 => instruction::Register::FP,
-        _ => return Err(VirtualMachineError::InvalidOp0Reg(dst_reg_num))
+        _ => return Err(VirtualMachineError::InvalidOp0Reg(dst_reg_num)),
     };
 
     let op1_addr = match op1_src_num {
@@ -65,7 +68,7 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
         1 => instruction::Op1Addr::Imm,
         2 => instruction::Op1Addr::FP,
         4 => instruction::Op1Addr::AP,
-        _ => return Err(VirtualMachineError::InvalidOp1Reg(op1_src_num))
+        _ => return Err(VirtualMachineError::InvalidOp1Reg(op1_src_num)),
     };
 
     if op1_addr == instruction::Op1Addr::Imm {
@@ -82,7 +85,7 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
         1 => instruction::PcUpdate::Jump,
         2 => instruction::PcUpdate::JumpRel,
         4 => instruction::PcUpdate::Jnz,
-        _ => return Err(VirtualMachineError::InvalidPcUpdate(pc_update_num))
+        _ => return Err(VirtualMachineError::InvalidPcUpdate(pc_update_num)),
     };
 
     let res = match res_logic_num {
@@ -90,7 +93,7 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
         0 => instruction::Res::Op1,
         1 => instruction::Res::Add,
         2 => instruction::Res::Mul,
-        _ => return Err(VirtualMachineError::InvalidRes(res_logic_num))
+        _ => return Err(VirtualMachineError::InvalidRes(res_logic_num)),
     };
 
     let opcode = match opcode_num {
@@ -98,7 +101,7 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
         1 => instruction::Opcode::Call,
         2 => instruction::Opcode::Ret,
         4 => instruction::Opcode::AssertEq,
-        _ => return Err(VirtualMachineError::InvalidOpcode(opcode_num))
+        _ => return Err(VirtualMachineError::InvalidOpcode(opcode_num)),
     };
 
     let ap_update = match ap_update_num {
@@ -106,7 +109,7 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
         0 => instruction::ApUpdate::Regular,
         1 => instruction::ApUpdate::Add,
         2 => instruction::ApUpdate::Add1,
-        _ => return Err(VirtualMachineError::InvalidApUpdate(ap_update_num))
+        _ => return Err(VirtualMachineError::InvalidApUpdate(ap_update_num)),
     };
 
     let fp_update = match opcode {
@@ -115,23 +118,21 @@ pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result
         _ => instruction::FpUpdate::Regular,
     };
 
-    Ok(
-        instruction::Instruction {
-            // TODO: Replace or confirm the unrwap is safe
-            off0: BigInt::from_i64(off0).unwrap(),
-            off1: BigInt::from_i64(off1).unwrap(),
-            off2: BigInt::from_i64(off2).unwrap(),
-            imm,
-            dst_register,
-            op0_register,
-            op1_addr,
-            res,
-            pc_update,
-            ap_update,
-            fp_update,
-            opcode,
-        }
-    )
+    Ok(instruction::Instruction {
+        // TODO: Replace or confirm the unrwap is safe
+        off0: BigInt::from_i64(off0).unwrap(),
+        off1: BigInt::from_i64(off1).unwrap(),
+        off2: BigInt::from_i64(off2).unwrap(),
+        imm,
+        dst_register,
+        op0_register,
+        op1_addr,
+        res,
+        pc_update,
+        ap_update,
+        fp_update,
+        opcode,
+    })
 }
 
 #[allow(dead_code)]
@@ -276,4 +277,3 @@ mod decoder_test {
         assert_eq!(inst.off2, bigint!(1));
     }
 }
-
