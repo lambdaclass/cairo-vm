@@ -400,5 +400,69 @@ mod tests {
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )))
         );
+        assert_eq!(
+            builtin.verified_addresses,
+            vec![MaybeRelocatable::from((0, 5))]
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_for_preset_memory_incorrect_offset() {
+        let mut memory = Memory::new();
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 4)),
+            &MaybeRelocatable::Int(bigint!(32)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(72)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 6)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 6)), &memory);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn deduce_memory_cell_for_preset_memory_no_values_to_hash() {
+        let mut memory = Memory::new();
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 4)),
+            &MaybeRelocatable::Int(bigint!(72)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn deduce_memory_cell_for_preset_memory_already_computed() {
+        let mut memory = Memory::new();
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 3)),
+            &MaybeRelocatable::Int(bigint!(32)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 4)),
+            &MaybeRelocatable::Int(bigint!(72)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        assert_eq!(result, None);
     }
 }
