@@ -12,6 +12,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::BTreeMap;
+use std::io;
 
 pub struct CairoRunner {
     program: Program,
@@ -238,7 +239,7 @@ impl CairoRunner {
         self.relocate_trace(&relocation_table);
     }
 
-    pub fn print_output(&self) {
+    pub fn print_output(&self, stdout: &mut dyn io::Write) {
         if let Some(builtin) = self.vm.builtin_runners.get("output") {
             assert!(
                 self.segments.segment_used_sizes != None,
@@ -248,14 +249,20 @@ impl CairoRunner {
                 Some(base) => base,
                 None => panic!("Uninitialized Output Builtin Base"),
             };
-            println!("Program Output: ");
+            let write_result = writeln!(stdout, "Program Output: ");
+            if write_result.is_err() {
+                panic!("Failed to write to standard output")
+            }
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
                 let value = self
                     .vm
                     .memory
                     .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None));
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
-                    println!("{}", num);
+                    let write_result = writeln!(stdout, "{}", num);
+                    if write_result.is_err() {
+                        panic!("Failed to write to standard output")
+                    }
                 }
             }
         }
