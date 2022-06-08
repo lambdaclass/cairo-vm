@@ -1,5 +1,5 @@
 use crate::types::instruction;
-use crate::vm::vm_errors::VirtualMachineError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
