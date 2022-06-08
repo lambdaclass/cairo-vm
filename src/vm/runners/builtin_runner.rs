@@ -22,6 +22,15 @@ pub struct OutputBuiltinRunner {
     _stop_ptr: Option<Relocatable>,
 }
 
+pub struct HashBuiltinRunner {
+    included: bool,
+    _ratio: usize,
+    _cells_per_instance: usize,
+    _n_input_cells: usize,
+    _stop_ptr: Option<Relocatable>,
+    verified_addresses: Vec<MaybeRelocatable>,
+}
+
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
@@ -131,6 +140,49 @@ impl BuiltinRunner for OutputBuiltinRunner {
         _memory: &[Option<MaybeRelocatable>],
     ) -> Option<Vec<MaybeRelocatable>> {
         None
+    }
+}
+
+#[allow(dead_code)]
+impl HashBuiltinRunner {
+    pub fn new(included: bool, ratio: usize) -> Self {
+        HashBuiltinRunner {
+            included,
+            _ratio: ratio,
+            _cells_per_instance: 3,
+            _n_input_cells: 2,
+            _stop_ptr: None,
+            verified_addresses: Vec::new(),
+        }
+    }
+    pub fn deduce_memory_cell(
+        &mut self,
+        address: &MaybeRelocatable,
+        memory: &Memory,
+    ) -> Option<MaybeRelocatable> {
+        if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
+            if relocatable.offset % self._cells_per_instance != 2
+                || self.verified_addresses.contains(address)
+            {
+                return None;
+            };
+            if let (Some(MaybeRelocatable::Int(num_a)), Some(MaybeRelocatable::Int(num_b))) = (
+                memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: relocatable.segment_index,
+                    offset: relocatable.offset - 1,
+                })),
+                memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: relocatable.segment_index,
+                    offset: relocatable.offset - 2,
+                })),
+            ) {
+                self.verified_addresses.push(address.clone());
+                return Some(pedersen_hash(num_a, num_b));
+            }
+            None
+        } else {
+            panic!("Memory address must be relocatable")
+        }
     }
 }
 
