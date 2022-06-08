@@ -2,8 +2,9 @@ use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, Sign};
 use num_traits::FromPrimitive;
+use starknet_crypto::{pedersen_hash, FieldElement};
 
 pub struct RangeCheckBuiltinRunner {
     included: bool,
@@ -23,7 +24,7 @@ pub struct OutputBuiltinRunner {
 }
 
 pub struct HashBuiltinRunner {
-    included: bool,
+    _included: bool,
     _ratio: usize,
     _cells_per_instance: usize,
     _n_input_cells: usize,
@@ -147,7 +148,7 @@ impl BuiltinRunner for OutputBuiltinRunner {
 impl HashBuiltinRunner {
     pub fn new(included: bool, ratio: usize) -> Self {
         HashBuiltinRunner {
-            included,
+            _included: included,
             _ratio: ratio,
             _cells_per_instance: 3,
             _n_input_cells: 2,
@@ -177,7 +178,20 @@ impl HashBuiltinRunner {
                 })),
             ) {
                 self.verified_addresses.push(address.clone());
-                return Some(pedersen_hash(num_a, num_b));
+
+                //Convert MaybeRelocatable to FieldElement
+                let (_, a_bytes) = num_a.to_bytes_be();
+                let a_byte_slice: &[u8; 32] = &a_bytes.try_into().unwrap();
+                let (_, b_bytes) = num_b.to_bytes_be();
+                let b_byte_slice: &[u8; 32] = &b_bytes.try_into().unwrap();
+                let x = FieldElement::from_bytes_be(a_byte_slice).unwrap();
+                let y = FieldElement::from_bytes_be(b_byte_slice).unwrap();
+                //Compute pedersen Hash
+                let fe_result = pedersen_hash(&x, &y);
+                //Convert result from FieldElement to MaybeRelocatable
+                let r_byte_slice = fe_result.to_bytes_be();
+                let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
+                Some(MaybeRelocatable::from(result));
             }
             None
         } else {
