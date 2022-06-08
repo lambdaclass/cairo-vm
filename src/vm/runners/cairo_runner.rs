@@ -8,6 +8,7 @@ use crate::vm::runners::builtin_runner::{
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -87,7 +88,7 @@ impl CairoRunner {
         }
     }
 
-    fn initialize_state(&mut self, entrypoint: usize, stack: Vec<MaybeRelocatable>) {
+    fn initialize_state(&mut self, entrypoint: usize, stack: Vec<MaybeRelocatable>) -> Result<(), RunnerError>{
         if let Some(prog_base) = self.program_base.clone() {
             let initial_pc = Relocatable {
                 segment_index: prog_base.segment_index,
@@ -106,11 +107,12 @@ impl CairoRunner {
                     stack,
                 );
             } else {
-                panic!("Cant initialize state without an execution base");
+                return Err(RunnerError::NoExecBase);
             }
         } else {
-            panic!("Cant initialize state without a program base");
+            return Err(RunnerError::NoProgBase);
         }
+        Ok(())
     }
 
     fn initialize_function_entrypoint(
@@ -118,7 +120,7 @@ impl CairoRunner {
         entrypoint: usize,
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
-    ) -> MaybeRelocatable {
+    ) -> Result<MaybeRelocatable, RunnerError> {
         let end = self.segments.add(&mut self.vm.memory, None);
         stack.append(&mut vec![
             return_fp,
@@ -131,11 +133,11 @@ impl CairoRunner {
             });
             self.initial_ap = self.initial_fp.clone();
         } else {
-            panic!("Cant initialize the function entrypoint without an execution base");
+            return Err(RunnerError::NoExecBaseForEntrypoint);
         }
         self.initialize_state(entrypoint, stack);
         self.final_pc = Some(end.clone());
-        MaybeRelocatable::RelocatableValue(end)
+        Ok(MaybeRelocatable::RelocatableValue(end))
     }
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
