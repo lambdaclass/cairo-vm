@@ -43,6 +43,11 @@ pub trait BuiltinRunner {
         &self,
         memory: &[Option<MaybeRelocatable>],
     ) -> Option<Vec<MaybeRelocatable>>;
+    fn deduce_memory_cell(
+        &mut self,
+        address: &MaybeRelocatable,
+        memory: &Memory,
+    ) -> Option<MaybeRelocatable>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -105,6 +110,14 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         }
         Some(validated_addresses)
     }
+
+    fn deduce_memory_cell(
+        &mut self,
+        _address: &MaybeRelocatable,
+        _memory: &Memory,
+    ) -> Option<MaybeRelocatable> {
+        None
+    }
 }
 
 impl OutputBuiltinRunner {
@@ -143,6 +156,14 @@ impl BuiltinRunner for OutputBuiltinRunner {
     ) -> Option<Vec<MaybeRelocatable>> {
         None
     }
+
+    fn deduce_memory_cell(
+        &mut self,
+        _address: &MaybeRelocatable,
+        _memory: &Memory,
+    ) -> Option<MaybeRelocatable> {
+        None
+    }
 }
 
 #[allow(dead_code)]
@@ -158,7 +179,35 @@ impl HashBuiltinRunner {
             verified_addresses: Vec::new(),
         }
     }
-    pub fn deduce_memory_cell(
+}
+
+impl BuiltinRunner for HashBuiltinRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+        self.base = Some(segments.add(memory, None))
+    }
+
+    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self.included {
+            if let Some(builtin_base) = &self.base {
+                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
+            } else {
+                panic!("Uninitialized self.base")
+            }
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn base(&self) -> Option<Relocatable> {
+        self.base.clone()
+    }
+    fn validate_existing_memory(
+        &self,
+        _memory: &[Option<MaybeRelocatable>],
+    ) -> Option<Vec<MaybeRelocatable>> {
+        None
+    }
+    fn deduce_memory_cell(
         &mut self,
         address: &MaybeRelocatable,
         memory: &Memory,
@@ -197,34 +246,6 @@ impl HashBuiltinRunner {
         } else {
             panic!("Memory address must be relocatable")
         }
-    }
-}
-
-impl BuiltinRunner for HashBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = Some(segments.add(memory, None))
-    }
-
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        if self.included {
-            if let Some(builtin_base) = &self.base {
-                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
-            } else {
-                panic!("Uninitialized self.base")
-            }
-        } else {
-            Vec::new()
-        }
-    }
-
-    fn base(&self) -> Option<Relocatable> {
-        self.base.clone()
-    }
-    fn validate_existing_memory(
-        &self,
-        _memory: &[Option<MaybeRelocatable>],
-    ) -> Option<Vec<MaybeRelocatable>> {
-        None
     }
 }
 
