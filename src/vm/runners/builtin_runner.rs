@@ -24,7 +24,8 @@ pub struct OutputBuiltinRunner {
 }
 
 pub struct HashBuiltinRunner {
-    _included: bool,
+    base: Option<Relocatable>,
+    included: bool,
     _ratio: usize,
     _cells_per_instance: usize,
     _n_input_cells: usize,
@@ -148,7 +149,8 @@ impl BuiltinRunner for OutputBuiltinRunner {
 impl HashBuiltinRunner {
     pub fn new(included: bool, ratio: usize) -> Self {
         HashBuiltinRunner {
-            _included: included,
+            base: None,
+            included,
             _ratio: ratio,
             _cells_per_instance: 3,
             _n_input_cells: 2,
@@ -197,6 +199,34 @@ impl HashBuiltinRunner {
         } else {
             panic!("Memory address must be relocatable")
         }
+    }
+}
+
+impl BuiltinRunner for HashBuiltinRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+        self.base = Some(segments.add(memory, None))
+    }
+
+    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self.included {
+            if let Some(builtin_base) = &self.base {
+                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
+            } else {
+                panic!("Uninitialized self.base")
+            }
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn base(&self) -> Option<Relocatable> {
+        self.base.clone()
+    }
+    fn validate_existing_memory(
+        &self,
+        _memory: &[Option<MaybeRelocatable>],
+    ) -> Option<Vec<MaybeRelocatable>> {
+        None
     }
 }
 
