@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "running generate_variables.json"
+
+echo "original cairo vm time:"
+time cairo-run --program generate_variables.json
+
+echo -e "\ncleopatra vm time:"
+time cargo run generate_variables.json >/dev/null 2>&1
+
+echo -e "\nrunning fibonacci benchmark"
+
+echo -e "\noriginal cairo vm time:"
+time for i in {1..50}; do cairo-run --program fibonacci.json; done
+
+echo -e "\ncleopatra vm time:"
+time for i in {1..50}; do cargo run fibonacci.json >/dev/null 2>&1; done
