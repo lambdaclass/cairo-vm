@@ -7,7 +7,7 @@ use crate::vm::runners::builtin_runner::{
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_core::VirtualMachineError;
+use crate::vm::vm_errors::VirtualMachineError;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;

@@ -1,4 +1,4 @@
-use crate::vm::vm_core::VirtualMachineError;
+use crate::vm::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 
