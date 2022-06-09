@@ -3,6 +3,7 @@ use std::fmt;
 pub enum BuiltinError {
     UninitializedBase,
     NumOutOfBounds,
+    FoundNonInt,
 }
 
 impl fmt::Display for BuiltinError {
@@ -12,6 +13,10 @@ impl fmt::Display for BuiltinError {
             BuiltinError::NumOutOfBounds => write!(
                 f,
                 "Range-check validation failed, number is out of valid range"
+            ),
+            BuiltinError::FoundNonInt => write!(
+                f,
+                "Range-check validation failed, encountered non-int value"
             ),
         }
     }
