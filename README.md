@@ -8,7 +8,7 @@ Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambda
 
 ## Cleopatra benchmarks:
 Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonacci number we got the following benchmarks:
-* Execution time with [Criterion](./docs/benchmarks/criterion/cairo-run%20benches_fibonacci.json/index.html)
+* Execution time with [Criterion](./docs/benchmarks/criterion/)
 * [Flamegraph](./docs/benchmarks/flamegraph.svg) 
 
 ## Cairo
