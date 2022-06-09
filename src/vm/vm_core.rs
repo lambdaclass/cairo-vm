@@ -279,20 +279,20 @@ impl VirtualMachine {
     fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
         if let MaybeRelocatable::RelocatableValue(addr) = address {
             if let Some(builtin) = self.builtin_runners.get_mut(&String::from("pedersen")) {
-                if let Some(base) = builtin.base()  {
-                    if base.segment_index == addr.segment_index{
+                if let Some(base) = builtin.base() {
+                    if base.segment_index == addr.segment_index {
                         return builtin.deduce_memory_cell(address, &self.memory);
                     }
                 }
             }
             if let Some(builtin) = self.builtin_runners.get_mut(&String::from("bitwise")) {
-                if let Some(base) = builtin.base()  {
-                    if base.segment_index == addr.segment_index{
+                if let Some(base) = builtin.base() {
+                    if base.segment_index == addr.segment_index {
                         return builtin.deduce_memory_cell(address, &self.memory);
                     }
                 }
             }
-            return None;    
+            return None;
         }
         panic!("Memory addresses must be relocatable");
     }
@@ -560,7 +560,7 @@ impl fmt::Display for VirtualMachineError {
 mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::vm::runners::builtin_runner::HashBuiltinRunner;
+    use crate::vm::runners::builtin_runner::{BitwiseBuiltinRunner, HashBuiltinRunner};
     use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
@@ -2616,11 +2616,9 @@ mod tests {
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
         let mut builtin = HashBuiltinRunner::new(true, 8);
-        builtin.base = Some(relocatable!(0,0));
-        vm.builtin_runners.insert(
-            String::from("pedersen"),
-            Box::new(builtin),
-        );
+        builtin.base = Some(relocatable!(0, 0));
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
         vm.memory.data.push(Vec::new());
         vm.memory.insert(
             &MaybeRelocatable::from((0, 3)),
@@ -2682,12 +2680,10 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
         let mut builtin = HashBuiltinRunner::new(true, 8);
-        builtin.base = Some(relocatable!(3,0));
+        builtin.base = Some(relocatable!(3, 0));
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.builtin_runners.insert(
-            String::from("pedersen"),
-            Box::new(builtin),
-        );
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
         vm.run_context.ap = MaybeRelocatable::from((1, 13));
         vm.run_context.fp = MaybeRelocatable::from((1, 12));
         vm.memory.data.push(Vec::new());
@@ -2786,6 +2782,32 @@ mod tests {
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
             vm.compute_operands(&instruction)
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_builtin_valid_and() {
+        let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        let mut builtin = BitwiseBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(0, 0));
+        vm.builtin_runners
+            .insert(String::from("bitwise"), Box::new(builtin));
+        vm.memory.data.push(Vec::new());
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(10)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 6)),
+            &MaybeRelocatable::Int(bigint!(12)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 7)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        assert_eq!(
+            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
+            Some(MaybeRelocatable::from(bigint!(8)))
         );
     }
 }
