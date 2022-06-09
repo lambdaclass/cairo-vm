@@ -233,13 +233,14 @@ impl BuiltinRunner for HashBuiltinRunner {
                 //Convert MaybeRelocatable to FieldElement
                 let a_string = num_a.to_str_radix(10);
                 let b_string = num_b.to_str_radix(10);
-                let y = match FieldElement::from_dec_str(&a_string) {
-                    Ok(field_element) => field_element,
-                    Err(_) => panic!("Failed to convert string to FieldElement"),
-                };
-                let x = match FieldElement::from_dec_str(&b_string) {
-                    Ok(field_element) => field_element,
-                    Err(_) => panic!("Failed to convert string to FieldElement"),
+                let (y, x) = match (
+                    FieldElement::from_dec_str(&a_string),
+                    FieldElement::from_dec_str(&b_string),
+                ) {
+                    (Ok(field_element_a), Ok(field_element_b)) => {
+                        (field_element_a, field_element_b)
+                    }
+                    _ => panic!("Failed to convert string to FieldElement"),
                 };
                 //Compute pedersen Hash
                 let fe_result = pedersen_hash(&x, &y);
