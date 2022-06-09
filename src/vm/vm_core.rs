@@ -538,8 +538,9 @@ impl fmt::Display for VirtualMachineError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint64;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
+    use crate::vm::runners::builtin_runner::HashBuiltinRunner;
+    use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
 
@@ -2581,6 +2582,40 @@ mod tests {
         assert_eq!(
             vm.memory.get(&vm.run_context.ap),
             Some(&MaybeRelocatable::Int(bigint64!(0x14))),
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_no_pedersen_builtin() {
+        let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        assert_eq!(vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))), None);
+    }
+
+    #[test]
+    fn deduce_memory_cell_pedersen_builtin_valid() {
+        let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        vm.builtin_runners.insert(
+            String::from("pedersen"),
+            Box::new(HashBuiltinRunner::new(true, 8)),
+        );
+        vm.memory.data.push(Vec::new());
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 3)),
+            &MaybeRelocatable::Int(bigint!(32)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 4)),
+            &MaybeRelocatable::Int(bigint!(72)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        assert_eq!(
+            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
+            Some(MaybeRelocatable::from(bigint_str!(
+                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            )))
         );
     }
 }
