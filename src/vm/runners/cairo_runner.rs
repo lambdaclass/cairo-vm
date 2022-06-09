@@ -3,7 +3,8 @@ use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::is_subsequence;
 use crate::vm::runners::builtin_runner::{
-    BuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
+    BitwiseBuiltinRunner, BuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
+    RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
@@ -63,6 +64,12 @@ impl CairoRunner {
                 builtin_runners.insert(
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                );
+            }
+            if builtin_name == "bitwise" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(BitwiseBuiltinRunner::new(true, 8)),
                 );
             }
         }

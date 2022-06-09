@@ -33,6 +33,14 @@ pub struct HashBuiltinRunner {
     verified_addresses: Vec<MaybeRelocatable>,
 }
 
+pub struct BitwiseBuiltinRunner {
+    included: bool,
+    _ratio: usize,
+    base: Option<Relocatable>,
+    _cells_per_instance: usize,
+    _n_input_cells: usize,
+}
+
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
@@ -166,7 +174,6 @@ impl BuiltinRunner for OutputBuiltinRunner {
     }
 }
 
-#[allow(dead_code)]
 impl HashBuiltinRunner {
     pub fn new(included: bool, ratio: usize) -> Self {
         HashBuiltinRunner {
@@ -253,6 +260,54 @@ impl BuiltinRunner for HashBuiltinRunner {
         } else {
             panic!("Memory address must be relocatable")
         }
+    }
+}
+
+impl BitwiseBuiltinRunner {
+    pub fn new(included: bool, ratio: usize) -> Self {
+        BitwiseBuiltinRunner {
+            base: None,
+            included,
+            _ratio: ratio,
+            _cells_per_instance: 5,
+            _n_input_cells: 2,
+        }
+    }
+}
+
+impl BuiltinRunner for BitwiseBuiltinRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+        self.base = Some(segments.add(memory, None))
+    }
+
+    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self.included {
+            if let Some(builtin_base) = &self.base {
+                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
+            } else {
+                panic!("Uninitialized self.base")
+            }
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn base(&self) -> Option<Relocatable> {
+        self.base.clone()
+    }
+    fn validate_existing_memory(
+        &self,
+        _memory: &[Option<MaybeRelocatable>],
+    ) -> Option<Vec<MaybeRelocatable>> {
+        None
+    }
+
+    fn deduce_memory_cell(
+        &mut self,
+        _address: &MaybeRelocatable,
+        _memory: &Memory,
+    ) -> Option<MaybeRelocatable> {
+        None
     }
 }
 
