@@ -395,9 +395,11 @@ impl VirtualMachine {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         let instruction = instruction_ref.clone().to_i64().unwrap();
         if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
-            return Ok(decode_instruction(instruction, Some(imm_ref.clone()))?);
+            let decoded_instruction = decode_instruction(instruction, Some(imm_ref.clone()))?;
+            return Ok(decoded_instruction);
         }
-        Ok(decode_instruction(instruction, None)?)
+        let decoded_instruction = decode_instruction(instruction, None)?;
+        Ok(decoded_instruction)
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
