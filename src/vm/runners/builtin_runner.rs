@@ -32,7 +32,7 @@ pub trait BuiltinRunner {
     fn validate_existing_memory(
         &self,
         memory: &[Option<MaybeRelocatable>],
-    ) -> Option<Vec<MaybeRelocatable>>;
+    ) -> Result<Option<Vec<MaybeRelocatable>>, RunnerError>;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -76,7 +76,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn validate_existing_memory(
         &self,
         builtin_memory: &[Option<MaybeRelocatable>],
-    ) -> Option<Vec<MaybeRelocatable>> {
+    ) -> Result<Option<Vec<MaybeRelocatable>>, RunnerError> {
         let mut validated_addresses = Vec::<MaybeRelocatable>::new();
         for (offset, value) in builtin_memory.iter().enumerate() {
             if let Some(MaybeRelocatable::Int(ref num)) = value {
@@ -86,16 +86,16 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                         offset,
                     }));
                 } else {
-                    panic!("Range-check validation failed, number is out of valid range");
+                    return Err(RunnerError::NumOutOfBounds);
                 }
             } else {
-                panic!("Range-check validation failed, encountered non-int value");
+                return Err(RunnerError::FoundNonInt);
             }
         }
         if validated_addresses.is_empty() {
-            return None;
+            return Ok(None);
         }
-        Some(validated_addresses)
+        Ok(Some(validated_addresses))
     }
 }
 
@@ -134,8 +134,8 @@ impl BuiltinRunner for OutputBuiltinRunner {
     fn validate_existing_memory(
         &self,
         _memory: &[Option<MaybeRelocatable>],
-    ) -> Option<Vec<MaybeRelocatable>> {
-        None
+    ) -> Result<Option<Vec<MaybeRelocatable>>, RunnerError> {
+        Ok(None)
     }
 }
 
