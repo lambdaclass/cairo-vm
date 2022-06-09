@@ -7,11 +7,11 @@
         "0x480680017fff8000",
         "0x1",
         "0x480680017fff8000",
-        "0xa",
+        "0x64",
         "0x1104800180018000",
         "0x5",
         "0x400680017fff7fff",
-        "0x90",
+        "0x3245e1a61e5624f888",
         "0x208b7fff7fff7ffe",
         "0x20780017fff7ffd",
         "0x4",
@@ -45,7 +45,7 @@
                     "end_col": 19,
                     "end_line": 3,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 3
@@ -68,7 +68,7 @@
                     "end_col": 19,
                     "end_line": 4,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 4
@@ -88,10 +88,10 @@
                 },
                 "hints": [],
                 "inst": {
-                    "end_col": 20,
+                    "end_col": 21,
                     "end_line": 5,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 5
@@ -114,7 +114,7 @@
                     "end_col": 13,
                     "end_line": 6,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 6
@@ -134,10 +134,10 @@
                 },
                 "hints": [],
                 "inst": {
-                    "end_col": 19,
+                    "end_col": 37,
                     "end_line": 9,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 9
@@ -160,7 +160,7 @@
                     "end_col": 8,
                     "end_line": 10,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 10
@@ -187,7 +187,7 @@
                     "end_col": 27,
                     "end_line": 14,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 14
@@ -214,7 +214,7 @@
                     "end_col": 32,
                     "end_line": 15,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 15
@@ -241,7 +241,7 @@
                     "end_col": 8,
                     "end_line": 16,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 16
@@ -268,7 +268,7 @@
                     "end_col": 32,
                     "end_line": 19,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 19
@@ -295,7 +295,7 @@
                     "end_col": 48,
                     "end_line": 20,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 20
@@ -322,7 +322,7 @@
                     "end_col": 23,
                     "end_line": 21,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 21
@@ -349,7 +349,7 @@
                     "end_col": 13,
                     "end_line": 22,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 22
@@ -376,7 +376,7 @@
                     "end_col": 8,
                     "end_line": 23,
                     "input_file": {
-                        "filename": "fibo.cairo"
+                        "filename": "fibonacci.cairo"
                     },
                     "start_col": 5,
                     "start_line": 23
