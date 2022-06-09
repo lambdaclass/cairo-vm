@@ -277,10 +277,24 @@ impl VirtualMachine {
     }
 
     fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
-        if let Some(builtin) = self.builtin_runners.get_mut(&String::from("pedersen")) {
-            return builtin.deduce_memory_cell(address, &self.memory);
+        if let MaybeRelocatable::RelocatableValue(addr) = address {
+            if let Some(builtin) = self.builtin_runners.get_mut(&String::from("pedersen")) {
+                if let Some(base) = builtin.base()  {
+                    if base.segment_index == addr.segment_index{
+                        return builtin.deduce_memory_cell(address, &self.memory);
+                    }
+                }
+            }
+            if let Some(builtin) = self.builtin_runners.get_mut(&String::from("bitwise")) {
+                if let Some(base) = builtin.base()  {
+                    if base.segment_index == addr.segment_index{
+                        return builtin.deduce_memory_cell(address, &self.memory);
+                    }
+                }
+            }
+            return None;    
         }
-        None
+        panic!("Memory addresses must be relocatable");
     }
 
     ///Computes the value of res if possible
@@ -2601,9 +2615,11 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(0,0));
         vm.builtin_runners.insert(
             String::from("pedersen"),
-            Box::new(HashBuiltinRunner::new(true, 8)),
+            Box::new(builtin),
         );
         vm.memory.data.push(Vec::new());
         vm.memory.insert(
@@ -2665,11 +2681,12 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(3,0));
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
         vm.builtin_runners.insert(
             String::from("pedersen"),
-            Box::new(HashBuiltinRunner::new(true, 8)),
+            Box::new(builtin),
         );
         vm.run_context.ap = MaybeRelocatable::from((1, 13));
         vm.run_context.fp = MaybeRelocatable::from((1, 12));

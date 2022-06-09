@@ -24,7 +24,7 @@ pub struct OutputBuiltinRunner {
 }
 
 pub struct HashBuiltinRunner {
-    base: Option<Relocatable>,
+    pub base: Option<Relocatable>,
     included: bool,
     _ratio: usize,
     _cells_per_instance: usize,
@@ -36,7 +36,7 @@ pub struct HashBuiltinRunner {
 pub struct BitwiseBuiltinRunner {
     included: bool,
     _ratio: usize,
-    base: Option<Relocatable>,
+    pub base: Option<Relocatable>,
     _cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,
