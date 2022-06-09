@@ -39,6 +39,7 @@ pub struct BitwiseBuiltinRunner {
     base: Option<Relocatable>,
     _cells_per_instance: usize,
     _n_input_cells: usize,
+    total_n_bits: u32,
 }
 
 pub trait BuiltinRunner {
@@ -271,6 +272,7 @@ impl BitwiseBuiltinRunner {
             _ratio: ratio,
             _cells_per_instance: 5,
             _n_input_cells: 2,
+            total_n_bits: 251,
         }
     }
 }
@@ -304,10 +306,46 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        _address: &MaybeRelocatable,
-        _memory: &Memory,
+        address: &MaybeRelocatable,
+        memory: &Memory,
     ) -> Option<MaybeRelocatable> {
-        None
+        if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
+            let index = relocatable.offset % self._cells_per_instance;
+            if index == 0 || index == 1 {
+                return None;
+            }
+            let x_addr =
+                MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
+            let y_addr = x_addr.add_usize_mod(1, None);
+            if let (Some(MaybeRelocatable::Int(num_x)), Some(MaybeRelocatable::Int(num_y))) =
+                (memory.get(&x_addr), memory.get(&y_addr))
+            {
+                assert!(
+                    num_x < &bigint!(2).pow(self.total_n_bits),
+                    "Expected integer at address {:?} to be smaller than 2^{}, Got {}",
+                    x_addr,
+                    self.total_n_bits,
+                    num_x
+                );
+                assert!(
+                    num_y < &bigint!(2).pow(self.total_n_bits),
+                    "Expected integer at address {:?} to be smaller than 2^{}, Got {}",
+                    y_addr,
+                    self.total_n_bits,
+                    num_y
+                );
+                let res = match index {
+                    2 => Some(MaybeRelocatable::from(num_x & num_y)),
+                    3 => Some(MaybeRelocatable::from(num_x ^ num_y)),
+                    4 => Some(MaybeRelocatable::from(num_x | num_y)),
+                    _ => None,
+                };
+                return res;
+            }
+            None
+        } else {
+            panic!("Memory address should be relocatable")
+        }
     }
 }
 

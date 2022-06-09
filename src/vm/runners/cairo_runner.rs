@@ -69,7 +69,7 @@ impl CairoRunner {
             if builtin_name == "bitwise" {
                 builtin_runners.insert(
                     builtin_name.clone(),
-                    Box::new(BitwiseBuiltinRunner::new(true, 8)),
+                    Box::new(BitwiseBuiltinRunner::new(true, 256)),
                 );
             }
         }
