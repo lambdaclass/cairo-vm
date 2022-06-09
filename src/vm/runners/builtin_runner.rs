@@ -173,7 +173,7 @@ mod tests {
     fn get_initial_stack_for_range_check_included_with_base() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
-        let initial_stack = builtin.initial_stack();
+        let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(
             initial_stack[0].clone(),
             MaybeRelocatable::RelocatableValue(builtin.base().unwrap())
@@ -185,13 +185,13 @@ mod tests {
     #[should_panic]
     fn get_initial_stack_for_range_check_included_without_base() {
         let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
-        let _initial_stack = builtin.initial_stack();
+        let _initial_stack = builtin.initial_stack().unwrap();
     }
 
     #[test]
     fn get_initial_stack_for_range_check_not_included() {
         let builtin = RangeCheckBuiltinRunner::new(false, bigint!(8), 8);
-        let initial_stack = builtin.initial_stack();
+        let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(initial_stack.len(), 0);
     }
 
@@ -202,7 +202,7 @@ mod tests {
             segment_index: 1,
             offset: 0,
         });
-        let initial_stack = builtin.initial_stack();
+        let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(
             initial_stack[0].clone(),
             MaybeRelocatable::RelocatableValue(builtin.base().unwrap())
@@ -214,13 +214,13 @@ mod tests {
     #[should_panic]
     fn get_initial_stack_for_output_included_without_base() {
         let builtin = OutputBuiltinRunner::new(true);
-        let _initial_stack = builtin.initial_stack();
+        let _initial_stack = builtin.initial_stack().unwrap();
     }
 
     #[test]
     fn get_initial_stack_for_output_not_included() {
         let builtin = OutputBuiltinRunner::new(false);
-        let initial_stack = builtin.initial_stack();
+        let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(initial_stack.len(), 0);
     }
 
@@ -242,7 +242,7 @@ mod tests {
             )
             .unwrap();
         let vec = builtin.validate_existing_memory(&memory.data[1]).unwrap();
-        assert_eq!(vec[0], MaybeRelocatable::from((1, 0)));
+        assert_eq!(vec.unwrap()[0], MaybeRelocatable::from((1, 0)));
     }
 
     #[test]
@@ -257,7 +257,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(-10)),
             )
             .unwrap();
-        builtin.validate_existing_memory(&memory.data[1]);
+        builtin.validate_existing_memory(&memory.data[1]).unwrap();
     }
 
     #[test]
@@ -272,7 +272,7 @@ mod tests {
                 &MaybeRelocatable::from((1, 4)),
             )
             .unwrap();
-        builtin.validate_existing_memory(&memory.data[1]);
+        builtin.validate_existing_memory(&memory.data[1]).unwrap();
     }
 
     #[test]
@@ -292,6 +292,6 @@ mod tests {
             )
             .unwrap();
         let vec = builtin.validate_existing_memory(&memory.data[1]);
-        assert_eq!(vec, None);
+        assert_eq!(vec, Ok(None));
     }
 }
