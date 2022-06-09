@@ -171,7 +171,7 @@ impl CairoRunner {
         }
     }
 
-    pub fn initialize_vm(&mut self) {
+    pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
         //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
@@ -185,11 +185,12 @@ impl CairoRunner {
         for (_key, builtin) in self.vm.builtin_runners.iter() {
             let vec = builtin.validate_existing_memory(
                 &self.vm.memory.data[builtin.base().unwrap().segment_index],
-            );
-            if let Ok(Some(mut validated_addresses)) = vec {
+            )?;
+            if let Some(mut validated_addresses) = vec {
                 self.vm.validated_addresses.append(&mut validated_addresses)
             }
         }
+        Ok(())
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
@@ -764,7 +765,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(-1)),
             )
             .unwrap();
-        cairo_runner.initialize_vm();
+        cairo_runner.initialize_vm().unwrap();
     }
 
     //Integration tests for initialization phase
