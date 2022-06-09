@@ -6,6 +6,9 @@ pub enum RunnerError {
     NoExecBaseForEntrypoint,
     NoProgBase,
     MissingMain,
+    UninitializedBase,
+    NumOutOfBounds,
+    FoundNonInt,
 }
 
 impl fmt::Display for RunnerError {
@@ -20,6 +23,15 @@ impl fmt::Display for RunnerError {
                 "Can't initialize the function entrypoint without an execution base"
             ),
             RunnerError::MissingMain => write!(f, "Missing main()"),
+            RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
+            RunnerError::NumOutOfBounds => write!(
+                f,
+                "Range-check validation failed, number is out of valid range"
+            ),
+            RunnerError::FoundNonInt => write!(
+                f,
+                "Range-check validation failed, encountered non-int value"
+            ),
         }
     }
 }
