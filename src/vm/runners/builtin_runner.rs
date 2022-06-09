@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::builtin_errors::BuiltinError;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
@@ -26,7 +26,7 @@ pub struct OutputBuiltinRunner {
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
-    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, BuiltinError>;
+    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
     fn validate_existing_memory(
@@ -55,14 +55,14 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
         self.base = Some(segments.add(memory, None))
     }
-    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, BuiltinError> {
+    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError> {
         if self.included {
             if let Some(builtin_base) = &self.base {
                 Ok(vec![MaybeRelocatable::RelocatableValue(
                     builtin_base.clone(),
                 )])
             } else {
-                Err(BuiltinError::UninitializedBase)
+                Err(RunnerError::UninitializedBase)
             }
         } else {
             Ok(Vec::new())
@@ -114,14 +114,14 @@ impl BuiltinRunner for OutputBuiltinRunner {
         self.base = Some(segments.add(memory, None))
     }
 
-    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, BuiltinError> {
+    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError> {
         if self.included {
             if let Some(builtin_base) = &self.base {
                 Ok(vec![MaybeRelocatable::RelocatableValue(
                     builtin_base.clone(),
                 )])
             } else {
-                Err(BuiltinError::UninitializedBase)
+                Err(RunnerError::UninitializedBase)
             }
         } else {
             Ok(Vec::new())

@@ -155,7 +155,7 @@ impl CairoRunner {
         //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
         for (_name, builtin_runner) in self.vm.builtin_runners.iter() {
-            stack.append(&mut builtin_runner.initial_stack());
+            stack.append(&mut builtin_runner.initial_stack()?);
         }
         //Different process if proof_mode is enabled
         let return_fp = self.segments.add(&mut self.vm.memory, None);
