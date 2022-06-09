@@ -649,4 +649,42 @@ mod tests {
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 9)), &memory);
         assert_eq!(result, Some(MaybeRelocatable::from(bigint!(14))));
     }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
+        let mut memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 3)),
+            &MaybeRelocatable::Int(bigint!(10)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 4)),
+            &MaybeRelocatable::Int(bigint!(12)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
+        let mut memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(12)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 7)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        assert_eq!(result, None);
+    }
 }
