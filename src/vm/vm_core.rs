@@ -11,8 +11,6 @@ use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
 use std::fmt;
 
-use super::runners::builtin_runner::HashBuiltinRunner;
-
 #[derive(PartialEq)]
 pub struct Operands {
     dst: MaybeRelocatable,
@@ -278,8 +276,8 @@ impl VirtualMachine {
         Ok((None, None))
     }
 
-    fn deduce_memory_cell(&self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
-        if let Some(builtin) = self.builtin_runners.get(&String::from("pedersen")) {
+    fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
+        if let Some(builtin) = self.builtin_runners.get_mut(&String::from("pedersen")) {
             return builtin.deduce_memory_cell(address, &self.memory);
         }
         None
