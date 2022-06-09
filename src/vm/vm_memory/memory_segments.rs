@@ -71,6 +71,12 @@ impl MemorySegmentManager {
     }
 }
 
+impl Default for MemorySegmentManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{bigint, relocatable};
