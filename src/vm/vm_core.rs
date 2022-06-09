@@ -431,16 +431,16 @@ impl VirtualMachine {
         let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).cloned();
         let mut res: Option<MaybeRelocatable> = None;
 
+        let should_update_dst = matches!(dst, None);
+        let should_update_op0 = matches!(op0, None);
+        let should_update_op1 = matches!(op1, None);
+
         if matches!(op0, None) {
             op0 = self.deduce_memory_cell(&op0_addr);
         }
         if matches!(op1, None) {
             op1 = self.deduce_memory_cell(&op1_addr);
         }
-
-        let should_update_dst = matches!(dst, None);
-        let should_update_op0 = matches!(op0, None);
-        let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
             (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
@@ -2808,6 +2808,108 @@ mod tests {
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
             Some(MaybeRelocatable::from(bigint!(8)))
+        );
+    }
+
+    #[test]
+    /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn compute_operands_bitwise() {
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(-5),
+            off2: bigint!(2),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Op1,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add1,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(2, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
+        vm.run_context.ap = MaybeRelocatable::from((1, 9));
+        vm.run_context.fp = MaybeRelocatable::from((1, 8));
+        vm.memory.data.push(Vec::new());
+        vm.memory.data.push(Vec::new());
+        vm.memory.data.push(Vec::new());
+
+        //Insert values into memory (excluding those from the program segment (instructions))
+        vm.memory.insert(
+            &MaybeRelocatable::from((2, 0)),
+            &MaybeRelocatable::from(bigint!(12)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((2, 1)),
+            &MaybeRelocatable::from(bigint!(10)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 0)),
+            &MaybeRelocatable::from((2, 0)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 1)),
+            &MaybeRelocatable::from((3, 0)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 2)),
+            &MaybeRelocatable::from((4, 0)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 3)),
+            &MaybeRelocatable::from((2, 0)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 4)),
+            &MaybeRelocatable::from(bigint!(12)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 5)),
+            &MaybeRelocatable::from(bigint!(10)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 6)),
+            &MaybeRelocatable::from((1, 3)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 7)),
+            &MaybeRelocatable::from((0, 13)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 7)),
+            &MaybeRelocatable::from((2, 8)),
+        );
+
+        let expected_operands = Operands {
+            dst: MaybeRelocatable::from(bigint!(8)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from((2, 0)),
+            op1: MaybeRelocatable::from(bigint!(8)),
+        };
+        let expected_operands_mem_addresses = vec![
+            MaybeRelocatable::from((1, 9)),
+            MaybeRelocatable::from((1, 3)),
+            MaybeRelocatable::from((2, 2)),
+        ];
+        assert_eq!(
+            Ok((expected_operands, expected_operands_mem_addresses)),
+            vm.compute_operands(&instruction)
         );
     }
 }
