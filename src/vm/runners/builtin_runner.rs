@@ -42,6 +42,14 @@ pub struct BitwiseBuiltinRunner {
     total_n_bits: u32,
 }
 
+pub struct EcOpBuiltinRunner {
+    included: bool,
+    _ratio: usize,
+    pub base: Option<Relocatable>,
+    _cells_per_instance: usize,
+    _n_input_cells: usize,
+}
+
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
@@ -346,6 +354,54 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         } else {
             panic!("Memory address should be relocatable")
         }
+    }
+}
+
+impl EcOpBuiltinRunner {
+    pub fn new(included: bool, ratio: usize) -> Self {
+        EcOpBuiltinRunner {
+            included,
+            base: None,
+            _ratio: ratio,
+            _n_input_cells: 5,
+            _cells_per_instance: 7,
+        }
+    }
+}
+
+impl BuiltinRunner for EcOpBuiltinRunner {
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+        self.base = Some(segments.add(memory, None))
+    }
+
+    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self.included {
+            if let Some(builtin_base) = &self.base {
+                vec![MaybeRelocatable::RelocatableValue(builtin_base.clone())]
+            } else {
+                panic!("Uninitialized self.base")
+            }
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn base(&self) -> Option<Relocatable> {
+        self.base.clone()
+    }
+    fn validate_existing_memory(
+        &self,
+        _memory: &[Option<MaybeRelocatable>],
+    ) -> Option<Vec<MaybeRelocatable>> {
+        None
+    }
+
+    fn deduce_memory_cell(
+        &mut self,
+        _address: &MaybeRelocatable,
+        _memory: &Memory,
+    ) -> Option<MaybeRelocatable> {
+        None
     }
 }
 
