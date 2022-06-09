@@ -498,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_for_preset_memory_valid() {
+    fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let mut memory = Memory::new();
         let mut builtin = HashBuiltinRunner::new(true, 8);
         memory.data.push(Vec::new());
@@ -528,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_for_preset_memory_incorrect_offset() {
+    fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let mut memory = Memory::new();
         let mut builtin = HashBuiltinRunner::new(true, 8);
         memory.data.push(Vec::new());
@@ -549,7 +549,7 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_for_preset_memory_no_values_to_hash() {
+    fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let mut memory = Memory::new();
         let mut builtin = HashBuiltinRunner::new(true, 8);
         memory.data.push(Vec::new());
@@ -566,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    fn deduce_memory_cell_for_preset_memory_already_computed() {
+    fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let mut memory = Memory::new();
         let mut builtin = HashBuiltinRunner::new(true, 8);
         memory.data.push(Vec::new());
@@ -585,5 +585,68 @@ mod tests {
         builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
+        let mut memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(10)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 6)),
+            &MaybeRelocatable::Int(bigint!(12)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 7)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 7)), &memory);
+        assert_eq!(result, Some(MaybeRelocatable::from(bigint!(8))));
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
+        let mut memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(10)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 6)),
+            &MaybeRelocatable::Int(bigint!(12)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 8)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 8)), &memory);
+        assert_eq!(result, Some(MaybeRelocatable::from(bigint!(6))));
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
+        let mut memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        memory.data.push(Vec::new());
+        memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint!(10)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 6)),
+            &MaybeRelocatable::Int(bigint!(12)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((0, 9)),
+            &MaybeRelocatable::Int(bigint!(0)),
+        );
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 9)), &memory);
+        assert_eq!(result, Some(MaybeRelocatable::from(bigint!(14))));
     }
 }
