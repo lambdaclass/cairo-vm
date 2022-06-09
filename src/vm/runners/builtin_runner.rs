@@ -1,7 +1,7 @@
-use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
 use num_traits::FromPrimitive;
 use starknet_crypto::{pedersen_hash, FieldElement};
@@ -27,7 +27,7 @@ pub struct HashBuiltinRunner {
     pub base: Option<Relocatable>,
     included: bool,
     _ratio: usize,
-    _cells_per_instance: usize,
+    cells_per_instance: usize,
     _n_input_cells: usize,
     _stop_ptr: Option<Relocatable>,
     verified_addresses: Vec<MaybeRelocatable>,
@@ -37,7 +37,7 @@ pub struct BitwiseBuiltinRunner {
     included: bool,
     _ratio: usize,
     pub base: Option<Relocatable>,
-    _cells_per_instance: usize,
+    cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,
 }
@@ -46,8 +46,11 @@ pub struct EcOpBuiltinRunner {
     included: bool,
     _ratio: usize,
     pub base: Option<Relocatable>,
-    _cells_per_instance: usize,
-    _n_input_cells: usize,
+    cells_per_instance: usize,
+    n_input_cells: usize,
+    _scalar_height: usize,
+    _scalar_bits: usize,
+    scalar_limit: BigInt,
 }
 
 pub trait BuiltinRunner {
@@ -189,7 +192,7 @@ impl HashBuiltinRunner {
             base: None,
             included,
             _ratio: ratio,
-            _cells_per_instance: 3,
+            cells_per_instance: 3,
             _n_input_cells: 2,
             _stop_ptr: None,
             verified_addresses: Vec::new(),
@@ -229,7 +232,7 @@ impl BuiltinRunner for HashBuiltinRunner {
         memory: &Memory,
     ) -> Option<MaybeRelocatable> {
         if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            if relocatable.offset % self._cells_per_instance != 2
+            if relocatable.offset % self.cells_per_instance != 2
                 || self.verified_addresses.contains(address)
             {
                 return None;
@@ -278,7 +281,7 @@ impl BitwiseBuiltinRunner {
             base: None,
             included,
             _ratio: ratio,
-            _cells_per_instance: 5,
+            cells_per_instance: 5,
             _n_input_cells: 2,
             total_n_bits: 251,
         }
@@ -318,7 +321,7 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         memory: &Memory,
     ) -> Option<MaybeRelocatable> {
         if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            let index = relocatable.offset % self._cells_per_instance;
+            let index = relocatable.offset % self.cells_per_instance;
             if index == 0 || index == 1 {
                 return None;
             }
@@ -363,8 +366,13 @@ impl EcOpBuiltinRunner {
             included,
             base: None,
             _ratio: ratio,
-            _n_input_cells: 5,
-            _cells_per_instance: 7,
+            n_input_cells: 5,
+            cells_per_instance: 7,
+            _scalar_height: 256,
+            _scalar_bits: 252,
+            scalar_limit: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
         }
     }
 }
@@ -398,10 +406,51 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        _address: &MaybeRelocatable,
-        _memory: &Memory,
+        address: &MaybeRelocatable,
+        memory: &Memory,
     ) -> Option<MaybeRelocatable> {
-        None
+        if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
+            let index = relocatable.offset % self.cells_per_instance;
+            //Index should be an output cell
+            if index != 5 && index != 6 {
+                return None;
+            }
+            let instance =
+                MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
+            //All input cells should be filled
+            for i in 0..self.n_input_cells {
+                if let None = memory.get(&instance.add_usize_mod(i, None)) {
+                    return None;
+                }
+            }
+            //Input cells should be integer values
+            for i in 0..self.n_input_cells {
+                if let Some(&MaybeRelocatable::RelocatableValue(ref rel)) =
+                    memory.get(&instance.add_usize_mod(i, None))
+                {
+                    panic!(
+                        "Expecter integer at address {:?}. Got {:?}",
+                        instance.add_usize_mod(i, None),
+                        rel
+                    );
+                }
+            }
+            //Assert that m is under the limit defined by scalar_limit or scalar_bits.
+            if let Some(MaybeRelocatable::Int(num)) = memory.get(&instance.add_usize_mod(4, None)) {
+                assert!(
+                    num < &self.scalar_limit,
+                    "EcOpBuiltin: m should be at most {}",
+                    self.scalar_limit
+                );
+            } else {
+                //This panic is unreachable, this case is handled by previous checks
+                panic!("Invalid value for m")
+            }
+            //Unfinished
+            None
+        } else {
+            panic!("Memory addresses should be relocatable")
+        }
     }
 }
 
