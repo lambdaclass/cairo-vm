@@ -11,7 +11,7 @@ use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
 use std::fmt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
@@ -2623,6 +2623,152 @@ mod tests {
             Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )))
+        );
+    }
+
+    #[test]
+    /* Program used:
+    %builtins output pedersen
+    from starkware.cairo.common.cairo_builtins import HashBuiltin
+    from starkware.cairo.common.hash import hash2
+    from starkware.cairo.common.serialize import serialize_word
+
+    func foo(hash_ptr : HashBuiltin*) -> (
+        hash_ptr : HashBuiltin*, z
+    ):
+        # Use a with-statement, since 'hash_ptr' is not an
+        # implicit argument.
+        with hash_ptr:
+            let (z) = hash2(32, 72)
+        end
+        return (hash_ptr=hash_ptr, z=z)
+    end
+
+    func main{output_ptr: felt*, pedersen_ptr: HashBuiltin*}():
+        let (pedersen_ptr, a) = foo(pedersen_ptr)
+        serialize_word(a)
+        return()
+    end
+     */
+    fn compute_operands_pedersen() {
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(-5),
+            off2: bigint!(2),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Op1,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add1,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners.insert(
+            String::from("pedersen"),
+            Box::new(HashBuiltinRunner::new(true, 8)),
+        );
+        vm.run_context.ap = MaybeRelocatable::from((1, 13));
+        vm.run_context.fp = MaybeRelocatable::from((1, 12));
+        vm.memory.data.push(Vec::new());
+        vm.memory.data.push(Vec::new());
+        vm.memory.data.push(Vec::new());
+        vm.memory.data.push(Vec::new());
+
+        //Insert values into memory (excluding those from the program segment (instructions))
+        vm.memory.insert(
+            &MaybeRelocatable::from((3, 0)),
+            &MaybeRelocatable::from(bigint!(32)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((3, 1)),
+            &MaybeRelocatable::from(bigint!(72)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 0)),
+            &MaybeRelocatable::from((2, 0)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 1)),
+            &MaybeRelocatable::from((3, 0)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 2)),
+            &MaybeRelocatable::from((4, 0)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 3)),
+            &MaybeRelocatable::from((5, 0)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 4)),
+            &MaybeRelocatable::from((3, 0)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 5)),
+            &MaybeRelocatable::from((1, 4)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 6)),
+            &MaybeRelocatable::from((0, 21)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 7)),
+            &MaybeRelocatable::from((3, 0)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 8)),
+            &MaybeRelocatable::from(bigint!(32)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 9)),
+            &MaybeRelocatable::from(bigint!(72)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 10)),
+            &MaybeRelocatable::from((1, 7)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 11)),
+            &MaybeRelocatable::from((0, 17)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((1, 12)),
+            &MaybeRelocatable::from((3, 3)),
+        );
+
+        let expected_operands = Operands {
+            dst: MaybeRelocatable::from(bigint_str!(
+                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            )),
+            res: Some(MaybeRelocatable::from(bigint_str!(
+                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            ))),
+            op0: MaybeRelocatable::from((3, 0)),
+            op1: MaybeRelocatable::from(bigint_str!(
+                b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            )),
+        };
+        let expected_operands_mem_addresses = vec![
+            MaybeRelocatable::from((1, 13)),
+            MaybeRelocatable::from((1, 7)),
+            MaybeRelocatable::from((3, 2)),
+        ];
+        assert_eq!(
+            Ok((expected_operands, expected_operands_mem_addresses)),
+            vm.compute_operands(&instruction)
         );
     }
 }
