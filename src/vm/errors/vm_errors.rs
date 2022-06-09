@@ -25,6 +25,7 @@ pub enum VirtualMachineError {
     InvalidRes(i64),
     InvalidOpcode(i64),
     RelocatableAdd,
+    OffsetExeeded(BigInt),
     NotImplemented,
     DiffIndexSub,
 }
@@ -68,6 +69,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::RelocatableAdd => {
                 write!(f, "Cannot add two relocatable values")
             }
+            VirtualMachineError::OffsetExeeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
             VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
             VirtualMachineError::PureValue => Ok(()), //TODO
             VirtualMachineError::DiffIndexSub => write!(
