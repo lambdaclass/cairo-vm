@@ -186,7 +186,7 @@ impl CairoRunner {
             let vec = builtin.validate_existing_memory(
                 &self.vm.memory.data[builtin.base().unwrap().segment_index],
             );
-            if let Some(mut validated_addresses) = vec {
+            if let Ok(Some(mut validated_addresses)) = vec {
                 self.vm.validated_addresses.append(&mut validated_addresses)
             }
         }

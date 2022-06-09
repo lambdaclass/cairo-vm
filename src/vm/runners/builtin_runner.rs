@@ -82,7 +82,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
             if let Some(MaybeRelocatable::Int(ref num)) = value {
                 if bigint!(0) <= num.clone() && num.clone() < self._bound {
                     validated_addresses.push(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: self.base()?.segment_index,
+                        segment_index: self.base().unwrap().segment_index,
                         offset,
                     }));
                 } else {
