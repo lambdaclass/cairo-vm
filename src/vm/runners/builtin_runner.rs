@@ -49,7 +49,7 @@ pub struct EcOpBuiltinRunner {
     pub base: Option<Relocatable>,
     cells_per_instance: usize,
     n_input_cells: usize,
-    _scalar_height: usize,
+    scalar_height: usize,
     _scalar_bits: usize,
     scalar_limit: BigInt,
 }
@@ -369,7 +369,7 @@ impl EcOpBuiltinRunner {
             _ratio: ratio,
             n_input_cells: 5,
             cells_per_instance: 7,
-            _scalar_height: 256,
+            scalar_height: 256,
             _scalar_bits: 252,
             scalar_limit: bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
@@ -396,25 +396,21 @@ impl EcOpBuiltinRunner {
     /// would not yield a correct result, i.e. when any part of the computation attempts to add
     /// two points with the same x coordinate.
 
-    fn _ec_op_impl(
-        p_x: &BigInt,
-        p_y: &BigInt,
-        q_x: &BigInt,
-        q_y: &BigInt,
+    fn ec_op_impl(
+        mut partial_sum: (BigInt, BigInt),
+        mut doubled_point: (BigInt, BigInt),
         m: &BigInt,
         alpha: &BigInt,
         prime: &BigInt,
         height: usize,
     ) -> (BigInt, BigInt) {
-        let mut doubled_point = (q_x.clone(), q_y.clone());
-        let mut partial_sum = (p_x.clone(), p_y.clone());
         let mut slope = m.clone();
         for _ in 0..height {
             assert!((doubled_point.0.clone() - partial_sum.0.clone())% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
             Attempting to compute P + m * Q where:\n
             P = {:?} \n
             m = {}\n
-            Q = {:?}.", partial_sum,m, doubled_point.clone());
+            Q = {:?}.", partial_sum,m, doubled_point);
             if slope.clone() & bigint!(1) != bigint!(0) {
                 partial_sum = ec_add(partial_sum, doubled_point.clone(), prime);
             }
@@ -506,7 +502,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             }
             // Assert that if the current address is part of a point (which is all set in the memory),
             //the point is on the curve
-            for pair in &EC_POINT_INDICES[0..2] {
+            for pair in EC_POINT_INDICES {
                 //Values will always be integer, this condictio will never fail
                 if let (
                     Some(&MaybeRelocatable::Int(ref ec_point_x)),
@@ -528,8 +524,34 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                     );
                 }
             }
-
-            //Unfinished
+            if let (
+                &MaybeRelocatable::Int(ref p_x),
+                &MaybeRelocatable::Int(ref p_y),
+                &MaybeRelocatable::Int(ref q_x),
+                &MaybeRelocatable::Int(ref q_y),
+                &MaybeRelocatable::Int(ref m),
+            ) = (
+                memory.get(address).unwrap(),
+                memory.get(&address.add_usize_mod(1, None)).unwrap(),
+                memory.get(&address.add_usize_mod(2, None)).unwrap(),
+                memory.get(&address.add_usize_mod(3, None)).unwrap(),
+                memory.get(&address.add_usize_mod(4, None)).unwrap(),
+            ) {
+                let result = EcOpBuiltinRunner::ec_op_impl(
+                    (p_x.clone(), p_y.clone()),
+                    (q_x.clone(), q_y.clone()),
+                    m,
+                    &alpha,
+                    &field_prime,
+                    self.scalar_height,
+                );
+                match index - self.n_input_cells {
+                    0 => return Some(MaybeRelocatable::Int(result.0)),
+                    1 => return Some(MaybeRelocatable::Int(result.1)),
+                    //This panic is unreachable, index will always be 5 or 6
+                    _ => panic!("Something went wrong"),
+                }
+            }
             None
         } else {
             panic!("Memory addresses should be relocatable")
