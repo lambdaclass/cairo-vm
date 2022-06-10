@@ -410,18 +410,19 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         memory: &Memory,
     ) -> Option<MaybeRelocatable> {
         if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
+            const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
+            const M_INDEX: usize = 4;
+            const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
             let index = relocatable.offset % self.cells_per_instance;
             //Index should be an output cell
-            if index != 5 && index != 6 {
+            if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
                 return None;
             }
             let instance =
                 MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
             //All input cells should be filled
             for i in 0..self.n_input_cells {
-                if let None = memory.get(&instance.add_usize_mod(i, None)) {
-                    return None;
-                }
+                memory.get(&instance.add_usize_mod(i, None))?;
             }
             //Input cells should be integer values
             for i in 0..self.n_input_cells {
@@ -436,7 +437,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 }
             }
             //Assert that m is under the limit defined by scalar_limit or scalar_bits.
-            if let Some(MaybeRelocatable::Int(num)) = memory.get(&instance.add_usize_mod(4, None)) {
+            if let Some(MaybeRelocatable::Int(num)) =
+                memory.get(&instance.add_usize_mod(M_INDEX, None))
+            {
                 assert!(
                     num < &self.scalar_limit,
                     "EcOpBuiltin: m should be at most {}",
@@ -446,6 +449,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 //This panic is unreachable, this case is handled by previous checks
                 panic!("Invalid value for m")
             }
+            // Assert that if the current address is part of a point (which is all set in the memory),
+            //the point is on the curve
+
             //Unfinished
             None
         } else {
