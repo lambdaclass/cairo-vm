@@ -4,5 +4,6 @@ mod serde;
 mod types;
 mod utils;
 mod vm;
+mod math_utils;
 
 fn main() {}
