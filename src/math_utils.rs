@@ -3,6 +3,14 @@ use num_traits::FromPrimitive;
 
 use crate::bigint;
 
+fn igcdex(a: BigInt, b: BigInt) -> (BigInt, BigInt, BigInt) {
+    if a == bigint!(0) && b == bigint!(0) {
+        return (bigint!(0), bigint!(1), bigint!(0));
+    } else if a == bigint!(0) {
+        return (bigint!(0), b / abs(b), bigint!(0), abs(b));
+    }
+}
+
 /// Gets two points on an elliptic curve mod p and returns their sum.
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
 pub fn ec_add(
@@ -38,4 +46,39 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
     assert!(point.1.clone() % prime != bigint!(0));
     (bigint!(3) * point.0.clone() * point.0.clone() + alpha) / (bigint!(2) * point.1) % prime
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bigint_str;
+
+    #[test]
+    fn compute_line_slope_for_valid_points() {
+        let point_a = (
+            bigint_str!(
+                b"3139037544796708144595053687182055617920475701120786241351436619796497072089"
+            ),
+            bigint_str!(
+                b"2119589567875935397690285099786081818522144748339117565577200220779667999801"
+            ),
+        );
+        let point_b = (
+            bigint_str!(
+                b"3324833730090626974525872402899302150520188025637965566623476530814354734325"
+            ),
+            bigint_str!(
+                b"3147007486456030910661996439995670279305852583596209647900952752170983517249"
+            ),
+        );
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        assert_eq!(
+            bigint_str!(
+                b"992545364708437554384321881954558327331693627531977596999212637460266617010"
+            ),
+            line_slope(point_a, point_b, &prime)
+        );
+    }
 }
