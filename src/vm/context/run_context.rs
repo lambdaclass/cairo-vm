@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::types::instruction::{Instruction, Op1Addr, Register};
 use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::vm_core::VirtualMachineError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::cast::FromPrimitive;
 

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo -e "\nrunning fibonacci benchmark"
+
+echo -e "\noriginal cairo vm time:"
+time cairo-run --program fibonacci.json
+
+cd ..
+echo -e "\ncleopatra vm time:"
+time ./target/release/cleopatra-run benches/fibonacci.json 
+cd benches
+
+cd oriac
+echo -e "\noriac vm time:"
+time ./target/release/oriac-run --program ../fibonacci.json
+cd ..

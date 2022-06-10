@@ -6,6 +6,11 @@ Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional 
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
 
+## Cleopatra benchmarks:
+Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonacci number we got the following benchmarks:
+* Execution time with [Criterion](./docs/benchmarks/cairo_run_criterion_benchmark.pdf)
+* [Flamegraph](./docs/benchmarks/flamegraph.svg) 
+
 ## Cairo
 
 * From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
@@ -28,7 +33,7 @@ This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow
 
 ## Original Cairo VM Internals
 
-We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/README.md).
+We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/cleopatra_cairo_vm/README.md).
 
 ## Compilers and interpreters
 
