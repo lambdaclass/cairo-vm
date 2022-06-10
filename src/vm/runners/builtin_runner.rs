@@ -1,4 +1,4 @@
-use crate::math_utils::ec_add;
+use crate::math_utils::{ec_add, ec_double};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -406,19 +406,20 @@ impl EcOpBuiltinRunner {
         prime: &BigInt,
         height: usize,
     ) -> (BigInt, BigInt) {
-        let doubled_point = (q_x, q_y);
-        let partial_sum = (p_x.clone(), p_y.clone());
+        let mut doubled_point = (q_x.clone(), q_y.clone());
+        let mut partial_sum = (p_x.clone(), p_y.clone());
+        let mut slope = m.clone();
         for _ in 0..height {
-            assert!((doubled_point.0 - partial_sum.0)% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+            assert!((doubled_point.0.clone() - partial_sum.0.clone())% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
             Attempting to compute P + m * Q where:\n
             P = {:?} \n
             m = {}\n
-            Q = {:?}.", partial_sum,m, doubled_point);
-            if m & bigint!(1) != bigint!(0) {
-                partial_sum = ec_add(partial_sum, doubled_point, prime);
+            Q = {:?}.", partial_sum,m, doubled_point.clone());
+            if slope.clone() & bigint!(1) != bigint!(0) {
+                partial_sum = ec_add(partial_sum, doubled_point.clone(), prime);
             }
             doubled_point = ec_double(doubled_point, alpha, prime);
-            m >> 1_i32;
+            slope = slope.clone() >> 1_i32;
         }
         partial_sum
     }
