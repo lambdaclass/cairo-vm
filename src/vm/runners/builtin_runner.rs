@@ -378,8 +378,48 @@ impl EcOpBuiltinRunner {
     ///Returns True if the point (x, y) is on the elliptic curve defined as
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
-    fn _point_on_curve(x: BigInt, y: BigInt, alpha: BigInt, beta: BigInt, prime: BigInt) -> bool {
-        (y.pow(2) % prime.clone()) == (x.pow(3) + alpha * x + beta) % prime
+    fn point_on_curve(
+        x: &BigInt,
+        y: &BigInt,
+        alpha: &BigInt,
+        beta: &BigInt,
+        prime: &BigInt,
+    ) -> bool {
+        (y.pow(2) % prime) == (x.pow(3) + alpha * x + beta) % prime
+    }
+
+    ///Returns the result of the EC operation P + m * Q.
+    /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
+    /// y^2 = x^3 + alpha * x + beta (mod prime).
+    /// Mimics the operation of the AIR, so that this function fails whenever the builtin AIR
+    /// would not yield a correct result, i.e. when any part of the computation attempts to add
+    /// two points with the same x coordinate.
+
+    fn _ec_op_impl(
+        p_x: &BigInt,
+        p_y: &BigInt,
+        q_x: &BigInt,
+        q_y: &BigInt,
+        m: &BigInt,
+        alpha: &BigInt,
+        prime: &BigInt,
+        height: usize,
+    ) -> (BigInt, BigInt) {
+        let doubled_point = (q_x, q_y);
+        let partial_sum = (p_x.clone(), p_y.clone());
+        for _ in 0..height {
+            assert!((doubled_point.0 - partial_sum.0)% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+            Attempting to compute P + m * Q where:\n
+            P = {:?} \n
+            m = {}\n
+            Q = {:?}.", partial_sum,m, doubled_point);
+            if m & bigint!(1) != bigint!(0) {
+                partial_sum = ec_add(partial_sum, doubled_point, prime);
+            }
+            doubled_point = ec_double(doubled_point, alpha, prime);
+            m >> 1_i32;
+        }
+        partial_sum
     }
 }
 
@@ -419,11 +459,11 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
             const M_INDEX: usize = 4;
             const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-            let _alpha: BigInt = bigint!(1);
-            let _beta: BigInt = bigint_str!(
+            let alpha: BigInt = bigint!(1);
+            let beta: BigInt = bigint_str!(
                 b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
             );
-            let _field_prime = bigint_str!(
+            let field_prime = bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
             );
             let index = relocatable.offset % self.cells_per_instance;
@@ -465,14 +505,26 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             // Assert that if the current address is part of a point (which is all set in the memory),
             //the point is on the curve
             for pair in &EC_POINT_INDICES[0..2] {
-                //Unwrapped values will never be None, this case is handled by previous checks
+                //Values will always be integer, this condictio will never fail
                 if let (
-                    Some(&MaybeRelocatable::Int(ref _ec_point_x)),
-                    Some(&MaybeRelocatable::Int(ref _ec_point_y)),
+                    Some(&MaybeRelocatable::Int(ref ec_point_x)),
+                    Some(&MaybeRelocatable::Int(ref ec_point_y)),
                 ) = (
                     memory.get(&instance.add_usize_mod(pair.0, None)),
                     memory.get(&instance.add_usize_mod(pair.1, None)),
-                ) {}
+                ) {
+                    assert!(
+                        EcOpBuiltinRunner::point_on_curve(
+                            ec_point_x,
+                            ec_point_y,
+                            &alpha,
+                            &beta,
+                            &field_prime
+                        ),
+                        "EcOpBuiltin: point {:?} is not on the curve",
+                        pair
+                    );
+                }
             }
 
             //Unfinished
