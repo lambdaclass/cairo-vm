@@ -375,6 +375,12 @@ impl EcOpBuiltinRunner {
             ),
         }
     }
+    ///Returns True if the point (x, y) is on the elliptic curve defined as
+    ///y^2 = x^3 + alpha * x + beta (mod p)
+    ///or False otherwise.
+    fn _point_on_curve(x: BigInt, y: BigInt, alpha: BigInt, beta: BigInt, prime: BigInt) -> bool {
+        (y.pow(2) % prime.clone()) == (x.pow(3) + alpha * x + beta) % prime
+    }
 }
 
 impl BuiltinRunner for EcOpBuiltinRunner {
@@ -413,6 +419,13 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
             const M_INDEX: usize = 4;
             const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
+            let _alpha: BigInt = bigint!(1);
+            let _beta: BigInt = bigint_str!(
+                b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
+            );
+            let _field_prime = bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            );
             let index = relocatable.offset % self.cells_per_instance;
             //Index should be an output cell
             if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
@@ -451,6 +464,16 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             }
             // Assert that if the current address is part of a point (which is all set in the memory),
             //the point is on the curve
+            for pair in &EC_POINT_INDICES[0..2] {
+                //Unwrapped values will never be None, this case is handled by previous checks
+                if let (
+                    Some(&MaybeRelocatable::Int(ref _ec_point_x)),
+                    Some(&MaybeRelocatable::Int(ref _ec_point_y)),
+                ) = (
+                    memory.get(&instance.add_usize_mod(pair.0, None)),
+                    memory.get(&instance.add_usize_mod(pair.1, None)),
+                ) {}
+            }
 
             //Unfinished
             None
