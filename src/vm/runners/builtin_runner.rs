@@ -352,6 +352,8 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::program::Program;
+    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint_str, relocatable};
 
@@ -686,5 +688,16 @@ mod tests {
         );
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn bitwise_integration_test() {
+        let program = Program::new("tests/support/bitwise_builtin_test.json");
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        let end = cairo_runner.initialize_main_entrypoint();
+        cairo_runner.initialize_vm();
+        assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
+        cairo_runner.relocate()
     }
 }
