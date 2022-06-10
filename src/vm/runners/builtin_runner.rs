@@ -1,3 +1,4 @@
+use crate::math_utils::ec_add;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;

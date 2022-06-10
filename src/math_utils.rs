@@ -22,3 +22,12 @@ pub fn line_slope(point_a: (BigInt, BigInt), point_b: (BigInt, BigInt), prime: B
     assert!((point_a.0 - point_b.0) % prime != bigint!(0));
     (point_a.1 - point_b.1) / (point_a.0 - point_b.0) % prime
 }
+
+///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
+/// Assumes the point is given in affine form (x, y) and has y != 0.
+pub fn ec_double(point: (BigInt, BigInt), alpha: BigInt, prime: BigInt) -> (BigInt, BigInt) {
+    let m = ec_double_slope(point, alpha, prime);
+    let x = ((m * m) - (bigint!(2) * point.0)) % prime;
+    let y = (m * (point.0 - x) - point.0) % prime;
+    (x, y)
+}
