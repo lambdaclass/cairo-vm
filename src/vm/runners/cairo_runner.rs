@@ -239,12 +239,11 @@ impl CairoRunner {
         self.relocate_trace(&relocation_table);
     }
 
-    pub fn print_output(&self, stdout: &mut dyn io::Write) {
+    pub fn print_output(&mut self, stdout: &mut dyn io::Write) {
         if let Some(builtin) = self.vm.builtin_runners.get("output") {
-            assert!(
-                self.segments.segment_used_sizes != None,
-                "compute_effective_sizes should be called before print_output"
-            );
+            if self.segments.segment_used_sizes == None {
+                self.segments.compute_effective_sizes(&self.vm.memory);
+            }
             let base = match builtin.base() {
                 Some(base) => base,
                 None => panic!("Uninitialized Output Builtin Base"),
@@ -2410,9 +2409,6 @@ mod tests {
         cairo_runner.initialize_vm();
         //Execution Phase
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
-        cairo_runner
-            .segments
-            .compute_effective_sizes(&cairo_runner.vm.memory);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.print_output(&mut stdout);
         assert_eq!(
