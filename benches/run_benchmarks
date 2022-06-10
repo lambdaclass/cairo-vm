@@ -8,6 +8,11 @@ time cairo-run --program generate_variables.json
 echo -e "\ncleopatra vm time:"
 time cargo run generate_variables.json >/dev/null 2>&1
 
+cd oriac
+echo -e "\noriac vm time:"
+time cargo run -- --program ../generate_variables.json >/dev/null 2>&1
+cd ..
+
 echo -e "\nrunning fibonacci benchmark"
 
 echo -e "\noriginal cairo vm time:"
@@ -15,3 +20,8 @@ time for i in {1..50}; do cairo-run --program fibonacci.json; done
 
 echo -e "\ncleopatra vm time:"
 time for i in {1..50}; do cargo run fibonacci.json >/dev/null 2>&1; done
+
+cd oriac
+echo -e "\noriac vm time:"
+time for i in {1..50}; do cargo run -- --program ../fibonacci.json >/dev/null 2>&1; done
+cd ..
