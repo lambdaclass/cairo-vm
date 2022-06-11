@@ -45,7 +45,7 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
 * [Engineering a Compiler - Keith D. Cooper, Linda Torczon](https://www.goodreads.com/en/book/show/1997607.Engineering_a_Compiler)
 
-## Zero Knowledge Proofs
+## Computational integrity and Zero Knowledge Proofs
 
 ### Basics
 * [Intro to zero knowledge proofs](https://www.youtube.com/watch?v=HUs1bH85X9I)
