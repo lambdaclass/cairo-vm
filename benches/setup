@@ -1,4 +1,0 @@
-#!/bin/bash
-
-echo "Cloning oriac..."
-git clone https://github.com/xJonathanLEI/oriac.git

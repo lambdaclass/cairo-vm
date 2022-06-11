@@ -1,16 +1,42 @@
 #!/bin/bash
 
-echo -e "\nrunning fibonacci benchmark"
+echo "Building cleopatra ..."
+cargo build --release
 
-echo -e "\noriginal cairo vm time:"
-time cairo-run --program fibonacci.json
+echo "Compling cairo program"
+cairo-compile fibonacci.cairo --output fibonacci.json
 
-cd ..
-echo -e "\ncleopatra vm time:"
-time ./target/release/cleopatra-run benches/fibonacci.json 
-cd benches
+cleo_time=$( (time ../target/release/cleopatra-run fibonacci.json) 2>&1 &)
+echo "Cleopatra VM time:" >> results
+echo "$cleo_time" >> results
 
-cd oriac
-echo -e "\noriac vm time:"
-time ./target/release/oriac-run --program ../fibonacci.json
-cd ..
+echo "Cleanup cleopatra"
+rm fibonacci.json
+
+echo "Building oriac ..."
+git clone https://github.com/xJonathanLEI/oriac.git
+cargo build --release --manifest-path oriac/Cargo.toml
+
+echo "Compling cairo program"
+cairo-compile fibonacci.cairo --output fibonacci.json
+
+oriac_time=$( (time oriac/target/release/oriac-run --program fibonacci.json) 2>&1 &)
+echo -e "\nOriac VM time:" >> results
+echo "$oriac_time" >> results
+
+echo "Cleanup oriac"
+rm -rf oriac
+rm fibonacci.json
+
+echo "Compling cairo program"
+cairo-compile fibonacci.cairo --output fibonacci.json
+
+cairo_time=$( (time cairo-run --program fibonacci.json) 2>&1 &)
+echo -e "\nOriginal Cairo VM time:" >> results
+echo "$cairo_time" >> results
+
+echo "Cleanup cairo"
+rm fibonacci.json
+
+cat results
+rm results

@@ -1,4 +1,4 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmark
 
 deps:
 	cargo install --version 1.1.0 cargo-criterion
@@ -28,3 +28,6 @@ benchmark:
 
 flamegraph:
 	cargo flamegraph --root --bench cairo_run_benchmark -- --bench
+
+compare_benchmarks:
+	cd benches && ./run_benchmarks
