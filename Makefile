@@ -5,7 +5,7 @@ deps:
 	cargo install --version 0.6.1 flamegraph
 
 build:
-	cargo build
+	cargo build --release
 
 run: 
 	cargo run
