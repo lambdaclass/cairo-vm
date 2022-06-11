@@ -1,4 +1,4 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmark
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks
 
 deps:
 	cargo install --version 1.1.0 cargo-criterion
