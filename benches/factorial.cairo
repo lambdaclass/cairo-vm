@@ -21,7 +21,7 @@ func main():
     let (y) = factorial(10)
     y = 3628800
 
-    # factorial(50), 100 times
+    # factorial(10000), 10 times
     factorial_wrapper(10000, 10)
     return ()
 end
