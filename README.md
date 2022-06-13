@@ -32,19 +32,6 @@ Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonac
 * [A Verified Algebraic Representation of Cairo Program Execution](https://arxiv.org/pdf/2109.14534.pdf)
 * [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust
 
-
-## Flow Diagram
-
-We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
-
-<p float="left">
-  <img src="./docs/diagram/cairo_vm_color_key.png" width="200" />
-</p>
-
-![diagram](./docs/diagram/cairo_vm_flow_diagram.jpg)
-
-This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow_diagram.md).
-
 ## Original Cairo VM Internals
 
 We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/cleopatra_cairo_vm/README.md).
