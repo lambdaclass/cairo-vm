@@ -9,6 +9,7 @@ pub enum RunnerError {
     UninitializedBase,
     NumOutOfBounds,
     FoundNonInt,
+    NonRelocatableAddress,
 }
 
 impl fmt::Display for RunnerError {
@@ -32,6 +33,7 @@ impl fmt::Display for RunnerError {
                 f,
                 "Range-check validation failed, encountered non-int value"
             ),
+            RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
         }
     }
 }
