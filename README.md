@@ -2,6 +2,20 @@
 
 Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet. We are working on it.
 
+## Running Cleopatra
+Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
+To run a compiled json program through the VM, call the executable giving it the path and name to the file to be executed. E.g.7   g it the path and name to the file to be executed.
+Full compilation and execution example:
+```bash
+cargo build --release
+target/release/cleopatra-run tests/support/fibonacci_compiled.json
+```
+
+## Testing
+Run the test suite with cargo:
+```bash
+cargo test
+```
 
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
