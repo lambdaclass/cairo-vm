@@ -12,7 +12,7 @@ echo "Building Cleopatra"
 cargo build --release
 
 # Fibonacci
-echo "Compiling Fibonacci cairo program"
+echo "Compiling and running Fibonacci cairo program"
 cairo-compile fibonacci.cairo --output fibonacci.json
 
 echo -e "* Fibonacci *\n" >> results
@@ -33,7 +33,7 @@ echo -e "\nPython Original VM time:" >> results
 echo "$cairo_fibonacci_time" >> results
 
 # Factorial
-echo "Compiling Factorial cairo program"
+echo "Compiling and running Factorial cairo program"
 cairo-compile factorial.cairo --output factorial.json
 
 echo -e "* Factorial *\n" >> results
