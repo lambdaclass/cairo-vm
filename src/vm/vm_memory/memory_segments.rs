@@ -47,11 +47,7 @@ impl MemorySegmentManager {
         if self.segment_used_sizes != None {
             return Ok(());
         }
-        let mut segment_used_sizes = Vec::new();
-        //Initialize the vector
-        for _ in 0..self.num_segments {
-            segment_used_sizes.push(0);
-        }
+        let mut segment_used_sizes = vec![0; self.num_segments];
         //Get the highest offset from each segment (total segment size will be highest offset + 1)
         for (key, _) in memory.data.iter() {
             if let MaybeRelocatable::RelocatableValue(relocatable) = key {
@@ -86,6 +82,12 @@ impl MemorySegmentManager {
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
         relocation_table
+    }
+}
+
+impl Default for MemorySegmentManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

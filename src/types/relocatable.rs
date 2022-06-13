@@ -174,15 +174,15 @@ pub fn relocate_address(
     relocation_table: &Vec<usize>,
 ) -> Result<usize, MemoryError> {
     match value {
-        MaybeRelocatable::Int(_) => return Err(MemoryError::AddressNotRelocatable),
+        MaybeRelocatable::Int(_) => Err(MemoryError::AddressNotRelocatable),
         MaybeRelocatable::RelocatableValue(relocatable) => {
             assert!(
                 relocation_table.len() > relocatable.segment_index,
                 "No relocation found for this segment"
             );
-            return Ok(relocation_table[relocatable.segment_index] + relocatable.offset);
+            Ok(relocation_table[relocatable.segment_index] + relocatable.offset)
         }
-    };
+    }
 }
 
 #[cfg(test)]
