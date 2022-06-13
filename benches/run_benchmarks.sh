@@ -1,5 +1,10 @@
 #!/bin/bash
 set -e
+echo "Cleaning old results"
+rm -f results
+rm -f fibonacci.json
+rm -f factorial.json
+rm -rf oriac
 
 echo "Building cleopatra ..."
 cargo build --release
@@ -40,7 +45,7 @@ echo "$cairo_factorial_time" >> results
 
 cat results
 
-echo "Cleaning old results"
+echo "Cleaning results"
 rm results
 rm -f fibonacci.json
 rm -f factorial.json
