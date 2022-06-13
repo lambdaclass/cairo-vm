@@ -1,7 +1,8 @@
 use crate::bigint;
 use crate::types::program::Program;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::is_subsequence;
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 //use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -12,7 +13,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 //use std::io;
 
 pub struct CairoRunner {
@@ -26,7 +27,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
-    //relocated_memory: Vec<Option<BigInt>>,
+    relocated_memory: HashMap<usize, BigInt>,
     //relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
@@ -73,7 +74,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
-            //relocated_memory: Vec::new(),
+            relocated_memory: HashMap::new(),
             //relocated_trace: Vec::new(),
         }
     }
@@ -193,35 +194,23 @@ impl CairoRunner {
         }
         Ok(())
     }
-    /*
+
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
     /// Uses the relocation_table to asign each index a number according to the value on its segment number
-    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) {
+    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) -> Result<(), MemoryError> {
         assert!(
             self.relocated_memory.is_empty(),
             "Memory has been already relocated"
         );
-        //Relocated addresses start at 1
-        self.relocated_memory.push(None);
-        for (index, segment) in self.vm.memory.data.iter().enumerate() {
-            //Check that each segment was relocated correctly
-            assert!(
-                self.relocated_memory.len() == relocation_table[index],
-                "Inconsistent Relocation"
+        for (key, val) in self.vm.memory.data.iter() {
+            self.relocated_memory.insert(
+                relocate_address(key.clone(), relocation_table)?,
+                relocate_value(val.clone(), relocation_table),
             );
-            for element in segment {
-                if element != &None {
-                    self.relocated_memory.push(Some(relocate_value(
-                        element.clone() ,
-                        relocation_table,
-                    )));
-                } else {
-                    self.relocated_memory.push(None);
-                }
-            }
         }
+        Ok(())
     }
-
+    /*
     ///Relocates the VM's trace, turning relocatable registers to numbered ones
     fn relocate_trace(&mut self, relocation_table: &Vec<usize>) -> Result<(), TraceError> {
         assert!(

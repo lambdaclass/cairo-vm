@@ -48,9 +48,11 @@ impl MemorySegmentManager {
             return Ok(());
         }
         let mut segment_used_sizes = Vec::new();
+        //Initialize the vector
         for _ in 0..self.num_segments {
             segment_used_sizes.push(0);
         }
+        //Get the highest offset from each segment (total segment size will be highest offset + 1)
         for (key, _) in memory.data.iter() {
             if let MaybeRelocatable::RelocatableValue(relocatable) = key {
                 if relocatable.segment_index >= self.num_segments {
@@ -69,22 +71,22 @@ impl MemorySegmentManager {
         self.segment_used_sizes = Some(segment_used_sizes);
         Ok(())
     }
-    /*
+
     ///Returns a vector that contains the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Vec<usize> {
         assert!(
             self.segment_used_sizes != None,
             "compute_effective_sizes should be called before relocate_segments"
         );
-        let first_addr = 1;
+        let first_addr = 1; //Relocated addresses start from 1
         let mut relocation_table = vec![first_addr];
-        for (i, size) in self.segment_used_sizes.as_ref() .iter().enumerate() {
+        for (i, size) in self.segment_used_sizes.as_ref().unwrap().iter().enumerate() {
             relocation_table.push(relocation_table[i] + size);
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
         relocation_table
-    }*/
+    }
 }
 
 #[cfg(test)]
@@ -307,7 +309,7 @@ mod tests {
         segments.compute_effective_sizes(&memory).unwrap();
         assert_eq!(Some(vec![8, 2, 8]), segments.segment_used_sizes);
     }
-    /*
+
     #[test]
     fn relocate_segments_one_segment() {
         let mut segments = MemorySegmentManager::new();
@@ -320,5 +322,5 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3, 3, 56, 78, 8]);
         assert_eq!(segments.relocate_segments(), vec![1, 4, 7, 63, 141])
-    }*/
+    }
 }

@@ -1,4 +1,7 @@
-use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
+use crate::{
+    bigint,
+    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 
@@ -149,7 +152,7 @@ impl MaybeRelocatable {
 ///Turns a MaybeRelocatable into a BigInt value
 /// If the value is an Int, it will extract the BigInt value from it
 /// If the value is Relocatable, it will relocate it using the relocation_table
-pub fn _relocate_value(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> BigInt {
+pub fn relocate_value(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> BigInt {
     match value {
         MaybeRelocatable::Int(num) => num,
         MaybeRelocatable::RelocatableValue(relocatable) => {
@@ -161,6 +164,25 @@ pub fn _relocate_value(value: MaybeRelocatable, relocation_table: &Vec<usize>) -
                 .unwrap()
         }
     }
+}
+
+///Turns a MaybeRelocatable into a BigInt value
+/// If the value is an Int, an error will be returned
+/// If the value is Relocatable, it will relocate it using the relocation_table
+pub fn relocate_address(
+    value: MaybeRelocatable,
+    relocation_table: &Vec<usize>,
+) -> Result<usize, MemoryError> {
+    match value {
+        MaybeRelocatable::Int(_) => return Err(MemoryError::AddressNotRelocatable),
+        MaybeRelocatable::RelocatableValue(relocatable) => {
+            assert!(
+                relocation_table.len() > relocatable.segment_index,
+                "No relocation found for this segment"
+            );
+            return Ok(relocation_table[relocatable.segment_index] + relocatable.offset);
+        }
+    };
 }
 
 #[cfg(test)]
@@ -343,14 +365,14 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(_relocate_value(value, &relocation_table), bigint!(12));
+        assert_eq!(relocate_value(value, &relocation_table), bigint!(12));
     }
 
     #[test]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(_relocate_value(value, &relocation_table), bigint!(7));
+        assert_eq!(relocate_value(value, &relocation_table), bigint!(7));
     }
 
     #[test]
@@ -358,6 +380,31 @@ mod tests {
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        _relocate_value(value, &relocation_table);
+        relocate_value(value, &relocation_table);
+    }
+
+    #[test]
+    fn relocate_relocatable_address() {
+        let value = MaybeRelocatable::from((2, 7));
+        let relocation_table = vec![1, 2, 5];
+        assert_eq!(relocate_address(value, &relocation_table), Ok(12));
+    }
+
+    #[test]
+    #[should_panic]
+    fn relocate_relocatable_address_no_relocation() {
+        let value = MaybeRelocatable::from((2, 7));
+        let relocation_table = vec![1, 2];
+        relocate_address(value, &relocation_table).unwrap();
+    }
+
+    #[test]
+    fn relocate_int_address() {
+        let value = MaybeRelocatable::from(bigint!(7));
+        let relocation_table = vec![1, 2, 5];
+        assert_eq!(
+            relocate_address(value, &relocation_table),
+            Err(MemoryError::AddressNotRelocatable)
+        );
     }
 }
