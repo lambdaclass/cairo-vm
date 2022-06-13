@@ -11,6 +11,12 @@ cargo build --release
 target/release/cleopatra-run tests/support/fibonacci_compiled.json
 ```
 
+## Testing
+Run the test suite with cargo:
+```bash
+cargo test
+```
+
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
 
