@@ -11,7 +11,7 @@ impl fmt::Display for MemoryError {
         match self {
             MemoryError::UnallocatedSegment(len, accessed) => write!(
                 f,
-                "Can't insert into segment #{}; memory only has {} segment",
+                "Invalid segment #{}; memory only has {} segments",
                 accessed, len
             ),
             MemoryError::AddressNotRelocatable => write!(f, "Memory addresses must be relocatable"),

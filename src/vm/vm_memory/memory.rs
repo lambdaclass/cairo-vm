@@ -68,7 +68,7 @@ mod memory_tests {
             MaybeRelocatable::Int(BigInt::from(bigint!(5))),
         )]);
         assert_eq!(
-            mem.get(&MaybeRelocatable::Int(BigInt::from_i32(2).unwrap())),
+            mem.get(&MaybeRelocatable::from((0, 1))),
             Some(&MaybeRelocatable::from(bigint!(5)))
         );
     }

@@ -1,5 +1,3 @@
-use crate::types::relocatable::Relocatable;
-
 #[macro_export]
 macro_rules! bigint {
     ($val : expr) => {
@@ -41,8 +39,4 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
         }
     }
     true
-}
-
-pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
-    (relocatable.segment_index, relocatable.offset)
 }

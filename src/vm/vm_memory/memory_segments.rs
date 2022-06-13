@@ -1,4 +1,5 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
@@ -10,7 +11,7 @@ pub struct MemorySegmentManager {
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)
-    pub fn add(&mut self, memory: &mut Memory, size: Option<usize>) -> Relocatable {
+    pub fn add(&mut self, size: Option<usize>) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
         if let Some(_segment_size) = size {
@@ -40,19 +41,35 @@ impl MemorySegmentManager {
             segment_used_sizes: None,
         }
     }
-    /*
-    ///Calculates the size (number of non-none elements) of each memory segment
-    pub fn compute_effective_sizes(&mut self, memory: &Memory) {
+
+    ///Calculates the size (number of elements) of each memory segment
+    pub fn compute_effective_sizes(&mut self, memory: &Memory) -> Result<(), MemoryError> {
         if self.segment_used_sizes != None {
-            return;
+            return Ok(());
         }
         let mut segment_used_sizes = Vec::new();
-        for segment in memory.data.iter() {
-            segment_used_sizes.push(segment.len());
+        for _ in 0..self.num_segments {
+            segment_used_sizes.push(0);
+        }
+        for (key, _) in memory.data.iter() {
+            if let MaybeRelocatable::RelocatableValue(relocatable) = key {
+                if relocatable.segment_index >= self.num_segments {
+                    return Err(MemoryError::UnallocatedSegment(
+                        relocatable.segment_index,
+                        self.num_segments,
+                    ));
+                }
+                if relocatable.offset > segment_used_sizes[relocatable.segment_index] {
+                    segment_used_sizes[relocatable.segment_index] = relocatable.offset;
+                }
+            } else {
+                return Err(MemoryError::AddressNotRelocatable);
+            }
         }
         self.segment_used_sizes = Some(segment_used_sizes);
+        Ok(())
     }
-
+    /*
     ///Returns a vector that contains the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Vec<usize> {
         assert!(
@@ -81,8 +98,7 @@ mod tests {
     #[test]
     fn add_segment_no_size() {
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        let base = segments.add(&mut memory, None);
+        let base = segments.add(None);
         assert_eq!(base, relocatable!(0, 0));
         assert_eq!(segments.num_segments, 1);
     }
@@ -90,11 +106,10 @@ mod tests {
     #[test]
     fn add_segment_no_size_test_two_segments() {
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        let mut _base = segments.add(&mut memory, None);
-        _base = segments.add(&mut memory, None);
+        let _base = segments.add(None);
+        let base = segments.add(None);
         assert_eq!(
-            _base,
+            base,
             Relocatable {
                 segment_index: 1,
                 offset: 0
@@ -119,7 +134,6 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory, None);
         let current_ptr = segments.load_data(&mut memory, &ptr, data);
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(memory.get(&ptr), Some(&MaybeRelocatable::from(bigint!(4))));
@@ -135,7 +149,6 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory, None);
         let current_ptr = segments.load_data(&mut memory, &ptr, data);
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 

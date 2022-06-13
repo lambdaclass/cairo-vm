@@ -25,7 +25,7 @@ pub struct OutputBuiltinRunner {
 
 pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager);
     fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
@@ -52,8 +52,8 @@ impl RangeCheckBuiltinRunner {
     }
 }
 impl BuiltinRunner for RangeCheckBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = Some(segments.add(memory, None))
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = Some(segments.add(None))
     }
     fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError> {
         if self.included {
@@ -113,8 +113,8 @@ impl OutputBuiltinRunner {
 }
 
 impl BuiltinRunner for OutputBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = Some(segments.add(memory, None))
+    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = Some(segments.add(None))
     }
 
     fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError> {
@@ -152,8 +152,7 @@ mod tests {
     fn initialize_segments_for_output() {
         let mut builtin = OutputBuiltinRunner::new(true);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        builtin.initialize_segments(&mut segments, &mut memory);
+        builtin.initialize_segments(&mut segments);
         assert_eq!(builtin.base, Some(relocatable!(0, 0)));
     }
 
@@ -161,8 +160,7 @@ mod tests {
     fn initialize_segments_for_range_check() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        builtin.initialize_segments(&mut segments, &mut memory);
+        builtin.initialize_segments(&mut segments);
         assert_eq!(
             builtin.base,
             Some(Relocatable {
@@ -231,8 +229,6 @@ mod tests {
     fn validate_existing_memory_for_range_check_within_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
-
-        let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         memory.insert(
             &MaybeRelocatable::from((1, 0)),
@@ -272,8 +268,6 @@ mod tests {
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
         builtin.base = Some(relocatable!(1, 0));
-
-        let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         memory.insert(
             &MaybeRelocatable::from((2, 0)),
