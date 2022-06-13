@@ -10,6 +10,7 @@ Full compilation and execution example:
 ```bash
 git clone https://github.com/lambdaclass/cleopatra_cairo.git
 cd cleopatra_cairo
+
 cargo build --release
 target/release/cleopatra-run tests/support/fibonacci_compiled.json
 ```
