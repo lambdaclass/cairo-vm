@@ -30,4 +30,4 @@ flamegraph:
 	cargo flamegraph --root --bench cairo_run_benchmark -- --bench
 
 compare_benchmarks:
-	cd benches && ./run_benchmarks
+	cd benches && ./run_benchmarks.sh
