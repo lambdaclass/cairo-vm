@@ -12,7 +12,7 @@ git clone https://github.com/lambdaclass/cleopatra_cairo.git
 cd cleopatra_cairo
 
 cargo build --release
-target/release/cleopatra-run tests/support/fibonacci_compiled.json
+./target/release/cleopatra-run tests/support/fibonacci_compiled.json
 ```
 
 ## Testing
