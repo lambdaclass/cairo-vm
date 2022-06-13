@@ -1,7 +1,18 @@
 # How does the original Cairo VM work?
 
-## How does the vm manage memory?
+## Flow Diagram
 
+We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
+
+<p float="left">
+  <img src="./docs/diagram/cairo_vm_color_key.png" width="200" />
+</p>
+
+![diagram](./docs/diagram/cairo_vm_flow_diagram.jpg)
+
+This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow_diagram.md).
+
+## How does the vm manage memory?
 
 Cairo's memory is read-only (can only be written once), and requires that memory adresses accessed by the program must be continuous. If gaps are present they will be filled with arbitrary values.
 
@@ -11,7 +22,6 @@ The different segments:
 * Program Segment: Contains cairo bytecode. pc starts at the beginning of this segment
 * Execution Segment: Where data is generated during the run of a Cairo program. Lenght is variable(depends on program input). Allocation Pointer (ap) and Frame Pointer (fp) start here.
 * Builtin Segment: Each builtin has its own continuous area in memory. Length is variable
-
 
 ## Registers
 
