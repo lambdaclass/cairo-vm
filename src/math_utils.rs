@@ -1,42 +1,47 @@
 use num_bigint::BigInt;
-use num_bigint::BigInt::{abs, div_floor};
 use num_integer::Integer;
-use num_traits::FromPrimitive;
+use num_traits::{abs, FromPrimitive};
 
 use crate::bigint;
 
-fn igcdex(a: BigInt, b: BigInt) -> (BigInt, BigInt, BigInt) {
-    let x_sign = 0;
-    let y_sign = -1;
-    const ZERO: BigInt = bigint!(0);
-    match (a, b) {
-        (ZERO, ZERO) => {
-            return (ZERO, bigint!(1), ZERO);
+fn igcdex(mut a: BigInt, mut b: BigInt) -> (BigInt, BigInt, BigInt) {
+    let x_sign: i32;
+    let y_sign: i32;
+    match (a.to_owned(), b.to_owned()) {
+        (a, b) if a == b && a == bigint!(0) => {
+            return (bigint!(0), bigint!(1), bigint!(0));
         }
-        (ZERO, _) => {
-            return (ZERO, b.div_floor(abs(&b)), abs(b));
+        (a, _) if a == bigint!(0) => {
+            return (bigint!(0), b.div_floor(&abs(b.to_owned())), abs(b));
         }
-        (_, ZERO) => return (a.div_floor(&a), ZERO, abs(&a)),
+        (_, b) if b == bigint!(0) => return (a.div_floor(&a), bigint!(0), abs(a)),
         _ => {
-            if a < ZERO {
+            if a < bigint!(0) {
                 a = -a;
                 x_sign = -1;
             } else {
                 x_sign = 1;
             }
-            if b < ZERO {
+            if b < bigint!(0) {
                 b = -b;
                 y_sign = -1;
             } else {
                 y_sign = 1;
             }
-            let (x, y, r, s) = (bigint!(1), ZERO, ZERO, bigint!(1));
-            let (c, q) = (ZERO, ZERO);
-            while b != ZERO {
-                (c, q) = (a % b, a.div_floor(&b));
-                (a, b, r, s, x, y) = (b, c, x - q * r, y - q * s, r, s)
+            let (mut x, mut y, mut r, mut s) = (bigint!(1), bigint!(0), bigint!(0), bigint!(1));
+            let (mut c, mut q);
+            while b != bigint!(0) {
+                (c, q) = (a.to_owned() % b.to_owned(), a.div_floor(&b.to_owned()));
+                (a, b, r, s, x, y) = (
+                    b,
+                    c,
+                    x - q.to_owned() * r.to_owned(),
+                    y - q * s.to_owned(),
+                    r,
+                    s,
+                )
             }
-            return (x * x_sign, y * y_sign, a);
+            return (x * x_sign, y * y_sign, a.clone());
         }
     };
 }
@@ -82,6 +87,17 @@ pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) 
 mod tests {
     use super::*;
     use crate::bigint_str;
+
+    #[test]
+    fn calculate_igcdex() {
+        let a = bigint_str!(
+            b"3443173965374276972000139705137775968422921151703548011275075734291405722262"
+        );
+        let b = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        assert_eq!((bigint_str!(b"-1688547300931946713657663208540757607205184050780245505361433670721217394901"), bigint_str!(b"1606731415015725997151049087601104361134423282856790368548943305828633315023"), bigint!(1)), igcdex(a, b));
+    }
 
     #[test]
     fn compute_line_slope_for_valid_points() {
