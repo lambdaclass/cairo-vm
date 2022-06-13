@@ -22,6 +22,6 @@ func main():
     y = 3628800
 
     # factorial(50), 100 times
-    factorial_wrapper(50, 100)
+    factorial_wrapper(10000, 1)
     return ()
 end

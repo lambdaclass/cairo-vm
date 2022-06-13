@@ -8,12 +8,11 @@ func fib_wrapper(n):
     # Call fib(1, 1, 100).
     [ap] = 1; ap++
     [ap] = 1; ap++
-    [ap] = 100; ap++
+    [ap] = 1000; ap++
     call fib
 
     # Make sure the 100th Fibonacci number is 927372692193078999176.
-    [ap - 1] = 927372692193078999176
-
+    [ap - 1] = 222450955505511890955301767713383614666194461405743219770606958667979327682 
     if n != 0:
         [ap] = n - 1; ap++
         call fib_wrapper
