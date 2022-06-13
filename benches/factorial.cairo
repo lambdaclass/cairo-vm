@@ -9,9 +9,9 @@ end
 
 # factorial(n), t times
 func factorial_wrapper(n, t):
-    factorial(t)
-    if n!=0:
-        factorial_wrapper(n-1, t)
+    factorial(n)
+    if t!=0:
+        factorial_wrapper(n, t-1)
     end
     return ()
 end
