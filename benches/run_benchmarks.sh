@@ -15,7 +15,7 @@ cargo build --release
 echo "Compiling Fibonacci cairo program"
 cairo-compile fibonacci.cairo --output fibonacci.json
 
-echo "* Fibonacci *\n"
+echo -e "* Fibonacci *\n"
 cleo_fibonacci_time=$( (time ../target/release/cleopatra-run fibonacci.json) 2>&1 &)
 echo "Rust Cleopatra VM time:" >> results
 echo "$cleo_fibonacci_time" >> results
@@ -28,7 +28,7 @@ echo "$cairo_fibonacci_time" >> results
 echo "Compiling Factorial cairo program"
 cairo-compile factorial.cairo --output factorial.json
 
-echo "* Factorial *\n"
+echo -e "* Factorial *\n"
 cleo_factorial_time=$( (time ../target/release/cleopatra-run factorial.json) 2>&1 &)
 echo -e "\nRust Cleopatra VM time:" >> results
 echo "$cleo_factorial_time" >> results
