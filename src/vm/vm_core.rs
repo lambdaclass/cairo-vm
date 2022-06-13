@@ -9,7 +9,7 @@ use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(PartialEq)]
 pub struct Operands {
@@ -42,7 +42,7 @@ pub struct VirtualMachine {
     pub memory: Memory,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     pub validated_addresses: Vec<MaybeRelocatable>,
-    accessed_addresses: Vec<MaybeRelocatable>,
+    accessed_addresses: HashSet<MaybeRelocatable>,
     pub trace: Vec<TraceEntry>,
     current_step: usize,
     skip_instruction_execution: bool,
@@ -68,7 +68,7 @@ impl VirtualMachine {
             _program_base: None,
             memory: Memory::new(),
             validated_addresses: Vec::<MaybeRelocatable>::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 0,
             skip_instruction_execution: false,
@@ -378,13 +378,10 @@ impl VirtualMachine {
             fp: self.run_context.fp.clone(),
         });
         for addr in operands_mem_addresses.iter() {
-            if !self.accessed_addresses.contains(addr) {
-                self.accessed_addresses.push(addr.clone());
-            }
+            self.accessed_addresses.insert(addr.clone());
         }
-        if !self.accessed_addresses.contains(&self.run_context.pc) {
-            self.accessed_addresses.push(self.run_context.pc.clone());
-        }
+        self.accessed_addresses.insert(self.run_context.pc.clone());
+
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
         Ok(())
@@ -1975,7 +1972,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.memory = Memory::from(mem_arr.clone());
+        vm.memory = Memory::from(mem_arr);
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2143,7 +2140,7 @@ mod tests {
             builtin_runners: BTreeMap::<String, Box<dyn BuiltinRunner>>::new(),
             memory: Memory::new(),
             validated_addresses: Vec::<MaybeRelocatable>::new(),
-            accessed_addresses: Vec::<MaybeRelocatable>::new(),
+            accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 1,
             skip_instruction_execution: false,
@@ -2206,12 +2203,17 @@ mod tests {
             }
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
-
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
         assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
-        assert_eq!(vm.accessed_addresses[0], MaybeRelocatable::from((1, 0)));
-        assert_eq!(vm.accessed_addresses[1], MaybeRelocatable::from((1, 1)));
-        assert_eq!(vm.accessed_addresses[2], MaybeRelocatable::from((0, 0)));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::from((1, 0))));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::from((1, 1))));
+        assert!(vm
+            .accessed_addresses
+            .contains(&MaybeRelocatable::from((0, 0))));
     }
 
     #[test]
@@ -2302,18 +2304,6 @@ mod tests {
             &MaybeRelocatable::from((1, 1)),
             &MaybeRelocatable::from((3, 0)),
         );
-        //Insert values into accessed_addresses
-        vm.accessed_addresses = vec![
-            MaybeRelocatable::from((0, 1)),
-            MaybeRelocatable::from((0, 7)),
-            MaybeRelocatable::from((0, 4)),
-            MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::from((0, 3)),
-            MaybeRelocatable::from((0, 6)),
-            MaybeRelocatable::from((0, 2)),
-            MaybeRelocatable::from((0, 5)),
-        ];
-
         let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
         while vm.run_context.pc != final_pc {
@@ -2371,8 +2361,6 @@ mod tests {
         //Order will differ from python vm execution, (due to python version using set's update() method)
         //We will instead check that all elements are contained and not duplicated
         assert_eq!(vm.accessed_addresses.len(), 14);
-        //Check if there are duplicates
-        vm.accessed_addresses.dedup();
         assert_eq!(vm.accessed_addresses.len(), 14);
         //Check each element individually
         assert!(vm
