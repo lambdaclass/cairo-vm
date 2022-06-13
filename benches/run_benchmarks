@@ -1,18 +1,20 @@
 #!/bin/bash
 set -e
 
+echo "Cleaning old results"
+rm results
+rm -f fibonacci.json
+rm -rf oriac
+
 echo "Building cleopatra ..."
 cargo build --release
 
-echo "Compling cairo program"
-rm -f fibonacci.json
+echo "Compiling cairo program"
 cairo-compile fibonacci.cairo --output fibonacci.json
 
 cleo_time=$( (time ../target/release/cleopatra-run fibonacci.json) 2>&1 &)
 echo "Cleopatra VM time:" >> results
 echo "$cleo_time" >> results
-
-echo "Cleanup cleopatra"
 
 echo "Building oriac ..."
 git clone https://github.com/xJonathanLEI/oriac.git
@@ -22,13 +24,9 @@ oriac_time=$( (time oriac/target/release/oriac-run --program fibonacci.json) 2>&
 echo -e "\nOriac VM time:" >> results
 echo "$oriac_time" >> results
 
-echo "Cleanup oriac"
-rm -rf oriac
-rm fibonacci.json
 
 cairo_time=$( (time cairo-run --program fibonacci.json) 2>&1 &)
 echo -e "\nOriginal Cairo VM time:" >> results
 echo "$cairo_time" >> results
 
 cat results
-rm results
