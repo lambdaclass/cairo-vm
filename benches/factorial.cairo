@@ -7,7 +7,7 @@ func factorial(n) -> (result):
     return (n*a)
 end
 
-# factorial(n), t times
+# factorial(n), t + 1 times
 func factorial_wrapper(n, t):
     factorial(n)
     if t!=0:
@@ -21,7 +21,7 @@ func main():
     let (y) = factorial(10)
     y = 3628800
 
-    # factorial(10000), 10 times
+    # factorial(10000), 11 times
     factorial_wrapper(10000, 10)
     return ()
 end
