@@ -9,7 +9,6 @@ let
 	setuptools
   ]);
 
-
   basePackages = [
 	pkgs.bashInteractive
 	git
@@ -33,6 +32,9 @@ in mkShell {
   buildInputs = inputs;
   shellHook =
   ''
-	pip3.7 install cairo-lang
+  export PIP_PREFIX="$(pwd)/_build/pip_packages"
+  export PYTHONPATH="$(pwd)/_build/pip_packages/lib/python3.7/site-packages:$PYTHONPATH" 
+  unset SOURCE_DATE_EPOCH
+  pip3.7 install cairo-lang
   '';
 }
