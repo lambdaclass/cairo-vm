@@ -22,7 +22,7 @@ pub fn relocate_trace_register(
     relocation_table: &Vec<usize>,
 ) -> Result<usize, TraceError> {
     match value {
-        MaybeRelocatable::Int(_num) => Err(TraceError::_RegNotRelocatable),
+        MaybeRelocatable::Int(_num) => Err(TraceError::RegNotRelocatable),
         MaybeRelocatable::RelocatableValue(relocatable) => {
             assert!(
                 relocation_table.len() > relocatable.segment_index,
