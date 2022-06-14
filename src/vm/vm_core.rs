@@ -2858,12 +2858,12 @@ mod tests {
         builtin.base = Some(relocatable!(2, 0));
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
         vm.builtin_runners
-            .insert(String::from("pedersen"), Box::new(builtin));
+            .insert(String::from("bitwise"), Box::new(builtin));
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
         vm.run_context.fp = MaybeRelocatable::from((1, 8));
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
+        for _ in 0..3 {
+            vm.memory.data.push(Vec::new());
+        }
 
         //Insert values into memory (excluding those from the program segment (instructions))
         vm.memory.insert(
@@ -3090,5 +3090,84 @@ mod tests {
         );
         //assert_eq!(vm.verify_auto_deductions(), Err(VirtualMachineError::UnconsistentAutoDeductions));
         vm.verify_auto_deductions().unwrap();
+    }
+
+    #[test]
+    /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn verify_auto_deductions_bitwise() {
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(2, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("bitwise"), Box::new(builtin));
+        for _ in 0..3 {
+            vm.memory.data.push(Vec::new());
+        }
+        vm.memory.insert(
+            &MaybeRelocatable::from((2, 0)),
+            &MaybeRelocatable::from(bigint!(12)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((2, 1)),
+            &MaybeRelocatable::from(bigint!(10)),
+        );
+        assert_eq!(vm.verify_auto_deductions(), Ok(()));
+    }
+
+    #[test]
+    /* Program used:
+    %builtins output pedersen
+    from starkware.cairo.common.cairo_builtins import HashBuiltin
+    from starkware.cairo.common.hash import hash2
+    from starkware.cairo.common.serialize import serialize_word
+
+    func foo(hash_ptr : HashBuiltin*) -> (
+        hash_ptr : HashBuiltin*, z
+    ):
+        # Use a with-statement, since 'hash_ptr' is not an
+        # implicit argument.
+        with hash_ptr:
+            let (z) = hash2(32, 72)
+        end
+        return (hash_ptr=hash_ptr, z=z)
+    end
+
+    func main{output_ptr: felt*, pedersen_ptr: HashBuiltin*}():
+        let (pedersen_ptr, a) = foo(pedersen_ptr)
+        serialize_word(a)
+        return()
+    end
+     */
+    fn verify_auto_deductions_pedersen() {
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(3, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((3, 0)),
+            &MaybeRelocatable::from(bigint!(32)),
+        );
+
+        vm.memory.insert(
+            &MaybeRelocatable::from((3, 1)),
+            &MaybeRelocatable::from(bigint!(72)),
+        );
+        assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 }
