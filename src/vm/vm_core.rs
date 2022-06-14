@@ -491,7 +491,7 @@ impl VirtualMachine {
                     if builtin.base().unwrap().segment_index == i {
                         let deduced_value = builtin
                             .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory);
-                        if &deduced_value != value {
+                        if deduced_value != None && &deduced_value != value {
                             //TODO: Uncomment line below once error handling is merged
                             //Err(VirtualMachineError::InconsistentAutoDeduction);
                             panic!("Inconsistent auto deduction")
