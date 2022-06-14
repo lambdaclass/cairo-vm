@@ -417,16 +417,16 @@ impl VirtualMachine {
         let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).cloned();
         let mut res: Option<MaybeRelocatable> = None;
 
+        let should_update_dst = matches!(dst, None);
+        let should_update_op0 = matches!(op0, None);
+        let should_update_op1 = matches!(op1, None);
+
         if matches!(op0, None) {
             op0 = self.deduce_memory_cell(&op0_addr);
         }
         if matches!(op1, None) {
             op1 = self.deduce_memory_cell(&op1_addr);
         }
-
-        let should_update_dst = matches!(dst, None);
-        let should_update_op0 = matches!(op0, None);
-        let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
             (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
