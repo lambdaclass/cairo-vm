@@ -19,11 +19,6 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
-#[allow(dead_code)]
-struct Rule {
-    func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
-}
-
 pub struct VirtualMachine {
     pub run_context: RunContext,
     prime: BigInt,
