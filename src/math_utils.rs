@@ -3,6 +3,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{abs, FromPrimitive};
 
+///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
 fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
     let mut a = num_a;
     let mut b = num_b;
