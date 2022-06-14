@@ -453,6 +453,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         memory: &Memory,
     ) -> Option<MaybeRelocatable> {
         if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
+            //Constant values declared here
             const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
             const M_INDEX: usize = 4;
             const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
@@ -463,6 +464,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             let field_prime = bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
             );
+
             let index = relocatable.offset % self.cells_per_instance;
             //Index should be an output cell
             if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
@@ -470,88 +472,54 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             }
             let instance =
                 MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
-            //All input cells should be filled
+            //All input cells should be filled, and be integer values
+            //If an input cell is not filled, return None
+            let mut input_cells = Vec::<BigInt>::with_capacity(self.n_input_cells);
             for i in 0..self.n_input_cells {
-                memory.get(&instance.add_usize_mod(i, None))?;
-            }
-            //Input cells should be integer values
-            for i in 0..self.n_input_cells {
-                if let Some(&MaybeRelocatable::RelocatableValue(ref rel)) =
-                    memory.get(&instance.add_usize_mod(i, None))
+                if let &MaybeRelocatable::Int(ref num) =
+                    memory.get(&instance.add_usize_mod(i, None))?
                 {
+                    input_cells.push(num.clone());
+                } else {
                     panic!(
-                        "Expecter integer at address {:?}. Got {:?}",
+                        "Expected integer at address {:?}",
                         instance.add_usize_mod(i, None),
-                        rel
                     );
                 }
             }
-            //Assert that m is under the limit defined by scalar_limit or scalar_bits.
-            if let Some(MaybeRelocatable::Int(num)) =
-                memory.get(&instance.add_usize_mod(M_INDEX, None))
-            {
+            //Assert that m is under the limit defined by scalar_limit.
+            assert!(
+                &input_cells[M_INDEX] < &self.scalar_limit,
+                "EcOpBuiltin: m should be at most {}",
+                self.scalar_limit
+            );
+            // Assert that if the current address is part of a point, the point is on the curve
+            for pair in &EC_POINT_INDICES[0..1] {
                 assert!(
-                    num < &self.scalar_limit,
-                    "EcOpBuiltin: m should be at most {}",
-                    self.scalar_limit
+                    EcOpBuiltinRunner::point_on_curve(
+                        &input_cells[pair.0],
+                        &input_cells[pair.1],
+                        &alpha,
+                        &beta,
+                        &field_prime
+                    ),
+                    "EcOpBuiltin: point {:?} is not on the curve",
+                    pair
                 );
-            } else {
-                //This panic is unreachable, this case is handled by previous checks
-                panic!("Invalid value for m")
             }
-            // Assert that if the current address is part of a point (which is all set in the memory),
-            //the point is on the curve
-            for pair in EC_POINT_INDICES {
-                //Values will always be integer, this condictio will never fail
-                if let (
-                    Some(&MaybeRelocatable::Int(ref ec_point_x)),
-                    Some(&MaybeRelocatable::Int(ref ec_point_y)),
-                ) = (
-                    memory.get(&instance.add_usize_mod(pair.0, None)),
-                    memory.get(&instance.add_usize_mod(pair.1, None)),
-                ) {
-                    assert!(
-                        EcOpBuiltinRunner::point_on_curve(
-                            ec_point_x,
-                            ec_point_y,
-                            &alpha,
-                            &beta,
-                            &field_prime
-                        ),
-                        "EcOpBuiltin: point {:?} is not on the curve",
-                        pair
-                    );
-                }
+            let result = EcOpBuiltinRunner::ec_op_impl(
+                (input_cells[0].clone(), input_cells[1].clone()),
+                (input_cells[2].clone(), input_cells[3].clone()),
+                &input_cells[4],
+                &alpha,
+                &field_prime,
+                self.scalar_height,
+            );
+            match index - self.n_input_cells {
+                0 => return Some(MaybeRelocatable::Int(result.0)),
+                _ => return Some(MaybeRelocatable::Int(result.1)),
+                //Default case corresponds to 1, as there are no other possible cases
             }
-            if let (
-                &MaybeRelocatable::Int(ref p_x),
-                &MaybeRelocatable::Int(ref p_y),
-                &MaybeRelocatable::Int(ref q_x),
-                &MaybeRelocatable::Int(ref q_y),
-                &MaybeRelocatable::Int(ref m),
-            ) = (
-                memory.get(&instance).unwrap(),
-                memory.get(&instance.add_usize_mod(1, None)).unwrap(),
-                memory.get(&instance.add_usize_mod(2, None)).unwrap(),
-                memory.get(&instance.add_usize_mod(3, None)).unwrap(),
-                memory.get(&instance.add_usize_mod(4, None)).unwrap(),
-            ) {
-                let result = EcOpBuiltinRunner::ec_op_impl(
-                    (p_x.clone(), p_y.clone()),
-                    (q_x.clone(), q_y.clone()),
-                    m,
-                    &alpha,
-                    &field_prime,
-                    self.scalar_height,
-                );
-                match index - self.n_input_cells {
-                    0 => return Some(MaybeRelocatable::Int(result.0)),
-                    1 => return Some(MaybeRelocatable::Int(result.1)),
-                    //This panic is unreachable, index will always be 5 or 6
-                    _ => panic!("Something went wrong"),
-                }
-            }
-            None
         } else {
             panic!("Memory addresses should be relocatable")
         }
