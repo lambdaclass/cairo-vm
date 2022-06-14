@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
+
 echo "Cleaning old results"
 rm -f results
 rm -f fibonacci.json
 rm -f factorial.json
 rm -rf oriac
+
+pyenv global 3.7.12
 
 echo "Building cleopatra ..."
 cargo build --release
@@ -24,11 +27,20 @@ oriac_fibonacci_time=$( (time oriac/target/release/oriac-run --program fibonacci
 echo -e "\nOriac VM Fibonacci time:" >> results
 echo "$oriac_fibonacci_time" >> results
 
+pyenv global pypy3.7-7.3.9
+
+cairo_pypy_fibonacci_time=$( (time cairo-run --program fibonacci.json) 2>&1 &)
+echo -e "\nPyPy Original Cairo VM Fibonacci time:" >> results
+echo "$cairo_pypy_fibonacci_time" >> results
+
+pyenv global 3.7.12
+
 cairo_fibonacci_time=$( (time cairo-run --program fibonacci.json) 2>&1 &)
 echo -e "\nOriginal Cairo VM Fibonacci time:" >> results
 echo "$cairo_fibonacci_time" >> results
 
-echo "Compiling factorial cairo program"
+
+echo "Compiling Factorial cairo program"
 cairo-compile factorial.cairo --output factorial.json
 
 cleo_factorial_time=$( (time ../target/release/cleopatra-run factorial.json) 2>&1 &)
@@ -38,6 +50,14 @@ echo "$cleo_factorial_time" >> results
 oriac_factorial_time=$( (time oriac/target/release/oriac-run --program factorial.json) 2>&1 &)
 echo -e "\nOriac VM factorial time:" >> results
 echo "$oriac_factorial_time" >> results
+
+pyenv global pypy3.7-7.3.9
+
+cairo_pypy_factorial_time=$( (time cairo-run --program factorial.json) 2>&1 &)
+echo -e "\nPyPy Original Cairo VM factorial time:" >> results
+echo "$cairo_pypy_factorial_time" >> results
+
+pyenv global 3.7.12
 
 cairo_factorial_time=$( (time cairo-run --program factorial.json) 2>&1 &)
 echo -e "\nOriginal Cairo VM factorial time:" >> results
