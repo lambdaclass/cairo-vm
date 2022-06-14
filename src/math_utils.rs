@@ -50,8 +50,8 @@ pub fn ec_add(
     prime: &BigInt,
 ) -> (BigInt, BigInt) {
     let m = line_slope(point_a.clone(), point_b.clone(), prime);
-    let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0) % prime;
-    let y = (m * (point_a.0 - x.clone()) - point_b.1) % prime;
+    let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0).mod_floor(prime);
+    let y = (m * (point_a.0 - x.clone()) - point_b.1).mod_floor(prime);
     (x, y)
 }
 
@@ -67,7 +67,7 @@ pub fn line_slope(point_a: (BigInt, BigInt), point_b: (BigInt, BigInt), prime: &
 pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
     let m = ec_double_slope(point.clone(), alpha, prime);
     let x = ((m.clone() * m.clone()) - (bigint!(2) * point.0.clone())) % prime;
-    let y = (m * (point.0.clone() - x.clone()) - point.0) % prime;
+    let y = (m * (point.0.clone() - x.clone()) - point.1).mod_floor(prime);
     (x, y)
 }
 
@@ -226,6 +226,87 @@ mod tests {
                 b"2904750555256547440469454488220756360634457312540595732507835416669695939476"
             ),
             ec_double_slope(point, &alpha, &prime)
+        );
+    }
+
+    #[test]
+    fn calculate_ec_double_for_valid_point_a() {
+        let point = (
+            bigint_str!(
+                b"1937407885261715145522756206040455121546447384489085099828343908348117672673"
+            ),
+            bigint_str!(
+                b"2010355627224183802477187221870580930152258042445852905639855522404179702985"
+            ),
+        );
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let alpha = bigint!(1);
+        assert_eq!(
+            (
+                bigint_str!(
+                    b"58460926014232092148191979591712815229424797874927791614218178721848875644"
+                ),
+                bigint_str!(
+                    b"1065613861227134732854284722490492186040898336012372352512913425790457998694"
+                )
+            ),
+            ec_double(point, &alpha, &prime)
+        );
+    }
+
+    #[test]
+    fn calculate_ec_double_for_valid_point_b() {
+        let point = (
+            bigint_str!(
+                b"3143372541908290873737380228370996772020829254218248561772745122290262847573"
+            ),
+            bigint_str!(
+                b"1721586982687138486000069852568887984211460575851774005637537867145702861131"
+            ),
+        );
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let alpha = bigint!(1);
+        assert_eq!(
+            (
+                bigint_str!(
+                    b"1937407885261715145522756206040455121546447384489085099828343908348117672673"
+                ),
+                bigint_str!(
+                    b"2010355627224183802477187221870580930152258042445852905639855522404179702985"
+                )
+            ),
+            ec_double(point, &alpha, &prime)
+        );
+    }
+
+    #[test]
+    fn calculate_ec_double_for_valid_point_c() {
+        let point = (
+            bigint_str!(
+                b"634630432210960355305430036410971013200846091773294855689580772209984122075"
+            ),
+            bigint_str!(
+                b"904896178444785983993402854911777165629036333948799414977736331868834995209"
+            ),
+        );
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let alpha = bigint!(1);
+        assert_eq!(
+            (
+                bigint_str!(
+                    b"3143372541908290873737380228370996772020829254218248561772745122290262847573"
+                ),
+                bigint_str!(
+                    b"1721586982687138486000069852568887984211460575851774005637537867145702861131"
+                )
+            ),
+            ec_double(point, &alpha, &prime)
         );
     }
 }
