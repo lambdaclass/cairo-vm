@@ -278,14 +278,7 @@ impl VirtualMachine {
 
     fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
         if let MaybeRelocatable::RelocatableValue(addr) = address {
-            if let Some(builtin) = self.builtin_runners.get_mut(&String::from("pedersen")) {
-                if let Some(base) = builtin.base() {
-                    if base.segment_index == addr.segment_index {
-                        return builtin.deduce_memory_cell(address, &self.memory);
-                    }
-                }
-            }
-            if let Some(builtin) = self.builtin_runners.get_mut(&String::from("bitwise")) {
+            for (_, builtin) in self.builtin_runners.iter_mut() {
                 if let Some(base) = builtin.base() {
                     if base.segment_index == addr.segment_index {
                         return builtin.deduce_memory_cell(address, &self.memory);
