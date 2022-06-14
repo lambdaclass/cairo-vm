@@ -38,7 +38,7 @@ Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonac
 
 ## Original Cairo VM Internals
 
-We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/cleopatra_cairo_vm/README.md).
+We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/python_vm/README.md).
 
 ## Compilers and interpreters
 
