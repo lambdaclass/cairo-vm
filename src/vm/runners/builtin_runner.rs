@@ -395,7 +395,6 @@ impl EcOpBuiltinRunner {
     /// Mimics the operation of the AIR, so that this function fails whenever the builtin AIR
     /// would not yield a correct result, i.e. when any part of the computation attempts to add
     /// two points with the same x coordinate.
-
     fn ec_op_impl(
         mut partial_sum: (BigInt, BigInt),
         mut doubled_point: (BigInt, BigInt),
@@ -976,5 +975,83 @@ mod tests {
         assert!(!EcOpBuiltinRunner::point_on_curve(
             &x, &y, &alpha, &beta, &prime
         ));
+    }
+
+    #[test]
+    fn compute_ec_op_impl_valid_a() {
+        let partial_sum = (
+            bigint_str!(
+                b"3139037544796708144595053687182055617920475701120786241351436619796497072089"
+            ),
+            bigint_str!(
+                b"2119589567875935397690285099786081818522144748339117565577200220779667999801"
+            ),
+        );
+        let doubled_point = (
+            bigint_str!(
+                b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+            ),
+            bigint_str!(
+                b"152666792071518830868575557812948353041420400780739481342941381225525861407"
+            ),
+        );
+        let m = bigint!(34);
+        let alpha = bigint!(1);
+        let height = 256;
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        assert_eq!(
+            result,
+            (
+                bigint_str!(
+                    b"1977874238339000383330315148209250828062304908491266318460063803060754089297"
+                ),
+                bigint_str!(
+                    b"2969386888251099938335087541720168257053975603483053253007176033556822156706"
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn compute_ec_op_impl_valid_b() {
+        let partial_sum = (
+            bigint_str!(
+                b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
+            ),
+            bigint_str!(
+                b"214950771763870898744428659242275426967582168179217139798831865603966154129"
+            ),
+        );
+        let doubled_point = (
+            bigint_str!(
+                b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+            ),
+            bigint_str!(
+                b"152666792071518830868575557812948353041420400780739481342941381225525861407"
+            ),
+        );
+        let m = bigint!(34);
+        let alpha = bigint!(1);
+        let height = 256;
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        assert_eq!(
+            result,
+            (
+                bigint_str!(
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                ),
+                bigint_str!(
+                    b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
+                )
+            )
+        );
     }
 }
