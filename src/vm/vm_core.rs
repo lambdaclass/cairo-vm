@@ -482,6 +482,26 @@ impl VirtualMachine {
             [dst_addr, op0_addr, op1_addr].to_vec(),
         ))
     }
+
+    ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
+    pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
+        for (i, segment) in self.memory.data.iter().enumerate() {
+            for (j, value) in segment.iter().enumerate() {
+                for (_, builtin) in self.builtin_runners.iter_mut() {
+                    if builtin.base().unwrap().segment_index == i {
+                        let deduced_value = builtin
+                            .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory);
+                        if &deduced_value != value {
+                            //TODO: Uncomment line below once error handling is merged
+                            //Err(VirtualMachineError::InconsistentAutoDeduction);
+                            panic!("Inconsistent auto deduction")
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -2957,51 +2977,6 @@ mod tests {
             Some(MaybeRelocatable::from(bigint_str!(
                 b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
             )))
-        );
-    }
-
-    #[test]
-    /* %builtins ec_op
-    from starkware.cairo.common.cairo_builtins import EcOpBuiltin
-    from starkware.cairo.common.ec_point import EcPoint
-    from starkware.cairo.common.ec import ec_op
-
-    func main{ec_op_ptr: EcOpBuiltin*}():
-        let x: EcPoint = EcPoint(2089986280348253421170679821480865132823066470938446095505822317253594081284, 1713931329540660377023406109199410414810705867260802078187082345529207694986)
-        let y: EcPoint = EcPoint(874739451078007766457464989774322083649278607533249481151382481072868806602,152666792071518830868575557812948353041420400780739481342941381225525861407)
-        let z: EcPoint = ec_op(x,34, y)
-        return()
-        end */
-    fn compute_operands_ec_op() {
-        let instruction = Instruction {
-            off0: bigint!(0),
-            off1: bigint!(-5),
-            off2: bigint!(2),
-            imm: None,
-            dst_register: Register::AP,
-            op0_register: Register::FP,
-            op1_addr: Op1Addr::Op0,
-            res: Res::Op1,
-            pc_update: PcUpdate::Regular,
-            ap_update: ApUpdate::Add1,
-            fp_update: FpUpdate::Regular,
-            opcode: Opcode::AssertEq,
-        };
-        let mut builtin = EcOpBuiltinRunner::new(true, 256);
-        builtin.base = Some(relocatable!(2, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.builtin_runners
-            .insert(String::from("ec_op"), Box::new(builtin));
-        vm.run_context.ap = MaybeRelocatable::from((1, 9));
-        vm.run_context.fp = MaybeRelocatable::from((1, 8));
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-
-        //Insert values into memory (excluding those from the program segment (instructions))
-        vm.memory.insert(
-            &MaybeRelocatable::from((2, 0)),
-            &MaybeRelocatable::from(bigint!(12)),
         );
     }
 }
