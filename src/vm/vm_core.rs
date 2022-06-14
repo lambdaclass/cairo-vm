@@ -553,7 +553,9 @@ impl fmt::Display for VirtualMachineError {
 mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::vm::runners::builtin_runner::{BitwiseBuiltinRunner, HashBuiltinRunner};
+    use crate::vm::runners::builtin_runner::{
+        BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
+    };
     use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
@@ -2903,6 +2905,58 @@ mod tests {
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
             vm.compute_operands(&instruction)
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_ec_op_builtin_valid() {
+        let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        let mut builtin = EcOpBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(0, 0));
+        vm.builtin_runners
+            .insert(String::from("ec_op"), Box::new(builtin));
+        vm.memory.data.push(Vec::new());
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 0)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
+            )),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 1)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"214950771763870898744428659242275426967582168179217139798831865603966154129"
+            )),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 2)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+            )),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 3)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"152666792071518830868575557812948353041420400780739481342941381225525861407"
+            )),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 4)),
+            &MaybeRelocatable::Int(bigint!(34)),
+        );
+        vm.memory.insert(
+            &MaybeRelocatable::from((0, 5)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+            )),
+        );
+
+        let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
+        assert_eq!(
+            result,
+            Some(MaybeRelocatable::from(bigint_str!(
+                b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            )))
         );
     }
 }
