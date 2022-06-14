@@ -25,8 +25,8 @@ cargo test
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
 
 ## Cleopatra benchmarks:
-Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonacci number we got the following benchmarks:
-* Execution time with [Criterion](./docs/benchmarks/cairo_run_criterion_benchmark.pdf)
+Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
+* Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 * [Flamegraph](./docs/benchmarks/flamegraph.svg) 
 
 ## Cairo
