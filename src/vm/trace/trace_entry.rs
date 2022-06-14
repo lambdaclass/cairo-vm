@@ -1,6 +1,8 @@
 ///A trace entry for every instruction that was executed.
 ///Holds the register values before the instruction was executed.
 use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::errors::trace_errors::TraceError;
+
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
     pub pc: MaybeRelocatable,
@@ -15,15 +17,18 @@ pub struct RelocatedTraceEntry {
     pub fp: usize,
 }
 
-pub fn relocate_trace_register(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> usize {
+pub fn relocate_trace_register(
+    value: MaybeRelocatable,
+    relocation_table: &Vec<usize>,
+) -> Result<usize, TraceError> {
     match value {
-        MaybeRelocatable::Int(_num) => panic!("Trace register must be relocatable"),
+        MaybeRelocatable::Int(_num) => Err(TraceError::RegNotRelocatable),
         MaybeRelocatable::RelocatableValue(relocatable) => {
             assert!(
                 relocation_table.len() > relocatable.segment_index,
                 "No relocation found for this segment"
             );
-            relocation_table[relocatable.segment_index] + relocatable.offset
+            Ok(relocation_table[relocatable.segment_index] + relocatable.offset)
         }
     }
 }
@@ -38,7 +43,10 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_trace_register(value, &relocation_table), 12);
+        assert_eq!(
+            relocate_trace_register(value, &relocation_table).unwrap(),
+            12
+        );
     }
 
     #[test]
@@ -46,7 +54,7 @@ mod tests {
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        relocate_trace_register(value, &relocation_table);
+        relocate_trace_register(value, &relocation_table).unwrap();
     }
 
     #[test]
@@ -54,6 +62,6 @@ mod tests {
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        relocate_trace_register(value, &relocation_table);
+        relocate_trace_register(value, &relocation_table).unwrap();
     }
 }

@@ -1,4 +1,5 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
@@ -28,11 +29,11 @@ impl MemorySegmentManager {
         memory: &mut Memory,
         ptr: &MaybeRelocatable,
         data: Vec<MaybeRelocatable>,
-    ) -> MaybeRelocatable {
+    ) -> Result<MaybeRelocatable, MemoryError> {
         for (num, value) in data.iter().enumerate() {
-            memory.insert(&ptr.add_usize_mod(num, None), value);
+            memory.insert(&ptr.add_usize_mod(num, None), value)?;
         }
-        ptr.add_usize_mod(data.len(), None)
+        Ok(ptr.add_usize_mod(data.len(), None))
     }
 
     pub fn new() -> MemorySegmentManager {
@@ -68,6 +69,12 @@ impl MemorySegmentManager {
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
         relocation_table
+    }
+}
+
+impl Default for MemorySegmentManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -110,8 +117,8 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 3));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let current_ptr = segments.load_data(&mut memory, &ptr, data);
-        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)))
+        let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
+        assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
     }
 
     #[test]
@@ -121,9 +128,12 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory, None);
-        let current_ptr = segments.load_data(&mut memory, &ptr, data);
+        let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
-        assert_eq!(memory.get(&ptr), Some(&MaybeRelocatable::from(bigint!(4))));
+        assert_eq!(
+            memory.get(&ptr).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(4)))
+        );
     }
 
     #[test]
@@ -137,16 +147,19 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory, None);
-        let current_ptr = segments.load_data(&mut memory, &ptr, data);
+        let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
-        assert_eq!(memory.get(&ptr), Some(&MaybeRelocatable::from(bigint!(4))));
         assert_eq!(
-            memory.get(&MaybeRelocatable::from((0, 1))),
+            memory.get(&ptr).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(4)))
+        );
+        assert_eq!(
+            memory.get(&MaybeRelocatable::from((0, 1))).unwrap(),
             Some(&MaybeRelocatable::from(bigint!(5)))
         );
         assert_eq!(
-            memory.get(&MaybeRelocatable::from((0, 2))),
+            memory.get(&MaybeRelocatable::from((0, 2))).unwrap(),
             Some(&MaybeRelocatable::from(bigint!(6)))
         );
     }
@@ -155,18 +168,24 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory, None);
-        memory.insert(
-            &MaybeRelocatable::from((0, 0)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 1)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![3]), segments.segment_used_sizes);
     }
@@ -176,10 +195,12 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory, None);
-        memory.insert(
-            &MaybeRelocatable::from((0, 6)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 6)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![7]), segments.segment_used_sizes);
     }
@@ -189,22 +210,30 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory, None);
-        memory.insert(
-            &MaybeRelocatable::from((0, 3)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 4)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 7)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 9)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 7)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 9)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![10]), segments.segment_used_sizes);
     }
@@ -216,42 +245,60 @@ mod tests {
         segments.add(&mut memory, None);
         segments.add(&mut memory, None);
         segments.add(&mut memory, None);
-        memory.insert(
-            &MaybeRelocatable::from((0, 0)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 1)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((1, 0)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((1, 1)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((1, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((2, 0)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((2, 1)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((2, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
 
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![3, 3, 3]), segments.segment_used_sizes);
@@ -264,34 +311,48 @@ mod tests {
         segments.add(&mut memory, None);
         segments.add(&mut memory, None);
         segments.add(&mut memory, None);
-        memory.insert(
-            &MaybeRelocatable::from((0, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 5)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((0, 7)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((1, 1)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((2, 2)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((2, 4)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
-        memory.insert(
-            &MaybeRelocatable::from((2, 7)),
-            &MaybeRelocatable::from(bigint!(1)),
-        );
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 7)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((2, 7)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![8, 2, 8]), segments.segment_used_sizes);
     }

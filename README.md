@@ -2,9 +2,32 @@
 
 Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet. We are working on it.
 
+## Running Cleopatra
+Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
+To run a compiled json program through the VM, call the executable giving it the path and name to the file to be executed.
+
+Full compilation and execution example:
+```bash
+git clone https://github.com/lambdaclass/cleopatra_cairo.git
+cd cleopatra_cairo
+
+cargo build --release
+./target/release/cleopatra-run tests/support/fibonacci_compiled.json
+```
+
+## Testing
+Run the test suite with cargo:
+```bash
+cargo test
+```
 
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
+
+## Cleopatra benchmarks:
+Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonacci number we got the following benchmarks:
+* Execution time with [Criterion](./docs/benchmarks/cairo_run_criterion_benchmark.pdf)
+* [Flamegraph](./docs/benchmarks/flamegraph.svg) 
 
 ## Cairo
 
@@ -13,22 +36,9 @@ Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambda
 * [A Verified Algebraic Representation of Cairo Program Execution](https://arxiv.org/pdf/2109.14534.pdf)
 * [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust
 
-
-## Flow Diagram
-
-We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
-
-<p float="left">
-  <img src="./docs/diagram/cairo_vm_color_key.png" width="200" />
-</p>
-
-![diagram](./docs/diagram/cairo_vm_flow_diagram.jpg)
-
-This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow_diagram.md).
-
 ## Original Cairo VM Internals
 
-We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/README.md).
+We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/cleopatra_cairo_vm/README.md).
 
 ## Compilers and interpreters
 
@@ -40,7 +50,7 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Crafting interpreters - Robert Nystrom](https://craftinginterpreters.com)
 * [Engineering a Compiler - Keith D. Cooper, Linda Torczon](https://www.goodreads.com/en/book/show/1997607.Engineering_a_Compiler)
 
-## Zero Knowledge Proofs
+## Computational integrity and Zero Knowledge Proofs
 
 ### Basics
 * [Intro to zero knowledge proofs](https://www.youtube.com/watch?v=HUs1bH85X9I)
