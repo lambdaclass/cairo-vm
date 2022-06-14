@@ -5,12 +5,12 @@
 We've created a diagram that illustrates function calls and where each of them are defined for a simple cairo program execution.
 
 <p float="left">
-  <img src="../diagram/cairo_vm_color_key.png" width="200" />
+  <img src="./diagram/cairo_vm_color_key.png" width="200" />
 </p>
 
-![diagram](../diagram/cairo_vm_flow_diagram.jpg)
+![diagram](./diagram/cairo_vm_flow_diagram.jpg)
 
-This diagram was produced using this [mermaid code](./docs/diagram/cairo_vm_flow_diagram.md).
+This diagram was produced using this [mermaid code](./diagram/cairo_vm_flow_diagram.md).
 
 ## How does the vm manage memory?
 
