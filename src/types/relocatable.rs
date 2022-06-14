@@ -1,4 +1,4 @@
-use crate::{bigint, vm::vm_core::VirtualMachineError};
+use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 
@@ -99,7 +99,7 @@ impl MaybeRelocatable {
                 let big_offset: BigInt = (num + rel.offset) % prime;
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => panic!("Offset exeeds maximum offset value"),
+                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
                 };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -110,7 +110,7 @@ impl MaybeRelocatable {
                 let big_offset: BigInt = num_ref + rel.offset % prime;
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => panic!("Offset exeeds maximum offset value"),
+                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
                 };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -168,7 +168,6 @@ mod tests {
     use super::*;
     use crate::bigint;
     use crate::relocatable;
-    use crate::vm::vm_core::VirtualMachineError;
     use num_bigint::BigInt;
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
