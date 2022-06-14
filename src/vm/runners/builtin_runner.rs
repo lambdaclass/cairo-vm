@@ -250,7 +250,7 @@ impl BuiltinRunner for HashBuiltinRunner {
                     (Ok(field_element_a), Ok(field_element_b)) => {
                         (field_element_a, field_element_b)
                     }
-                    _ => panic!("Failed to convert string to FieldElement"),
+                    _ => return Err(RunnerError::FailedStringConversion),
                 };
                 //Compute pedersen Hash
                 let fe_result = pedersen_hash(&x, &y);

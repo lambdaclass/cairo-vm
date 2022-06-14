@@ -10,6 +10,7 @@ pub enum RunnerError {
     NumOutOfBounds,
     FoundNonInt,
     NonRelocatableAddress,
+    FailedStringConversion,
 }
 
 impl fmt::Display for RunnerError {
@@ -34,6 +35,9 @@ impl fmt::Display for RunnerError {
                 "Range-check validation failed, encountered non-int value"
             ),
             RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
+            RunnerError::FailedStringConversion => {
+                write!(f, "Failed to convert string to FieldElement")
+            }
         }
     }
 }
