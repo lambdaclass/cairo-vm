@@ -1,8 +1,7 @@
+use crate::bigint;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{abs, FromPrimitive};
-
-use crate::bigint;
 
 fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
     let mut a = num_a;
@@ -40,7 +39,7 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
 fn div_mod(n: BigInt, m: BigInt, p: BigInt) -> BigInt {
     let (a, _, c) = igcdex(m, p.clone());
     assert_eq!(c, bigint!(1));
-    (n * a) % p
+    (n * a).mod_floor(&p)
 }
 
 /// Gets two points on an elliptic curve mod p and returns their sum.
@@ -126,6 +125,50 @@ mod tests {
                 b"992545364708437554384321881954558327331693627531977596999212637460266617010"
             ),
             line_slope(point_a, point_b, &prime)
+        );
+    }
+
+    #[test]
+    fn compute_double_slope_for_valid_point_a() {
+        let point = (
+            bigint_str!(
+                b"3143372541908290873737380228370996772020829254218248561772745122290262847573"
+            ),
+            bigint_str!(
+                b"1721586982687138486000069852568887984211460575851774005637537867145702861131"
+            ),
+        );
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let alpha = bigint!(1);
+        assert_eq!(
+            bigint_str!(
+                b"3601388548860259779932034493250169083811722919049731683411013070523752439691"
+            ),
+            ec_double_slope(point, &alpha, &prime)
+        );
+    }
+
+    #[test]
+    fn compute_double_slope_for_valid_point_b() {
+        let point = (
+            bigint_str!(
+                b"1937407885261715145522756206040455121546447384489085099828343908348117672673"
+            ),
+            bigint_str!(
+                b"2010355627224183802477187221870580930152258042445852905639855522404179702985"
+            ),
+        );
+        let prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        let alpha = bigint!(1);
+        assert_eq!(
+            bigint_str!(
+                b"2904750555256547440469454488220756360634457312540595732507835416669695939476"
+            ),
+            ec_double_slope(point, &alpha, &prime)
         );
     }
 }
