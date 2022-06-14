@@ -474,12 +474,12 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
             //All input cells should be filled, and be integer values
             //If an input cell is not filled, return None
-            let mut input_cells = Vec::<BigInt>::with_capacity(self.n_input_cells);
+            let mut input_cells = Vec::<&BigInt>::with_capacity(self.n_input_cells);
             for i in 0..self.n_input_cells {
                 if let &MaybeRelocatable::Int(ref num) =
                     memory.get(&instance.add_usize_mod(i, None))?
                 {
-                    input_cells.push(num.clone());
+                    input_cells.push(num);
                 } else {
                     panic!(
                         "Expected integer at address {:?}",
@@ -489,7 +489,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             }
             //Assert that m is under the limit defined by scalar_limit.
             assert!(
-                &input_cells[M_INDEX] < &self.scalar_limit,
+                input_cells[M_INDEX] < &self.scalar_limit,
                 "EcOpBuiltin: m should be at most {}",
                 self.scalar_limit
             );
@@ -497,8 +497,8 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             for pair in &EC_POINT_INDICES[0..1] {
                 assert!(
                     EcOpBuiltinRunner::point_on_curve(
-                        &input_cells[pair.0],
-                        &input_cells[pair.1],
+                        input_cells[pair.0],
+                        input_cells[pair.1],
                         &alpha,
                         &beta,
                         &field_prime
@@ -510,14 +510,14 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             let result = EcOpBuiltinRunner::ec_op_impl(
                 (input_cells[0].clone(), input_cells[1].clone()),
                 (input_cells[2].clone(), input_cells[3].clone()),
-                &input_cells[4],
+                input_cells[4],
                 &alpha,
                 &field_prime,
                 self.scalar_height,
             );
             match index - self.n_input_cells {
-                0 => return Some(MaybeRelocatable::Int(result.0)),
-                _ => return Some(MaybeRelocatable::Int(result.1)),
+                0 => Some(MaybeRelocatable::Int(result.0)),
+                _ => Some(MaybeRelocatable::Int(result.1)),
                 //Default case corresponds to 1, as there are no other possible cases
             }
         } else {
