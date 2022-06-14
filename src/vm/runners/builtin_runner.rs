@@ -530,11 +530,11 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 &MaybeRelocatable::Int(ref q_y),
                 &MaybeRelocatable::Int(ref m),
             ) = (
-                memory.get(address).unwrap(),
-                memory.get(&address.add_usize_mod(1, None)).unwrap(),
-                memory.get(&address.add_usize_mod(2, None)).unwrap(),
-                memory.get(&address.add_usize_mod(3, None)).unwrap(),
-                memory.get(&address.add_usize_mod(4, None)).unwrap(),
+                memory.get(&instance).unwrap(),
+                memory.get(&instance.add_usize_mod(1, None)).unwrap(),
+                memory.get(&instance.add_usize_mod(2, None)).unwrap(),
+                memory.get(&instance.add_usize_mod(3, None)).unwrap(),
+                memory.get(&instance.add_usize_mod(4, None)).unwrap(),
             ) {
                 let result = EcOpBuiltinRunner::ec_op_impl(
                     (p_x.clone(), p_y.clone()),
@@ -1052,6 +1052,73 @@ mod tests {
                     b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
             )
+        );
+    }
+
+    #[test]
+    /* Data taken from this program execution:
+       %builtins output ec_op
+       from starkware.cairo.common.cairo_builtins import EcOpBuiltin
+       from starkware.cairo.common.serialize import serialize_word
+       from starkware.cairo.common.ec_point import EcPoint
+       from starkware.cairo.common.ec import ec_op
+
+       func main{output_ptr: felt*, ec_op_ptr: EcOpBuiltin*}():
+           let x: EcPoint = EcPoint(2089986280348253421170679821480865132823066470938446095505822317253594081284, 1713931329540660377023406109199410414810705867260802078187082345529207694986)
+
+           let y: EcPoint = EcPoint(874739451078007766457464989774322083649278607533249481151382481072868806602,152666792071518830868575557812948353041420400780739481342941381225525861407)
+           let z: EcPoint = ec_op(x,34, y)
+           serialize_word(z.x)
+           return()
+           end
+    */
+    fn deduce_memory_cell_ec_op_for_preset_memory_valid() {
+        let mut memory = Memory::new();
+        let mut builtin = EcOpBuiltinRunner::new(true, 256);
+        for _ in 0..4 {
+            memory.data.push(Vec::new());
+        }
+        memory.insert(
+            &MaybeRelocatable::from((3, 0)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
+            )),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((3, 1)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"214950771763870898744428659242275426967582168179217139798831865603966154129"
+            )),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((3, 2)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+            )),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((3, 3)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"152666792071518830868575557812948353041420400780739481342941381225525861407"
+            )),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((3, 4)),
+            &MaybeRelocatable::Int(bigint!(34)),
+        );
+        memory.insert(
+            &MaybeRelocatable::from((3, 5)),
+            &MaybeRelocatable::Int(bigint_str!(
+                b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+            )),
+        );
+
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        assert_eq!(
+            result,
+            Some(MaybeRelocatable::from(bigint_str!(
+                b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            )))
         );
     }
 }
