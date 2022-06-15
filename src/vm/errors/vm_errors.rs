@@ -71,7 +71,7 @@ impl fmt::Display for VirtualMachineError {
             }
             VirtualMachineError::OffsetExeeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
             VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
-            VirtualMachineError::PureValue => Ok(()), //TODO
+            VirtualMachineError::PureValue => Ok(()),
             VirtualMachineError::DiffIndexSub => write!(
                 f,
                 "Can only subtract two relocatable values of the same segment"
