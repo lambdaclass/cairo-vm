@@ -14,9 +14,6 @@ impl MemorySegmentManager {
     pub fn add(&mut self, memory: &mut Memory, size: Option<usize>) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
-        if let Some(_segment_size) = size {
-            //TODO self.finalize(segment_index, size);
-        }
         memory.data.push(Vec::new());
         Relocatable {
             segment_index,
