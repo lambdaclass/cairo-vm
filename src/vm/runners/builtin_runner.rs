@@ -354,9 +354,9 @@ mod tests {
     use super::*;
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::trace::trace_entry::RelocatedTraceEntry;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint_str, relocatable};
-    use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 
     #[test]
     fn initialize_segments_for_output() {
