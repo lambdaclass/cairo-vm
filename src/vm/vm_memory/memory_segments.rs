@@ -11,7 +11,7 @@ pub struct MemorySegmentManager {
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)
-    pub fn add(&mut self, memory: &mut Memory, size: Option<usize>) -> Relocatable {
+    pub fn add(&mut self, memory: &mut Memory, _size: Option<usize>) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
         memory.data.push(Vec::new());
