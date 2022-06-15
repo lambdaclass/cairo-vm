@@ -29,7 +29,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     relocated_memory: Vec<Option<BigInt>>,
-    relocated_trace: Vec<RelocatedTraceEntry>,
+    pub relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
 #[allow(dead_code)]
