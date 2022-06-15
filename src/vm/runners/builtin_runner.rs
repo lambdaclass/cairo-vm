@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
@@ -71,22 +71,21 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     }
 
     fn add_validation_rule(&self, memory: &mut Memory) {
-        let rule: Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>> =
-            Box::new(
-                |memory: &Memory,
-                 address: &MaybeRelocatable|
-                 -> Result<MaybeRelocatable, MemoryError> {
-                    if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
-                        if bigint!(0) <= num.clone() && num.clone() < bigint!(2).pow(128) {
-                            Ok(address.to_owned())
-                        } else {
-                            Err(MemoryError::NumOutOfBounds)
-                        }
+        let rule: ValidationRule = ValidationRule(Box::new(
+            |memory: &Memory,
+             address: &MaybeRelocatable|
+             -> Result<MaybeRelocatable, MemoryError> {
+                if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
+                    if bigint!(0) <= num.clone() && num.clone() < bigint!(2).pow(128) {
+                        Ok(address.to_owned())
                     } else {
-                        Err(MemoryError::FoundNonInt)
+                        Err(MemoryError::NumOutOfBounds)
                     }
-                },
-            );
+                } else {
+                    Err(MemoryError::FoundNonInt)
+                }
+            },
+        ));
         memory.add_validation_rule(self.base.as_ref().unwrap().segment_index, rule);
     }
 }

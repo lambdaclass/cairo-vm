@@ -3,13 +3,13 @@ use std::collections::{HashMap, HashSet};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 
+pub struct ValidationRule(
+    pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
+);
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
-    pub validation_rules: HashMap<
-        usize,
-        Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
-    >,
+    pub validation_rules: HashMap<usize, ValidationRule>,
 }
 
 impl Memory {
@@ -63,11 +63,7 @@ impl Memory {
         }
     }
 
-    pub fn add_validation_rule(
-        &mut self,
-        segment_index: usize,
-        rule: Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
-    ) {
+    pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
         self.validation_rules.insert(segment_index, rule);
     }
 
@@ -77,7 +73,7 @@ impl Memory {
                 for (index, validation_rule) in self.validation_rules.iter() {
                     if &rel_addr.segment_index == index {
                         self.validated_addresses
-                            .insert(validation_rule(self, address)?);
+                            .insert(validation_rule.0(self, address)?);
                     }
                 }
             }
