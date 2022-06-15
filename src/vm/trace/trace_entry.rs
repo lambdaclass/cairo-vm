@@ -2,7 +2,7 @@
 ///Holds the register values before the instruction was executed.
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::trace_errors::TraceError;
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
@@ -37,6 +37,14 @@ pub fn relocate_trace_register(
 /// Serializes RelocatedTraceEntry by putting ap, fp and pc together, in that order. It will add
 /// the necessary padding so that each register takes 64 bits of space. Encoding is done in little
 /// endian format.
+impl Serialize for RelocatedTraceEntry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
