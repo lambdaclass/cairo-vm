@@ -769,9 +769,10 @@ mod tests {
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint();
-        cairo_runner.initialize_vm();
-        cairo_runner.run_until_pc(end).unwrap();
-        cairo_runner.relocate();
+
+        assert!(cairo_runner.initialize_vm() == Ok(()), "Execution failed");
+        assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
+        assert!(cairo_runner.relocate() == Ok(()), "Execution failed");
 
         let python_vm_relocated_trace: Vec<RelocatedTraceEntry> = vec![
             RelocatedTraceEntry {
