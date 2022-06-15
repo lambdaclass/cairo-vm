@@ -1,4 +1,8 @@
-use crate::vm::trace::trace_entry::RelocatedTraceEntry;
+use cleopatra_cairo::{
+    types::program::Program,
+    vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
+};
+
 #[test]
 fn bitwise_integration_test() {
     let program = Program::new("tests/support/bitwise_builtin_test.json");
