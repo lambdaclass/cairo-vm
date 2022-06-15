@@ -173,7 +173,6 @@ impl CairoRunner {
     }
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
-        //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
         self.vm.run_context.ap =

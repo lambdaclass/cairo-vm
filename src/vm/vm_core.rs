@@ -401,7 +401,6 @@ impl VirtualMachine {
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         self.skip_instruction_execution = false;
-        //TODO: Hint Management
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
         Ok(())
