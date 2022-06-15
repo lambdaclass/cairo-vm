@@ -517,7 +517,7 @@ func main():
         assert [felt_array + 497] = 0
         assert [felt_array + 498] = 0
         assert [felt_array + 499] = 0
-        assert [felt_array + 500] = 0
+        assert [felt_array + 500] = 2
         assert [felt_array + 501] = 0
         assert [felt_array + 502] = 0
         assert [felt_array + 503] = 0
@@ -1018,7 +1018,9 @@ func main():
         assert [felt_array + 998] = 0
         assert [felt_array + 999] = 0
         assert [felt_array + 1000] = 1
-        let (index) = bin_search(1, 0, felt_array, 1001)
-        assert index = 1000
+        let (index_1) = bin_search(1, 0, felt_array, 1001)
+        assert index_1 = 1000
+        let (index_2) = bin_search(2, 0, felt_array, 1001)
+        assert index_2 = 500
         ret
 end
