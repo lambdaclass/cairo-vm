@@ -2,7 +2,6 @@
 set -e
 
 # Setup
-=======
 echo "Cleaning old results"
 rm -f results
 rm -f fibonacci.json
