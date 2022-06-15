@@ -119,7 +119,6 @@ pub fn decode_instruction(
     };
 
     Ok(instruction::Instruction {
-        // TODO: Replace or confirm the unrwap is safe
         off0: BigInt::from_i64(off0).unwrap(),
         off1: BigInt::from_i64(off1).unwrap(),
         off2: BigInt::from_i64(off2).unwrap(),
