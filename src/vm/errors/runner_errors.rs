@@ -9,8 +9,6 @@ pub enum RunnerError {
     NoProgBase,
     MissingMain,
     UninitializedBase,
-    NumOutOfBounds,
-    FoundNonInt,
     MemoryGet(MaybeRelocatable),
 }
 
@@ -27,14 +25,6 @@ impl fmt::Display for RunnerError {
             ),
             RunnerError::MissingMain => write!(f, "Missing main()"),
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
-            RunnerError::NumOutOfBounds => write!(
-                f,
-                "Range-check validation failed, number is out of valid range"
-            ),
-            RunnerError::FoundNonInt => write!(
-                f,
-                "Range-check validation failed, encountered non-int value"
-            ),
             RunnerError::MemoryGet(addr) => {
                 write!(f, "Failed to retrieve value from address {:?}", addr)
             }

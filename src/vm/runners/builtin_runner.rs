@@ -1,5 +1,6 @@
 use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -28,7 +29,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn add_validation_rule(&self, memory: &Memory);
+    fn add_validation_rule(&self, memory: &mut Memory);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -69,30 +70,24 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn add_validation_rule(&self, memory: &Memory) {
-        let rule: Box<
-            dyn Fn(&Memory, &MaybeRelocatable) -> Result<Option<MaybeRelocatable>, RunnerError>,
-        > = Box::new(
-            |memory: &Memory,
-             address: &MaybeRelocatable|
-             -> Result<Option<MaybeRelocatable>, RunnerError> {
-                match memory.get(address) {
-                    Err(_) => Err(RunnerError::MemoryGet(address.to_owned())),
-                    Ok(value) => {
-                        if let Some(MaybeRelocatable::Int(ref num)) = value {
-                            if bigint!(0) <= num.clone() && num.clone() < bigint!(2).pow(128) {
-                                Ok(Some(address.to_owned()))
-                            } else {
-                                Err(RunnerError::NumOutOfBounds)
-                            }
+    fn add_validation_rule(&self, memory: &mut Memory) {
+        let rule: Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>> =
+            Box::new(
+                |memory: &Memory,
+                 address: &MaybeRelocatable|
+                 -> Result<MaybeRelocatable, MemoryError> {
+                    if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
+                        if bigint!(0) <= num.clone() && num.clone() < bigint!(2).pow(128) {
+                            Ok(address.to_owned())
                         } else {
-                            Err(RunnerError::FoundNonInt)
+                            Err(MemoryError::NumOutOfBounds)
                         }
+                    } else {
+                        Err(MemoryError::FoundNonInt)
                     }
-                }
-            },
-        );
-        memory.add_validation_rule(rule);
+                },
+            );
+        memory.add_validation_rule(self.base.as_ref().unwrap().segment_index, rule);
     }
 }
 
@@ -129,7 +124,7 @@ impl BuiltinRunner for OutputBuiltinRunner {
         self.base.clone()
     }
 
-    fn add_validation_rule(&self, memory: &Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) {}
 }
 
 #[cfg(test)]

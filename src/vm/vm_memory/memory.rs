@@ -1,17 +1,23 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 
-#[derive(Clone)]
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
-    pub validated_addresses: Vec<MaybeRelocatable>,
+    pub validated_addresses: HashSet<MaybeRelocatable>,
+    pub validation_rules: HashMap<
+        usize,
+        Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
+    >,
 }
 
 impl Memory {
     pub fn new() -> Memory {
         Memory {
             data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
-            validated_addresses: Vec::<MaybeRelocatable>::new(),
+            validated_addresses: HashSet::<MaybeRelocatable>::new(),
+            validation_rules: HashMap::new(),
         }
     }
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
@@ -40,7 +46,7 @@ impl Memory {
         } else {
             return Err(MemoryError::AddressNotRelocatable);
         }
-        Ok(())
+        self.validate_memory_cell(key)
     }
 
     pub fn get(&self, key: &MaybeRelocatable) -> Result<Option<&MaybeRelocatable>, MemoryError> {
@@ -52,6 +58,30 @@ impl Memory {
                 }
             }
             Ok(None)
+        } else {
+            Err(MemoryError::AddressNotRelocatable)
+        }
+    }
+
+    pub fn add_validation_rule(
+        &mut self,
+        segment_index: usize,
+        rule: Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
+    ) {
+        self.validation_rules.insert(segment_index, rule);
+    }
+
+    fn validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError> {
+        if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
+            if !self.validated_addresses.contains(address) {
+                for (index, validation_rule) in self.validation_rules.iter() {
+                    if &rel_addr.segment_index == index {
+                        self.validated_addresses
+                            .insert(validation_rule(self, address)?);
+                    }
+                }
+            }
+            Ok(())
         } else {
             Err(MemoryError::AddressNotRelocatable)
         }
