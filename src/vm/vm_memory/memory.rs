@@ -4,12 +4,14 @@ use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_ind
 #[derive(Clone)]
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
+    pub validated_addresses: Vec<MaybeRelocatable>,
 }
 
 impl Memory {
     pub fn new() -> Memory {
         Memory {
             data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            validated_addresses: Vec::<MaybeRelocatable>::new(),
         }
     }
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable

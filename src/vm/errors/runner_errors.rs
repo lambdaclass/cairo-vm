@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::types::relocatable::MaybeRelocatable;
+
 #[derive(Debug, PartialEq)]
 pub enum RunnerError {
     NoExecBase,
@@ -9,6 +11,7 @@ pub enum RunnerError {
     UninitializedBase,
     NumOutOfBounds,
     FoundNonInt,
+    MemoryGet(MaybeRelocatable),
 }
 
 impl fmt::Display for RunnerError {
@@ -32,6 +35,9 @@ impl fmt::Display for RunnerError {
                 f,
                 "Range-check validation failed, encountered non-int value"
             ),
+            RunnerError::MemoryGet(addr) => {
+                write!(f, "Failed to retrieve value from address {:?}", addr)
+            }
         }
     }
 }

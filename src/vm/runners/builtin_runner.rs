@@ -5,7 +5,6 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-
 pub struct RangeCheckBuiltinRunner {
     included: bool,
     _ratio: BigInt,
@@ -29,10 +28,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError>;
     ///Returns the builtin's base
     fn base(&self) -> Option<Relocatable>;
-    fn validate_existing_memory(
-        &self,
-        memory: &[Option<MaybeRelocatable>],
-    ) -> Result<Option<Vec<MaybeRelocatable>>, RunnerError>;
+    fn add_validation_rule(&self, memory: &Memory);
 }
 
 impl RangeCheckBuiltinRunner {
@@ -73,29 +69,30 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self.base.clone()
     }
 
-    fn validate_existing_memory(
-        &self,
-        builtin_memory: &[Option<MaybeRelocatable>],
-    ) -> Result<Option<Vec<MaybeRelocatable>>, RunnerError> {
-        let mut validated_addresses = Vec::<MaybeRelocatable>::new();
-        for (offset, value) in builtin_memory.iter().enumerate() {
-            if let Some(MaybeRelocatable::Int(ref num)) = value {
-                if bigint!(0) <= num.clone() && num.clone() < self._bound {
-                    validated_addresses.push(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: self.base().unwrap().segment_index,
-                        offset,
-                    }));
-                } else {
-                    return Err(RunnerError::NumOutOfBounds);
+    fn add_validation_rule(&self, memory: &Memory) {
+        let rule: Box<
+            dyn Fn(&Memory, &MaybeRelocatable) -> Result<Option<MaybeRelocatable>, RunnerError>,
+        > = Box::new(
+            |memory: &Memory,
+             address: &MaybeRelocatable|
+             -> Result<Option<MaybeRelocatable>, RunnerError> {
+                match memory.get(address) {
+                    Err(_) => Err(RunnerError::MemoryGet(address.to_owned())),
+                    Ok(value) => {
+                        if let Some(MaybeRelocatable::Int(ref num)) = value {
+                            if bigint!(0) <= num.clone() && num.clone() < bigint!(2).pow(128) {
+                                Ok(Some(address.to_owned()))
+                            } else {
+                                Err(RunnerError::NumOutOfBounds)
+                            }
+                        } else {
+                            Err(RunnerError::FoundNonInt)
+                        }
+                    }
                 }
-            } else {
-                return Err(RunnerError::FoundNonInt);
-            }
-        }
-        if validated_addresses.is_empty() {
-            return Ok(None);
-        }
-        Ok(Some(validated_addresses))
+            },
+        );
+        memory.add_validation_rule(rule);
     }
 }
 
@@ -131,12 +128,8 @@ impl BuiltinRunner for OutputBuiltinRunner {
     fn base(&self) -> Option<Relocatable> {
         self.base.clone()
     }
-    fn validate_existing_memory(
-        &self,
-        _memory: &[Option<MaybeRelocatable>],
-    ) -> Result<Option<Vec<MaybeRelocatable>>, RunnerError> {
-        Ok(None)
-    }
+
+    fn add_validation_rule(&self, memory: &Memory) {}
 }
 
 #[cfg(test)]
@@ -223,7 +216,7 @@ mod tests {
         let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(initial_stack.len(), 0);
     }
-
+    /*
     #[test]
     fn validate_existing_memory_for_range_check_within_bounds() {
         let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
@@ -293,5 +286,5 @@ mod tests {
             .unwrap();
         let vec = builtin.validate_existing_memory(&memory.data[1]);
         assert_eq!(vec, Ok(None));
-    }
+    }*/
 }
