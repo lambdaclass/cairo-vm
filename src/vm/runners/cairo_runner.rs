@@ -183,8 +183,13 @@ impl CairoRunner {
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
-        //Memory is validated during each insertion
-        Ok(())
+        for (_, builtin) in self.vm.builtin_runners.iter() {
+            builtin.add_validation_rule(&mut self.vm.memory);
+        }
+        match self.vm.memory.validate_existing_memory() {
+            Err(error) => Err(RunnerError::MemoryValidationError(error)),
+            Ok(_) => Ok(()),
+        }
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {

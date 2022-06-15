@@ -2151,7 +2151,6 @@ mod tests {
             _program_base: None,
             builtin_runners: BTreeMap::<String, Box<dyn BuiltinRunner>>::new(),
             memory: Memory::new(),
-            validated_addresses: Vec::<MaybeRelocatable>::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 1,

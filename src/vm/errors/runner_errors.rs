@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::types::relocatable::MaybeRelocatable;
+use super::memory_errors::MemoryError;
 
 #[derive(Debug, PartialEq)]
 pub enum RunnerError {
@@ -9,7 +9,7 @@ pub enum RunnerError {
     NoProgBase,
     MissingMain,
     UninitializedBase,
-    MemoryGet(MaybeRelocatable),
+    MemoryValidationError(MemoryError),
 }
 
 impl fmt::Display for RunnerError {
@@ -25,8 +25,9 @@ impl fmt::Display for RunnerError {
             ),
             RunnerError::MissingMain => write!(f, "Missing main()"),
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
-            RunnerError::MemoryGet(addr) => {
-                write!(f, "Failed to retrieve value from address {:?}", addr)
+            RunnerError::MemoryValidationError(error) => {
+                write!(f, "Memory validation failed during VM initialization.")?;
+                error.fmt(f)
             }
         }
     }

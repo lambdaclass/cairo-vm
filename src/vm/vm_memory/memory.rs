@@ -86,6 +86,16 @@ impl Memory {
             Err(MemoryError::AddressNotRelocatable)
         }
     }
+    ///Applies validation_rules to the current memory
+    //Should be called during initialization, as None values will raise a FoundNonInt error
+    pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
+        for i in 0..self.data.len() {
+            for j in 0..self.data[i].len() {
+                self.validate_memory_cell(&MaybeRelocatable::from((i, j)))?;
+            }
+        }
+        Ok(())
+    }
 
     #[allow(dead_code)]
     pub fn from(
