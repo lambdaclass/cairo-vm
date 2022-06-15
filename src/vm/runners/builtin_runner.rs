@@ -366,8 +366,6 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::program::Program;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint_str, relocatable};
 
