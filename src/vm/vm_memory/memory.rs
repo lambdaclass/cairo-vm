@@ -32,7 +32,7 @@ impl Memory {
             let (i, j) = from_relocatable_to_indexes(relocatable.clone());
             //Check that the memory segment exists
             if self.data.len() < i + 1 {
-                return Err(MemoryError::UnallocatedSegment(self.data.len(), i + 1));
+                return Err(MemoryError::UnallocatedSegment(i, self.data.len()));
             }
             //Check if the element is inserted next to the last one on the segment
             //Forgoing this check would allow data to be inserted in a different index
@@ -117,7 +117,13 @@ impl Default for Memory {
 
 #[cfg(test)]
 mod memory_tests {
-    use crate::bigint;
+    use crate::{
+        bigint,
+        vm::{
+            runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
+            vm_memory::memory_segments::MemorySegmentManager,
+        },
+    };
 
     use super::*;
     use num_bigint::BigInt;
@@ -209,5 +215,86 @@ mod memory_tests {
             matches!(mem.get(&MaybeRelocatable::from((1, 0))), _val_clone),
             true
         );
+    }
+
+    #[test]
+    fn validate_existing_memory_for_range_check_within_bounds() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        builtin.initialize_segments(&mut segments, &mut memory);
+        builtin.add_validation_rule(&mut memory);
+        for _ in 0..3 {
+            segments.add(&mut memory, None);
+        }
+
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(45)),
+            )
+            .unwrap();
+        memory.validate_existing_memory().unwrap();
+        assert!(memory
+            .validated_addresses
+            .contains(&MaybeRelocatable::from((0, 0))));
+    }
+
+    #[test]
+    fn validate_existing_memory_for_range_check_outside_bounds() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        builtin.initialize_segments(&mut segments, &mut memory);
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(-10)),
+            )
+            .unwrap();
+        builtin.add_validation_rule(&mut memory);
+        assert_eq!(
+            memory.validate_existing_memory(),
+            Err(MemoryError::NumOutOfBounds)
+        );
+    }
+
+    #[test]
+
+    fn validate_existing_memory_for_range_check_relocatable_value() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        builtin.initialize_segments(&mut segments, &mut memory);
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from((1, 4)),
+            )
+            .unwrap();
+        builtin.add_validation_rule(&mut memory);
+        assert_eq!(
+            memory.validate_existing_memory(),
+            Err(MemoryError::FoundNonInt)
+        );
+    }
+
+    #[test]
+    fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
+        let mut builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        builtin.initialize_segments(&mut segments, &mut memory);
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(-45)),
+            )
+            .unwrap();
+        builtin.add_validation_rule(&mut memory);
+        assert_eq!(memory.validate_existing_memory(), Ok(()));
     }
 }
