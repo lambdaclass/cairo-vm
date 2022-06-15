@@ -13,9 +13,9 @@ pub struct TraceEntry {
 
 #[derive(Debug, PartialEq)]
 pub struct RelocatedTraceEntry {
-    pub pc: usize,
     pub ap: usize,
     pub fp: usize,
+    pub pc: usize,
 }
 
 pub fn relocate_trace_register(
