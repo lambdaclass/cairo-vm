@@ -32,6 +32,10 @@ pub fn relocate_trace_register(
         }
     }
 }
+
+/// Serializes RelocatedTraceEntry by putting ap, fp and pc together, in that order. It will add
+/// the necessary padding so that each register takes 64 bits of space. Encoding is done in little
+/// endian format.
 #[cfg(test)]
 mod tests {
     use super::*;
