@@ -1,6 +1,7 @@
 use crate::types::program::Program;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use std::io;
+use bincode;
 
 #[allow(dead_code)]
 pub fn cairo_run(path: &str) {
@@ -12,4 +13,10 @@ pub fn cairo_run(path: &str) {
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
     cairo_runner.relocate().unwrap();
     cairo_runner.write_output(&mut io::stdout());
+}
+
+#[allow(dead_code)]
+fn write_binary_trace(runner: &CairoRunner) {
+    let binc = bincode::serialize(&runner.relocated_trace).unwrap();
+    println!("Serialized struct: {:?}", binc);
 }
