@@ -43,10 +43,10 @@ impl Serialize for RelocatedTraceEntry {
         S: Serializer,
     {
         let mut entry = serializer.serialize_struct("RelocatedTraceEntry", 3)?;
-        rgb.serialize_field("ap", &self.ap)?;
-        rgb.serialize_field("fp", &self.fp)?;
-        rgb.serialize_field("pc", &self.pc)?;
-        rgb.end()
+        entry.serialize_field("ap", &self.ap)?;
+        entry.serialize_field("fp", &self.fp)?;
+        entry.serialize_field("pc", &self.pc)?;
+        entry.end()
     }
 }
 
