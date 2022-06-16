@@ -29,3 +29,20 @@ fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>, trace_file: &s
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_binary_file() {
+        let program = Program::new("tests/support/struct.json");
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        let end = cairo_runner.initialize_main_entrypoint().unwrap();
+        cairo_runner.initialize_vm().unwrap();
+        assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
+        cairo_runner.relocate().unwrap();
+        write_binary_trace(&cairo_runner.relocated_trace, "tests/support/struct_cleopatra.trace");
+    }
+}
