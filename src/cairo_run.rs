@@ -22,8 +22,8 @@ pub fn cairo_run(path: &str) {
 fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>) {
     let binary_trace = bincode::serialize(relocated_trace);
 
-    match binary_trace = {
+    match binary_trace {
         Ok(trace) => {},
         Err(e) => println!("Failed to dump trace, serialize error: {}", e),
-    }
+    };
 }
