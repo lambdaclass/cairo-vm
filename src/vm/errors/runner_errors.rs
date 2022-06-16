@@ -9,6 +9,7 @@ pub enum RunnerError {
     UninitializedBase,
     NumOutOfBounds,
     FoundNonInt,
+    WriteFail,
 }
 
 impl fmt::Display for RunnerError {
@@ -32,6 +33,7 @@ impl fmt::Display for RunnerError {
                 f,
                 "Range-check validation failed, encountered non-int value"
             ),
+            RunnerError::WriteFail => write!(f, "Failed to write program output"),
         }
     }
 }

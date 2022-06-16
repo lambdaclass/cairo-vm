@@ -253,18 +253,20 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn write_output(&mut self, stdout: &mut dyn io::Write) {
+    ///Writes the values hosted in the output builtin's segment
+    /// Does nothing if the output builtin is not present in the program
+    pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
         if let Some(builtin) = self.vm.builtin_runners.get("output") {
             if self.segments.segment_used_sizes == None {
                 self.segments.compute_effective_sizes(&self.vm.memory);
             }
             let base = match builtin.base() {
                 Some(base) => base,
-                None => panic!("Uninitialized Output Builtin Base"),
+                None => return Err(RunnerError::UninitializedBase),
             };
             let write_result = writeln!(stdout, "Program Output: ");
             if write_result.is_err() {
-                panic!("Failed to write to standard output")
+                return Err(RunnerError::WriteFail);
             }
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
                 let value = self
@@ -275,11 +277,12 @@ impl CairoRunner {
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
                     let write_result = writeln!(stdout, "{}", num);
                     if write_result.is_err() {
-                        panic!("Failed to write to standard output")
+                        return Err(RunnerError::WriteFail);
                     }
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -2655,7 +2658,7 @@ mod tests {
             .unwrap();
         cairo_runner.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
-        cairo_runner.write_output(&mut stdout);
+        cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
             Ok(String::from("Program Output: \n1\n2\n"))
@@ -2707,7 +2710,7 @@ mod tests {
         //Execution Phase
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         let mut stdout = Vec::<u8>::new();
-        cairo_runner.write_output(&mut stdout);
+        cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
             Ok(String::from("Program Output: \n1\n17\n"))
