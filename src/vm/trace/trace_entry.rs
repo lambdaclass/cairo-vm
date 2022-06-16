@@ -2,7 +2,7 @@
 ///Holds the register values before the instruction was executed.
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::trace_errors::TraceError;
-use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde::{Serialize, Deserialize};
 
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
@@ -11,7 +11,7 @@ pub struct TraceEntry {
     pub fp: MaybeRelocatable,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct RelocatedTraceEntry {
     pub ap: usize,
     pub fp: usize,
