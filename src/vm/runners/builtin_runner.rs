@@ -1290,7 +1290,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn deduce_memory_cell_ec_op_for_preset_memory_non_integer_input() {
         let mut memory = Memory::new();
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
@@ -1342,9 +1341,10 @@ mod tests {
             )
             .unwrap();
 
-        builtin
-            .deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory)
-            .unwrap();
+        assert_eq!(
+            builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory),
+            Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
+        );
     }
 
     #[test]
