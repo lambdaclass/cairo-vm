@@ -203,15 +203,13 @@ impl CairoRunner {
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
-        for (_key, builtin) in self.vm.builtin_runners.iter() {
-            let vec = builtin.validate_existing_memory(
-                &self.vm.memory.data[builtin.base().unwrap().segment_index],
-            )?;
-            if let Some(mut validated_addresses) = vec {
-                self.vm.validated_addresses.append(&mut validated_addresses)
-            }
+        for (_, builtin) in self.vm.builtin_runners.iter() {
+            builtin.add_validation_rule(&mut self.vm.memory);
         }
-        Ok(())
+        match self.vm.memory.validate_existing_memory() {
+            Err(error) => Err(RunnerError::MemoryValidationError(error)),
+            Ok(_) => Ok(()),
+        }
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
@@ -775,13 +773,15 @@ mod tests {
         );
         assert!(cairo_runner
             .vm
+            .memory
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 0))));
         assert!(cairo_runner
             .vm
+            .memory
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 1))));
-        assert_eq!(cairo_runner.vm.validated_addresses.len(), 2);
+        assert_eq!(cairo_runner.vm.memory.validated_addresses.len(), 2);
     }
 
     #[test]

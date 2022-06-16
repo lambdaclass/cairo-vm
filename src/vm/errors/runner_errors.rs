@@ -1,6 +1,8 @@
 use crate::types::relocatable::MaybeRelocatable;
 use std::fmt;
 
+use super::memory_errors::MemoryError;
+
 #[derive(Debug, PartialEq)]
 pub enum RunnerError {
     NoExecBase,
@@ -8,8 +10,7 @@ pub enum RunnerError {
     NoProgBase,
     MissingMain,
     UninitializedBase,
-    NumOutOfBounds,
-    FoundNonInt,
+    MemoryValidationError(MemoryError),
     NonRelocatableAddress,
     FailedStringConversion,
     ExpectedInteger(MaybeRelocatable),
@@ -29,14 +30,10 @@ impl fmt::Display for RunnerError {
             ),
             RunnerError::MissingMain => write!(f, "Missing main()"),
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
-            RunnerError::NumOutOfBounds => write!(
-                f,
-                "Range-check validation failed, number is out of valid range"
-            ),
-            RunnerError::FoundNonInt => write!(
-                f,
-                "Range-check validation failed, encountered non-int value"
-            ),
+            RunnerError::MemoryValidationError(error) => {
+                write!(f, "Memory validation failed during VM initialization.")?;
+                error.fmt(f)
+            }
             RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
             RunnerError::FailedStringConversion => {
                 write!(f, "Failed to convert string to FieldElement")
