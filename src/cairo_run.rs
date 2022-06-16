@@ -1,9 +1,9 @@
 use crate::types::program::Program;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
-use std::io;
-use std::fs::File;
 use bincode;
+use std::fs::File;
+use std::io;
 
 #[allow(dead_code)]
 pub fn cairo_run(path: &str) {
@@ -24,8 +24,11 @@ fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>, trace_file: &s
     let mut buffer = File::create(trace_file).expect("Error while creating trace file");
     for (i, entry) in relocated_trace.iter().enumerate() {
         match bincode::serialize_into(&mut buffer, entry) {
-            Ok(_) => {},
-            Err(e) => println!("Failed to dump trace at position {}, serialize error: {}", i, e),
+            Ok(_) => {}
+            Err(e) => println!(
+                "Failed to dump trace at position {}, serialize error: {}",
+                i, e
+            ),
         }
     }
 }
@@ -43,6 +46,9 @@ mod tests {
         cairo_runner.initialize_vm().unwrap();
         assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
         cairo_runner.relocate().unwrap();
-        write_binary_trace(&cairo_runner.relocated_trace, "tests/support/struct_cleopatra.trace");
+        write_binary_trace(
+            &cairo_runner.relocated_trace,
+            "tests/support/struct_cleopatra.trace",
+        );
     }
 }
