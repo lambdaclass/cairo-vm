@@ -2720,4 +2720,39 @@ mod tests {
             Ok(String::from("Program Output: \n1\n17\n"))
         );
     }
+
+    #[test]
+    fn print_output_from_preset_memory_neg_output() {
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            main: None,
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        assert_eq!(
+            Some(relocatable!(2, 0)),
+            cairo_runner.vm.builtin_runners[&String::from("output")].base()
+        );
+        cairo_runner
+            .vm
+            .memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint_str!(
+                    b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+                )),
+            )
+            .unwrap();
+        cairo_runner.segments.segment_used_sizes = Some(vec![0, 0, 1]);
+        let mut stdout = Vec::<u8>::new();
+        cairo_runner.write_output(&mut stdout).unwrap();
+        assert_eq!(
+            String::from_utf8(stdout),
+            Ok(String::from("Program Output: \n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
+        );
+    }
 }
