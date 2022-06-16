@@ -1,5 +1,4 @@
 use num_bigint::BigInt;
-use num_integer::Integer;
 use num_traits::FromPrimitive;
 
 use crate::types::relocatable::Relocatable;
@@ -54,6 +53,41 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
 ///equivalent to val modulo prime.
 pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
-    let half_prime = prime.mod_floor(&bigint!(2));
+    let half_prime = prime.clone() / bigint!(2);
     ((num + half_prime.clone()) % prime) - half_prime
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn to_field_element_no_change() {
+        assert_eq!(
+            to_field_element(
+                bigint!(1),
+                bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                )
+            ),
+            bigint!(1)
+        );
+    }
+
+    #[test]
+    fn to_field_element_num_to_negative() {
+        assert_eq!(
+            to_field_element(
+                bigint_str!(
+                    b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+                ),
+                bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                )
+            ),
+            bigint_str!(
+                b"-347635731488942605882605540010235804344383682379185578591125677225688681570"
+            )
+        );
+    }
 }
