@@ -1,3 +1,7 @@
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::FromPrimitive;
+
 use crate::types::relocatable::Relocatable;
 
 #[macro_export]
@@ -45,4 +49,11 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
 
 pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
     (relocatable.segment_index, relocatable.offset)
+}
+
+///Converts val to an integer in the range (-prime/2, prime/2) which is
+///equivalent to val modulo prime.
+pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
+    let half_prime = prime.mod_floor(&bigint!(2));
+    ((num + half_prime.clone()) % prime) - half_prime
 }
