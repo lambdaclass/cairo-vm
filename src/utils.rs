@@ -62,7 +62,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn to_field_element_no_change() {
+    fn to_field_element_no_change_a() {
         assert_eq!(
             to_field_element(
                 bigint!(1),
@@ -75,7 +75,24 @@ mod test {
     }
 
     #[test]
-    fn to_field_element_num_to_negative() {
+    fn to_field_element_no_change_b() {
+        assert_eq!(
+            to_field_element(
+                bigint_str!(
+                    b"1455766198400600346948407886553099278761386236477570128859274086228078567108"
+                ),
+                bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                )
+            ),
+            bigint_str!(
+                b"1455766198400600346948407886553099278761386236477570128859274086228078567108"
+            )
+        );
+    }
+
+    #[test]
+    fn to_field_element_num_to_negative_a() {
         assert_eq!(
             to_field_element(
                 bigint_str!(
@@ -87,6 +104,23 @@ mod test {
             ),
             bigint_str!(
                 b"-347635731488942605882605540010235804344383682379185578591125677225688681570"
+            )
+        );
+    }
+
+    #[test]
+    fn to_field_element_num_to_negative_b() {
+        assert_eq!(
+            to_field_element(
+                bigint_str!(
+                    b"3333324623402098338894983297253618187074385014448599840723759915876610845540"
+                ),
+                bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                )
+            ),
+            bigint_str!(
+                b"-285178165264032874802339485841451918548722200882996859249332140259261174941"
             )
         );
     }
