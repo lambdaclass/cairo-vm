@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
-use crate::utils::is_subsequence;
+use crate::utils::{is_subsequence, to_field_element};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -275,7 +275,11 @@ impl CairoRunner {
                     .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None))
                     .unwrap();
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
-                    let write_result = writeln!(stdout, "{}", num);
+                    let write_result = writeln!(
+                        stdout,
+                        "{}",
+                        to_field_element(num.clone(), self.vm.prime.clone())
+                    );
                     if write_result.is_err() {
                         return Err(RunnerError::WriteFail);
                     }
