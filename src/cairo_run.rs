@@ -1,5 +1,6 @@
 use crate::types::program::Program;
 use crate::vm::runners::cairo_runner::CairoRunner;
+use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use std::io;
 use bincode;
 
@@ -16,7 +17,7 @@ pub fn cairo_run(path: &str) {
 }
 
 #[allow(dead_code)]
-fn write_binary_trace(runner: &CairoRunner) {
-    let binc = bincode::serialize(&runner.relocated_trace).unwrap();
+fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>) {
+    let binc = bincode::serialize(relocated_trace).unwrap();
     println!("Serialized struct: {:?}", binc);
 }
