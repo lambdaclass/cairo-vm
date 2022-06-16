@@ -3,6 +3,7 @@
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::trace_errors::TraceError;
 use serde::{Deserialize, Serialize};
+use bincode;
 
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
