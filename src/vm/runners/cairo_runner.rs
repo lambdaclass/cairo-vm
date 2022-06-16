@@ -6,7 +6,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::{
-    BitwiseBuiltinRunner, BuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
+    BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
     RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
@@ -41,6 +41,7 @@ impl CairoRunner {
             String::from("range_check"),
             String::from("ecdsa"),
             String::from("bitwise"),
+            String::from("ec_op"),
         ];
         assert!(
             is_subsequence(&program.builtins, &builtin_ordered_list),
@@ -73,6 +74,12 @@ impl CairoRunner {
                 builtin_runners.insert(
                     builtin_name.clone(),
                     Box::new(BitwiseBuiltinRunner::new(true, 256)),
+                );
+            }
+            if builtin_name == "ec_op" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(EcOpBuiltinRunner::new(true, 256)),
                 );
             }
         }
