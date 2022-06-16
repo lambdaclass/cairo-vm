@@ -1,3 +1,4 @@
+use crate::types::relocatable::MaybeRelocatable;
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
@@ -11,6 +12,8 @@ pub enum RunnerError {
     FoundNonInt,
     NonRelocatableAddress,
     FailedStringConversion,
+    ExpectedInteger(MaybeRelocatable),
+    MemoryGet(MaybeRelocatable),
 }
 
 impl fmt::Display for RunnerError {
@@ -37,6 +40,14 @@ impl fmt::Display for RunnerError {
             RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
             RunnerError::FailedStringConversion => {
                 write!(f, "Failed to convert string to FieldElement")
+            }
+
+            RunnerError::ExpectedInteger(addr) => {
+                write!(f, "Expected integer at address {:?}", addr)
+            }
+
+            RunnerError::MemoryGet(addr) => {
+                write!(f, "Failed to retrieve value from address {:?}", addr)
             }
         }
     }

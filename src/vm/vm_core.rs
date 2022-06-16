@@ -19,11 +19,6 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
-#[allow(dead_code)]
-struct Rule {
-    func: fn(&VirtualMachine, &MaybeRelocatable, &()) -> Option<MaybeRelocatable>,
-}
-
 pub struct VirtualMachine {
     pub run_context: RunContext,
     prime: BigInt,
@@ -278,10 +273,17 @@ impl VirtualMachine {
     }
 
     fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
-        if let Some(builtin) = self.builtin_runners.get_mut(&String::from("pedersen")) {
-            return builtin.deduce_memory_cell(address, &self.memory).unwrap();
+        if let MaybeRelocatable::RelocatableValue(addr) = address {
+            for (_, builtin) in self.builtin_runners.iter_mut() {
+                if let Some(base) = builtin.base() {
+                    if base.segment_index == addr.segment_index {
+                        return builtin.deduce_memory_cell(address, &self.memory).unwrap();
+                    }
+                }
+            }
+            return None;
         }
-        None
+        panic!("Memory addresses must be relocatable");
     }
 
     ///Computes the value of res if possible
@@ -493,13 +495,38 @@ impl VirtualMachine {
             [dst_addr, op0_addr, op1_addr].to_vec(),
         ))
     }
+
+    ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
+    pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
+        for (i, segment) in self.memory.data.iter().enumerate() {
+            for (j, value) in segment.iter().enumerate() {
+                for (name, builtin) in self.builtin_runners.iter_mut() {
+                    if builtin.base().unwrap().segment_index == i {
+                        let deduced_value = builtin
+                            .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory)
+                            .unwrap();
+                        if deduced_value != None && &deduced_value != value {
+                            return Err(VirtualMachineError::InconsistentAutoDeduction(
+                                name.to_owned(),
+                                deduced_value.unwrap(),
+                                value.to_owned(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::vm::runners::builtin_runner::HashBuiltinRunner;
+    use crate::vm::runners::builtin_runner::{
+        BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
+    };
     use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
@@ -2590,10 +2617,10 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
-        vm.builtin_runners.insert(
-            String::from("pedersen"),
-            Box::new(HashBuiltinRunner::new(true, 8)),
-        );
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(0, 0));
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
         vm.memory.data.push(Vec::new());
         vm.memory
             .insert(
@@ -2660,12 +2687,11 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(3, 0));
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.builtin_runners.insert(
-            String::from("pedersen"),
-            Box::new(HashBuiltinRunner::new(true, 8)),
-        );
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
         vm.run_context.ap = MaybeRelocatable::from((1, 13));
         vm.run_context.fp = MaybeRelocatable::from((1, 12));
         vm.memory.data.push(Vec::new());
@@ -2795,5 +2821,447 @@ mod tests {
             Ok((expected_operands, expected_operands_mem_addresses)),
             vm.compute_operands(&instruction)
         );
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_builtin_valid_and() {
+        let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        let mut builtin = BitwiseBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(0, 0));
+        vm.builtin_runners
+            .insert(String::from("bitwise"), Box::new(builtin));
+        vm.memory.data.push(Vec::new());
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::Int(bigint!(10)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 6)),
+                &MaybeRelocatable::Int(bigint!(12)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 7)),
+                &MaybeRelocatable::Int(bigint!(0)),
+            )
+            .unwrap();
+        assert_eq!(
+            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
+            Some(MaybeRelocatable::from(bigint!(8)))
+        );
+    }
+
+    #[test]
+    /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn compute_operands_bitwise() {
+        let instruction = Instruction {
+            off0: bigint!(0),
+            off1: bigint!(-5),
+            off2: bigint!(2),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Op1,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Add1,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+        };
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(2, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("bitwise"), Box::new(builtin));
+        vm.run_context.ap = MaybeRelocatable::from((1, 9));
+        vm.run_context.fp = MaybeRelocatable::from((1, 8));
+        for _ in 0..3 {
+            vm.memory.data.push(Vec::new());
+        }
+
+        //Insert values into memory (excluding those from the program segment (instructions))
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint!(12)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 1)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((3, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((4, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(12)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 6)),
+                &MaybeRelocatable::from((1, 3)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from((0, 13)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from((2, 8)),
+            )
+            .unwrap();
+
+        let expected_operands = Operands {
+            dst: MaybeRelocatable::from(bigint!(8)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from((2, 0)),
+            op1: MaybeRelocatable::from(bigint!(8)),
+        };
+        let expected_operands_mem_addresses = vec![
+            MaybeRelocatable::from((1, 9)),
+            MaybeRelocatable::from((1, 3)),
+            MaybeRelocatable::from((2, 2)),
+        ];
+        assert_eq!(
+            Ok((expected_operands, expected_operands_mem_addresses)),
+            vm.compute_operands(&instruction)
+        );
+    }
+
+    #[test]
+    fn deduce_memory_cell_ec_op_builtin_valid() {
+        let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
+        let mut builtin = EcOpBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(0, 0));
+        vm.builtin_runners
+            .insert(String::from("ec_op"), Box::new(builtin));
+        vm.memory.data.push(Vec::new());
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::Int(bigint!(34)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                )),
+            )
+            .unwrap();
+
+        let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
+        assert_eq!(
+            result,
+            Some(MaybeRelocatable::from(bigint_str!(
+                b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            )))
+        );
+    }
+
+    #[test]
+    /* Data taken from this program execution:
+       %builtins output ec_op
+       from starkware.cairo.common.cairo_builtins import EcOpBuiltin
+       from starkware.cairo.common.serialize import serialize_word
+       from starkware.cairo.common.ec_point import EcPoint
+       from starkware.cairo.common.ec import ec_op
+
+       func main{output_ptr: felt*, ec_op_ptr: EcOpBuiltin*}():
+           let x: EcPoint = EcPoint(2089986280348253421170679821480865132823066470938446095505822317253594081284, 1713931329540660377023406109199410414810705867260802078187082345529207694986)
+
+           let y: EcPoint = EcPoint(874739451078007766457464989774322083649278607533249481151382481072868806602,152666792071518830868575557812948353041420400780739481342941381225525861407)
+           let z: EcPoint = ec_op(x,34, y)
+           serialize_word(z.x)
+           return()
+           end
+    */
+    fn verify_auto_deductions_for_ec_op_builtin_valid() {
+        let mut builtin = EcOpBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(3, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("ec_op"), Box::new(builtin));
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 0)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 1)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 2)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 3)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 4)),
+                &MaybeRelocatable::Int(bigint!(34)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 5)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                )),
+            )
+            .unwrap();
+        assert_eq!(vm.verify_auto_deductions(), Ok(()));
+    }
+
+    #[test]
+    #[should_panic]
+    fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
+        let mut builtin = EcOpBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(3, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("ec_op"), Box::new(builtin));
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 0)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 1)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 2)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2089986280348253421170679821480865132823066470938446095505822317253594081284"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 3)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"1713931329540660377023406109199410414810705867260802078187082345529207694986"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 4)),
+                &MaybeRelocatable::Int(bigint!(34)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 5)),
+                &MaybeRelocatable::Int(bigint_str!(
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                )),
+            )
+            .unwrap();
+        vm.verify_auto_deductions().unwrap();
+    }
+
+    #[test]
+    /* Program used:
+    %builtins bitwise
+    from starkware.cairo.common.bitwise import bitwise_and
+    from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+
+    func main{bitwise_ptr: BitwiseBuiltin*}():
+        let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
+        assert result = 8  # Binary 1000.
+        return()
+    end
+    */
+    fn verify_auto_deductions_bitwise() {
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        builtin.base = Some(relocatable!(2, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("bitwise"), Box::new(builtin));
+        for _ in 0..3 {
+            vm.memory.data.push(Vec::new());
+        }
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint!(12)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 1)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        assert_eq!(vm.verify_auto_deductions(), Ok(()));
+    }
+
+    #[test]
+    /* Program used:
+    %builtins output pedersen
+    from starkware.cairo.common.cairo_builtins import HashBuiltin
+    from starkware.cairo.common.hash import hash2
+    from starkware.cairo.common.serialize import serialize_word
+
+    func foo(hash_ptr : HashBuiltin*) -> (
+        hash_ptr : HashBuiltin*, z
+    ):
+        # Use a with-statement, since 'hash_ptr' is not an
+        # implicit argument.
+        with hash_ptr:
+            let (z) = hash2(32, 72)
+        end
+        return (hash_ptr=hash_ptr, z=z)
+    end
+
+    func main{output_ptr: felt*, pedersen_ptr: HashBuiltin*}():
+        let (pedersen_ptr, a) = foo(pedersen_ptr)
+        serialize_word(a)
+        return()
+    end
+     */
+    fn verify_auto_deductions_pedersen() {
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        builtin.base = Some(relocatable!(3, 0));
+        let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
+        vm.builtin_runners
+            .insert(String::from("pedersen"), Box::new(builtin));
+        for _ in 0..4 {
+            vm.memory.data.push(Vec::new());
+        }
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 0)),
+                &MaybeRelocatable::from(bigint!(32)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((3, 1)),
+                &MaybeRelocatable::from(bigint!(72)),
+            )
+            .unwrap();
+        assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 }
