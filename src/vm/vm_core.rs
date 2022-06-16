@@ -21,7 +21,7 @@ pub struct Operands {
 
 pub struct VirtualMachine {
     pub run_context: RunContext,
-    prime: BigInt,
+    pub prime: BigInt,
     pub builtin_runners: BTreeMap<String, Box<dyn BuiltinRunner>>,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:

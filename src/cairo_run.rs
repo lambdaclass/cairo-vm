@@ -12,5 +12,5 @@ pub fn cairo_run(path: &str) {
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
     cairo_runner.vm.verify_auto_deductions().unwrap();
     cairo_runner.relocate().unwrap();
-    cairo_runner.write_output(&mut io::stdout());
+    cairo_runner.write_output(&mut io::stdout()).unwrap();
 }

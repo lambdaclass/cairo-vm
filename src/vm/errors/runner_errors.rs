@@ -10,6 +10,7 @@ pub enum RunnerError {
     NoProgBase,
     MissingMain,
     UninitializedBase,
+    WriteFail,
     MemoryValidationError(MemoryError),
     NonRelocatableAddress,
     FailedStringConversion,
@@ -30,6 +31,7 @@ impl fmt::Display for RunnerError {
             ),
             RunnerError::MissingMain => write!(f, "Missing main()"),
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
+            RunnerError::WriteFail => write!(f, "Failed to write program output"),
             RunnerError::MemoryValidationError(error) => {
                 write!(f, "Memory validation failed during VM initialization.")?;
                 error.fmt(f)
