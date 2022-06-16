@@ -6,7 +6,8 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::{
-    BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
+    BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
+    RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
@@ -28,7 +29,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     relocated_memory: Vec<Option<BigInt>>,
-    relocated_trace: Vec<RelocatedTraceEntry>,
+    pub relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
 #[allow(dead_code)]
@@ -40,6 +41,7 @@ impl CairoRunner {
             String::from("range_check"),
             String::from("ecdsa"),
             String::from("bitwise"),
+            String::from("ec_op"),
         ];
         assert!(
             is_subsequence(&program.builtins, &builtin_ordered_list),
@@ -54,11 +56,30 @@ impl CairoRunner {
                 );
             }
 
+            if builtin_name == "pedersen" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(HashBuiltinRunner::new(true, 8)),
+                );
+            }
+
             if builtin_name == "range_check" {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
                 builtin_runners.insert(
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                );
+            }
+            if builtin_name == "bitwise" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(BitwiseBuiltinRunner::new(true, 256)),
+                );
+            }
+            if builtin_name == "ec_op" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(EcOpBuiltinRunner::new(true, 256)),
                 );
             }
         }
@@ -173,7 +194,6 @@ impl CairoRunner {
     }
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
-        //TODO hint_locals and static_locals
         self.vm.run_context.pc =
             MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
         self.vm.run_context.ap =

@@ -1,3 +1,4 @@
+use crate::bigint64;
 use crate::types::instruction;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
@@ -119,10 +120,9 @@ pub fn decode_instruction(
     };
 
     Ok(instruction::Instruction {
-        // TODO: Replace or confirm the unrwap is safe
-        off0: BigInt::from_i64(off0).unwrap(),
-        off1: BigInt::from_i64(off1).unwrap(),
-        off2: BigInt::from_i64(off2).unwrap(),
+        off0: bigint64!(off0),
+        off1: bigint64!(off1),
+        off2: bigint64!(off2),
         imm,
         dst_register,
         op0_register,

@@ -1,6 +1,6 @@
 # Cleopatra Cairo VM
 
-Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet. We are working on it.
+Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support builtins or hints yet. We are working on it.
 
 ## Running Cleopatra
 Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
