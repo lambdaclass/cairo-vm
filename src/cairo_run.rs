@@ -18,6 +18,10 @@ pub fn cairo_run(path: &str) {
 
 #[allow(dead_code)]
 fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>) {
-    let binc = bincode::serialize(relocated_trace).unwrap();
-    println!("Serialized struct: {:?}", binc);
+    let binary_trace = bincode::serialize(relocated_trace);
+
+    match binary_trace = {
+        Ok(trace) => {},
+        Err(e) => println!("Failed to dump trace, serialize error: {}", e),
+    }
 }
