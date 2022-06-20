@@ -26,4 +26,5 @@ harness = false
 [[bin]]
 name = "cleopatra-run"
 path = "src/main.rs"
+bench = false
 doc = false
