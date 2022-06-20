@@ -19,6 +19,7 @@ version = "0.11"
 
 [dev-dependencies.criterion]
 version = "0.3"
+features = ["html_reports"]
 
 [[bench]]
 path = "bench/criterion/criterion_benchmark.rs"
@@ -28,4 +29,5 @@ harness = false
 [[bin]]
 name = "cleopatra-run"
 path = "src/main.rs"
+bench = false
 doc = false

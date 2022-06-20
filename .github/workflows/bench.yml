@@ -4,8 +4,11 @@ on:
   push:
     branches: [ main ]
 
-env:
-  CARGO_TERM_COLOR: always
+permissions:
+  # deployments permission to deploy GitHub pages website
+  deployments: write
+  # contents permission to update benchmark contents in gh-pages branch
+  contents: write
 
 jobs:
   build:
@@ -21,7 +24,7 @@ jobs:
     - name: Build
       run: make build
     - name: Run benchmark
-      run: cargo +nightly bench | tee output.txt
+      run: cargo +nighlty bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
       with:
