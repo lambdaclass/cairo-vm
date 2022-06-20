@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655757978142,
+  "lastUpdate": 1655759003833,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -59,6 +59,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 8094131,
             "range": "± 14016",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75da074f94718bf746c721e1a3747e7139ea6873",
+          "message": "Correct name of github workflow to rust nightly",
+          "timestamp": "2022-06-20T17:58:51-03:00",
+          "tree_id": "297a8dae4d3e659b01db118e932f1c68a1c93a9c",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/75da074f94718bf746c721e1a3747e7139ea6873"
+        },
+        "date": 1655759002930,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 9617173,
+            "range": "± 169720",
             "unit": "ns/iter"
           }
         ]
