@@ -4,6 +4,8 @@ use std::fmt;
 pub enum MemoryError {
     UnallocatedSegment(usize, usize),
     AddressNotRelocatable,
+    NumOutOfBounds,
+    FoundNonInt,
 }
 
 impl fmt::Display for MemoryError {
@@ -15,6 +17,14 @@ impl fmt::Display for MemoryError {
                 accessed, len
             ),
             MemoryError::AddressNotRelocatable => write!(f, "Memory addresses must be relocatable"),
+            MemoryError::NumOutOfBounds => write!(
+                f,
+                "Range-check validation failed, number is out of valid range"
+            ),
+            MemoryError::FoundNonInt => write!(
+                f,
+                "Range-check validation failed, encountered non-int value"
+            ),
         }
     }
 }
