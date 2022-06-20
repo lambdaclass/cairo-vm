@@ -24,7 +24,7 @@ jobs:
     - name: Build
       run: make build
     - name: Run benchmark
-      run: cargo +nighlty bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
+      run: cargo +nightly bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
       with:
