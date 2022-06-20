@@ -34,18 +34,3 @@ jobs:
       uses: codecov/codecov-action@v2
       with:
         fail_ci_if_error:     true
-  
-  benchmark:
-    runs-on: ubuntu-20.04
-    steps:
-    - name: Run benchmark
-      run: cargo +nightly bench | tee output.txt
-    - name: Store benchmark result
-      uses: benchmark-action/github-action-benchmark@v1
-      with:
-        tool: 'cargo'
-        output-file-path: output.txt
-        # Access token to deploy GitHub Pages branch
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        # Push and deploy GitHub pages branch automatically
-        auto-push: true
