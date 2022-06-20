@@ -21,6 +21,11 @@ Run the test suite with cargo:
 cargo test
 ```
 
+Run the benchmark suite with cargo:
+```bash
+cargo bench
+```
+
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
 
