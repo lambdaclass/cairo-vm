@@ -3,7 +3,7 @@
 
 Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet.
 
-The original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
+The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
 
 ## Running Cleopatra
 Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
