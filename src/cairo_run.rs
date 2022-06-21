@@ -1,9 +1,15 @@
 use crate::types::program::Program;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use std::io;
+use std::{thread, time};
 
 #[allow(dead_code)]
-pub fn cairo_run(path: &str) {
+    pub fn cairo_run(path: &str) {
+
+    let ten_milli = time::Duration::from_millis(10);
+
+    thread::sleep(ten_milli);
+
     let program = Program::new(path);
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
