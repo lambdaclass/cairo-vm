@@ -121,21 +121,23 @@ impl CairoRunner {
                 offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
-            self.segments
-                .load_data(
-                    &mut self.vm.memory,
-                    &MaybeRelocatable::RelocatableValue(prog_base),
-                    self.program.data.clone(),
-                )
-                .unwrap();
+            match self.segments.load_data(
+                &mut self.vm.memory,
+                &MaybeRelocatable::RelocatableValue(prog_base),
+                self.program.data.clone(),
+            ) {
+                Ok(_) => {}
+                Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
+            }
             if let Some(exec_base) = &self.execution_base {
-                self.segments
-                    .load_data(
-                        &mut self.vm.memory,
-                        &MaybeRelocatable::RelocatableValue(exec_base.clone()),
-                        stack,
-                    )
-                    .unwrap();
+                match self.segments.load_data(
+                    &mut self.vm.memory,
+                    &MaybeRelocatable::RelocatableValue(exec_base.clone()),
+                    stack,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
+                }
             } else {
                 return Err(RunnerError::NoExecBase);
             }
@@ -193,15 +195,25 @@ impl CairoRunner {
     }
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
-        self.vm.run_context.pc =
-            MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
-        self.vm.run_context.ap =
-            MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
-        self.vm.run_context.fp =
-            MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
-        self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
-            self.program_base.clone().unwrap(),
-        ));
+        match &self.initial_pc {
+            Some(pc) => self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(pc.clone()),
+            None => return Err(RunnerError::NoPC),
+        }
+        match &self.initial_ap {
+            Some(ap) => self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(ap.clone()),
+            None => return Err(RunnerError::NoAP),
+        }
+        match &self.initial_fp {
+            Some(fp) => self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(fp.clone()),
+            None => return Err(RunnerError::NoFP),
+        }
+        match &self.program_base {
+            Some(program_base) => {
+                self.vm._program_base =
+                    Some(MaybeRelocatable::RelocatableValue(program_base.clone()))
+            }
+            None => return Err(RunnerError::NoProgBase),
+        }
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
@@ -234,13 +246,11 @@ impl CairoRunner {
                 "Inconsistent Relocation"
             );
             for element in segment {
-                if element != &None {
-                    self.relocated_memory.push(Some(relocate_value(
-                        element.clone().unwrap(),
-                        relocation_table,
-                    )));
-                } else {
-                    self.relocated_memory.push(None);
+                match element {
+                    Some(elem) => self
+                        .relocated_memory
+                        .push(Some(relocate_value(elem.clone(), relocation_table))),
+                    None => self.relocated_memory.push(None),
                 }
             }
         }
@@ -274,23 +284,32 @@ impl CairoRunner {
     /// Does nothing if the output builtin is not present in the program
     pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
         if let Some(builtin) = self.vm.builtin_runners.get("output") {
-            if self.segments.segment_used_sizes == None {
-                self.segments.compute_effective_sizes(&self.vm.memory);
-            }
             let base = match builtin.base() {
                 Some(base) => base,
                 None => return Err(RunnerError::UninitializedBase),
             };
+
             let write_result = writeln!(stdout, "Program Output: ");
             if write_result.is_err() {
                 return Err(RunnerError::WriteFail);
             }
+
+            // After this if block,
+            // segment_used_sizes is always Some(_)
+            if self.segments.segment_used_sizes == None {
+                self.segments.compute_effective_sizes(&self.vm.memory);
+            }
+
+            // See previous comment, the unwrap below is safe.
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
-                let value = self
-                    .vm
-                    .memory
-                    .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None))
-                    .unwrap();
+                let value =
+                    match self.vm.memory.get(
+                        &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
+                    ) {
+                        Ok(val) => val,
+                        Err(e) => return Err(RunnerError::FailedMemoryGet(e)),
+                    };
+
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
                     let write_result = writeln!(
                         stdout,
