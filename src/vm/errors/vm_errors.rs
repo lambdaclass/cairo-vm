@@ -31,6 +31,7 @@ pub enum VirtualMachineError {
     NotImplemented,
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    NonRelocatableAddress,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -82,6 +83,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InconsistentAutoDeduction(builtin_name, expected_value, current_value) => {
                 write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
             },
+            VirtualMachineError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
+
         }
     }
 }
