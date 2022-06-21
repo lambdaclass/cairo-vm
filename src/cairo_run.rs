@@ -5,7 +5,6 @@ use std::{thread, time};
 
 #[allow(dead_code)]
 pub fn cairo_run(path: &str) {
-
     let ten_milli = time::Duration::from_millis(10);
 
     thread::sleep(ten_milli);
