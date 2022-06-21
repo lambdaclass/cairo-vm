@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655834592834,
+  "lastUpdate": 1655837802854,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -451,6 +451,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 8286405,
             "range": "± 61252",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "789a16667e409cbc3b8e0063601ba9b34b8c2994",
+          "message": "Merge pull request #155 from lambdaclass/CU-2yzy9k8-remove-relocatable-panic",
+          "timestamp": "2022-06-21T15:52:53-03:00",
+          "tree_id": "bacde03d6f1c9b018c34c90abb9f0d6dc4fc3ca7",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/789a16667e409cbc3b8e0063601ba9b34b8c2994"
+        },
+        "date": 1655837801146,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8227667,
+            "range": "± 16391",
             "unit": "ns/iter"
           }
         ]
