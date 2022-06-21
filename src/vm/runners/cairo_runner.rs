@@ -2777,4 +2777,37 @@ mod tests {
             Ok(String::from("Program Output: \n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
         );
     }
+
+    #[test]
+    fn insert_all_builtins_in_order() {
+        let program = Program {
+            builtins: vec![
+                String::from("output"),
+                String::from("pedersen"),
+                String::from("range_check"),
+                String::from("bitwise"),
+                String::from("ec_op"),
+            ],
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            main: None,
+        };
+        let cairo_runner = CairoRunner::new(&program);
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[1].0,
+            String::from("pedersen")
+        );
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[2].0,
+            String::from("range_check")
+        );
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[3].0,
+            String::from("bitwise")
+        );
+        assert_eq!(cairo_runner.vm.builtin_runners[4].0, String::from("ec_op"));
+    }
 }
