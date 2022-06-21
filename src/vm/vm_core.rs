@@ -407,13 +407,18 @@ impl VirtualMachine {
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
-        let instruction = instruction_ref.clone().to_i64().unwrap();
-        if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
-            let decoded_instruction = decode_instruction(instruction, Some(imm_ref.clone()))?;
-            return Ok(decoded_instruction);
+        match instruction_ref.clone().to_i64() {
+            Some(instruction) => {
+                if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
+                    let decoded_instruction =
+                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    return Ok(decoded_instruction);
+                }
+                let decoded_instruction = decode_instruction(instruction, None)?;
+                Ok(decoded_instruction)
+            }
+            None => Err(VirtualMachineError::InvalidInstructionEncoding),
         }
-        let decoded_instruction = decode_instruction(instruction, None)?;
-        Ok(decoded_instruction)
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
