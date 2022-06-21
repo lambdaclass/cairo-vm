@@ -20,6 +20,7 @@ pub enum RunnerError {
     FailedStringConversion,
     ExpectedInteger(MaybeRelocatable),
     MemoryGet(MaybeRelocatable),
+    FailedMemoryGet(MemoryError),
 }
 
 impl fmt::Display for RunnerError {
@@ -58,6 +59,10 @@ impl fmt::Display for RunnerError {
 
             RunnerError::MemoryGet(addr) => {
                 write!(f, "Failed to retrieve value from address {:?}", addr)
+            }
+            RunnerError::FailedMemoryGet(error) => {
+                write!(f, "Failed fetching memory address.")?;
+                error.fmt(f)
             }
         }
     }

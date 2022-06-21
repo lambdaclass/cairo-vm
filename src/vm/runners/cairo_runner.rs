@@ -285,23 +285,32 @@ impl CairoRunner {
     /// Does nothing if the output builtin is not present in the program
     pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
         if let Some(builtin) = self.vm.builtin_runners.get("output") {
-            if self.segments.segment_used_sizes == None {
-                self.segments.compute_effective_sizes(&self.vm.memory);
-            }
             let base = match builtin.base() {
                 Some(base) => base,
                 None => return Err(RunnerError::UninitializedBase),
             };
+
             let write_result = writeln!(stdout, "Program Output: ");
             if write_result.is_err() {
                 return Err(RunnerError::WriteFail);
             }
+
+            // After this if block,
+            // segment_used_sizes is always Some(_)
+            if self.segments.segment_used_sizes == None {
+                self.segments.compute_effective_sizes(&self.vm.memory);
+            }
+
+            // See previous comment, the unwrap below is safe.
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
-                let value = self
-                    .vm
-                    .memory
-                    .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None))
-                    .unwrap();
+                let value =
+                    match self.vm.memory.get(
+                        &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
+                    ) {
+                        Ok(val) => val,
+                        Err(e) => return Err(RunnerError::FailedMemoryGet(e)),
+                    };
+
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
                     let write_result = writeln!(
                         stdout,
