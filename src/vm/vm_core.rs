@@ -528,6 +528,20 @@ mod tests {
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
 
+    pub fn memory_from(
+        key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
+        num_segements: usize,
+    ) -> Result<Memory, MemoryError> {
+        let mut memory = Memory::new();
+        for _ in 0..num_segements {
+            memory.data.push(Vec::new());
+        }
+        for (key, val) in key_val_list.iter() {
+            memory.insert(key, val)?;
+        }
+        Ok(memory)
+    }
+
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), BTreeMap::new());
@@ -2025,7 +2039,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), BTreeMap::new());
-        vm.memory = Memory::from(mem_arr.clone(), 2).unwrap();
+        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2573,7 +2587,7 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
-        vm.memory = Memory::from(mem_arr.clone(), 2).unwrap();
+        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
