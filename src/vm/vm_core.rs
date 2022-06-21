@@ -3,6 +3,7 @@ use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdat
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
@@ -270,18 +271,27 @@ impl VirtualMachine {
         Ok((None, None))
     }
 
-    fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
+    fn deduce_memory_cell(
+        &mut self,
+        address: &MaybeRelocatable,
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         if let MaybeRelocatable::RelocatableValue(addr) = address {
             for (_, builtin) in self.builtin_runners.iter_mut() {
                 if let Some(base) = builtin.base() {
                     if base.segment_index == addr.segment_index {
-                        return builtin.deduce_memory_cell(address, &self.memory).unwrap();
+                        match builtin.deduce_memory_cell(address, &self.memory) {
+                            Ok(maybe_reloc) => return Ok(maybe_reloc),
+                            Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                        };
                     }
                 }
             }
-            return None;
+            return Ok(None);
         }
-        panic!("Memory addresses must be relocatable");
+
+        Err(VirtualMachineError::RunnerError(
+            RunnerError::NonRelocatableAddress,
+        ))
     }
 
     ///Computes the value of res if possible
@@ -433,10 +443,10 @@ impl VirtualMachine {
         let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
-            op0 = self.deduce_memory_cell(&op0_addr);
+            op0 = self.deduce_memory_cell(&op0_addr)?;
         }
         if matches!(op1, None) {
-            op1 = self.deduce_memory_cell(&op1_addr);
+            op1 = self.deduce_memory_cell(&op1_addr)?;
         }
 
         if matches!(op0, None) {
@@ -2625,7 +2635,10 @@ mod tests {
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let mut vm = VirtualMachine::new(bigint!(17), BTreeMap::new());
-        assert_eq!(vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))), None);
+        assert_eq!(
+            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -2656,9 +2669,9 @@ mod tests {
             .unwrap();
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
-            Some(MaybeRelocatable::from(bigint_str!(
+            Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
-            )))
+            ))))
         );
     }
 
@@ -2865,7 +2878,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
-            Some(MaybeRelocatable::from(bigint!(8)))
+            Ok(Some(MaybeRelocatable::from(bigint!(8))))
         );
     }
 
@@ -3051,9 +3064,9 @@ mod tests {
         let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
         assert_eq!(
             result,
-            Some(MaybeRelocatable::from(bigint_str!(
+            Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
-            )))
+            ))))
         );
     }
 

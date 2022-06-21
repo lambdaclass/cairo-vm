@@ -2,6 +2,7 @@ use num_bigint::BigInt;
 use std::fmt;
 
 use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::errors::runner_errors::RunnerError;
 
 #[derive(Debug, PartialEq)]
 pub enum VirtualMachineError {
@@ -29,6 +30,7 @@ pub enum VirtualMachineError {
     NotImplemented,
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    RunnerError(RunnerError),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -79,6 +81,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InconsistentAutoDeduction(builtin_name, expected_value, current_value) => {
                 write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
             },
+            VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
         }
     }
 }
