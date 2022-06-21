@@ -122,21 +122,23 @@ impl CairoRunner {
                 offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
-            self.segments
-                .load_data(
-                    &mut self.vm.memory,
-                    &MaybeRelocatable::RelocatableValue(prog_base),
-                    self.program.data.clone(),
-                )
-                .unwrap();
+            match self.segments.load_data(
+                &mut self.vm.memory,
+                &MaybeRelocatable::RelocatableValue(prog_base),
+                self.program.data.clone(),
+            ) {
+                Ok(_) => {}
+                Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
+            }
             if let Some(exec_base) = &self.execution_base {
-                self.segments
-                    .load_data(
-                        &mut self.vm.memory,
-                        &MaybeRelocatable::RelocatableValue(exec_base.clone()),
-                        stack,
-                    )
-                    .unwrap();
+                match self.segments.load_data(
+                    &mut self.vm.memory,
+                    &MaybeRelocatable::RelocatableValue(exec_base.clone()),
+                    stack,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
+                }
             } else {
                 return Err(RunnerError::NoExecBase);
             }

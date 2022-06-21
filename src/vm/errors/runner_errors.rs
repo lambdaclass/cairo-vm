@@ -12,6 +12,7 @@ pub enum RunnerError {
     UninitializedBase,
     WriteFail,
     MemoryValidationError(MemoryError),
+    MemoryInitializationError(MemoryError),
     NonRelocatableAddress,
     FailedStringConversion,
     ExpectedInteger(MaybeRelocatable),
@@ -34,6 +35,10 @@ impl fmt::Display for RunnerError {
             RunnerError::WriteFail => write!(f, "Failed to write program output"),
             RunnerError::MemoryValidationError(error) => {
                 write!(f, "Memory validation failed during VM initialization.")?;
+                error.fmt(f)
+            }
+            RunnerError::MemoryInitializationError(error) => {
+                write!(f, "Memory loading failed during state initialization.")?;
                 error.fmt(f)
             }
             RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
