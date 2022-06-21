@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655854711794,
+  "lastUpdate": 1655855928737,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -705,6 +705,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 7997605,
             "range": "± 11961",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "84c0ed95575ea728c798c26a571eac137a9b3358",
+          "message": "Merge pull request #158 from lambdaclass/CU-2yzzthk-remove-vm-core-panic\n\nRemove panic! in vm_core.rs",
+          "timestamp": "2022-06-21T20:54:55-03:00",
+          "tree_id": "8be4b273f64aa74b5fb573cc2de9e8544329355e",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/84c0ed95575ea728c798c26a571eac137a9b3358"
+        },
+        "date": 1655855927896,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8294229,
+            "range": "± 57783",
             "unit": "ns/iter"
           }
         ]
