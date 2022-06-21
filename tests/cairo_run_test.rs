@@ -14,3 +14,8 @@ fn cairo_run_bitwise_output() {
 fn cairo_run_bitwise_recursion() {
     cairo_run::cairo_run("tests/support/bitwise_recursion.json");
 }
+
+#[test]
+fn cairo_run_integration() {
+    cairo_run::cairo_run("tests/support/integration.json");
+}
