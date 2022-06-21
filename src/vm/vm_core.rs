@@ -42,7 +42,6 @@ pub struct VirtualMachine {
     skip_instruction_execution: bool,
 }
 
-#[allow(dead_code)]
 impl VirtualMachine {
     pub fn new(
         prime: BigInt,
@@ -462,7 +461,10 @@ impl VirtualMachine {
             match instruction.opcode {
                 Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
                 Opcode::Call => dst = Some(self.run_context.fp.clone()),
-                _ => return Err(VirtualMachineError::NoDst),
+                _ => match self.deduce_dst(&instruction, res.as_ref()) {
+                    Some(d) => dst = Some(d),
+                    None => return Err(VirtualMachineError::NoDst),
+                },
             }
         }
 
