@@ -4,7 +4,6 @@ use std::fmt;
 use crate::types::relocatable::MaybeRelocatable;
 
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
     InvalidDstReg(i64),
