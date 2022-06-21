@@ -24,18 +24,19 @@ Run the test suite with cargo:
 cargo test
 ```
 
-Run the benchmark suite with cargo:
-```bash
-cargo bench
-```
-
 ## Code Coverage
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
 
 ## Cleopatra benchmarks:
 Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
-* [Flamegraph](./docs/benchmarks/flamegraph.svg) 
+* [Flamegraph](./docs/benchmarks/flamegraph.svg)
+* Github action [results](https://lambdaclass.github.io/cleopatra_cairo/)
+
+Run the benchmark suite with cargo:
+```bash
+cargo bench
+```
 
 ## Cairo
 
