@@ -13,7 +13,6 @@ pub struct RunContext {
 }
 
 impl RunContext {
-    #[allow(dead_code)]
     pub fn compute_dst_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
         let base_addr = match instruction.dst_register {
             Register::AP => &self.ap,
