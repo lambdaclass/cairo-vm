@@ -1,4 +1,5 @@
 # Cleopatra Cairo VM
+[![codecov](https://codecov.io/gh/lambdaclass/cleopatra_cairo/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cleopatra_cairo)
 
 Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet.
 
