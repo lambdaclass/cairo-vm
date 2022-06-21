@@ -9,7 +9,7 @@ pub struct Program {
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
 }
-#[allow(dead_code)]
+
 impl Program {
     pub fn new(path: &str) -> Program {
         deserialize_program::deserialize_program(path)

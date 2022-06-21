@@ -7,7 +7,6 @@ pub struct MemorySegmentManager {
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
-#[allow(dead_code)]
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)

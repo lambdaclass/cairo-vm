@@ -4,7 +4,6 @@ use std::fmt;
 use crate::types::relocatable::MaybeRelocatable;
 
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
     InvalidDstReg(i64),
@@ -12,7 +11,6 @@ pub enum VirtualMachineError {
     InvalidOp1Reg(i64),
     ImmShouldBe1,
     UnknownOp0,
-    InvalidFpUpdate,
     InvalidApUpdate(i64),
     InvalidPcUpdate(i64),
     UnconstrainedResAdd,
@@ -48,7 +46,6 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnknownOp0 => {
                 write!(f, "op0 must be known in double dereference")
             }
-            VirtualMachineError::InvalidFpUpdate => write!(f, "Invalid fp_update value"),
             VirtualMachineError::InvalidApUpdate(n) => write!(f, "Invalid ap_update value: {}", n),
             VirtualMachineError::InvalidPcUpdate(n) => write!(f, "Invalid pc_update value: {}", n),
             VirtualMachineError::UnconstrainedResAdd => {

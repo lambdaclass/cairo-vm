@@ -32,7 +32,6 @@ pub struct CairoRunner {
     pub relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
-#[allow(dead_code)]
 impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
         let builtin_ordered_list = vec![
