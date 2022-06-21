@@ -9,3 +9,8 @@ fn cairo_run_test() {
 fn cairo_run_bitwise_output() {
     cairo_run::cairo_run("tests/support/bitwise_output.json");
 }
+
+#[test]
+fn cairo_run_bitwise_recursion() {
+    cairo_run::cairo_run("tests/support/bitwise_recursion.json");
+}

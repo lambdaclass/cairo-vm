@@ -502,7 +502,7 @@ impl VirtualMachine {
                         let deduced_value = builtin
                             .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory)
                             .unwrap();
-                        if deduced_value != None && &deduced_value != value {
+                        if deduced_value != None && value != &None && &deduced_value != value {
                             return Err(VirtualMachineError::InconsistentAutoDeduction(
                                 name.to_owned(),
                                 deduced_value.unwrap(),
