@@ -208,9 +208,13 @@ impl CairoRunner {
             Some(fp) => self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(fp.clone()),
             None => return Err(RunnerError::NoFP),
         }
-        self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
-            self.program_base.clone().unwrap(),
-        ));
+        match &self.program_base {
+            Some(program_base) => {
+                self.vm._program_base =
+                    Some(MaybeRelocatable::RelocatableValue(program_base.clone()))
+            }
+            None => return Err(RunnerError::NoProgBase),
+        }
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }

@@ -28,7 +28,7 @@ impl fmt::Display for RunnerError {
             RunnerError::NoExecBase => {
                 write!(f, "Can't initialize state without an execution base")
             }
-            RunnerError::NoProgBase => write!(f, "Can't initialize state without a program base"),
+            RunnerError::NoProgBase => write!(f, "Can't without a program base"),
             RunnerError::NoExecBaseForEntrypoint => write!(
                 f,
                 "Can't initialize the function entrypoint without an execution base"
