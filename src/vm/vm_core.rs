@@ -71,19 +71,18 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt;
-
-        match self.memory.get(&self.run_context.pc) {
-            Ok(Some(MaybeRelocatable::Int(encoding))) => {
-                encoding_ref = encoding;
-            }
+        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
+            Ok(Some(MaybeRelocatable::Int(encoding))) => encoding,
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-        }
+        };
 
         let imm_addr = self.run_context.pc.add_usize_mod(1, None);
-        let optional_imm = self.memory.get(&imm_addr).unwrap();
 
-        Ok((encoding_ref, optional_imm))
+        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
+            Ok((encoding_ref, optional_imm))
+        } else {
+            Err(VirtualMachineError::InvalidInstructionEncoding)
+        }
     }
 
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
