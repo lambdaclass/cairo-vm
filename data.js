@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655853035114,
+  "lastUpdate": 1655854711794,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -675,6 +675,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 9760666,
             "range": "± 685496",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f44659f22620babcc285b55d3f078fbdaf109cf1",
+          "message": "Merge pull request #154 from lambdaclass/dead-code\n\nDead code",
+          "timestamp": "2022-06-21T20:34:41-03:00",
+          "tree_id": "1ec228fc288ce77667f4c777edcf2ceed0d61a16",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/f44659f22620babcc285b55d3f078fbdaf109cf1"
+        },
+        "date": 1655854710628,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 7997605,
+            "range": "± 11961",
             "unit": "ns/iter"
           }
         ]
