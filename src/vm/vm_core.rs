@@ -461,7 +461,7 @@ impl VirtualMachine {
             match instruction.opcode {
                 Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
                 Opcode::Call => dst = Some(self.run_context.fp.clone()),
-                _ => match self.deduce_dst(&instruction, res.as_ref()) {
+                _ => match self.deduce_dst(instruction, res.as_ref()) {
                     Some(d) => dst = Some(d),
                     None => return Err(VirtualMachineError::NoDst),
                 },
