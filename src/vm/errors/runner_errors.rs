@@ -12,6 +12,8 @@ pub enum RunnerError {
     UninitializedBase,
     WriteFail,
     NoPC,
+    NoAP,
+    NoFP,
     MemoryValidationError(MemoryError),
     MemoryInitializationError(MemoryError),
     NonRelocatableAddress,
@@ -35,6 +37,8 @@ impl fmt::Display for RunnerError {
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
             RunnerError::WriteFail => write!(f, "Failed to write program output"),
             RunnerError::NoPC => write!(f, "Found None PC durin VM initialization"),
+            RunnerError::NoAP => write!(f, "Found None AP durin VM initialization"),
+            RunnerError::NoFP => write!(f, "Found None FP durin VM initialization"),
             RunnerError::MemoryValidationError(error) => {
                 write!(f, "Memory validation failed during VM initialization.")?;
                 error.fmt(f)

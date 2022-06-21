@@ -200,10 +200,14 @@ impl CairoRunner {
             Some(pc) => self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(pc.clone()),
             None => return Err(RunnerError::NoPC),
         }
-        self.vm.run_context.ap =
-            MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
-        self.vm.run_context.fp =
-            MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
+        match &self.initial_ap {
+            Some(ap) => self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(ap.clone()),
+            None => return Err(RunnerError::NoAP),
+        }
+        match &self.initial_fp {
+            Some(fp) => self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(fp.clone()),
+            None => return Err(RunnerError::NoFP),
+        }
         self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
             self.program_base.clone().unwrap(),
         ));
