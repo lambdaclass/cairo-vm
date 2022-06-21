@@ -114,6 +114,20 @@ mod memory_tests {
     use num_bigint::BigInt;
     use num_traits::FromPrimitive;
 
+    pub fn memory_from(
+        key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
+        num_segements: usize,
+    ) -> Result<Memory, MemoryError> {
+        let mut memory = Memory::new();
+        for _ in 0..num_segements {
+            memory.data.push(Vec::new());
+        }
+        for (key, val) in key_val_list.iter() {
+            memory.insert(key, val)?;
+        }
+        Ok(memory)
+    }
+
     #[test]
     fn insert_and_get_succesful() {
         let key = MaybeRelocatable::from((0, 0));
@@ -188,7 +202,7 @@ mod memory_tests {
 
     #[test]
     fn from_array_test() {
-        let mem = Memory::from(
+        let mem = memory_from(
             vec![(
                 MaybeRelocatable::from((1, 0)),
                 MaybeRelocatable::from(bigint!(5)),
