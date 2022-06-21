@@ -7,7 +7,6 @@ use num_traits::FromPrimitive;
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
-#[allow(dead_code)]
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(
     encoded_instr: i64,
@@ -135,7 +134,6 @@ pub fn decode_instruction(
     })
 }
 
-#[allow(dead_code)]
 fn decode_offset(offset: i64) -> i64 {
     let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
