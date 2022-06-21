@@ -247,13 +247,11 @@ impl CairoRunner {
                 "Inconsistent Relocation"
             );
             for element in segment {
-                if element != &None {
-                    self.relocated_memory.push(Some(relocate_value(
-                        element.clone().unwrap(),
-                        relocation_table,
-                    )));
-                } else {
-                    self.relocated_memory.push(None);
+                match element {
+                    Some(elem) => self
+                        .relocated_memory
+                        .push(Some(relocate_value(elem.clone(), relocation_table))),
+                    None => self.relocated_memory.push(None),
                 }
             }
         }
