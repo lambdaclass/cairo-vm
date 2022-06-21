@@ -128,9 +128,10 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(num_res, self.prime.clone())
-                    }
+                    MaybeRelocatable::Int(num_res) => self
+                        .run_context
+                        .pc
+                        .add_int_mod(num_res, self.prime.clone())?,
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
@@ -418,9 +419,9 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
-        let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
+        let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
         let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).unwrap().cloned();
-        let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
+        let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction)?;
         let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).unwrap().cloned();
         let op1_addr: MaybeRelocatable = self
             .run_context
