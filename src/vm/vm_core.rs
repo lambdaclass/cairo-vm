@@ -3,6 +3,7 @@ use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdat
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
@@ -281,7 +282,7 @@ impl VirtualMachine {
                     if base.segment_index == addr.segment_index {
                         match builtin.deduce_memory_cell(address, &self.memory) {
                             Ok(maybe_reloc) => return Ok(maybe_reloc),
-                            Err(_error) => return Err(VirtualMachineError::NonRelocatableAddress),
+                            Err(error) => return Err(VirtualMachineError::RunnerError(error)),
                         };
                     }
                 }
@@ -289,7 +290,9 @@ impl VirtualMachine {
             return Ok(None);
         }
 
-        Err(VirtualMachineError::NonRelocatableAddress)
+        Err(VirtualMachineError::RunnerError(
+            RunnerError::NonRelocatableAddress,
+        ))
     }
 
     ///Computes the value of res if possible
