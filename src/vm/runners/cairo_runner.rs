@@ -14,7 +14,6 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
-use std::collections::BTreeMap;
 use std::io;
 
 pub struct CairoRunner {
@@ -47,40 +46,40 @@ impl CairoRunner {
             is_subsequence(&program.builtins, &builtin_ordered_list),
             "Given builtins are not in appropiate order"
         );
-        let mut builtin_runners = BTreeMap::<String, Box<dyn BuiltinRunner>>::new();
+        let mut builtin_runners = Vec::<(String, Box<dyn BuiltinRunner>)>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
-                builtin_runners.insert(
+                builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(OutputBuiltinRunner::new(true)),
-                );
+                ));
             }
 
             if builtin_name == "pedersen" {
-                builtin_runners.insert(
+                builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(HashBuiltinRunner::new(true, 8)),
-                );
+                ));
             }
 
             if builtin_name == "range_check" {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
-                builtin_runners.insert(
+                builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-                );
+                ));
             }
             if builtin_name == "bitwise" {
-                builtin_runners.insert(
+                builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(BitwiseBuiltinRunner::new(true, 256)),
-                );
+                ));
             }
             if builtin_name == "ec_op" {
-                builtin_runners.insert(
+                builtin_runners.push((
                     builtin_name.clone(),
                     Box::new(EcOpBuiltinRunner::new(true, 256)),
-                );
+                ));
             }
         }
         //Initialize a vm, with empty values, will later be filled with actual data in initialize_vm
@@ -274,7 +273,9 @@ impl CairoRunner {
     ///Writes the values hosted in the output builtin's segment
     /// Does nothing if the output builtin is not present in the program
     pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
-        if let Some(builtin) = self.vm.builtin_runners.get("output") {
+        //If the output builtin is present it will always be the first one
+        if !self.vm.builtin_runners.is_empty() && self.vm.builtin_runners[0].0 == *"output" {
+            let builtin = &self.vm.builtin_runners[0].1;
             if self.segments.segment_used_sizes == None {
                 self.segments.compute_effective_sizes(&self.vm.memory);
             }
@@ -372,13 +373,10 @@ mod tests {
                 offset: 0,
             })
         );
-
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
-            cairo_runner.vm.builtin_runners[&String::from("output")].base(),
-            Some(Relocatable {
-                segment_index: 7,
-                offset: 0,
-            })
+            cairo_runner.vm.builtin_runners[0].1.base(),
+            Some(relocatable!(7, 0))
         );
 
         assert_eq!(cairo_runner.segments.num_segments, 8);
@@ -409,13 +407,10 @@ mod tests {
                 offset: 0
             })
         );
-
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
-            cairo_runner.vm.builtin_runners[&String::from("output")].base(),
-            Some(Relocatable {
-                segment_index: 2,
-                offset: 0
-            })
+            cairo_runner.vm.builtin_runners[0].1.base(),
+            Some(relocatable!(2, 0))
         );
 
         assert_eq!(cairo_runner.segments.num_segments, 3);
@@ -773,11 +768,15 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(233)),
             )
             .unwrap();
-        cairo_runner.initialize_vm().unwrap();
         assert_eq!(
-            cairo_runner.vm.builtin_runners[&String::from("range_check")].base(),
+            cairo_runner.vm.builtin_runners[0].0,
+            String::from("range_check")
+        );
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[0].1.base(),
             Some(relocatable!(2, 0))
         );
+        cairo_runner.initialize_vm().unwrap();
         assert!(cairo_runner
             .vm
             .memory
@@ -1681,7 +1680,11 @@ mod tests {
         );
         //Check the range_check builtin segment
         assert_eq!(
-            cairo_runner.vm.builtin_runners["range_check"].base(),
+            cairo_runner.vm.builtin_runners[0].0,
+            String::from("range_check")
+        );
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[0].1.base(),
             Some(relocatable!(2, 0))
         );
         assert_eq!(
@@ -1891,8 +1894,9 @@ mod tests {
             }
         );
         //Check that the output to be printed is correct
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
-            cairo_runner.vm.builtin_runners["output"].base(),
+            cairo_runner.vm.builtin_runners[0].1.base(),
             Some(relocatable!(2, 0))
         );
         assert_eq!(
@@ -2176,15 +2180,13 @@ mod tests {
             }
         );
         //Check the range_check builtin segment
-        assert!(cairo_runner
-            .vm
-            .builtin_runners
-            .contains_key(&String::from("range_check")));
         assert_eq!(
-            relocatable!(3, 0),
-            cairo_runner.vm.builtin_runners["range_check"]
-                .base()
-                .unwrap(),
+            cairo_runner.vm.builtin_runners[1].0,
+            String::from("range_check")
+        );
+        assert_eq!(
+            cairo_runner.vm.builtin_runners[1].1.base(),
+            Some(relocatable!(3, 0))
         );
         assert_eq!(
             cairo_runner
@@ -2212,14 +2214,12 @@ mod tests {
         );
 
         //Check the output segment
-        assert!(cairo_runner
-            .vm
-            .builtin_runners
-            .contains_key(&String::from("output")));
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
-            relocatable!(2, 0),
-            cairo_runner.vm.builtin_runners["output"].base().unwrap(),
+            cairo_runner.vm.builtin_runners[0].1.base(),
+            Some(relocatable!(2, 0))
         );
+
         assert_eq!(
             cairo_runner
                 .vm
@@ -2651,7 +2651,7 @@ mod tests {
     }
 
     #[test]
-    fn print_output_from_preset_memory() {
+    fn write_output_from_preset_memory() {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
@@ -2660,9 +2660,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
-            Some(relocatable!(2, 0)),
-            cairo_runner.vm.builtin_runners[&String::from("output")].base()
+            cairo_runner.vm.builtin_runners[0].1.base(),
+            Some(relocatable!(2, 0))
         );
         cairo_runner
             .vm
@@ -2700,7 +2701,7 @@ mod tests {
         serialize_word(a)
         return()
     end */
-    fn print_output_from_program() {
+    fn write_output_from_program() {
         //Initialization Phase
         let program = Program {
             builtins: vec![String::from("output")],
@@ -2742,7 +2743,7 @@ mod tests {
     }
 
     #[test]
-    fn print_output_from_preset_memory_neg_output() {
+    fn write_output_from_preset_memory_neg_output() {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: bigint_str!(
@@ -2753,9 +2754,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
+        assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
-            Some(relocatable!(2, 0)),
-            cairo_runner.vm.builtin_runners[&String::from("output")].base()
+            cairo_runner.vm.builtin_runners[0].1.base(),
+            Some(relocatable!(2, 0))
         );
         cairo_runner
             .vm
