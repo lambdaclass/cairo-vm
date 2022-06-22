@@ -1,6 +1,9 @@
 # Cleopatra Cairo VM
+[![rust](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml)[![benchmark](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cleopatra_cairo/)[![codecov](https://codecov.io/gh/lambdaclass/cleopatra_cairo/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cleopatra_cairo)
 
-Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support builtins or hints yet. We are working on it.
+Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet.
+
+The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
 
 ## Running Cleopatra
 Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
@@ -27,7 +30,13 @@ Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambda
 ## Cleopatra benchmarks:
 Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
-* [Flamegraph](./docs/benchmarks/flamegraph.svg) 
+* [Flamegraph](./docs/benchmarks/flamegraph.svg)
+* Github action [results](https://lambdaclass.github.io/cleopatra_cairo/)
+
+Run the benchmark suite with cargo:
+```bash
+cargo bench
+```
 
 ## Cairo
 

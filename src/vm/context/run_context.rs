@@ -13,8 +13,10 @@ pub struct RunContext {
 }
 
 impl RunContext {
-    #[allow(dead_code)]
-    pub fn compute_dst_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
+    pub fn compute_dst_addr(
+        &self,
+        instruction: &Instruction,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.dst_register {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
@@ -22,7 +24,10 @@ impl RunContext {
         base_addr.add_int_mod(instruction.off0.clone(), self.prime.clone())
     }
 
-    pub fn compute_op0_addr(&self, instruction: &Instruction) -> MaybeRelocatable {
+    pub fn compute_op0_addr(
+        &self,
+        instruction: &Instruction,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op0_register {
             Register::AP => &self.ap,
             Register::FP => &self.fp,
@@ -44,12 +49,12 @@ impl RunContext {
             },
             Op1Addr::Op0 => match op0 {
                 Some(addr) => {
-                    return Ok(addr.add_int_mod(instruction.off2.clone(), self.prime.clone()))
+                    return addr.add_int_mod(instruction.off2.clone(), self.prime.clone())
                 }
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
-        Ok(base_addr.add_int_mod(instruction.off2.clone(), self.prime.clone()))
+        base_addr.add_int_mod(instruction.off2.clone(), self.prime.clone())
     }
 }
 
@@ -83,7 +88,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            MaybeRelocatable::Int(bigint!(6)),
+            Ok(MaybeRelocatable::Int(bigint!(6))),
             run_context.compute_dst_addr(&instruction)
         );
     }
@@ -112,7 +117,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            MaybeRelocatable::Int(bigint!(7)),
+            Ok(MaybeRelocatable::Int(bigint!(7))),
             run_context.compute_dst_addr(&instruction)
         );
     }
@@ -141,7 +146,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            MaybeRelocatable::Int(bigint!(7)),
+            Ok(MaybeRelocatable::Int(bigint!(7))),
             run_context.compute_op0_addr(&instruction)
         );
     }
@@ -170,7 +175,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            MaybeRelocatable::Int(bigint!(8)),
+            Ok(MaybeRelocatable::Int(bigint!(8))),
             run_context.compute_op0_addr(&instruction)
         );
     }

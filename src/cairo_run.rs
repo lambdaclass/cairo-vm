@@ -3,7 +3,6 @@ use crate::vm::runners::cairo_runner::CairoRunner;
 use std::io;
 use std::path::Path;
 
-#[allow(dead_code)]
 pub fn cairo_run(path: &Path) {
     let program = Program::new(path);
     let mut cairo_runner = CairoRunner::new(&program);
