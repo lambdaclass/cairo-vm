@@ -7,16 +7,12 @@ pub struct MemorySegmentManager {
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
-#[allow(dead_code)]
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
     ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)
-    pub fn add(&mut self, memory: &mut Memory, size: Option<usize>) -> Relocatable {
+    pub fn add(&mut self, memory: &mut Memory, _size: Option<usize>) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
-        if let Some(_segment_size) = size {
-            //TODO self.finalize(segment_index, size);
-        }
         memory.data.push(Vec::new());
         Relocatable {
             segment_index,

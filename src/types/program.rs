@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::serde::deserialize_program;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
@@ -9,9 +11,9 @@ pub struct Program {
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
 }
-#[allow(dead_code)]
+
 impl Program {
-    pub fn new(path: &str) -> Program {
+    pub fn new(path: &Path) -> Program {
         deserialize_program::deserialize_program(path)
     }
 }
@@ -23,7 +25,7 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = Program::new("tests/support/valid_program_a.json");
+        let program: Program = Program::new(Path::new("tests/support/valid_program_a.json"));
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![

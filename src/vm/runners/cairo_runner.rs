@@ -1,12 +1,13 @@
 use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
-use crate::utils::is_subsequence;
+use crate::utils::{is_subsequence, to_field_element};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::{
-    BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner,
+    BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
+    RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
@@ -31,7 +32,6 @@ pub struct CairoRunner {
     pub relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
-#[allow(dead_code)]
 impl CairoRunner {
     pub fn new(program: &Program) -> CairoRunner {
         let builtin_ordered_list = vec![
@@ -40,6 +40,7 @@ impl CairoRunner {
             String::from("range_check"),
             String::from("ecdsa"),
             String::from("bitwise"),
+            String::from("ec_op"),
         ];
         assert!(
             is_subsequence(&program.builtins, &builtin_ordered_list),
@@ -54,11 +55,30 @@ impl CairoRunner {
                 );
             }
 
+            if builtin_name == "pedersen" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(HashBuiltinRunner::new(true, 8)),
+                );
+            }
+
             if builtin_name == "range_check" {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
                 builtin_runners.insert(
                     builtin_name.clone(),
                     Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                );
+            }
+            if builtin_name == "bitwise" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(BitwiseBuiltinRunner::new(true, 256)),
+                );
+            }
+            if builtin_name == "ec_op" {
+                builtin_runners.insert(
+                    builtin_name.clone(),
+                    Box::new(EcOpBuiltinRunner::new(true, 256)),
                 );
             }
         }
@@ -101,21 +121,23 @@ impl CairoRunner {
                 offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
-            self.segments
-                .load_data(
-                    &mut self.vm.memory,
-                    &MaybeRelocatable::RelocatableValue(prog_base),
-                    self.program.data.clone(),
-                )
-                .unwrap();
+            match self.segments.load_data(
+                &mut self.vm.memory,
+                &MaybeRelocatable::RelocatableValue(prog_base),
+                self.program.data.clone(),
+            ) {
+                Ok(_) => {}
+                Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
+            }
             if let Some(exec_base) = &self.execution_base {
-                self.segments
-                    .load_data(
-                        &mut self.vm.memory,
-                        &MaybeRelocatable::RelocatableValue(exec_base.clone()),
-                        stack,
-                    )
-                    .unwrap();
+                match self.segments.load_data(
+                    &mut self.vm.memory,
+                    &MaybeRelocatable::RelocatableValue(exec_base.clone()),
+                    stack,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
+                }
             } else {
                 return Err(RunnerError::NoExecBase);
             }
@@ -173,25 +195,32 @@ impl CairoRunner {
     }
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
-        //TODO hint_locals and static_locals
-        self.vm.run_context.pc =
-            MaybeRelocatable::RelocatableValue(self.initial_pc.clone().unwrap());
-        self.vm.run_context.ap =
-            MaybeRelocatable::RelocatableValue(self.initial_ap.clone().unwrap());
-        self.vm.run_context.fp =
-            MaybeRelocatable::RelocatableValue(self.initial_fp.clone().unwrap());
-        self.vm._program_base = Some(MaybeRelocatable::RelocatableValue(
-            self.program_base.clone().unwrap(),
-        ));
-        for (_key, builtin) in self.vm.builtin_runners.iter() {
-            let vec = builtin.validate_existing_memory(
-                &self.vm.memory.data[builtin.base().unwrap().segment_index],
-            )?;
-            if let Some(mut validated_addresses) = vec {
-                self.vm.validated_addresses.append(&mut validated_addresses)
-            }
+        match &self.initial_pc {
+            Some(pc) => self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(pc.clone()),
+            None => return Err(RunnerError::NoPC),
         }
-        Ok(())
+        match &self.initial_ap {
+            Some(ap) => self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(ap.clone()),
+            None => return Err(RunnerError::NoAP),
+        }
+        match &self.initial_fp {
+            Some(fp) => self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(fp.clone()),
+            None => return Err(RunnerError::NoFP),
+        }
+        match &self.program_base {
+            Some(program_base) => {
+                self.vm._program_base =
+                    Some(MaybeRelocatable::RelocatableValue(program_base.clone()))
+            }
+            None => return Err(RunnerError::NoProgBase),
+        }
+        for (_, builtin) in self.vm.builtin_runners.iter() {
+            builtin.add_validation_rule(&mut self.vm.memory);
+        }
+        match self.vm.memory.validate_existing_memory() {
+            Err(error) => Err(RunnerError::MemoryValidationError(error)),
+            Ok(_) => Ok(()),
+        }
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
@@ -217,13 +246,11 @@ impl CairoRunner {
                 "Inconsistent Relocation"
             );
             for element in segment {
-                if element != &None {
-                    self.relocated_memory.push(Some(relocate_value(
-                        element.clone().unwrap(),
-                        relocation_table,
-                    )));
-                } else {
-                    self.relocated_memory.push(None);
+                match element {
+                    Some(elem) => self
+                        .relocated_memory
+                        .push(Some(relocate_value(elem.clone(), relocation_table))),
+                    None => self.relocated_memory.push(None),
                 }
             }
         }
@@ -253,33 +280,49 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn write_output(&mut self, stdout: &mut dyn io::Write) {
+    ///Writes the values hosted in the output builtin's segment
+    /// Does nothing if the output builtin is not present in the program
+    pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
         if let Some(builtin) = self.vm.builtin_runners.get("output") {
+            let base = match builtin.base() {
+                Some(base) => base,
+                None => return Err(RunnerError::UninitializedBase),
+            };
+
+            let write_result = writeln!(stdout, "Program Output: ");
+            if write_result.is_err() {
+                return Err(RunnerError::WriteFail);
+            }
+
+            // After this if block,
+            // segment_used_sizes is always Some(_)
             if self.segments.segment_used_sizes == None {
                 self.segments.compute_effective_sizes(&self.vm.memory);
             }
-            let base = match builtin.base() {
-                Some(base) => base,
-                None => panic!("Uninitialized Output Builtin Base"),
-            };
-            let write_result = writeln!(stdout, "Program Output: ");
-            if write_result.is_err() {
-                panic!("Failed to write to standard output")
-            }
+
+            // See previous comment, the unwrap below is safe.
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
-                let value = self
-                    .vm
-                    .memory
-                    .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None))
-                    .unwrap();
+                let value =
+                    match self.vm.memory.get(
+                        &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
+                    ) {
+                        Ok(val) => val,
+                        Err(e) => return Err(RunnerError::FailedMemoryGet(e)),
+                    };
+
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
-                    let write_result = writeln!(stdout, "{}", num);
+                    let write_result = writeln!(
+                        stdout,
+                        "{}",
+                        to_field_element(num.clone(), self.vm.prime.clone())
+                    );
                     if write_result.is_err() {
-                        panic!("Failed to write to standard output")
+                        return Err(RunnerError::WriteFail);
                     }
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -755,13 +798,15 @@ mod tests {
         );
         assert!(cairo_runner
             .vm
+            .memory
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 0))));
         assert!(cairo_runner
             .vm
+            .memory
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 1))));
-        assert_eq!(cairo_runner.vm.validated_addresses.len(), 2);
+        assert_eq!(cairo_runner.vm.memory.validated_addresses.len(), 2);
     }
 
     #[test]
@@ -2655,7 +2700,7 @@ mod tests {
             .unwrap();
         cairo_runner.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
-        cairo_runner.write_output(&mut stdout);
+        cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
             Ok(String::from("Program Output: \n1\n2\n"))
@@ -2707,10 +2752,45 @@ mod tests {
         //Execution Phase
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         let mut stdout = Vec::<u8>::new();
-        cairo_runner.write_output(&mut stdout);
+        cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
             Ok(String::from("Program Output: \n1\n17\n"))
+        );
+    }
+
+    #[test]
+    fn print_output_from_preset_memory_neg_output() {
+        let program = Program {
+            builtins: vec![String::from("output")],
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            main: None,
+        };
+        let mut cairo_runner = CairoRunner::new(&program);
+        cairo_runner.initialize_segments(None);
+        assert_eq!(
+            Some(relocatable!(2, 0)),
+            cairo_runner.vm.builtin_runners[&String::from("output")].base()
+        );
+        cairo_runner
+            .vm
+            .memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint_str!(
+                    b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
+                )),
+            )
+            .unwrap();
+        cairo_runner.segments.segment_used_sizes = Some(vec![0, 0, 1]);
+        let mut stdout = Vec::<u8>::new();
+        cairo_runner.write_output(&mut stdout).unwrap();
+        assert_eq!(
+            String::from_utf8(stdout),
+            Ok(String::from("Program Output: \n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
         );
     }
 }
