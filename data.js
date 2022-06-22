@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655855928737,
+  "lastUpdate": 1655856149577,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -735,6 +735,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 8294229,
             "range": "± 57783",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "746d90e7e4134739b2d5ba98bfc96ec19023d492",
+          "message": "Merge pull request #157 from lambdaclass/remove-unwrap-cairo-runner\n\nRemove unwrap cairo runner",
+          "timestamp": "2022-06-21T20:58:37-03:00",
+          "tree_id": "0b336e8b1f9196d8f3173032c9ffa7db812b7901",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/746d90e7e4134739b2d5ba98bfc96ec19023d492"
+        },
+        "date": 1655856148246,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8318570,
+            "range": "± 8970",
             "unit": "ns/iter"
           }
         ]
