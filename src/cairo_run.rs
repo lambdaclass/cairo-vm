@@ -47,16 +47,24 @@ mod tests {
         let program = Program::new(program_path);
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
-        let end = cairo_runner.initialize_main_entrypoint().unwrap();
-        cairo_runner.initialize_vm().unwrap();
+        let end = cairo_runner
+            .initialize_main_entrypoint()
+            .expect("Couldn't initialize main entry point");
+        cairo_runner
+            .initialize_vm()
+            .expect("Couldn't initialize VM");
         assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
-        cairo_runner.relocate().unwrap();
+        cairo_runner.relocate().expect("Couldn't relocate memory");
         write_binary_trace(&cairo_runner.relocated_trace, serialized_trace_path);
 
-        let expected_trace_buffer = File::open("tests/support/struct.trace").unwrap();
-        let expected_trace: Vec<u8> = bincode::deserialize_from(&expected_trace_buffer).unwrap();
-        let serialized_buffer = File::open(serialized_trace_filename).unwrap();
-        let serialized_program: Vec<u8> = bincode::deserialize_from(&serialized_buffer).unwrap();
+        let expected_trace_buffer = File::open("tests/support/struct.trace")
+            .expect("Couldn't open python VM generated trace");
+        let expected_trace: Vec<u8> = bincode::deserialize_from(&expected_trace_buffer)
+            .expect("Couldn't deserialize python VM generated trace");
+        let serialized_buffer =
+            File::open(serialized_trace_filename).expect("Couldn't open rust VM generated trace");
+        let serialized_program: Vec<u8> = bincode::deserialize_from(&serialized_buffer)
+            .expect("Couldn't deserialize rust VM generated trace");
 
         assert!(expected_trace == serialized_program);
     }
