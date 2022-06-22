@@ -7,7 +7,8 @@ use cleopatra_cairo::{
 
 #[test]
 fn struct_integration_test() {
-    let program = Program::new(Path::new("tests/support/struct_compiled.json"));
+    let program = Program::new(Path::new("tests/support/struct_compiled.json"))
+        .expect("Failed to deserialize program");
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
