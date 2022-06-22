@@ -19,5 +19,5 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    cairo_run::cairo_run(&args.filename, &args.trace);
+    cairo_run::cairo_run(&args.filename, args.trace.as_ref());
 }
