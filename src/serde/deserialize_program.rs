@@ -1,7 +1,7 @@
 use crate::types::{program::Program, relocatable::MaybeRelocatable};
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::SeqAccess, Deserialize, Deserializer};
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem};
+use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize)]
 pub struct ProgramJson {
@@ -104,14 +104,14 @@ fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-pub fn deserialize_program_json(path: &str) -> ProgramJson {
+pub fn deserialize_program_json(path: &Path) -> ProgramJson {
     let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
 
     serde_json::from_reader(&mut reader).unwrap()
 }
 
-pub fn deserialize_program(path: &str) -> Program {
+pub fn deserialize_program(path: &Path) -> Program {
     let program_json: ProgramJson = deserialize_program_json(path);
     Program {
         builtins: program_json.builtins,
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program("tests/support/valid_program_a.json");
+        let program: Program = deserialize_program(Path::new("tests/support/valid_program_a.json"));
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
