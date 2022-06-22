@@ -26,12 +26,11 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) {
 fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>, trace_file: &Path) {
     let mut buffer = File::create(trace_file).expect("Error while creating trace file");
     for (i, entry) in relocated_trace.iter().enumerate() {
-        match bincode::serialize_into(&mut buffer, entry) {
-            Ok(_) => {}
-            Err(e) => println!(
+        if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
+            println!(
                 "Failed to dump trace at position {}, serialize error: {}",
                 i, e
-            ),
+            );
         }
     }
 }
