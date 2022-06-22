@@ -358,13 +358,23 @@ mod tests {
     fn relocate_segments_one_segment() {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3]);
-        assert_eq!(segments.relocate_segments(), vec![1])
+        assert_eq!(
+            segments
+                .relocate_segments()
+                .expect("Couldn't relocate after compute effective sizes"),
+            vec![1]
+        )
     }
 
     #[test]
     fn relocate_segments_five_segment() {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3, 3, 56, 78, 8]);
-        assert_eq!(segments.relocate_segments(), vec![1, 4, 7, 63, 141])
+        assert_eq!(
+            segments
+                .relocate_segments()
+                .expect("Couldn't relocate after compute effective sizes"),
+            vec![1, 4, 7, 63, 141]
+        )
     }
 }
