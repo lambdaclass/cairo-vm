@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655856149577,
+  "lastUpdate": 1655857124278,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -765,6 +765,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 8318570,
             "range": "± 8970",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6deba45d625b96a115debc51e568e6c14306284",
+          "message": "Merge pull request #147 from tdelabro/add-clap\n\nadd CLAP",
+          "timestamp": "2022-06-21T21:13:16-03:00",
+          "tree_id": "0660d32a90379e75246e984f28da5bed1ed6b392",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/d6deba45d625b96a115debc51e568e6c14306284"
+        },
+        "date": 1655857121840,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 9862012,
+            "range": "± 697265",
             "unit": "ns/iter"
           }
         ]
