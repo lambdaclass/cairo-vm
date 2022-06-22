@@ -1,7 +1,6 @@
 use crate::types::program::Program;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
-use bincode;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -23,7 +22,7 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) {
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
 /// entry is composed of 3 usize values that are padded to always reach 64 bit size.
-fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>, trace_file: &Path) {
+fn write_binary_trace(relocated_trace: &[RelocatedTraceEntry], trace_file: &Path) {
     let mut buffer = File::create(trace_file).expect("Error while creating trace file");
     for (i, entry) in relocated_trace.iter().enumerate() {
         if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
