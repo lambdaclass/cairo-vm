@@ -274,7 +274,10 @@ impl CairoRunner {
 
     pub fn relocate(&mut self) -> Result<(), TraceError> {
         self.segments.compute_effective_sizes(&self.vm.memory);
-        let relocation_table = self.segments.relocate_segments();
+        let relocation_table = self
+            .segments
+            .relocate_segments()
+            .expect("compute_effective_sizes called but relocate_memory still returned error");
         self.relocate_memory(&relocation_table);
         self.relocate_trace(&relocation_table)?;
         Ok(())
