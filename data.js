@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655917145596,
+  "lastUpdate": 1655925716267,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -847,6 +847,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 7991149,
             "range": "± 15258",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9fc72ad8357c2f8d0b4d1d73b6da22886c344801",
+          "message": "Merge pull request #159 from lambdaclass/CU-2z5j3jx-remove-unwraps-in-program\n\n[CU-2z5j3jx] Remove unwraps in deserialize_program.rs, Handle ProgramErrors",
+          "timestamp": "2022-06-22T16:17:40-03:00",
+          "tree_id": "48462d05047da52676ffc0fbb9b28f0e05f75ee2",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/9fc72ad8357c2f8d0b4d1d73b6da22886c344801"
+        },
+        "date": 1655925715365,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8194313,
+            "range": "± 24576",
             "unit": "ns/iter"
           }
         ]
