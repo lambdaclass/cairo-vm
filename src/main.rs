@@ -13,9 +13,11 @@ use std::path::PathBuf;
 struct Args {
     #[clap(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
+    #[clap(long, value_parser)]
+    trace: Option<PathBuf>,
 }
 
 fn main() {
     let args = Args::parse();
-    cairo_run::cairo_run(&args.filename);
+    cairo_run::cairo_run(&args.filename, &args.trace);
 }
