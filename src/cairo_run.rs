@@ -4,7 +4,7 @@ use std::io;
 use std::path::Path;
 
 pub fn cairo_run(path: &Path) {
-    let program = Program::new(path);
+    let program = Program::new(path).unwrap();
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
