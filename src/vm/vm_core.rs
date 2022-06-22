@@ -561,17 +561,33 @@ impl VirtualMachine {
         for (i, segment) in self.memory.data.iter().enumerate() {
             for (j, value) in segment.iter().enumerate() {
                 for (name, builtin) in self.builtin_runners.iter_mut() {
-                    if builtin.base().unwrap().segment_index == i {
-                        let deduced_value = builtin
-                            .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory)
-                            .unwrap();
-                        if deduced_value != None && &deduced_value != value {
-                            return Err(VirtualMachineError::InconsistentAutoDeduction(
-                                name.to_owned(),
-                                deduced_value.unwrap(),
-                                value.to_owned(),
-                            ));
+                    match builtin.base() {
+                        Some(builtin_base) => {
+                            if builtin_base.segment_index == i {
+                                match builtin.deduce_memory_cell(
+                                    &MaybeRelocatable::from((i, j)),
+                                    &self.memory,
+                                ) {
+                                    Ok(None) => None,
+                                    Ok(Some(deduced_memory_cell)) => {
+                                        if Some(&deduced_memory_cell) != value.as_ref() {
+                                            return Err(
+                                                VirtualMachineError::InconsistentAutoDeduction(
+                                                    name.to_owned(),
+                                                    deduced_memory_cell,
+                                                    value.to_owned(),
+                                                ),
+                                            );
+                                        }
+                                        Some(deduced_memory_cell)
+                                    }
+                                    _ => {
+                                        return Err(VirtualMachineError::InvalidInstructionEncoding)
+                                    }
+                                };
+                            }
                         }
+                        _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
                     }
                 }
             }
