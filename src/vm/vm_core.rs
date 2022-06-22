@@ -569,17 +569,17 @@ impl VirtualMachine {
                                     &self.memory,
                                 ) {
                                     Ok(None) => None,
-                                    Ok(Some(v)) => {
-                                        if Some(&v) != value.as_ref() {
+                                    Ok(Some(deduced_memory_cell)) => {
+                                        if Some(&deduced_memory_cell) != value.as_ref() {
                                             return Err(
                                                 VirtualMachineError::InconsistentAutoDeduction(
                                                     name.to_owned(),
-                                                    v,
+                                                    deduced_memory_cell,
                                                     value.to_owned(),
                                                 ),
                                             );
                                         }
-                                        Some(v)
+                                        Some(deduced_memory_cell)
                                     }
                                     _ => {
                                         return Err(VirtualMachineError::InvalidInstructionEncoding)
