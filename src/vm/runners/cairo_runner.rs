@@ -274,6 +274,8 @@ impl CairoRunner {
 
     pub fn relocate(&mut self) -> Result<(), TraceError> {
         self.segments.compute_effective_sizes(&self.vm.memory);
+        // relocate_segments can fail if compute_effective_sizes is not called before.
+        // The expect should be unreachable.
         let relocation_table = self
             .segments
             .relocate_segments()
