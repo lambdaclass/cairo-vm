@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use cleopatra_cairo::{
     types::program::Program, vm::runners::cairo_runner::CairoRunner,
     vm::trace::trace_entry::RelocatedTraceEntry,
@@ -5,7 +7,8 @@ use cleopatra_cairo::{
 
 #[test]
 fn pedersen_integration_test() {
-    let program = Program::new("tests/support/pedersen_test.json");
+    let program = Program::new(Path::new("tests/support/pedersen_test.json"))
+        .expect("Failed to deserialize program");
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();

@@ -3,6 +3,7 @@ use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdat
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
@@ -42,7 +43,6 @@ pub struct VirtualMachine {
     skip_instruction_execution: bool,
 }
 
-#[allow(dead_code)]
 impl VirtualMachine {
     pub fn new(
         prime: BigInt,
@@ -71,20 +71,20 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt;
-        {
-            if let Some(MaybeRelocatable::Int(ref encoding)) =
-                self.memory.get(&self.run_context.pc).unwrap()
-            {
-                encoding_ref = encoding;
-            } else {
-                return Err(VirtualMachineError::InvalidInstructionEncoding);
-            }
-            let imm_addr = self.run_context.pc.add_usize_mod(1, None);
-            let optional_imm = self.memory.get(&imm_addr).unwrap();
+        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
+            Ok(Some(MaybeRelocatable::Int(encoding))) => encoding,
+            _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+        };
+
+        let imm_addr = self.run_context.pc.add_usize_mod(1, None);
+
+        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
+        } else {
+            Err(VirtualMachineError::InvalidInstructionEncoding)
         }
     }
+
     fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
             FpUpdate::APPlus2 => self.run_context.ap.add_usize_mod(2, None),
@@ -128,9 +128,10 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(num_res, self.prime.clone())
-                    }
+                    MaybeRelocatable::Int(num_res) => self
+                        .run_context
+                        .pc
+                        .add_int_mod(num_res, self.prime.clone())?,
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
@@ -270,18 +271,27 @@ impl VirtualMachine {
         Ok((None, None))
     }
 
-    fn deduce_memory_cell(&mut self, address: &MaybeRelocatable) -> Option<MaybeRelocatable> {
+    fn deduce_memory_cell(
+        &mut self,
+        address: &MaybeRelocatable,
+    ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         if let MaybeRelocatable::RelocatableValue(addr) = address {
             for (_, builtin) in self.builtin_runners.iter_mut() {
                 if let Some(base) = builtin.base() {
                     if base.segment_index == addr.segment_index {
-                        return builtin.deduce_memory_cell(address, &self.memory).unwrap();
+                        match builtin.deduce_memory_cell(address, &self.memory) {
+                            Ok(maybe_reloc) => return Ok(maybe_reloc),
+                            Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                        };
                     }
                 }
             }
-            return None;
+            return Ok(None);
         }
-        panic!("Memory addresses must be relocatable");
+
+        Err(VirtualMachineError::RunnerError(
+            RunnerError::NonRelocatableAddress,
+        ))
     }
 
     ///Computes the value of res if possible
@@ -397,13 +407,18 @@ impl VirtualMachine {
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
-        let instruction = instruction_ref.clone().to_i64().unwrap();
-        if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
-            let decoded_instruction = decode_instruction(instruction, Some(imm_ref.clone()))?;
-            return Ok(decoded_instruction);
+        match instruction_ref.clone().to_i64() {
+            Some(instruction) => {
+                if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
+                    let decoded_instruction =
+                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    return Ok(decoded_instruction);
+                }
+                let decoded_instruction = decode_instruction(instruction, None)?;
+                Ok(decoded_instruction)
+            }
+            None => Err(VirtualMachineError::InvalidInstructionEncoding),
         }
-        let decoded_instruction = decode_instruction(instruction, None)?;
-        Ok(decoded_instruction)
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
@@ -418,14 +433,29 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
-        let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction);
-        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).unwrap().cloned();
-        let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction);
-        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).unwrap().cloned();
+        let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
+
+        let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
+            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            Ok(result) => result.cloned(),
+        };
+
+        let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction)?;
+
+        let mut op0: Option<MaybeRelocatable> = match self.memory.get(&op0_addr) {
+            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            Ok(result) => result.cloned(),
+        };
+
         let op1_addr: MaybeRelocatable = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).unwrap().cloned();
+
+        let mut op1: Option<MaybeRelocatable> = match self.memory.get(&op1_addr) {
+            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            Ok(result) => result.cloned(),
+        };
+
         let mut res: Option<MaybeRelocatable> = None;
 
         let should_update_dst = matches!(dst, None);
@@ -433,64 +463,97 @@ impl VirtualMachine {
         let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
-            op0 = self.deduce_memory_cell(&op0_addr);
-        }
-        if matches!(op1, None) {
-            op1 = self.deduce_memory_cell(&op1_addr);
-        }
-
-        if matches!(op0, None) {
-            (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
-        }
-
-        if matches!(op1, None) {
-            let deduced_operand = self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
-            op1 = deduced_operand.0;
-            if matches!(res, None) {
-                res = deduced_operand.1;
+            match self.deduce_memory_cell(&op0_addr) {
+                Ok(None) => {
+                    (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
+                }
+                Ok(deduced_memory_cell) => {
+                    op0 = deduced_memory_cell;
+                }
+                Err(e) => return Err(e),
             }
         }
 
-        assert!(matches!(op0, Some(_)), "Couldn't compute or deduce op0");
-        assert!(matches!(op1, Some(_)), "Couldn't compute or deduce op1");
+        if matches!(op1, None) {
+            match self.deduce_memory_cell(&op1_addr) {
+                Ok(None) => {
+                    let deduced_operands =
+                        self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
+                    op1 = deduced_operands.0;
+
+                    if matches!(res, None) {
+                        res = deduced_operands.1
+                    }
+                }
+                Ok(deduced_memory_cell) => {
+                    op1 = deduced_memory_cell;
+                }
+                Err(e) => return Err(e),
+            }
+        }
 
         if matches!(res, None) {
-            res = self.compute_res(instruction, op0.as_ref().unwrap(), op1.as_ref().unwrap())?;
+            match (op0.clone(), op1.clone()) {
+                (Some(ref unwrapped_op0), Some(ref unwrapped_op1)) => {
+                    res = self.compute_res(instruction, unwrapped_op0, unwrapped_op1)?;
+                }
+                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            }
         }
 
         if matches!(dst, None) {
             match instruction.opcode {
                 Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
                 Opcode::Call => dst = Some(self.run_context.fp.clone()),
-                _ => return Err(VirtualMachineError::NoDst),
+                _ => match self.deduce_dst(instruction, res.as_ref()) {
+                    Some(d) => dst = Some(d),
+                    None => return Err(VirtualMachineError::NoDst),
+                },
             }
         }
 
         if should_update_dst {
-            self.memory
-                .insert(&dst_addr, dst.as_ref().unwrap())
-                .unwrap();
-        }
-        if should_update_op0 {
-            self.memory
-                .insert(&op0_addr, op0.as_ref().unwrap())
-                .unwrap();
-        }
-        if should_update_op1 {
-            self.memory
-                .insert(&op1_addr, op1.as_ref().unwrap())
-                .unwrap();
+            match dst {
+                Some(ref unwrapped_dst) => match self.memory.insert(&dst_addr, unwrapped_dst) {
+                    Ok(()) => (),
+                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                },
+                _ => return Err(VirtualMachineError::NoDst),
+            }
         }
 
-        Ok((
-            Operands {
-                dst: dst.unwrap(),
-                op0: op0.unwrap(),
-                op1: op1.unwrap(),
-                res,
-            },
-            [dst_addr, op0_addr, op1_addr].to_vec(),
-        ))
+        if should_update_op0 {
+            match op0 {
+                Some(ref unwrapped_op0) => match self.memory.insert(&op0_addr, unwrapped_op0) {
+                    Ok(()) => (),
+                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                },
+                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            }
+        }
+
+        if should_update_op1 {
+            match op1 {
+                Some(ref unwrapped_op1) => match self.memory.insert(&op1_addr, unwrapped_op1) {
+                    Ok(()) => (),
+                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                },
+                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            };
+        }
+
+        match (dst, op0.clone(), op1.clone()) {
+            (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => Ok((
+                Operands {
+                    dst: unwrapped_dst,
+                    op0: unwrapped_op0,
+                    op1: unwrapped_op1,
+                    res,
+                },
+                [dst_addr, op0_addr, op1_addr].to_vec(),
+            )),
+            _ => Err(VirtualMachineError::InvalidInstructionEncoding),
+        }
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
@@ -521,7 +584,7 @@ impl VirtualMachine {
 mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::{
         BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
     };
@@ -529,6 +592,20 @@ mod tests {
     use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
+
+    pub fn memory_from(
+        key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
+        num_segements: usize,
+    ) -> Result<Memory, MemoryError> {
+        let mut memory = Memory::new();
+        for _ in 0..num_segements {
+            memory.data.push(Vec::new());
+        }
+        for (key, val) in key_val_list.iter() {
+            memory.insert(key, val)?;
+        }
+        Ok(memory)
+    }
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -2027,7 +2104,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
-        vm.memory = Memory::from(mem_arr.clone(), 2).unwrap();
+        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2575,7 +2652,7 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
-        vm.memory = Memory::from(mem_arr.clone(), 2).unwrap();
+        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
@@ -2609,7 +2686,10 @@ mod tests {
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let mut vm = VirtualMachine::new(bigint!(17), Vec::new());
-        assert_eq!(vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))), None);
+        assert_eq!(
+            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -2640,9 +2720,9 @@ mod tests {
             .unwrap();
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
-            Some(MaybeRelocatable::from(bigint_str!(
+            Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
-            )))
+            ))))
         );
     }
 
@@ -2849,7 +2929,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
-            Some(MaybeRelocatable::from(bigint!(8)))
+            Ok(Some(MaybeRelocatable::from(bigint!(8))))
         );
     }
 
@@ -3029,9 +3109,9 @@ mod tests {
         let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
         assert_eq!(
             result,
-            Some(MaybeRelocatable::from(bigint_str!(
+            Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
-            )))
+            ))))
         );
     }
 

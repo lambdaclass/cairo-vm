@@ -5,12 +5,17 @@ mod serde;
 mod types;
 mod utils;
 mod vm;
-use std::env;
+use clap::{Parser, ValueHint};
+use std::path::PathBuf;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(value_parser, value_hint=ValueHint::FilePath)]
+    filename: PathBuf,
+}
 
 fn main() {
-    let mut args = env::args();
-    let _executable = args.next();
-    let filename = args.next().unwrap();
-
-    cairo_run::cairo_run(&filename);
+    let args = Args::parse();
+    cairo_run::cairo_run(&args.filename);
 }

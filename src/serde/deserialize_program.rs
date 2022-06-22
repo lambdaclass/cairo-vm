@@ -1,7 +1,9 @@
-use crate::types::{program::Program, relocatable::MaybeRelocatable};
+use crate::types::{
+    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
+};
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::SeqAccess, Deserialize, Deserializer};
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem};
+use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize)]
 pub struct ProgramJson {
@@ -104,21 +106,23 @@ fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-pub fn deserialize_program_json(path: &str) -> ProgramJson {
-    let file = File::open(path).unwrap();
+pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
+    let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
-    serde_json::from_reader(&mut reader).unwrap()
+    let program_json = serde_json::from_reader(&mut reader)?;
+
+    Ok(program_json)
 }
 
-pub fn deserialize_program(path: &str) -> Program {
-    let program_json: ProgramJson = deserialize_program_json(path);
-    Program {
+pub fn deserialize_program(path: &Path) -> Result<Program, ProgramError> {
+    let program_json: ProgramJson = deserialize_program_json(path)?;
+    Ok(Program {
         builtins: program_json.builtins,
         prime: program_json.prime,
         data: program_json.data,
         main: program_json.identifiers["__main__.main"].pc,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -271,7 +275,8 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program("tests/support/valid_program_a.json");
+        let program: Program = deserialize_program(Path::new("tests/support/valid_program_a.json"))
+            .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![

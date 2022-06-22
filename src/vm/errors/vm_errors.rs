@@ -2,9 +2,9 @@ use num_bigint::BigInt;
 use std::fmt;
 
 use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::errors::runner_errors::RunnerError;
 
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
     InvalidDstReg(i64),
@@ -12,7 +12,6 @@ pub enum VirtualMachineError {
     InvalidOp1Reg(i64),
     ImmShouldBe1,
     UnknownOp0,
-    InvalidFpUpdate,
     InvalidApUpdate(i64),
     InvalidPcUpdate(i64),
     UnconstrainedResAdd,
@@ -31,6 +30,7 @@ pub enum VirtualMachineError {
     NotImplemented,
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    RunnerError(RunnerError),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -48,7 +48,6 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnknownOp0 => {
                 write!(f, "op0 must be known in double dereference")
             }
-            VirtualMachineError::InvalidFpUpdate => write!(f, "Invalid fp_update value"),
             VirtualMachineError::InvalidApUpdate(n) => write!(f, "Invalid ap_update value: {}", n),
             VirtualMachineError::InvalidPcUpdate(n) => write!(f, "Invalid pc_update value: {}", n),
             VirtualMachineError::UnconstrainedResAdd => {
@@ -82,6 +81,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InconsistentAutoDeduction(builtin_name, expected_value, current_value) => {
                 write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
             },
+            VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
         }
     }
 }

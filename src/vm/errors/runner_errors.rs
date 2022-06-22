@@ -11,11 +11,16 @@ pub enum RunnerError {
     MissingMain,
     UninitializedBase,
     WriteFail,
+    NoPC,
+    NoAP,
+    NoFP,
     MemoryValidationError(MemoryError),
+    MemoryInitializationError(MemoryError),
     NonRelocatableAddress,
     FailedStringConversion,
     ExpectedInteger(MaybeRelocatable),
     MemoryGet(MaybeRelocatable),
+    FailedMemoryGet(MemoryError),
 }
 
 impl fmt::Display for RunnerError {
@@ -24,7 +29,7 @@ impl fmt::Display for RunnerError {
             RunnerError::NoExecBase => {
                 write!(f, "Can't initialize state without an execution base")
             }
-            RunnerError::NoProgBase => write!(f, "Can't initialize state without a program base"),
+            RunnerError::NoProgBase => write!(f, "Can't without a program base"),
             RunnerError::NoExecBaseForEntrypoint => write!(
                 f,
                 "Can't initialize the function entrypoint without an execution base"
@@ -32,8 +37,15 @@ impl fmt::Display for RunnerError {
             RunnerError::MissingMain => write!(f, "Missing main()"),
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
             RunnerError::WriteFail => write!(f, "Failed to write program output"),
+            RunnerError::NoPC => write!(f, "Found None PC durin VM initialization"),
+            RunnerError::NoAP => write!(f, "Found None AP durin VM initialization"),
+            RunnerError::NoFP => write!(f, "Found None FP durin VM initialization"),
             RunnerError::MemoryValidationError(error) => {
                 write!(f, "Memory validation failed during VM initialization.")?;
+                error.fmt(f)
+            }
+            RunnerError::MemoryInitializationError(error) => {
+                write!(f, "Memory loading failed during state initialization.")?;
                 error.fmt(f)
             }
             RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
@@ -47,6 +59,10 @@ impl fmt::Display for RunnerError {
 
             RunnerError::MemoryGet(addr) => {
                 write!(f, "Failed to retrieve value from address {:?}", addr)
+            }
+            RunnerError::FailedMemoryGet(error) => {
+                write!(f, "Failed fetching memory address.")?;
+                error.fmt(f)
             }
         }
     }

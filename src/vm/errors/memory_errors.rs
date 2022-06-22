@@ -9,6 +9,7 @@ pub enum MemoryError {
     NumOutOfBounds,
     FoundNonInt,
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
+    EffectiveSizesNotCalled,
 }
 
 impl fmt::Display for MemoryError {
@@ -32,6 +33,11 @@ impl fmt::Display for MemoryError {
                 f,
                 "Inconsistent memory assignment at address {:?}. {:?} != {:?}",
                 addr, val_a, val_b
+            ),
+
+            MemoryError::EffectiveSizesNotCalled => write!(
+                f,
+                "compute_effective_sizes should be called before relocate_segments"
             ),
         }
     }
