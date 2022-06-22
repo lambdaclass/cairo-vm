@@ -94,14 +94,16 @@
         "0x208b7fff7fff7ffe",
         "0x40780017fff7fff",
         "0x1",
-        "0x480a7ffb7fff8000",
-        "0x480a7ffd7fff8000",
         "0x480680017fff8000",
         "0x63",
         "0x480680017fff8000",
         "0x69",
+        "0x480a7ffb7fff8000",
+        "0x480a7ffd7fff8000",
+        "0x48127ffc7fff8000",
+        "0x48127ffc7fff8000",
         "0x1104800180018000",
-        "0x800000000000010ffffffffffffffffffffffffffffffffffffffffffffffc0",
+        "0x800000000000010ffffffffffffffffffffffffffffffffffffffffffffffbe",
         "0x40137ffd7fff8000",
         "0x480a7ffc7fff8000",
         "0x48127ffd7fff8000",
@@ -111,13 +113,13 @@
         "0x480680017fff8000",
         "0xa",
         "0x1104800180018000",
-        "0x800000000000010ffffffffffffffffffffffffffffffffffffffffffffffc9",
+        "0x800000000000010ffffffffffffffffffffffffffffffffffffffffffffffc7",
         "0x400680017fff7fff",
         "0x3ab461c2d9e083e7b0164debd1b7cccb22365f22b195cda55bc99898a592980",
         "0x480a7ffa7fff8000",
         "0x48127ffe7fff8000",
         "0x1104800180018000",
-        "0x800000000000010ffffffffffffffffffffffffffffffffffffffffffffffac",
+        "0x800000000000010ffffffffffffffffffffffffffffffffffffffffffffffaa",
         "0x480a80007fff8000",
         "0x48127ff77fff8000",
         "0x48127ff77fff8000",
@@ -2868,6 +2870,63 @@
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 58,
+                        "__main__.main.output_ptr": 55,
+                        "__main__.main.pedersen_ptr": 56,
+                        "__main__.main.range_check_ptr": 57
+                    }
+                },
+                "hints": [],
+                "inst": {
+                    "end_col": 23,
+                    "end_line": 35,
+                    "input_file": {
+                        "filename": "integration_with_alloc_locals.cairo"
+                    },
+                    "start_col": 21,
+                    "start_line": 35
+                }
+            },
+            "89": {
+                "accessible_scopes": [
+                    "__main__",
+                    "__main__.main"
+                ],
+                "flow_tracking_data": {
+                    "ap_tracking": {
+                        "group": 8,
+                        "offset": 2
+                    },
+                    "reference_ids": {
+                        "__main__.main.bitwise_ptr": 58,
+                        "__main__.main.num_a": 59,
+                        "__main__.main.output_ptr": 55,
+                        "__main__.main.pedersen_ptr": 56,
+                        "__main__.main.range_check_ptr": 57
+                    }
+                },
+                "hints": [],
+                "inst": {
+                    "end_col": 24,
+                    "end_line": 36,
+                    "input_file": {
+                        "filename": "integration_with_alloc_locals.cairo"
+                    },
+                    "start_col": 21,
+                    "start_line": 36
+                }
+            },
+            "91": {
+                "accessible_scopes": [
+                    "__main__",
+                    "__main__.main"
+                ],
+                "flow_tracking_data": {
+                    "ap_tracking": {
+                        "group": 8,
+                        "offset": 3
+                    },
+                    "reference_ids": {
+                        "__main__.main.bitwise_ptr": 58,
                         "__main__.main.num_a": 59,
                         "__main__.main.num_b": 60,
                         "__main__.main.output_ptr": 55,
@@ -2898,7 +2957,7 @@
                     "start_line": 33
                 }
             },
-            "88": {
+            "92": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -2906,7 +2965,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 2
+                        "offset": 4
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 58,
@@ -2952,90 +3011,6 @@
                     "start_line": 33
                 }
             },
-            "89": {
-                "accessible_scopes": [
-                    "__main__",
-                    "__main__.main"
-                ],
-                "flow_tracking_data": {
-                    "ap_tracking": {
-                        "group": 8,
-                        "offset": 3
-                    },
-                    "reference_ids": {
-                        "__main__.main.bitwise_ptr": 58,
-                        "__main__.main.num_a": 59,
-                        "__main__.main.num_b": 60,
-                        "__main__.main.output_ptr": 55,
-                        "__main__.main.pedersen_ptr": 56,
-                        "__main__.main.range_check_ptr": 57
-                    }
-                },
-                "hints": [],
-                "inst": {
-                    "end_col": 19,
-                    "end_line": 35,
-                    "input_file": {
-                        "filename": "integration_with_alloc_locals.cairo"
-                    },
-                    "parent_location": [
-                        {
-                            "end_col": 81,
-                            "end_line": 37,
-                            "input_file": {
-                                "filename": "integration_with_alloc_locals.cairo"
-                            },
-                            "start_col": 76,
-                            "start_line": 37
-                        },
-                        "While expanding the reference 'num_a' in:"
-                    ],
-                    "start_col": 17,
-                    "start_line": 35
-                }
-            },
-            "91": {
-                "accessible_scopes": [
-                    "__main__",
-                    "__main__.main"
-                ],
-                "flow_tracking_data": {
-                    "ap_tracking": {
-                        "group": 8,
-                        "offset": 4
-                    },
-                    "reference_ids": {
-                        "__main__.main.bitwise_ptr": 58,
-                        "__main__.main.num_a": 59,
-                        "__main__.main.num_b": 60,
-                        "__main__.main.output_ptr": 55,
-                        "__main__.main.pedersen_ptr": 56,
-                        "__main__.main.range_check_ptr": 57
-                    }
-                },
-                "hints": [],
-                "inst": {
-                    "end_col": 20,
-                    "end_line": 36,
-                    "input_file": {
-                        "filename": "integration_with_alloc_locals.cairo"
-                    },
-                    "parent_location": [
-                        {
-                            "end_col": 88,
-                            "end_line": 37,
-                            "input_file": {
-                                "filename": "integration_with_alloc_locals.cairo"
-                            },
-                            "start_col": 83,
-                            "start_line": 37
-                        },
-                        "While expanding the reference 'num_b' in:"
-                    ],
-                    "start_col": 17,
-                    "start_line": 36
-                }
-            },
             "93": {
                 "accessible_scopes": [
                     "__main__",
@@ -3057,13 +3032,67 @@
                 },
                 "hints": [],
                 "inst": {
-                    "end_col": 89,
-                    "end_line": 37,
+                    "end_col": 18,
+                    "end_line": 35,
                     "input_file": {
                         "filename": "integration_with_alloc_locals.cairo"
                     },
-                    "start_col": 30,
-                    "start_line": 37
+                    "parent_location": [
+                        {
+                            "end_col": 81,
+                            "end_line": 37,
+                            "input_file": {
+                                "filename": "integration_with_alloc_locals.cairo"
+                            },
+                            "start_col": 76,
+                            "start_line": 37
+                        },
+                        "While expanding the reference 'num_a' in:"
+                    ],
+                    "start_col": 13,
+                    "start_line": 35
+                }
+            },
+            "94": {
+                "accessible_scopes": [
+                    "__main__",
+                    "__main__.main"
+                ],
+                "flow_tracking_data": {
+                    "ap_tracking": {
+                        "group": 8,
+                        "offset": 6
+                    },
+                    "reference_ids": {
+                        "__main__.main.bitwise_ptr": 58,
+                        "__main__.main.num_a": 59,
+                        "__main__.main.num_b": 60,
+                        "__main__.main.output_ptr": 55,
+                        "__main__.main.pedersen_ptr": 56,
+                        "__main__.main.range_check_ptr": 57
+                    }
+                },
+                "hints": [],
+                "inst": {
+                    "end_col": 18,
+                    "end_line": 36,
+                    "input_file": {
+                        "filename": "integration_with_alloc_locals.cairo"
+                    },
+                    "parent_location": [
+                        {
+                            "end_col": 88,
+                            "end_line": 37,
+                            "input_file": {
+                                "filename": "integration_with_alloc_locals.cairo"
+                            },
+                            "start_col": 83,
+                            "start_line": 37
+                        },
+                        "While expanding the reference 'num_b' in:"
+                    ],
+                    "start_col": 13,
+                    "start_line": 36
                 }
             },
             "95": {
@@ -3074,7 +3103,37 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 31
+                        "offset": 7
+                    },
+                    "reference_ids": {
+                        "__main__.main.bitwise_ptr": 58,
+                        "__main__.main.num_a": 59,
+                        "__main__.main.num_b": 60,
+                        "__main__.main.output_ptr": 55,
+                        "__main__.main.pedersen_ptr": 56,
+                        "__main__.main.range_check_ptr": 57
+                    }
+                },
+                "hints": [],
+                "inst": {
+                    "end_col": 89,
+                    "end_line": 37,
+                    "input_file": {
+                        "filename": "integration_with_alloc_locals.cairo"
+                    },
+                    "start_col": 30,
+                    "start_line": 37
+                }
+            },
+            "97": {
+                "accessible_scopes": [
+                    "__main__",
+                    "__main__.main"
+                ],
+                "flow_tracking_data": {
+                    "ap_tracking": {
+                        "group": 8,
+                        "offset": 33
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3109,7 +3168,7 @@
                     "start_line": 37
                 }
             },
-            "96": {
+            "98": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3117,7 +3176,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 31
+                        "offset": 33
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3164,7 +3223,7 @@
                     "start_line": 33
                 }
             },
-            "97": {
+            "99": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3172,7 +3231,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 32
+                        "offset": 34
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3231,7 +3290,7 @@
                     "start_line": 9
                 }
             },
-            "98": {
+            "100": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3239,7 +3298,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 33
+                        "offset": 35
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3274,7 +3333,7 @@
                     "start_line": 37
                 }
             },
-            "99": {
+            "101": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3282,7 +3341,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 34
+                        "offset": 36
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3305,7 +3364,7 @@
                     "start_line": 38
                 }
             },
-            "101": {
+            "103": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3313,7 +3372,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 35
+                        "offset": 37
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3336,7 +3395,7 @@
                     "start_line": 38
                 }
             },
-            "103": {
+            "105": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3344,7 +3403,7 @@
                 "flow_tracking_data": {
                     "ap_tracking": {
                         "group": 8,
-                        "offset": 36
+                        "offset": 38
                     },
                     "reference_ids": {
                         "__main__.main.bitwise_ptr": 62,
@@ -3367,7 +3426,7 @@
                     "start_line": 38
                 }
             },
-            "105": {
+            "107": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3399,7 +3458,7 @@
                     "start_line": 39
                 }
             },
-            "107": {
+            "109": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3455,7 +3514,7 @@
                     "start_line": 33
                 }
             },
-            "108": {
+            "110": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3499,7 +3558,7 @@
                     "start_line": 38
                 }
             },
-            "109": {
+            "111": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3531,7 +3590,7 @@
                     "start_line": 40
                 }
             },
-            "111": {
+            "113": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3599,7 +3658,7 @@
                     "start_line": 37
                 }
             },
-            "112": {
+            "114": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3667,7 +3726,7 @@
                     "start_line": 16
                 }
             },
-            "113": {
+            "115": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -3735,7 +3794,7 @@
                     "start_line": 16
                 }
             },
-            "114": {
+            "116": {
                 "accessible_scopes": [
                     "__main__",
                     "__main__.main"
@@ -4269,9 +4328,9 @@
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 30
+                        "offset": 32
                     },
-                    "pc": 95,
+                    "pc": 97,
                     "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
                 },
                 {
@@ -4279,15 +4338,15 @@
                         "group": 9,
                         "offset": 0
                     },
-                    "pc": 104,
+                    "pc": 106,
                     "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
                 },
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 31
+                        "offset": 33
                     },
-                    "pc": 95,
+                    "pc": 97,
                     "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
                 },
                 {
@@ -4295,7 +4354,7 @@
                         "group": 9,
                         "offset": 0
                     },
-                    "pc": 105,
+                    "pc": 107,
                     "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
                 }
             ],
@@ -4310,7 +4369,7 @@
                         "group": 9,
                         "offset": 0
                     },
-                    "pc": 105,
+                    "pc": 107,
                     "value": "[cast(ap + (-1), felt*)]"
                 }
             ],
@@ -4323,9 +4382,9 @@
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 31
+                        "offset": 33
                     },
-                    "pc": 95,
+                    "pc": 97,
                     "value": "[cast(ap + (-1), felt*)]"
                 }
             ],
@@ -4338,10 +4397,10 @@
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 1
+                        "offset": 2
                     },
-                    "pc": 87,
-                    "value": "cast(99, felt)"
+                    "pc": 89,
+                    "value": "[cast(ap + (-1), felt*)]"
                 }
             ],
             "type": "reference"
@@ -4353,10 +4412,10 @@
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 1
+                        "offset": 3
                     },
-                    "pc": 87,
-                    "value": "cast(105, felt)"
+                    "pc": 91,
+                    "value": "[cast(ap + (-1), felt*)]"
                 }
             ],
             "type": "reference"
@@ -4378,7 +4437,7 @@
                         "group": 9,
                         "offset": 5
                     },
-                    "pc": 110,
+                    "pc": 112,
                     "value": "[cast(ap + (-1), felt**)]"
                 },
                 {
@@ -4386,7 +4445,7 @@
                         "group": 9,
                         "offset": 5
                     },
-                    "pc": 111,
+                    "pc": 113,
                     "value": "[cast(ap + (-1), felt**)]"
                 }
             ],
@@ -4407,25 +4466,25 @@
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 30
+                        "offset": 32
                     },
-                    "pc": 95,
+                    "pc": 97,
                     "value": "[cast(ap + (-3), starkware.cairo.common.cairo_builtins.HashBuiltin**)]"
                 },
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 31
+                        "offset": 33
                     },
-                    "pc": 95,
+                    "pc": 97,
                     "value": "[cast(ap + (-3), starkware.cairo.common.cairo_builtins.HashBuiltin**)]"
                 },
                 {
                     "ap_tracking_data": {
                         "group": 8,
-                        "offset": 31
+                        "offset": 33
                     },
-                    "pc": 96,
+                    "pc": 98,
                     "value": "[cast(fp, starkware.cairo.common.cairo_builtins.HashBuiltin**)]"
                 }
             ],
@@ -4448,7 +4507,7 @@
                         "group": 9,
                         "offset": 0
                     },
-                    "pc": 104,
+                    "pc": 106,
                     "value": "[cast(ap + (-3), felt*)]"
                 },
                 {
@@ -4456,7 +4515,7 @@
                         "group": 9,
                         "offset": 0
                     },
-                    "pc": 105,
+                    "pc": 107,
                     "value": "[cast(ap + (-3), felt*)]"
                 }
             ],
@@ -5652,49 +5711,49 @@
             {
                 "ap_tracking_data": {
                     "group": 8,
-                    "offset": 1
+                    "offset": 2
                 },
-                "pc": 87,
-                "value": "cast(99, felt)"
-            },
-            {
-                "ap_tracking_data": {
-                    "group": 8,
-                    "offset": 1
-                },
-                "pc": 87,
-                "value": "cast(105, felt)"
-            },
-            {
-                "ap_tracking_data": {
-                    "group": 8,
-                    "offset": 31
-                },
-                "pc": 95,
-                "value": "[cast(ap + (-3), starkware.cairo.common.cairo_builtins.HashBuiltin**)]"
-            },
-            {
-                "ap_tracking_data": {
-                    "group": 8,
-                    "offset": 31
-                },
-                "pc": 95,
-                "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
-            },
-            {
-                "ap_tracking_data": {
-                    "group": 8,
-                    "offset": 31
-                },
-                "pc": 95,
+                "pc": 89,
                 "value": "[cast(ap + (-1), felt*)]"
             },
             {
                 "ap_tracking_data": {
                     "group": 8,
-                    "offset": 31
+                    "offset": 3
                 },
-                "pc": 96,
+                "pc": 91,
+                "value": "[cast(ap + (-1), felt*)]"
+            },
+            {
+                "ap_tracking_data": {
+                    "group": 8,
+                    "offset": 33
+                },
+                "pc": 97,
+                "value": "[cast(ap + (-3), starkware.cairo.common.cairo_builtins.HashBuiltin**)]"
+            },
+            {
+                "ap_tracking_data": {
+                    "group": 8,
+                    "offset": 33
+                },
+                "pc": 97,
+                "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
+            },
+            {
+                "ap_tracking_data": {
+                    "group": 8,
+                    "offset": 33
+                },
+                "pc": 97,
+                "value": "[cast(ap + (-1), felt*)]"
+            },
+            {
+                "ap_tracking_data": {
+                    "group": 8,
+                    "offset": 33
+                },
+                "pc": 98,
                 "value": "[cast(fp, starkware.cairo.common.cairo_builtins.HashBuiltin**)]"
             },
             {
@@ -5702,7 +5761,7 @@
                     "group": 9,
                     "offset": 0
                 },
-                "pc": 105,
+                "pc": 107,
                 "value": "[cast(ap + (-3), felt*)]"
             },
             {
@@ -5710,7 +5769,7 @@
                     "group": 9,
                     "offset": 0
                 },
-                "pc": 105,
+                "pc": 107,
                 "value": "[cast(ap + (-2), starkware.cairo.common.cairo_builtins.BitwiseBuiltin**)]"
             },
             {
@@ -5718,7 +5777,7 @@
                     "group": 9,
                     "offset": 0
                 },
-                "pc": 105,
+                "pc": 107,
                 "value": "[cast(ap + (-1), felt*)]"
             },
             {
@@ -5726,7 +5785,7 @@
                     "group": 9,
                     "offset": 5
                 },
-                "pc": 111,
+                "pc": 113,
                 "value": "[cast(ap + (-1), felt**)]"
             }
         ]
