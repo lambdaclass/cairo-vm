@@ -41,20 +41,22 @@ impl Memory {
                 for _ in 0..(j - self.data[i].len()) {
                     self.data[i].push(None)
                 }
-            }
-            if self.data[i].len() > j {
+            } else if self.data[i].len() > j {
                 //Existing memory cannot be changed
                 if let Some(ref current_value) = self.data[i][j] {
-                    return Err(MemoryError::InconsistentMemory(
-                        key.to_owned(),
-                        current_value.to_owned(),
-                        val.to_owned(),
-                    ));
+                    if current_value != val {
+                        return Err(MemoryError::InconsistentMemory(
+                            key.to_owned(),
+                            current_value.to_owned(),
+                            val.to_owned(),
+                        ));
+                    }
                 } else {
                     //Fill existing memory gaps
                     self.data[i][j] = Some(val.to_owned());
                 }
             } else {
+                //Value inserted right after the last one, without gaps
                 self.data[i].push(Some(val.clone()))
             }
         } else {
