@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::serde::deserialize_program;
+use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
 
@@ -13,7 +14,7 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(path: &Path) -> Program {
+    pub fn new(path: &Path) -> Result<Program, ProgramError> {
         deserialize_program::deserialize_program(path)
     }
 }
@@ -25,7 +26,8 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = Program::new(Path::new("tests/support/valid_program_a.json"));
+        let program: Program = Program::new(Path::new("tests/support/valid_program_a.json"))
+            .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
