@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655927879861,
+  "lastUpdate": 1655928354428,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -959,6 +959,32 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 8993143,
             "range": "± 702540",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "152d3943ce2c5634a2a0adda53d7dbbee3379d32",
+          "message": "[CU-2yzxequ] Refactor unwraps from vm_core",
+          "timestamp": "2022-06-21T13:37:01Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/163/commits/152d3943ce2c5634a2a0adda53d7dbbee3379d32"
+        },
+        "date": 1655928351962,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 10888080,
+            "range": "± 34072",
             "unit": "ns/iter"
           }
         ]
