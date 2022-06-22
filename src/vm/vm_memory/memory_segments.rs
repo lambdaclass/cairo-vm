@@ -55,7 +55,7 @@ impl MemorySegmentManager {
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
         let mut relocation_table = vec![first_addr];
-        match self.segment_used_sizes {
+        match &self.segment_used_sizes {
             Some(segment_used_sizes) => {
                 for (i, size) in segment_used_sizes.iter().enumerate() {
                     relocation_table.push(relocation_table[i] + size);
