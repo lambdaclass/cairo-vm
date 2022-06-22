@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655931617078,
+  "lastUpdate": 1655934701776,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -1097,6 +1097,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 8752640,
             "range": "± 19656",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f080f9c5e8fa12e93d85f39694e39ced24158a17",
+          "message": "Merge pull request #165 from lambdaclass/CU-2yzxequ-refactor-unwraps-vm_core\n\n[CU-2yzxequ] Refactor unwraps from verify_auto_deductions in vm_core",
+          "timestamp": "2022-06-22T18:47:17-03:00",
+          "tree_id": "c3c275ff8d60ff56d1622024db9a58020c7f4692",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/f080f9c5e8fa12e93d85f39694e39ced24158a17"
+        },
+        "date": 1655934700566,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8148518,
+            "range": "± 340413",
             "unit": "ns/iter"
           }
         ]
