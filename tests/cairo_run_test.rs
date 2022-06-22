@@ -19,3 +19,8 @@ fn cairo_run_bitwise_recursion() {
 fn cairo_run_integration() {
     cairo_run::cairo_run("tests/support/integration.json");
 }
+
+#[test]
+fn cairo_run_integration_with_alloc_locals() {
+    cairo_run::cairo_run("tests/support/integration_with_alloc_locals.json");
+}

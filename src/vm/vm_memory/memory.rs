@@ -42,7 +42,12 @@ impl Memory {
                     self.data[i].push(None)
                 }
             }
-            self.data[i].push(Some(val.clone()))
+            //Fill existing memory gaps
+            if self.data[i].len() > j && self.data[i][j] == None {
+                self.data[i][j] = Some(val.to_owned());
+            } else {
+                self.data[i].push(Some(val.clone()))
+            }
         } else {
             return Err(MemoryError::AddressNotRelocatable);
         }
