@@ -43,16 +43,23 @@ mod tests {
 
     #[test]
     fn write_binary_file() {
-        let program = Program::new("tests/support/struct.json");
+        let program_path = Path::new("tests/support/struct.json");
+        let serialized_trace_filename = "tests/support/struct_cleopatra.trace";
+        let serialized_trace_path = Path::new(serialized_trace_filename.clone());
+        let program = Program::new(program_path);
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
         cairo_runner.initialize_vm().unwrap();
         assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
         cairo_runner.relocate().unwrap();
-        write_binary_trace(
-            &cairo_runner.relocated_trace,
-            "tests/support/struct_cleopatra.trace",
-        );
+        write_binary_trace(&cairo_runner.relocated_trace, serialized_trace_path);
+
+        let expected_trace_buffer = File::open("tests/support/struct.trace").unwrap();
+        let expected_trace: Vec<u8> = bincode::deserialize_from(&expected_trace_buffer).unwrap();
+        let serialized_buffer = File::open(serialized_trace_filename).unwrap();
+        let serialized_program: Vec<u8> = bincode::deserialize_from(&serialized_buffer).unwrap();
+
+        assert!(expected_trace == serialized_program);
     }
 }
