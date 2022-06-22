@@ -52,19 +52,20 @@ impl MemorySegmentManager {
     }
 
     ///Returns a vector that contains the first relocated address of each memory segment
-    pub fn relocate_segments(&self) -> Vec<usize> {
-        assert!(
-            self.segment_used_sizes != None,
-            "compute_effective_sizes should be called before relocate_segments"
-        );
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
         let mut relocation_table = vec![first_addr];
-        for (i, size) in self.segment_used_sizes.as_ref().unwrap().iter().enumerate() {
-            relocation_table.push(relocation_table[i] + size);
+        match &self.segment_used_sizes {
+            Some(segment_used_sizes) => {
+                for (i, size) in segment_used_sizes.iter().enumerate() {
+                    relocation_table.push(relocation_table[i] + size);
+                }
+            }
+            None => return Err(MemoryError::EffectiveSizesNotCalled),
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
-        relocation_table
+        Ok(relocation_table)
     }
 }
 
@@ -357,13 +358,23 @@ mod tests {
     fn relocate_segments_one_segment() {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3]);
-        assert_eq!(segments.relocate_segments(), vec![1])
+        assert_eq!(
+            segments
+                .relocate_segments()
+                .expect("Couldn't relocate after compute effective sizes"),
+            vec![1]
+        )
     }
 
     #[test]
     fn relocate_segments_five_segment() {
         let mut segments = MemorySegmentManager::new();
         segments.segment_used_sizes = Some(vec![3, 3, 56, 78, 8]);
-        assert_eq!(segments.relocate_segments(), vec![1, 4, 7, 63, 141])
+        assert_eq!(
+            segments
+                .relocate_segments()
+                .expect("Couldn't relocate after compute effective sizes"),
+            vec![1, 4, 7, 63, 141]
+        )
     }
 }
