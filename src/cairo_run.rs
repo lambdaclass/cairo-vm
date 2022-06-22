@@ -21,7 +21,6 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) {
     cairo_runner.write_output(&mut io::stdout()).unwrap();
 }
 
-#[allow(dead_code)]
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
 /// entry is composed of 3 usize values that are padded to always reach 64 bit size.
 fn write_binary_trace(relocated_trace: &Vec<RelocatedTraceEntry>, trace_file: &Path) {
