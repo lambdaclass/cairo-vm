@@ -433,7 +433,6 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
-
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
 
         let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
@@ -464,7 +463,6 @@ impl VirtualMachine {
         let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
-
             match self.deduce_memory_cell(&op0_addr) {
                 Ok(None) => {
                     (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
@@ -516,9 +514,10 @@ impl VirtualMachine {
 
         if should_update_dst {
             match dst {
-                Some(ref unwrapped_dst) => {
-                    self.memory.insert(&dst_addr, unwrapped_dst).unwrap();
-                }
+                Some(ref unwrapped_dst) => match self.memory.insert(&dst_addr, unwrapped_dst) {
+                    Ok(()) => (),
+                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                },
                 _ => return Err(VirtualMachineError::NoDst),
             }
         }
