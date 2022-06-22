@@ -433,14 +433,30 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
+
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
-        let mut dst: Option<MaybeRelocatable> = self.memory.get(&dst_addr).unwrap().cloned();
+
+        let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
+            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            Ok(result) => result.cloned(),
+        };
+
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction)?;
-        let mut op0: Option<MaybeRelocatable> = self.memory.get(&op0_addr).unwrap().cloned();
+
+        let mut op0: Option<MaybeRelocatable> = match self.memory.get(&op0_addr) {
+            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            Ok(result) => result.cloned(),
+        };
+
         let op1_addr: MaybeRelocatable = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1: Option<MaybeRelocatable> = self.memory.get(&op1_addr).unwrap().cloned();
+
+        let mut op1: Option<MaybeRelocatable> = match self.memory.get(&op1_addr) {
+            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            Ok(result) => result.cloned(),
+        };
+
         let mut res: Option<MaybeRelocatable> = None;
 
         let should_update_dst = matches!(dst, None);
@@ -448,29 +464,43 @@ impl VirtualMachine {
         let should_update_op1 = matches!(op1, None);
 
         if matches!(op0, None) {
-            op0 = self.deduce_memory_cell(&op0_addr)?;
-        }
-        if matches!(op1, None) {
-            op1 = self.deduce_memory_cell(&op1_addr)?;
-        }
 
-        if matches!(op0, None) {
-            (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
-        }
-
-        if matches!(op1, None) {
-            let deduced_operand = self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
-            op1 = deduced_operand.0;
-            if matches!(res, None) {
-                res = deduced_operand.1;
+            match self.deduce_memory_cell(&op0_addr) {
+                Ok(None) => {
+                    (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
+                }
+                Ok(deduced_memory_cell) => {
+                    op0 = deduced_memory_cell;
+                }
+                Err(e) => return Err(e),
             }
         }
 
-        assert!(matches!(op0, Some(_)), "Couldn't compute or deduce op0");
-        assert!(matches!(op1, Some(_)), "Couldn't compute or deduce op1");
+        if matches!(op1, None) {
+            match self.deduce_memory_cell(&op1_addr) {
+                Ok(None) => {
+                    let deduced_operands =
+                        self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
+                    op1 = deduced_operands.0;
+
+                    if matches!(res, None) {
+                        res = deduced_operands.1
+                    }
+                }
+                Ok(deduced_memory_cell) => {
+                    op1 = deduced_memory_cell;
+                }
+                Err(e) => return Err(e),
+            }
+        }
 
         if matches!(res, None) {
-            res = self.compute_res(instruction, op0.as_ref().unwrap(), op1.as_ref().unwrap())?;
+            match (op0.clone(), op1.clone()) {
+                (Some(ref unwrapped_op0), Some(ref unwrapped_op1)) => {
+                    res = self.compute_res(instruction, unwrapped_op0, unwrapped_op1)?;
+                }
+                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            }
         }
 
         if matches!(dst, None) {
@@ -485,30 +515,46 @@ impl VirtualMachine {
         }
 
         if should_update_dst {
-            self.memory
-                .insert(&dst_addr, dst.as_ref().unwrap())
-                .unwrap();
-        }
-        if should_update_op0 {
-            self.memory
-                .insert(&op0_addr, op0.as_ref().unwrap())
-                .unwrap();
-        }
-        if should_update_op1 {
-            self.memory
-                .insert(&op1_addr, op1.as_ref().unwrap())
-                .unwrap();
+            match dst {
+                Some(ref unwrapped_dst) => {
+                    self.memory.insert(&dst_addr, unwrapped_dst).unwrap();
+                }
+                _ => return Err(VirtualMachineError::NoDst),
+            }
         }
 
-        Ok((
-            Operands {
-                dst: dst.unwrap(),
-                op0: op0.unwrap(),
-                op1: op1.unwrap(),
-                res,
-            },
-            [dst_addr, op0_addr, op1_addr].to_vec(),
-        ))
+        if should_update_op0 {
+            match op0 {
+                Some(ref unwrapped_op0) => match self.memory.insert(&op0_addr, unwrapped_op0) {
+                    Ok(()) => (),
+                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                },
+                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            }
+        }
+
+        if should_update_op1 {
+            match op1 {
+                Some(ref unwrapped_op1) => match self.memory.insert(&op1_addr, unwrapped_op1) {
+                    Ok(()) => (),
+                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                },
+                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+            };
+        }
+
+        match (dst, op0.clone(), op1.clone()) {
+            (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => Ok((
+                Operands {
+                    dst: unwrapped_dst,
+                    op0: unwrapped_op0,
+                    op1: unwrapped_op1,
+                    res,
+                },
+                [dst_addr, op0_addr, op1_addr].to_vec(),
+            )),
+            _ => Err(VirtualMachineError::InvalidInstructionEncoding),
+        }
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
