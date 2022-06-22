@@ -274,7 +274,10 @@ impl CairoRunner {
 
     pub fn relocate(&mut self) -> Result<(), TraceError> {
         self.segments.compute_effective_sizes(&self.vm.memory);
-        let relocation_table = self.segments.relocate_segments();
+        let relocation_table = self
+            .segments
+            .relocate_segments()
+            .expect("compute_effective_sizes called but relocate_memory still returned error");
         self.relocate_memory(&relocation_table);
         self.relocate_trace(&relocation_table)?;
         Ok(())
@@ -2343,7 +2346,10 @@ mod tests {
         cairo_runner
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
-        let rel_table = cairo_runner.segments.relocate_segments();
+        let rel_table = cairo_runner
+            .segments
+            .relocate_segments()
+            .expect("Couldn't relocate after compute effective sizes");
         cairo_runner.relocate_memory(&rel_table);
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
@@ -2440,7 +2446,10 @@ mod tests {
         cairo_runner
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
-        let rel_table = cairo_runner.segments.relocate_segments();
+        let rel_table = cairo_runner
+            .segments
+            .relocate_segments()
+            .expect("Couldn't relocate after compute effective sizes");
         cairo_runner.relocate_memory(&rel_table);
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
@@ -2567,7 +2576,10 @@ mod tests {
         cairo_runner
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
-        let rel_table = cairo_runner.segments.relocate_segments();
+        let rel_table = cairo_runner
+            .segments
+            .relocate_segments()
+            .expect("Couldn't relocate after compute effective sizes");
         cairo_runner.relocate_trace(&rel_table).unwrap();
         assert_eq!(cairo_runner.relocated_trace.len(), 12);
         assert_eq!(

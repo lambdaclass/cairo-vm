@@ -6,6 +6,7 @@ pub enum MemoryError {
     AddressNotRelocatable,
     NumOutOfBounds,
     FoundNonInt,
+    EffectiveSizesNotCalled,
 }
 
 impl fmt::Display for MemoryError {
@@ -24,6 +25,10 @@ impl fmt::Display for MemoryError {
             MemoryError::FoundNonInt => write!(
                 f,
                 "Range-check validation failed, encountered non-int value"
+            ),
+            MemoryError::EffectiveSizesNotCalled => write!(
+                f,
+                "compute_effective_sizes should be called before relocate_segments"
             ),
         }
     }

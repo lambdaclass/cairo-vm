@@ -19,5 +19,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    cairo_run::cairo_run(&args.filename, args.trace.as_ref());
+    if let Err(e) = cairo_run::cairo_run(&args.filename, args.trace.as_ref()) {
+        println!("Couldn't run program, found error: {:?}", e);
+    };
 }

@@ -1,3 +1,4 @@
+use crate::types::errors::program_errors::ProgramError;
 use crate::types::program::Program;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
@@ -5,8 +6,8 @@ use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) {
-    let program = Program::new(path);
+pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), ProgramError> {
+    let program = Program::new(path)?;
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
@@ -18,6 +19,8 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) {
         write_binary_trace(&cairo_runner.relocated_trace, trace_path);
     }
     cairo_runner.write_output(&mut io::stdout()).unwrap();
+
+    Ok(())
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
@@ -43,7 +46,7 @@ mod tests {
         let program_path = Path::new("tests/support/struct.json");
         let serialized_trace_filename = "tests/support/struct_cleopatra.trace";
         let serialized_trace_path = Path::new(serialized_trace_filename.clone());
-        let program = Program::new(program_path);
+        let program = Program::new(program_path).expect("Couldn't open program");
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
         let end = cairo_runner
