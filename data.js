@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655857124278,
+  "lastUpdate": 1655914045392,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -795,6 +795,32 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 9862012,
             "range": "± 697265",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "761f065e7948436a098f804f1d78ffca8926ed78",
+          "message": "[CU-2z5j3jx] Remove unwraps in deserialize_program.rs, Handle ProgramErrors",
+          "timestamp": "2022-06-21T13:37:01Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/159/commits/761f065e7948436a098f804f1d78ffca8926ed78"
+        },
+        "date": 1655914044481,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 9529453,
+            "range": "± 141910",
             "unit": "ns/iter"
           }
         ]
