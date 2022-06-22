@@ -52,15 +52,16 @@ impl MemorySegmentManager {
     }
 
     ///Returns a vector that contains the first relocated address of each memory segment
-    pub fn relocate_segments(&self) -> Vec<usize> {
-        assert!(
-            self.segment_used_sizes != None,
-            "compute_effective_sizes should be called before relocate_segments"
-        );
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
         let mut relocation_table = vec![first_addr];
-        for (i, size) in self.segment_used_sizes.as_ref().unwrap().iter().enumerate() {
-            relocation_table.push(relocation_table[i] + size);
+        match self.segment_used_sizes {
+            Some(segment_used_sizes) => {
+                for (i, size) in segment_used_sizes.as_ref().iter().enumerate() {
+                    relocation_table.push(relocation_table[i] + size);
+                }
+            }
+            None => return MemoryError::EffectiveSizesNotCalled,
         }
         //The last value corresponds to the total amount of elements across all segments, which isnt needed for relocation.
         relocation_table.pop();
