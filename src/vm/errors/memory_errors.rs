@@ -1,11 +1,14 @@
 use std::fmt;
 
+use crate::types::relocatable::MaybeRelocatable;
+
 #[derive(Debug, PartialEq)]
 pub enum MemoryError {
     UnallocatedSegment(usize, usize),
     AddressNotRelocatable,
     NumOutOfBounds,
     FoundNonInt,
+    InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
 }
 
 impl fmt::Display for MemoryError {
@@ -24,6 +27,11 @@ impl fmt::Display for MemoryError {
             MemoryError::FoundNonInt => write!(
                 f,
                 "Range-check validation failed, encountered non-int value"
+            ),
+            MemoryError::InconsistentMemory(addr, val_a, val_b) => write!(
+                f,
+                "Inconsistent memory assignment at address {:?}. {:?} != {:?}",
+                addr, val_a, val_b
             ),
         }
     }

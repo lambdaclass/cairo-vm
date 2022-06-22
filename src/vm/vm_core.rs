@@ -2953,12 +2953,6 @@ mod tests {
                 &MaybeRelocatable::from((0, 13)),
             )
             .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from((2, 8)),
-            )
-            .unwrap();
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::from(bigint!(8)),

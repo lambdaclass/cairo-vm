@@ -42,9 +42,18 @@ impl Memory {
                     self.data[i].push(None)
                 }
             }
-            //Fill existing memory gaps
-            if self.data[i].len() > j && self.data[i][j] == None {
-                self.data[i][j] = Some(val.to_owned());
+            if self.data[i].len() > j {
+                //Existing memory cannot be changed
+                if let Some(ref current_value) = self.data[i][j] {
+                    return Err(MemoryError::InconsistentMemory(
+                        key.to_owned(),
+                        current_value.to_owned(),
+                        val.to_owned(),
+                    ));
+                } else {
+                    //Fill existing memory gaps
+                    self.data[i][j] = Some(val.to_owned());
+                }
             } else {
                 self.data[i].push(Some(val.clone()))
             }
