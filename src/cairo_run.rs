@@ -2,13 +2,15 @@ use crate::types::program::Program;
 use crate::vm::errors::cairo_run_errors::CairoRunError;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
-use std::error;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 
 pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoRunError> {
-    let program = Program::new(path).unwrap();
+    let program = match Program::new(path) {
+        Ok(program) => program,
+        Err(error) => return Err(CairoRunError::Program(error)),
+    };
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint()?;
