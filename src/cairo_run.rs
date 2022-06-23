@@ -1,20 +1,21 @@
-use crate::types::errors::program_errors::ProgramError;
 use crate::types::program::Program;
+use crate::vm::errors::cairo_run_errors::CairoRunError;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
+use std::error;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), ProgramError> {
-    let program = Program::new(path)?;
+pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoRunError> {
+    let program = Program::new(path).unwrap();
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
-    let end = cairo_runner.initialize_main_entrypoint().unwrap();
-    cairo_runner.initialize_vm().unwrap();
+    let end = cairo_runner.initialize_main_entrypoint()?;
+    cairo_runner.initialize_vm()?;
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
-    cairo_runner.vm.verify_auto_deductions().unwrap();
-    cairo_runner.relocate().unwrap();
+    cairo_runner.vm.verify_auto_deductions()?;
+    cairo_runner.relocate()?;
     if let Some(trace_path) = trace_path {
         write_binary_trace(&cairo_runner.relocated_trace, trace_path);
     }
