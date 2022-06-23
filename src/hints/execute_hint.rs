@@ -1,4 +1,4 @@
-use crate::types::relocatable::MaybeRelocatable;
+/*use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -16,7 +16,7 @@ pub fn execute_hint(
 
     //Shared values
     let shared_segments = Arc::new(Mutex::new(runner.segments));
-    let shared_ap = Arc::new(Mutex::new(runner.vm.run_context.ap));
+    let shared_ap = Arc::new(Mutex::new(runner.vm.run_context.ap.clone()));
 
     #[derive(WasmerEnv, Clone)]
     struct Env {
@@ -46,7 +46,7 @@ pub fn execute_hint(
     hint.call(&[])?;
 
     Ok(())
-}
+}*/
 
 /*
 Block of wasm code to execute alloc() hint:

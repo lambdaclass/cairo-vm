@@ -8,6 +8,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashSet;
@@ -37,7 +38,7 @@ pub struct VirtualMachine {
     //program: ProgramBase,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Arc<Mutex<Memory>>,
-    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
+    pub segments: MemorySegmentManager,
     accessed_addresses: HashSet<MaybeRelocatable>,
     pub trace: Vec<TraceEntry>,
     current_step: usize,
@@ -61,6 +62,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             _program_base: None,
+            segments: MemorySegmentManager::new(),
             memory: Arc::new(Mutex::new(Memory::new())),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -2325,6 +2327,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
+            segments: MemorySegmentManager::new(),
             memory: Arc::new(Mutex::new(Memory::new())),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
