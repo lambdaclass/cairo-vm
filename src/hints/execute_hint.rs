@@ -1,4 +1,4 @@
-/*use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -15,7 +15,6 @@ pub fn execute_hint(
     let module = Module::new(&store, wasm_bytes)?;
 
     //Shared values
-    let shared_segments = Arc::new(Mutex::new(runner.segments));
     let shared_ap = Arc::new(Mutex::new(runner.vm.run_context.ap.clone()));
 
     #[derive(WasmerEnv, Clone)]
@@ -31,13 +30,15 @@ pub fn execute_hint(
         let mut memory = env.memory.lock().unwrap();
         let ap = env.ap.lock().unwrap();
         let rel = segments.add(&mut (*memory), None);
-        (*memory).insert(&*ap, &MaybeRelocatable::RelocatableValue(rel));
+        (*memory)
+            .insert(&*ap, &MaybeRelocatable::RelocatableValue(rel))
+            .unwrap();
     }
 
     // Create an import object.
     let import_object = imports! {
         "env" => {
-            "add_segment" => Function::new_native_with_env(&store, Env { memory: runner.vm.memory.clone(), segments: shared_segments.clone(), ap: shared_ap.clone() }, add_segment),
+            "add_segment" => Function::new_native_with_env(&store, Env { memory: runner.vm.memory.clone(), segments: runner.vm.segments.clone(), ap: shared_ap.clone() }, add_segment),
             //Env Received by function must be static
         }
     };
@@ -46,7 +47,7 @@ pub fn execute_hint(
     hint.call(&[])?;
 
     Ok(())
-}*/
+}
 
 /*
 Block of wasm code to execute alloc() hint:
