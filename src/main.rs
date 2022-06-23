@@ -5,6 +5,7 @@ mod serde;
 mod types;
 mod utils;
 mod vm;
+use crate::vm::errors::cairo_run_errors::CairoRunError;
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
@@ -17,9 +18,16 @@ struct Args {
     trace: Option<PathBuf>,
 }
 
-fn main() {
+fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
-    if let Err(e) = cairo_run::cairo_run(&args.filename, args.trace.as_ref()) {
-        println!("Couldn't run program, found error: {:?}", e);
+    let cairo_runner = match cairo_run::cairo_run(&args.filename) {
+        Ok(runner) => runner,
+        Err(error) => return Err(error),
     };
+
+    if let Some(trace_path) = args.trace {
+        cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path);
+    }
+
+    Ok(())
 }
