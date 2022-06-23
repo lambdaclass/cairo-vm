@@ -1,0 +1,29 @@
+name: docs
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Install Rust nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+    - uses: actions/checkout@v3
+    - name: Make Docs
+      run: cargo doc --verbose --release --locked --no-deps
+    - name: Jekyll fix
+      run: touch target/doc/.nojekyll
+    - name: Update gh-pages
+      uses: JamesIves/github-pages-deploy-action@v4.3.3
+      with:
+        branch: gh-pages
+        folder: target/doc
+        clean: false
+        commit-message: update html docs for ${{ github.sha }}
