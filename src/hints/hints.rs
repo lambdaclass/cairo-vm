@@ -32,7 +32,7 @@ pub fn execute_hint(
         let mut memory = env.memory.lock().unwrap();
         let ap = env.ap.lock().unwrap();
         let rel = segments.add(&mut (*memory), None);
-        memory.insert(&*ap, &MaybeRelocatable::RelocatableValue(rel));
+        (*memory).insert(&*ap, &MaybeRelocatable::RelocatableValue(rel));
     }
 
     // Create an import object.
