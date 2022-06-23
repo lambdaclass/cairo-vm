@@ -30,7 +30,10 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoR
         return Err(CairoRunError::VirtualMachine(error));
     }
 
-    cairo_runner.relocate()?;
+    if let Err(error) = cairo_runner.relocate() {
+        return Err(CairoRunError::Trace(error));
+    }
+
     if let Some(trace_path) = trace_path {
         write_binary_trace(&cairo_runner.relocated_trace, trace_path);
     }
