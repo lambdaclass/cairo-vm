@@ -1,5 +1,6 @@
 #![deny(warnings)]
 pub mod cairo_run;
+pub mod hints;
 pub mod math_utils;
 pub mod serde;
 pub mod types;
