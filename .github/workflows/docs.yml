@@ -17,7 +17,7 @@ jobs:
           components: rustfmt, clippy
     - uses: actions/checkout@v3
     - name: Make Docs
-      run: cargo doc --verbose --release --locked --no-deps
+      run: make docs
     - name: Jekyll fix
       run: touch target/doc/.nojekyll
     - name: Update gh-pages
