@@ -570,7 +570,9 @@ impl VirtualMachine {
                                 ) {
                                     Ok(None) => None,
                                     Ok(Some(deduced_memory_cell)) => {
-                                        if Some(&deduced_memory_cell) != value.as_ref() {
+                                        if Some(&deduced_memory_cell) != value.as_ref()
+                                            && value != &None
+                                        {
                                             return Err(
                                                 VirtualMachineError::InconsistentAutoDeduction(
                                                     name.to_owned(),
