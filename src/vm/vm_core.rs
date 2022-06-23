@@ -11,6 +11,7 @@ use crate::vm::vm_memory::memory::Memory;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -35,7 +36,7 @@ pub struct VirtualMachine {
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
     pub _program_base: Option<MaybeRelocatable>,
-    pub memory: Memory,
+    pub memory: Arc<Mutex<Memory>>,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessed_addresses: HashSet<MaybeRelocatable>,
     pub trace: Vec<TraceEntry>,
@@ -60,7 +61,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             _program_base: None,
-            memory: Memory::new(),
+            memory: Arc::new(Mutex::new(Memory::new())),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 0,
@@ -70,16 +71,16 @@ impl VirtualMachine {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
-            Ok(Some(MaybeRelocatable::Int(encoding))) => encoding,
+    ) -> Result<(BigInt, Option<MaybeRelocatable>), VirtualMachineError> {
+        let encoding_ref: BigInt = match self.memory.lock().unwrap().get(&self.run_context.pc) {
+            Ok(Some(MaybeRelocatable::Int(encoding))) => encoding.clone(),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
         let imm_addr = self.run_context.pc.add_usize_mod(1, None);
 
-        if let Ok(optional_imm) = self.memory.get(&imm_addr) {
-            Ok((encoding_ref, optional_imm))
+        if let Ok(optional_imm) = self.memory.lock().unwrap().get(&imm_addr) {
+            Ok((encoding_ref, optional_imm.cloned()))
         } else {
             Err(VirtualMachineError::InvalidInstructionEncoding)
         }
@@ -279,7 +280,7 @@ impl VirtualMachine {
             for (_, builtin) in self.builtin_runners.iter_mut() {
                 if let Some(base) = builtin.base() {
                     if base.segment_index == addr.segment_index {
-                        match builtin.deduce_memory_cell(address, &self.memory) {
+                        match builtin.deduce_memory_cell(address, &self.memory.lock().unwrap()) {
                             Ok(maybe_reloc) => return Ok(maybe_reloc),
                             Err(error) => return Err(VirtualMachineError::RunnerError(error)),
                         };
@@ -406,12 +407,11 @@ impl VirtualMachine {
     }
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
-        let (instruction_ref, imm) = self.get_instruction_encoding()?;
-        match instruction_ref.clone().to_i64() {
+        let (instruction, imm) = self.get_instruction_encoding()?;
+        match instruction.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
-                    let decoded_instruction =
-                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;
@@ -435,14 +435,14 @@ impl VirtualMachine {
     ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
 
-        let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
+        let mut dst: Option<MaybeRelocatable> = match self.memory.lock().unwrap().get(&dst_addr) {
             Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
             Ok(result) => result.cloned(),
         };
 
         let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction)?;
 
-        let mut op0: Option<MaybeRelocatable> = match self.memory.get(&op0_addr) {
+        let mut op0: Option<MaybeRelocatable> = match self.memory.lock().unwrap().get(&op0_addr) {
             Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
             Ok(result) => result.cloned(),
         };
@@ -451,7 +451,7 @@ impl VirtualMachine {
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
 
-        let mut op1: Option<MaybeRelocatable> = match self.memory.get(&op1_addr) {
+        let mut op1: Option<MaybeRelocatable> = match self.memory.lock().unwrap().get(&op1_addr) {
             Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
             Ok(result) => result.cloned(),
         };
@@ -514,35 +514,41 @@ impl VirtualMachine {
 
         if should_update_dst {
             match dst {
-                Some(ref unwrapped_dst) => match self.memory.insert(&dst_addr, unwrapped_dst) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
+                Some(ref unwrapped_dst) => {
+                    match self.memory.lock().unwrap().insert(&dst_addr, unwrapped_dst) {
+                        Ok(()) => (),
+                        _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                    }
+                }
                 _ => return Err(VirtualMachineError::NoDst),
             }
         }
 
         if should_update_op0 {
             match op0 {
-                Some(ref unwrapped_op0) => match self.memory.insert(&op0_addr, unwrapped_op0) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
+                Some(ref unwrapped_op0) => {
+                    match self.memory.lock().unwrap().insert(&op0_addr, unwrapped_op0) {
+                        Ok(()) => (),
+                        _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                    }
+                }
                 _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
             }
         }
 
         if should_update_op1 {
             match op1 {
-                Some(ref unwrapped_op1) => match self.memory.insert(&op1_addr, unwrapped_op1) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
+                Some(ref unwrapped_op1) => {
+                    match self.memory.lock().unwrap().insert(&op1_addr, unwrapped_op1) {
+                        Ok(()) => (),
+                        _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                    }
+                }
                 _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
             };
         }
 
-        match (dst, op0.clone(), op1.clone()) {
+        match (dst, op0, op1) {
             (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => Ok((
                 Operands {
                     dst: unwrapped_dst,
@@ -558,7 +564,7 @@ impl VirtualMachine {
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
-        for (i, segment) in self.memory.data.iter().enumerate() {
+        for (i, segment) in self.memory.lock().unwrap().data.iter().enumerate() {
             for (j, value) in segment.iter().enumerate() {
                 for (name, builtin) in self.builtin_runners.iter_mut() {
                     match builtin.base() {
@@ -566,7 +572,7 @@ impl VirtualMachine {
                             if builtin_base.segment_index == i {
                                 match builtin.deduce_memory_cell(
                                     &MaybeRelocatable::from((i, j)),
-                                    &self.memory,
+                                    &self.memory.lock().unwrap(),
                                 ) {
                                     Ok(None) => None,
                                     Ok(Some(deduced_memory_cell)) => {
@@ -628,30 +634,36 @@ mod tests {
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         vm.run_context.pc = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::Int(bigint!(5)),
             )
             .unwrap();
-        assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
+        assert_eq!(Ok((bigint!(5), None)), vm.get_instruction_encoding());
     }
 
     #[test]
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 1)),
                 &MaybeRelocatable::from(bigint!(6)),
@@ -2026,16 +2038,28 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((0, 0));
         let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
         let op0_addr = MaybeRelocatable::from((0, 1));
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
         let op1_addr = MaybeRelocatable::from((0, 2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
-        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.memory
+            .lock()
+            .unwrap()
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.memory
+            .lock()
+            .unwrap()
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.memory
+            .lock()
+            .unwrap()
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2068,16 +2092,28 @@ mod tests {
             opcode: Opcode::NOp,
         };
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((0, 0));
         let dst_addr_value = MaybeRelocatable::from(bigint!(6));
         let op0_addr = MaybeRelocatable::from((0, 1));
         let op0_addr_value = MaybeRelocatable::from(bigint!(2));
         let op1_addr = MaybeRelocatable::from((0, 2));
         let op1_addr_value = MaybeRelocatable::from(bigint!(3));
-        vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.memory
+            .lock()
+            .unwrap()
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.memory
+            .lock()
+            .unwrap()
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.memory
+            .lock()
+            .unwrap()
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2122,7 +2158,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
-        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
+        vm.memory = Arc::new(Mutex::new(memory_from(mem_arr.clone(), 2).unwrap()));
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint64!(0x4)),
@@ -2288,7 +2324,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
-            memory: Memory::new(),
+            memory: Arc::new(Mutex::new(Memory::new())),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 1,
@@ -2327,24 +2363,30 @@ mod tests {
             Vec::new(),
         );
         for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((3, 0)),
@@ -2410,7 +2452,7 @@ mod tests {
             Vec::new(),
         );
         for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
         vm.run_context.pc = MaybeRelocatable::from((0, 3));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
@@ -2418,42 +2460,56 @@ mod tests {
 
         //Insert values into memory
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::Int(BigInt::from_i64(5207990763031199744).unwrap()),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 1)),
                 &MaybeRelocatable::Int(bigint!(2)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 2)),
                 &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 3)),
                 &MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 4)),
                 &MaybeRelocatable::Int(bigint!(1)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 5)),
                 &MaybeRelocatable::Int(BigInt::from_i64(1226245742482522112).unwrap()),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 6)),
                 &MaybeRelocatable::Int(BigInt::new(
@@ -2466,18 +2522,24 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 7)),
                 &MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((3, 0)),
@@ -2670,7 +2732,7 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
-        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
+        vm.memory = Arc::new(Mutex::new(memory_from(mem_arr.clone(), 2).unwrap()));
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
@@ -2679,7 +2741,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap).unwrap(),
+            vm.memory.lock().unwrap().get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
         assert_eq!(vm.step(), Ok(()));
@@ -2687,7 +2749,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 3)));
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap).unwrap(),
+            vm.memory.lock().unwrap().get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
@@ -2696,7 +2758,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 4)));
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap).unwrap(),
+            vm.memory.lock().unwrap().get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(bigint64!(0x14))),
         );
     }
@@ -2717,20 +2779,26 @@ mod tests {
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 3)),
                 &MaybeRelocatable::Int(bigint!(32)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 4)),
                 &MaybeRelocatable::Int(bigint!(72)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 5)),
                 &MaybeRelocatable::Int(bigint!(0)),
@@ -2790,13 +2858,15 @@ mod tests {
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.run_context.ap = MaybeRelocatable::from((1, 13));
         vm.run_context.fp = MaybeRelocatable::from((1, 12));
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
 
         //Insert values into memory (excluding those from the program segment (instructions))
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 0)),
                 &MaybeRelocatable::from(bigint!(32)),
@@ -2804,6 +2874,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 1)),
                 &MaybeRelocatable::from(bigint!(72)),
@@ -2811,12 +2883,16 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((3, 0)),
@@ -2824,6 +2900,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 2)),
                 &MaybeRelocatable::from((4, 0)),
@@ -2831,6 +2909,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from((5, 0)),
@@ -2838,6 +2918,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from((3, 0)),
@@ -2845,6 +2927,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from((1, 4)),
@@ -2852,6 +2936,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 6)),
                 &MaybeRelocatable::from((0, 21)),
@@ -2859,6 +2945,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 7)),
                 &MaybeRelocatable::from((3, 0)),
@@ -2866,30 +2954,40 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 8)),
                 &MaybeRelocatable::from(bigint!(32)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 9)),
                 &MaybeRelocatable::from(bigint!(72)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 10)),
                 &MaybeRelocatable::from((1, 7)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 11)),
                 &MaybeRelocatable::from((0, 17)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 12)),
                 &MaybeRelocatable::from((3, 3)),
@@ -2926,20 +3024,26 @@ mod tests {
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 5)),
                 &MaybeRelocatable::Int(bigint!(10)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 6)),
                 &MaybeRelocatable::Int(bigint!(12)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 7)),
                 &MaybeRelocatable::Int(bigint!(0)),
@@ -2987,65 +3091,85 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
         vm.run_context.fp = MaybeRelocatable::from((1, 8));
         for _ in 0..3 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
 
         //Insert values into memory (excluding those from the program segment (instructions))
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(12)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((3, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 2)),
                 &MaybeRelocatable::from((4, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(12)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 6)),
                 &MaybeRelocatable::from((1, 3)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 7)),
                 &MaybeRelocatable::from((0, 13)),
@@ -3076,8 +3200,10 @@ mod tests {
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
-        vm.memory.data.push(Vec::new());
+        vm.memory.lock().unwrap().data.push(Vec::new());
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3086,6 +3212,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 1)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3094,6 +3222,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 2)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3102,6 +3232,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 3)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3110,12 +3242,16 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 4)),
                 &MaybeRelocatable::Int(bigint!(34)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 5)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3157,9 +3293,11 @@ mod tests {
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
         for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 0)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3168,6 +3306,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 1)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3176,6 +3316,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 2)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3184,6 +3326,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 3)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3192,12 +3336,16 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 4)),
                 &MaybeRelocatable::Int(bigint!(34)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 5)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3217,9 +3365,11 @@ mod tests {
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
         for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 0)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3228,6 +3378,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 1)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3236,6 +3388,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 2)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3244,6 +3398,8 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 3)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3252,12 +3408,16 @@ mod tests {
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 4)),
                 &MaybeRelocatable::Int(bigint!(34)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 5)),
                 &MaybeRelocatable::Int(bigint_str!(
@@ -3288,15 +3448,19 @@ mod tests {
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         for _ in 0..3 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(12)),
             )
             .unwrap();
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(10)),
@@ -3336,10 +3500,12 @@ mod tests {
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
+            vm.memory.lock().unwrap().data.push(Vec::new());
         }
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 0)),
                 &MaybeRelocatable::from(bigint!(32)),
@@ -3347,6 +3513,8 @@ mod tests {
             .unwrap();
 
         vm.memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((3, 1)),
                 &MaybeRelocatable::from(bigint!(72)),

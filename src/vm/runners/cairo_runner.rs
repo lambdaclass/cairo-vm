@@ -101,11 +101,12 @@ impl CairoRunner {
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
-            None => Some(self.segments.add(&mut self.vm.memory, None)),
+            None => Some(self.segments.add(&mut self.vm.memory.lock().unwrap(), None)),
         };
-        self.execution_base = Some(self.segments.add(&mut self.vm.memory, None));
+        self.execution_base = Some(self.segments.add(&mut self.vm.memory.lock().unwrap(), None));
         for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
-            builtin_runner.initialize_segments(&mut self.segments, &mut self.vm.memory);
+            builtin_runner
+                .initialize_segments(&mut self.segments, &mut self.vm.memory.lock().unwrap());
         }
     }
 
@@ -121,7 +122,7 @@ impl CairoRunner {
             };
             self.initial_pc = Some(initial_pc);
             match self.segments.load_data(
-                &mut self.vm.memory,
+                &mut self.vm.memory.lock().unwrap(),
                 &MaybeRelocatable::RelocatableValue(prog_base),
                 self.program.data.clone(),
             ) {
@@ -130,7 +131,7 @@ impl CairoRunner {
             }
             if let Some(exec_base) = &self.execution_base {
                 match self.segments.load_data(
-                    &mut self.vm.memory,
+                    &mut self.vm.memory.lock().unwrap(),
                     &MaybeRelocatable::RelocatableValue(exec_base.clone()),
                     stack,
                 ) {
@@ -152,7 +153,7 @@ impl CairoRunner {
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Result<MaybeRelocatable, RunnerError> {
-        let end = self.segments.add(&mut self.vm.memory, None);
+        let end = self.segments.add(&mut self.vm.memory.lock().unwrap(), None);
         stack.append(&mut vec![
             return_fp,
             MaybeRelocatable::RelocatableValue(end.clone()),
@@ -180,7 +181,7 @@ impl CairoRunner {
             stack.append(&mut builtin_runner.initial_stack()?);
         }
         //Different process if proof_mode is enabled
-        let return_fp = self.segments.add(&mut self.vm.memory, None);
+        let return_fp = self.segments.add(&mut self.vm.memory.lock().unwrap(), None);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
@@ -214,9 +215,9 @@ impl CairoRunner {
             None => return Err(RunnerError::NoProgBase),
         }
         for (_, builtin) in self.vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut self.vm.memory);
+            builtin.add_validation_rule(&mut self.vm.memory.lock().unwrap());
         }
-        match self.vm.memory.validate_existing_memory() {
+        match self.vm.memory.lock().unwrap().validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
         }
@@ -238,7 +239,7 @@ impl CairoRunner {
         );
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
-        for (index, segment) in self.vm.memory.data.iter().enumerate() {
+        for (index, segment) in self.vm.memory.lock().unwrap().data.iter().enumerate() {
             //Check that each segment was relocated correctly
             assert!(
                 self.relocated_memory.len() == relocation_table[index],
@@ -272,7 +273,8 @@ impl CairoRunner {
     }
 
     pub fn relocate(&mut self) -> Result<(), TraceError> {
-        self.segments.compute_effective_sizes(&self.vm.memory);
+        self.segments
+            .compute_effective_sizes(&self.vm.memory.lock().unwrap());
         // relocate_segments can fail if compute_effective_sizes is not called before.
         // The expect should be unreachable.
         let relocation_table = self
@@ -290,7 +292,8 @@ impl CairoRunner {
         //If the output builtin is present it will always be the first one
         if !self.vm.builtin_runners.is_empty() && self.vm.builtin_runners[0].0 == *"output" {
             let builtin = &self.vm.builtin_runners[0].1;
-            self.segments.compute_effective_sizes(&self.vm.memory);
+            self.segments
+                .compute_effective_sizes(&self.vm.memory.lock().unwrap());
 
             let base = match builtin.base() {
                 Some(base) => base,
@@ -305,29 +308,36 @@ impl CairoRunner {
             // After this if block,
             // segment_used_sizes is always Some(_)
             if self.segments.segment_used_sizes == None {
-                self.segments.compute_effective_sizes(&self.vm.memory);
+                self.segments
+                    .compute_effective_sizes(&self.vm.memory.lock().unwrap());
             }
 
             // See previous comment, the unwrap below is safe.
             for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
-                let value =
-                    match self.vm.memory.get(
-                        &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
-                    ) {
-                        Ok(val) => val,
-                        Err(e) => return Err(RunnerError::FailedMemoryGet(e)),
-                    };
-
-                if let Some(&MaybeRelocatable::Int(ref num)) = value {
-                    let write_result = writeln!(
-                        stdout,
-                        "{}",
-                        to_field_element(num.clone(), self.vm.prime.clone())
-                    );
-                    if write_result.is_err() {
-                        return Err(RunnerError::WriteFail);
+                match &self
+                    .vm
+                    .memory
+                    .lock()
+                    .unwrap()
+                    .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None))
+                {
+                    Ok(Some(&MaybeRelocatable::Int(ref num))) => {
+                        let write_result = writeln!(
+                            stdout,
+                            "{}",
+                            to_field_element(num.clone(), self.vm.prime.clone())
+                        );
+                        if write_result.is_err() {
+                            return Err(RunnerError::WriteFail);
+                        }
                     }
-                }
+                    Err(_) => {
+                        return Err(RunnerError::FailedMemoryGet(
+                            MaybeRelocatable::RelocatableValue(base).add_usize_mod(i, None),
+                        ))
+                    }
+                    _ => (),
+                };
             }
         }
         Ok(())
@@ -478,7 +488,9 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner.program_base = Some(Relocatable {
             segment_index: 1,
@@ -491,6 +503,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::RelocatableValue(
                     cairo_runner.program_base.unwrap()
                 ))
@@ -501,6 +515,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(6)))
@@ -518,7 +534,9 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..3 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
@@ -531,6 +549,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::RelocatableValue(
                     cairo_runner.execution_base.unwrap()
                 ))
@@ -541,6 +561,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(6)))
@@ -559,7 +581,9 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner.execution_base = Some(Relocatable {
             segment_index: 2,
@@ -584,7 +608,9 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
@@ -605,7 +631,9 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -620,6 +648,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(9)))
@@ -628,6 +658,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((2, 0)))
@@ -645,7 +677,9 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -660,6 +694,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(7)))
@@ -668,6 +704,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(9)))
@@ -676,6 +714,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 2)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((2, 0)))
@@ -780,6 +820,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(23)),
@@ -788,6 +830,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(233)),
@@ -805,14 +849,27 @@ mod tests {
         assert!(cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 0))));
         assert!(cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 1))));
-        assert_eq!(cairo_runner.vm.memory.validated_addresses.len(), 2);
+        assert_eq!(
+            cairo_runner
+                .vm
+                .memory
+                .lock()
+                .unwrap()
+                .validated_addresses
+                .len(),
+            2
+        );
     }
 
     #[test]
@@ -833,6 +890,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(23)),
@@ -841,6 +900,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(-1)),
@@ -917,6 +978,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -927,6 +990,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(2)))
@@ -935,6 +1000,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 2)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -945,6 +1012,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 3)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -955,6 +1024,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 4)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(1)))
@@ -963,6 +1034,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 5)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -973,6 +1046,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 6)))
                 .unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::new(
@@ -987,6 +1062,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 7)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -997,6 +1074,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((2, 0)))
@@ -1005,6 +1084,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((3, 0)))
@@ -1078,6 +1159,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1088,6 +1171,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1098,6 +1183,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 2)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(1)))
@@ -1106,6 +1193,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 3)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1116,6 +1205,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 4)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1126,6 +1217,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 5)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1136,6 +1229,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 6)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(1)))
@@ -1144,6 +1239,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 7)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1154,6 +1251,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 8)))
                 .unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::new(
@@ -1168,6 +1267,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 9)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1178,6 +1279,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((2, 0)))
@@ -1186,6 +1289,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((3, 0)))
@@ -1194,6 +1299,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 2)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((4, 0)))
@@ -1277,6 +1384,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1287,6 +1396,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1297,6 +1408,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 2)))
                 .unwrap(),
             Some(&MaybeRelocatable::Int(
@@ -1307,6 +1420,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 3)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1317,6 +1432,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 4)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1327,6 +1444,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 5)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1337,6 +1456,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 6)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(2)))
@@ -1345,6 +1466,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 7)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1355,6 +1478,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 8)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1365,6 +1490,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 9)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1375,6 +1502,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 10)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(7)))
@@ -1383,6 +1512,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 11)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1393,6 +1524,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 12)))
                 .unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::new(
@@ -1407,6 +1540,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((0, 13)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(
@@ -1417,6 +1552,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((2, 0)))
@@ -1425,6 +1562,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((3, 0)))
@@ -1433,6 +1572,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((1, 2)))
                 .unwrap(),
             Some(&MaybeRelocatable::from((4, 0)))
@@ -1716,6 +1857,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(7)))
@@ -1724,6 +1867,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(2).pow(64) - bigint!(8)))
@@ -1732,6 +1877,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 2)))
                 .unwrap(),
             None
@@ -1928,6 +2075,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(1)))
@@ -1936,6 +2085,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(17)))
@@ -1944,6 +2095,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 2)))
                 .unwrap(),
             None
@@ -2217,6 +2370,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((3, 0)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(7)))
@@ -2225,6 +2380,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((3, 1)))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(2).pow(64) - bigint!(8)))
@@ -2233,6 +2390,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&MaybeRelocatable::from((2, 2)))
                 .unwrap(),
             None
@@ -2249,6 +2408,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&(MaybeRelocatable::from((2, 0))))
                 .unwrap(),
             Some(&MaybeRelocatable::from(bigint!(7)))
@@ -2257,6 +2418,8 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
+                .lock()
+                .unwrap()
                 .get(&(MaybeRelocatable::from((2, 1))))
                 .unwrap(),
             None
@@ -2297,11 +2460,15 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..4 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .segments
+                .add(&mut cairo_runner.vm.memory.lock().unwrap(), None);
         }
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(bigint64!(4613515612218425347)),
@@ -2310,6 +2477,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 1)),
                 &MaybeRelocatable::from(bigint!(5)),
@@ -2318,6 +2487,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((0, 2)),
                 &MaybeRelocatable::from(bigint64!(2345108766317314046)),
@@ -2326,6 +2497,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from((2, 0)),
@@ -2334,6 +2507,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((3, 0)),
@@ -2342,6 +2517,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(5)),
@@ -2349,7 +2526,7 @@ mod tests {
             .unwrap();
         cairo_runner
             .segments
-            .compute_effective_sizes(&cairo_runner.vm.memory);
+            .compute_effective_sizes(&cairo_runner.vm.memory.lock().unwrap());
         let rel_table = cairo_runner
             .segments
             .relocate_segments()
@@ -2449,7 +2626,7 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         cairo_runner
             .segments
-            .compute_effective_sizes(&cairo_runner.vm.memory);
+            .compute_effective_sizes(&cairo_runner.vm.memory.lock().unwrap());
         let rel_table = cairo_runner
             .segments
             .relocate_segments()
@@ -2579,7 +2756,7 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         cairo_runner
             .segments
-            .compute_effective_sizes(&cairo_runner.vm.memory);
+            .compute_effective_sizes(&cairo_runner.vm.memory.lock().unwrap());
         let rel_table = cairo_runner
             .segments
             .relocate_segments()
@@ -2702,6 +2879,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
@@ -2710,6 +2889,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(2)),
@@ -2796,6 +2977,8 @@ mod tests {
         cairo_runner
             .vm
             .memory
+            .lock()
+            .unwrap()
             .insert(
                 &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint_str!(

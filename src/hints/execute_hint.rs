@@ -15,7 +15,6 @@ pub fn execute_hint(
     let module = Module::new(&store, wasm_bytes)?;
 
     //Shared values
-    let shared_memory = Arc::new(Mutex::new(runner.vm.memory));
     let shared_segments = Arc::new(Mutex::new(runner.segments));
     let shared_ap = Arc::new(Mutex::new(runner.vm.run_context.ap));
 
@@ -38,7 +37,8 @@ pub fn execute_hint(
     // Create an import object.
     let import_object = imports! {
         "env" => {
-            "add_segment" => Function::new_native_with_env(&store, Env { memory: shared_memory.clone(), segments: shared_segments.clone(), ap: shared_ap.clone() }, add_segment),
+            "add_segment" => Function::new_native_with_env(&store, Env { memory: runner.vm.memory.clone(), segments: shared_segments.clone(), ap: shared_ap.clone() }, add_segment),
+            //Env Received by function must be static
         }
     };
     let instance = Instance::new(&module, &import_object)?;
