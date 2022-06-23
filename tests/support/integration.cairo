@@ -6,7 +6,7 @@ from starkware.cairo.common.bitwise import bitwise_and, bitwise_or, bitwise_xor
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.serialize import serialize_word
 
-func get_hash(hash_ptr : HashBuiltin*, num_a: felt, num_b: felt) -> (hash_ptr : HashBuiltin*, r):
+func get_hash(hash_ptr: HashBuiltin*, num_a: felt, num_b: felt) -> (hash_ptr : HashBuiltin*, r):
     with hash_ptr:
         let (result) = hash2(num_a, num_b)
     end
