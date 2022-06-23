@@ -25,7 +25,11 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoR
     }
 
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
-    cairo_runner.vm.verify_auto_deductions()?;
+
+    if let Err(error) = cairo_runner.vm.verify_auto_deductions() {
+        return Err(CairoRunError::VirtualMachine(error));
+    }
+
     cairo_runner.relocate()?;
     if let Some(trace_path) = trace_path {
         write_binary_trace(&cairo_runner.relocated_trace, trace_path);
