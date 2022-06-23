@@ -36,7 +36,9 @@ pub fn cairo_run(path: &Path) -> Result<CairoRunner, CairoRunError> {
         return Err(CairoRunError::Trace(error));
     }
 
-    cairo_runner.write_output(&mut io::stdout()).unwrap();
+    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
+        return Err(CairoRunError::Runner(error));
+    }
 
     Ok(cairo_runner)
 }
