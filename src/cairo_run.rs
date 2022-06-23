@@ -24,7 +24,9 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoR
         return Err(CairoRunError::Runner(error));
     }
 
-    assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
+    if let Err(error) = cairo_runner.run_until_pc(end) {
+        return Err(CairoRunError::VirtualMachine(error));
+    }
 
     if let Err(error) = cairo_runner.vm.verify_auto_deductions() {
         return Err(CairoRunError::VirtualMachine(error));
