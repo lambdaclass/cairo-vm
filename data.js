@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656011127716,
+  "lastUpdate": 1656016330685,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -1395,6 +1395,32 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 9704269,
             "range": "± 603375",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "9780db38b04759603fb73a3d597bb82189639036",
+          "message": "Remove unwrap from relocate_value function",
+          "timestamp": "2022-06-21T13:37:01Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/170/commits/9780db38b04759603fb73a3d597bb82189639036"
+        },
+        "date": 1656016329804,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 10442644,
+            "range": "± 106162",
             "unit": "ns/iter"
           }
         ]
