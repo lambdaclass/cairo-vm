@@ -564,7 +564,8 @@ impl VirtualMachine {
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
-        for (i, segment) in self.memory.lock().unwrap().data.iter().enumerate() {
+        let memory_guard = self.memory.lock().unwrap();
+        for (i, segment) in memory_guard.data.iter().enumerate() {
             for (j, value) in segment.iter().enumerate() {
                 for (name, builtin) in self.builtin_runners.iter_mut() {
                     match builtin.base() {
@@ -572,7 +573,7 @@ impl VirtualMachine {
                             if builtin_base.segment_index == i {
                                 match builtin.deduce_memory_cell(
                                     &MaybeRelocatable::from((i, j)),
-                                    &self.memory.lock().unwrap(),
+                                    &memory_guard,
                                 ) {
                                     Ok(None) => None,
                                     Ok(Some(deduced_memory_cell)) => {
@@ -3450,22 +3451,24 @@ mod tests {
         for _ in 0..3 {
             vm.memory.lock().unwrap().data.push(Vec::new());
         }
-        vm.memory
-            .lock()
-            .unwrap()
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(12)),
-            )
-            .unwrap();
-        vm.memory
-            .lock()
-            .unwrap()
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
+        {
+            vm.memory
+                .lock()
+                .unwrap()
+                .insert(
+                    &MaybeRelocatable::from((2, 0)),
+                    &MaybeRelocatable::from(bigint!(12)),
+                )
+                .unwrap();
+            vm.memory
+                .lock()
+                .unwrap()
+                .insert(
+                    &MaybeRelocatable::from((2, 1)),
+                    &MaybeRelocatable::from(bigint!(10)),
+                )
+                .unwrap();
+        }
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 
@@ -3499,27 +3502,29 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
-        for _ in 0..4 {
-            vm.memory.lock().unwrap().data.push(Vec::new());
+        {
+            for _ in 0..4 {
+                vm.memory.lock().unwrap().data.push(Vec::new());
+            }
+
+            vm.memory
+                .lock()
+                .unwrap()
+                .insert(
+                    &MaybeRelocatable::from((3, 0)),
+                    &MaybeRelocatable::from(bigint!(32)),
+                )
+                .unwrap();
+
+            vm.memory
+                .lock()
+                .unwrap()
+                .insert(
+                    &MaybeRelocatable::from((3, 1)),
+                    &MaybeRelocatable::from(bigint!(72)),
+                )
+                .unwrap();
         }
-
-        vm.memory
-            .lock()
-            .unwrap()
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::from(bigint!(32)),
-            )
-            .unwrap();
-
-        vm.memory
-            .lock()
-            .unwrap()
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::from(bigint!(72)),
-            )
-            .unwrap();
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 }
