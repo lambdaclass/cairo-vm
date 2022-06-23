@@ -38,7 +38,7 @@ pub fn execute_hint(
     // Create an import object.
     let import_object = imports! {
         "env" => {
-            "add_segment" => Function::new_native_with_env(&store, Env { memory: vm.memory.clone(), segments: vm.segments.clone(), ap: shared_ap.clone() }, add_segment),
+            "add_segment" => Function::new_native_with_env(&store, Env { memory: vm.memory.clone(), segments: vm.segments.clone(), ap: shared_ap }, add_segment),
             //Env Received by function must be static
         }
     };
