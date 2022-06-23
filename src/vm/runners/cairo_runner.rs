@@ -279,10 +279,9 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
-        match self.relocate_memory(&relocation_table) {
-            Err(memory_error) => return Err(TraceError::MemoryError(memory_error)),
-            Ok(()) => (),
-        };
+        if let Err(memory_error) = self.relocate_memory(&relocation_table) {
+            return Err(TraceError::MemoryError(memory_error));
+        }
         self.relocate_trace(&relocation_table)?;
         Ok(())
     }
