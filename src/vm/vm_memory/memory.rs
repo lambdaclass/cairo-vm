@@ -29,20 +29,41 @@ impl Memory {
         val: &MaybeRelocatable,
     ) -> Result<(), MemoryError> {
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
+            let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
             //Check that the memory segment exists
-            if self.data.len() < i + 1 {
-                return Err(MemoryError::UnallocatedSegment(i, self.data.len()));
+            if self.data.len() < value_index + 1 {
+                return Err(MemoryError::UnallocatedSegment(
+                    value_index,
+                    self.data.len(),
+                ));
             }
             //Check if the element is inserted next to the last one on the segment
             //Forgoing this check would allow data to be inserted in a different index
-            if self.data[i].len() < j {
+            if self.data[value_index].len() < value_offset {
                 //Insert none values to represent gaps in memory
-                for _ in 0..(j - self.data[i].len()) {
-                    self.data[i].push(None)
+                for _ in 0..(value_offset - self.data[value_index].len()) {
+                    self.data[value_index].push(None)
                 }
             }
-            self.data[i].push(Some(val.clone()))
+            if self.data[value_index].len() > value_offset {
+                match self.data[value_index][value_offset] {
+                    Some(ref current_value) => {
+                        if current_value != val {
+                            //Existing memory cannot be changed
+                            return Err(MemoryError::InconsistentMemory(
+                                key.to_owned(),
+                                current_value.to_owned(),
+                                val.to_owned(),
+                            ));
+                        }
+                    }
+                    //Fill existing memory gaps
+                    None => self.data[value_index][value_offset] = Some(val.to_owned()),
+                };
+            } else {
+                //Value inserted netxt to last element
+                self.data[value_index].push(Some(val.clone()))
+            }
         } else {
             return Err(MemoryError::AddressNotRelocatable);
         }
