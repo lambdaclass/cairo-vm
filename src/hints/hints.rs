@@ -5,7 +5,10 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use std::sync::{Arc, Mutex};
 use wasmer::{imports, wat2wasm, Function, Instance, Module, Store, WasmerEnv};
 
-pub fn execute_hint(runner: &CairoRunner, hint_bytes: &[u8]) {
+pub fn execute_hint(
+    runner: &CairoRunner,
+    hint_bytes: &[u8],
+) -> Result<(), Box<dyn std::error::Error>> {
     let wasm_bytes = wat2wasm(hint_bytes)?;
     let store = Store::default();
     //Compile module

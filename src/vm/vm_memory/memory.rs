@@ -4,7 +4,9 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 
 pub struct ValidationRule(
-    pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
+    pub  Box<
+        dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError> + Send + Sync,
+    >,
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
