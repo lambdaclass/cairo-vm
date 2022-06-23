@@ -11,9 +11,15 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoR
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
+
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);
-    let end = cairo_runner.initialize_main_entrypoint()?;
+
+    let end = match cairo_runner.initialize_main_entrypoint() {
+        Ok(end) => end,
+        Err(error) => return Err(CairoRunError::Runner(error)),
+    };
+
     cairo_runner.initialize_vm()?;
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
     cairo_runner.vm.verify_auto_deductions()?;
