@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::{is_subsequence, to_field_element};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -231,28 +232,27 @@ impl CairoRunner {
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
     /// Uses the relocation_table to asign each index a number according to the value on its segment number
-    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) {
-        assert!(
-            self.relocated_memory.is_empty(),
-            "Memory has been already relocated"
-        );
+    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) -> Result<(), MemoryError> {
+        if !(self.relocated_memory.is_empty()) {
+            return Err(MemoryError::Relocation);
+        }
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
         for (index, segment) in self.vm.memory.data.iter().enumerate() {
-            //Check that each segment was relocated correctly
-            assert!(
-                self.relocated_memory.len() == relocation_table[index],
-                "Inconsistent Relocation"
-            );
+            if self.relocated_memory.len() != relocation_table[index] {
+                return Err(MemoryError::Relocation);
+            }
+
             for element in segment {
                 match element {
                     Some(elem) => self
                         .relocated_memory
-                        .push(Some(relocate_value(elem.clone(), relocation_table))),
+                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
                     None => self.relocated_memory.push(None),
                 }
             }
         }
+        Ok(())
     }
 
     ///Relocates the VM's trace, turning relocatable registers to numbered ones
@@ -279,7 +279,10 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
-        self.relocate_memory(&relocation_table);
+        match self.relocate_memory(&relocation_table) {
+            Err(memory_error) => return Err(TraceError::MemoryError(memory_error)),
+            Ok(()) => (),
+        };
         self.relocate_trace(&relocation_table)?;
         Ok(())
     }
@@ -2354,7 +2357,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        cairo_runner.relocate_memory(&rel_table);
+        assert_eq!(cairo_runner.relocate_memory(&rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2454,7 +2457,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        cairo_runner.relocate_memory(&rel_table);
+        assert_eq!(cairo_runner.relocate_memory(&rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
