@@ -20,7 +20,10 @@ pub fn cairo_run(path: &Path, trace_path: Option<&PathBuf>) -> Result<(), CairoR
         Err(error) => return Err(CairoRunError::Runner(error)),
     };
 
-    cairo_runner.initialize_vm()?;
+    if let Err(error) = cairo_runner.initialize_vm() {
+        return Err(CairoRunError::Runner(error));
+    }
+
     assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
     cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.relocate()?;
