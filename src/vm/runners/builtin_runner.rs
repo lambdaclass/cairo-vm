@@ -485,11 +485,10 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 };
             }
             //Assert that m is under the limit defined by scalar_limit.
-            assert!(
-                input_cells[M_INDEX] < &self.scalar_limit,
-                "EcOpBuiltin: m should be at most {}",
-                self.scalar_limit
-            );
+            if !(input_cells[M_INDEX] < &self.scalar_limit) {
+                return Err(RunnerError::EcOpBuiltin(self.scalar_limit.clone()));
+            }
+
             // Assert that if the current address is part of a point, the point is on the curve
             for pair in &EC_POINT_INDICES[0..1] {
                 assert!(
