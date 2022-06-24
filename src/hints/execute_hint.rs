@@ -1,9 +1,17 @@
+use crate::hints::hint_utils::add_segment;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use std::sync::{Arc, Mutex};
 use wasmer::{imports, wat2wasm, Function, Instance, Module, Store, WasmerEnv};
+
+#[derive(WasmerEnv, Clone)]
+pub struct Env {
+    pub memory: Arc<Mutex<Memory>>,
+    pub segments: Arc<Mutex<MemorySegmentManager>>,
+    pub ap: Arc<Mutex<MaybeRelocatable>>,
+}
 
 pub fn execute_hint(
     vm: &VirtualMachine,
@@ -17,29 +25,17 @@ pub fn execute_hint(
     //Shared values
     let shared_ap = Arc::new(Mutex::new(vm.run_context.ap.clone()));
 
-    #[derive(WasmerEnv, Clone)]
-    struct Env {
-        memory: Arc<Mutex<Memory>>,
-        segments: Arc<Mutex<MemorySegmentManager>>,
-        ap: Arc<Mutex<MaybeRelocatable>>,
-    }
-
-    //Function imported by hint
-    fn add_segment(env: &Env) {
-        let mut segments = env.segments.lock().unwrap();
-        let mut memory = env.memory.lock().unwrap();
-        let ap = env.ap.lock().unwrap();
-        let rel = segments.add(&mut (*memory), None);
-        (*memory)
-            .insert(&*ap, &MaybeRelocatable::RelocatableValue(rel))
-            .unwrap();
-    }
-
     // Create an import object.
     let import_object = imports! {
         "env" => {
-            "add_segment" => Function::new_native_with_env(&store, Env { memory: vm.memory.clone(), segments: vm.segments.clone(), ap: shared_ap }, add_segment),
-            //Env Received by function must be static
+            "add_segment" => Function::new_native_with_env(
+                &store,
+                Env {
+                    memory: vm.memory.clone(),
+                    segments: vm.segments.clone(),
+                    ap: shared_ap
+                },
+                add_segment),
         }
     };
     let instance = Instance::new(&module, &import_object)?;
