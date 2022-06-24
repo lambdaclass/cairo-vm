@@ -39,10 +39,10 @@ func builtins_wrapper{output_ptr: felt*, range_check_ptr: felt, bitwise_ptr: Bit
     return ()
 end
 
-func builtins_wrapper_iter{output_ptr: felt*, range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*, pedersen_ptr: HashBuiltin*}(num_a: felt, num_b: felt, t: felt):
+func builtins_wrapper_iter{output_ptr: felt*, range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*, pedersen_ptr: HashBuiltin*}(num_a: felt, num_b: felt, n_iterations: felt):
     builtins_wrapper(num_a, num_b)
-    if t != 0:
-        builtins_wrapper_iter(num_a, num_b, t-1)
+    if n_iterations != 0:
+        builtins_wrapper_iter(num_a, num_b, n_iterations-1)
         tempvar output_ptr = output_ptr
         tempvar range_check_ptr = range_check_ptr
         tempvar bitwise_ptr = bitwise_ptr
