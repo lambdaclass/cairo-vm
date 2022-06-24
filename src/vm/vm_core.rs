@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::hints::execute_hint::execute_hint;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
@@ -11,7 +12,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 #[derive(PartialEq, Debug)]
@@ -26,17 +27,8 @@ pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
-    //exec_scopes: Vec<HashMap<..., ...>>,
-    //enter_scope:
-    //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
-    //hint_locals: HashMap<..., ...>,
-    //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
-    //static_locals: Option<HashMap<..., ...>>,
-    //intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
-    //debug_file_contents: HashMap<String, String>,
-    //error_message_attributes: Vec<VmAttributeScope>,
-    //program: ProgramBase,
     pub _program_base: Option<MaybeRelocatable>,
+    pub hints: HashMap<MaybeRelocatable, Vec<String>>,
     pub memory: Arc<Mutex<Memory>>,
     pub segments: Arc<Mutex<MemorySegmentManager>>,
     accessed_addresses: HashSet<MaybeRelocatable>,
@@ -62,6 +54,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             _program_base: None,
+            hints: HashMap::new(),
             segments: Arc::new(Mutex::new(MemorySegmentManager::new())),
             memory: Arc::new(Mutex::new(Memory::new())),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -424,6 +417,15 @@ impl VirtualMachine {
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
+        for hint_list in self.hints.get(&self.run_context.pc) {
+            for hint_code in hint_list {
+                if execute_hint(self, hint_code.to_owned().as_bytes()).is_err() {
+                    return Err(VirtualMachineError::HintException(
+                        self.run_context.pc.clone(),
+                    ));
+                }
+            }
+        }
         self.skip_instruction_execution = false;
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
@@ -2323,10 +2325,11 @@ mod tests {
         };
 
         let vm = VirtualMachine {
-            run_context: run_context,
+            run_context,
             prime: bigint!(127),
-            _program_base: None,
             builtin_runners: Vec::new(),
+            _program_base: None,
+            hints: HashMap::new(),
             segments: Arc::new(Mutex::new(MemorySegmentManager::new())),
             memory: Arc::new(Mutex::new(Memory::new())),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),

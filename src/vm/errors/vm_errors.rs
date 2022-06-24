@@ -31,6 +31,7 @@ pub enum VirtualMachineError {
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
     RunnerError(RunnerError),
+    HintException(MaybeRelocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -82,6 +83,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
             },
             VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
+            VirtualMachineError::HintException(address) => write!(f, "Got an exception while executing a hint at pc: {:?}", address),
         }
     }
 }
