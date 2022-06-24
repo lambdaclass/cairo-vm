@@ -30,14 +30,19 @@ func distort_value{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}(value: f
     return distort_value(distorted_value, secondary_value*3, loop_num - 1)
 end
 
-func builtins_wrapper{output_ptr: felt*, range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*, pedersen_ptr: HashBuiltin*}(num_a: felt, num_b: felt, t: felt):
+func builtins_wrapper{output_ptr: felt*, range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*, pedersen_ptr: HashBuiltin*}(num_a: felt, num_b: felt):
     let (distorted_num_b) = distort_value(num_b, 6783043740, 20)
     let (pedersen_ptr, result: felt) = get_hash(pedersen_ptr, num_a, distorted_num_b)
     assert result = 1705936988874506830037172232662562674195194978736118624789869153703579404549
     serialize_word(result)
 
+    return ()
+end
+
+func builtins_wrapper_iter{output_ptr: felt*, range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*, pedersen_ptr: HashBuiltin*}(num_a: felt, num_b: felt, t: felt):
+    builtins_wrapper(num_a, num_b)
     if t != 0:
-        builtins_wrapper(num_a, num_b, t-1)
+        builtins_wrapper_iter(num_a, num_b, t-1)
         tempvar output_ptr = output_ptr
         tempvar range_check_ptr = range_check_ptr
         tempvar bitwise_ptr = bitwise_ptr
@@ -55,7 +60,7 @@ end
 func main{output_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}():
     let num_a = 123568
     let num_b = 5673940
+    builtins_wrapper_iter(num_a, num_b, 1000)
 
-    builtins_wrapper(num_a, num_b, 1000)
     return()
 end
