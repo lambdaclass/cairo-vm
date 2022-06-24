@@ -595,10 +595,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn get_initial_stack_for_output_included_without_base() {
         let builtin = OutputBuiltinRunner::new(true);
-        let _initial_stack = builtin.initial_stack().unwrap();
+        let error = builtin.initial_stack();
+        assert_eq!(error, Err(RunnerError::UninitializedBase));
     }
 
     #[test]
