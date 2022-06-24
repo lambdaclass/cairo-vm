@@ -508,12 +508,6 @@ window.BENCHMARK_DATA = {
             "value": 8302582,
             "range": "± 63091",
             "unit": "ns/iter"
-          },
-          {
-            "name": "cairo_run(bench/criterion/integration.json",
-            "value": 8548805,
-            "range": "± 46268",
-            "unit": "ns/iter"
           }
         ]
       },
@@ -539,12 +533,6 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 10110710,
             "range": "± 56339",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "cairo_run(bench/criterion/integration.json",
-            "value": 10212851,
-            "range": "± 37879",
             "unit": "ns/iter"
           }
         ]
