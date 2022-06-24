@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656081138821,
+  "lastUpdate": 1656081655938,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -1611,6 +1611,36 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/fibonacci_1000.json",
             "value": 9747309,
             "range": "± 486437",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3ab5a2f447cd85059bfa36620cef35597d2f574f",
+          "message": "Merge pull request #176 from lambdaclass/add-builtin-integration-benchmark\n\nAdd builtins integration benchmark",
+          "timestamp": "2022-06-24T11:36:16-03:00",
+          "tree_id": "4d9af39c5721086c388e3d8769e04c67dbb66b2b",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/3ab5a2f447cd85059bfa36620cef35597d2f574f"
+        },
+        "date": 1656081655080,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8686270,
+            "range": "± 91215",
             "unit": "ns/iter"
           }
         ]
