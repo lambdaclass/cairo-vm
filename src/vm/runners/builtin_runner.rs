@@ -566,10 +566,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn get_initial_stack_for_range_check_included_without_base() {
         let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
-        let _initial_stack = builtin.initial_stack().unwrap();
+        let error = builtin.initial_stack();
+        assert_eq!(error, Err(RunnerError::UninitializedBase));
     }
 
     #[test]
