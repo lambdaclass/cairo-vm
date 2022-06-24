@@ -1252,7 +1252,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn deduce_memory_cell_ec_op_for_preset_memory_m_over_scalar_limit() {
         let mut memory = Memory::new();
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
