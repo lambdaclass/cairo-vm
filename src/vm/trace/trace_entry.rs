@@ -25,10 +25,9 @@ pub fn relocate_trace_register(
     match value {
         MaybeRelocatable::Int(_num) => Err(TraceError::RegNotRelocatable),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            assert!(
-                relocation_table.len() > relocatable.segment_index,
-                "No relocation found for this segment"
-            );
+            if relocation_table.len() > relocatable.segment_index {
+                return Err(TraceError::NoRelocationFound);
+            }
             Ok(relocation_table[relocatable.segment_index] + relocatable.offset)
         }
     }
