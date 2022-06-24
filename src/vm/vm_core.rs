@@ -28,7 +28,7 @@ pub struct VirtualMachine {
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     pub _program_base: Option<MaybeRelocatable>,
-    pub hints: HashMap<MaybeRelocatable, Vec<String>>,
+    pub hints: HashMap<MaybeRelocatable, Vec<Vec<u8>>>,
     pub memory: Arc<Mutex<Memory>>,
     pub segments: Arc<Mutex<MemorySegmentManager>>,
     accessed_addresses: HashSet<MaybeRelocatable>,
@@ -419,7 +419,7 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         for hint_list in self.hints.get(&self.run_context.pc) {
             for hint_code in hint_list {
-                if execute_hint(self, hint_code.to_owned().as_bytes()).is_err() {
+                if execute_hint(self, &hint_code.to_owned()).is_err() {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
                     ));
