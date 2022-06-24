@@ -211,6 +211,15 @@ mod memory_tests {
     }
 
     #[test]
+    fn insert_address_not_relocatable() {
+        let key = MaybeRelocatable::from(bigint!(5));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        let error = memory.insert(&key, &val);
+        assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
+    }
+
+    #[test]
     fn insert_non_contiguous_element() {
         let key_a = MaybeRelocatable::from((0, 0));
         let key_b = MaybeRelocatable::from((0, 2));
