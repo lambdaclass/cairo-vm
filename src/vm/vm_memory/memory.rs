@@ -194,6 +194,23 @@ mod memory_tests {
     }
 
     #[test]
+    fn insert_inconsistent_memory() {
+        let key = MaybeRelocatable::from((0, 0));
+        let val_a = MaybeRelocatable::from(bigint!(5));
+        let val_b = MaybeRelocatable::from(bigint!(6));
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory
+            .insert(&key, &val_a)
+            .expect("Unexpected memory insert fail");
+        let error = memory.insert(&key, &val_b);
+        assert_eq!(
+            error,
+            Err(MemoryError::InconsistentMemory(key, val_a, val_b))
+        );
+    }
+
+    #[test]
     fn insert_non_contiguous_element() {
         let key_a = MaybeRelocatable::from((0, 0));
         let key_b = MaybeRelocatable::from((0, 2));
