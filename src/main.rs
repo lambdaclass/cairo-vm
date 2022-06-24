@@ -18,6 +18,9 @@ struct Args {
     trace_file: Option<PathBuf>,
     #[structopt(long = "--print_output")]
     print_output: bool,
+    trace: Option<PathBuf>,
+    #[clap(long, value_parser)]
+    memory_file: Option<PathBuf>,
 }
 
 fn main() -> Result<(), CairoRunError> {
@@ -33,6 +36,10 @@ fn main() -> Result<(), CairoRunError> {
 
     if args.print_output {
         cairo_run::write_output(&mut cairo_runner)?;
+    }
+
+    if let Some(memory_path) = args.memory_file {
+        cairo_run::write_binary_memory(&cairo_runner.relocated_memory, &memory_path);
     }
 
     Ok(())
