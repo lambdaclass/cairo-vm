@@ -52,11 +52,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        relocate_trace_register(value, &relocation_table).unwrap();
+        let error = relocate_trace_register(value, &relocation_table);
+        assert_eq!(error, Err(TraceError::RegNotRelocatable));
     }
 
     #[test]
