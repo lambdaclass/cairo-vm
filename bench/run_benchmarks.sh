@@ -6,7 +6,6 @@ rm -f fibonacci.json
 rm -f factorial.json
 rm -f integration_builtins.json
 rm -rf oriac
-rm -f .python-version
 
 pyenv global 3.7.12
 
@@ -80,4 +79,3 @@ rm -f fibonacci.json
 rm -f factorial.json
 rm -f integration_builtins.json
 rm -rf oriac
-rm -f .python-version
