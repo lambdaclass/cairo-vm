@@ -21,7 +21,7 @@ jobs:
           components: rustfmt, clippy
     - uses: actions/checkout@v3
     - name: Pyenv Build
-      uses: gabrielfalcao/pyenv-action@v7
+      uses: sudo apt install -y python3
       with:
         command: pip install -U pip
     - name: Install test dependencies
