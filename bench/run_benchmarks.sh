@@ -59,8 +59,6 @@ cleo_builtins_time=$( (time ../target/release/cleopatra-run integration_builtins
 echo -e "\nRust Cleopatra VM builtins integration time:" >> results
 echo "$cleo_builtins_time" >> results
 
-pyenv global 3.7.12
-
 cairo_factorial_time=$( (time cairo-run --program factorial.json) 2>&1 &)
 echo -e "\nPython Original Cairo VM time:" >> results
 echo "$cairo_factorial_time" >> results
