@@ -5,7 +5,7 @@ use num_bigint::{BigInt, Sign};
 use serde::{de, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_bigint_hex")]
     pub prime: BigInt,
@@ -13,8 +13,26 @@ pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
+    pub hints: HashMap<u64, Vec<HintParams>>,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct HintParams {
+    #[serde(with = "serde_bytes")]
+    pub code: Vec<u8>,
+    pub accessible_scopes: Vec<String>,
+    pub flow_tracking_data: FlowTrackingData,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct FlowTrackingData {
+    pub ap_tracking: ApTracking,
+}
+#[derive(Deserialize, Debug, Clone)]
+pub struct ApTracking {
+    pub group: usize,
+    pub offset: usize,
+}
 #[derive(Deserialize, Debug)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -122,6 +140,7 @@ pub fn deserialize_program(path: &Path) -> Result<Program, ProgramError> {
         prime: program_json.prime,
         data: program_json.data,
         main: program_json.identifiers["__main__.main"].pc,
+        hints: program_json.hints,
     })
 }
 
@@ -187,7 +206,8 @@ mod tests {
                         "size": 0,
                         "type": "struct"
                     }
-                }
+                },
+                "hints": {}
             }"#;
 
         // ProgramJson instance for the json with an even length encoded hex.
