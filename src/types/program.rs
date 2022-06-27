@@ -10,7 +10,7 @@ pub struct Program {
     pub prime: BigInt,
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
-    pub hints: HashMap<u64, Vec<HintParams>>,
+    pub hints: HashMap<usize, Vec<HintParams>>,
 }
 
 impl Program {
