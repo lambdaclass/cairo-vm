@@ -34,12 +34,12 @@ jobs:
       run: cd tests; ./setup_tests
     - name: Run tests
       run: make test
-    - name: Cleanup tests
-      run: rm cairo_programs/*.json
     - name: Run clippy
       run: make clippy
     - name: Coverage
       run: make coverage
+    - name: Cleanup tests
+      run: rm cairo_programs/*.json
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v2
       with:
