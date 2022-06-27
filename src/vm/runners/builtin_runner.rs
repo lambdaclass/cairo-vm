@@ -485,7 +485,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 };
             }
             //Assert that m is under the limit defined by scalar_limit.
-            if !(input_cells[M_INDEX] < &self.scalar_limit) {
+            if input_cells[M_INDEX] >= &self.scalar_limit {
                 return Err(RunnerError::EcOpBuiltinScalarLimit(
                     self.scalar_limit.clone(),
                 ));
