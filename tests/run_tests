@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 test_files=($(ls -p ../cairo_programs | grep -v / | sed -E 's/\.cairo//'))
 
