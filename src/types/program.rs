@@ -1,9 +1,8 @@
-use std::path::Path;
-
-use crate::serde::deserialize_program;
+use crate::serde::deserialize_program::{deserialize_program, HintParams};
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
+use std::{collections::HashMap, path::Path};
 
 #[derive(Clone)]
 pub struct Program {
@@ -11,11 +10,12 @@ pub struct Program {
     pub prime: BigInt,
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
+    pub hints: HashMap<u64, Vec<HintParams>>,
 }
 
 impl Program {
     pub fn new(path: &Path) -> Result<Program, ProgramError> {
-        deserialize_program::deserialize_program(path)
+        deserialize_program(path)
     }
 }
 
