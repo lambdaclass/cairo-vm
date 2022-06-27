@@ -23,6 +23,8 @@ jobs:
     - name: Pyenv Build
       uses: actions/setup-python@v4
       with:
+        python-version: '3.9'
+        cache: 'pip'      
         command: pip install -U pip
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
