@@ -228,45 +228,44 @@ impl BuiltinRunner for HashBuiltinRunner {
             if relocatable.offset % self.cells_per_instance != 2
                 || self.verified_addresses.contains(address)
             {
-                return Ok(None);
-            };
-            if let (
-                Ok(Some(MaybeRelocatable::Int(num_a))),
-                Ok(Some(MaybeRelocatable::Int(num_b))),
-            ) = (
-                memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: relocatable.segment_index,
-                    offset: relocatable.offset - 1,
-                })),
-                memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: relocatable.segment_index,
-                    offset: relocatable.offset - 2,
-                })),
-            ) {
-                self.verified_addresses.push(address.clone());
-
-                //Convert MaybeRelocatable to FieldElement
-                let a_string = num_a.to_str_radix(10);
-                let b_string = num_b.to_str_radix(10);
-                let (y, x) = match (
-                    FieldElement::from_dec_str(&a_string),
-                    FieldElement::from_dec_str(&b_string),
+                if let (
+                    Ok(Some(MaybeRelocatable::Int(num_a))),
+                    Ok(Some(MaybeRelocatable::Int(num_b))),
+                ) = (
+                    memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: relocatable.segment_index,
+                        offset: relocatable.offset - 1,
+                    })),
+                    memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: relocatable.segment_index,
+                        offset: relocatable.offset - 2,
+                    })),
                 ) {
-                    (Ok(field_element_a), Ok(field_element_b)) => {
-                        (field_element_a, field_element_b)
-                    }
-                    _ => return Err(RunnerError::FailedStringConversion),
-                };
-                //Compute pedersen Hash
-                let fe_result = pedersen_hash(&x, &y);
-                //Convert result from FieldElement to MaybeRelocatable
-                let r_byte_slice = fe_result.to_bytes_be();
-                let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
-                return Ok(Some(MaybeRelocatable::from(result)));
+                    self.verified_addresses.push(address.clone());
+
+                    //Convert MaybeRelocatable to FieldElement
+                    let a_string = num_a.to_str_radix(10);
+                    let b_string = num_b.to_str_radix(10);
+                    let (y, x) = match (
+                        FieldElement::from_dec_str(&a_string),
+                        FieldElement::from_dec_str(&b_string),
+                    ) {
+                        (Ok(field_element_a), Ok(field_element_b)) => {
+                            (field_element_a, field_element_b)
+                        }
+                        _ => return Err(RunnerError::FailedStringConversion),
+                    };
+                    //Compute pedersen Hash
+                    let fe_result = pedersen_hash(&x, &y);
+                    //Convert result from FieldElement to MaybeRelocatable
+                    let r_byte_slice = fe_result.to_bytes_be();
+                    let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
+                    return Ok(Some(MaybeRelocatable::from(result)));
+                }
+                Ok(None)
+            } else {
+                Err(RunnerError::NonRelocatableAddress)
             }
-            Ok(None)
-        } else {
-            Err(RunnerError::NonRelocatableAddress)
         }
     }
 }
@@ -486,7 +485,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             }
             //Assert that m is under the limit defined by scalar_limit.
             if !(input_cells[M_INDEX] < &self.scalar_limit) {
-                return Err(RunnerError::EcOpBuiltin(self.scalar_limit.clone()));
+                return Err(RunnerError::EcOpBuiltinScalarLimit(
+                    self.scalar_limit.clone(),
+                ));
             }
 
             // Assert that if the current address is part of a point, the point is on the curve
@@ -1308,8 +1309,12 @@ mod tests {
             )
             .unwrap();
 
-        builtin
-            .deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory)
-            .unwrap();
+        let error = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        assert_eq!(
+            error,
+            Err(RunnerError::EcOpBuiltinScalarLimit(
+                builtin.scalar_limit.clone()
+            ))
+        );
     }
 }

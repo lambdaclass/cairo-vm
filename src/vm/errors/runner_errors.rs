@@ -22,7 +22,7 @@ pub enum RunnerError {
     ExpectedInteger(MaybeRelocatable),
     MemoryGet(MaybeRelocatable),
     FailedMemoryGet(MemoryError),
-    EcOpBuiltin(BigInt),
+    EcOpBuiltinScalarLimit(BigInt),
 }
 
 impl fmt::Display for RunnerError {
@@ -67,7 +67,7 @@ impl fmt::Display for RunnerError {
                 error.fmt(f)
             }
 
-            RunnerError::EcOpBuiltin(scalar) => {
+            RunnerError::EcOpBuiltinScalarLimit(scalar) => {
                 write!(f, "EcOpBuiltin: m should be at most {}", scalar)
             }
         }
