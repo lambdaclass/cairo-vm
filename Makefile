@@ -14,7 +14,7 @@ check:
 	cargo check
 
 test:
-	cd tests; ./run_tests
+	cd tests; sh run_tests
 
 clippy:
 	cargo clippy  -- -D warnings
