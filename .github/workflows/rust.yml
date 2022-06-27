@@ -20,8 +20,8 @@ jobs:
           override: true
           components: rustfmt, clippy
     - uses: actions/checkout@v3
-    - name: Install python3
-      uses: actions/setup-python@v4
+    - name: Pyenv Build
+      uses: gabrielfalcao/pyenv-action@v7
     - name: format
       run: cargo fmt --all -- --check
     - name: Build
