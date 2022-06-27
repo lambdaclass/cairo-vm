@@ -30,6 +30,8 @@ jobs:
       run: cargo fmt --all -- --check
     - name: Build
       run: make build
+    - name: Setup tests
+      run: cd tests; ./setup_tests
     - name: Run tests
       run: make test
     - name: Run clippy
