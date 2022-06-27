@@ -13,7 +13,7 @@ pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
-    pub hints: HashMap<u64, Vec<HintParams>>,
+    pub hints: HashMap<usize, Vec<HintParams>>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
