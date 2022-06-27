@@ -26,8 +26,10 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = Program::new(Path::new("tests/support/valid_program_a.json"))
-            .expect("Failed to deserialize program");
+        let program: Program = Program::new(Path::new(
+            "cairo_programs/manually_compiled/valid_program_a.json",
+        ))
+        .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
