@@ -21,7 +21,8 @@ jobs:
           components: rustfmt, clippy
     - uses: actions/checkout@v3
     - name: Setup Python
-      uses: actions/setup-python@v4.0.0
+      uses: actions/setup-python@v4
+    - uses: actions/checkout@v3
     - name: Pip Installer
       uses: BSFishy/pip-action@v1
       with: 
