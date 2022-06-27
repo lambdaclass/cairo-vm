@@ -20,17 +20,8 @@ jobs:
           override: true
           components: rustfmt, clippy
     - uses: actions/checkout@v3
-    - name: Setup Python
+    - name: Install python3
       uses: actions/setup-python@v4
-    - uses: actions/checkout@v3
-    - name: Pip Installer
-      uses: BSFishy/pip-action@v1
-      with: 
-        packages: |
-          ecdsa 
-          fastecdsa 
-          sympy
-          cairo-lang
     - name: format
       run: cargo fmt --all -- --check
     - name: Build
