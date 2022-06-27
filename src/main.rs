@@ -6,6 +6,7 @@ mod types;
 mod utils;
 mod vm;
 use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::vm::errors::runner_errors::RunnerError;
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
@@ -39,7 +40,10 @@ fn main() -> Result<(), CairoRunError> {
     }
 
     if let Some(memory_path) = args.memory_file {
-        cairo_run::write_binary_memory(&cairo_runner.relocated_memory, &memory_path);
+        match cairo_run::write_binary_memory(&cairo_runner.relocated_memory, &memory_path) {
+            Ok(()) => (),
+            Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
+        }
     }
 
     Ok(())
