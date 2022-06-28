@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656425808845,
+  "lastUpdate": 1656425877566,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -2719,6 +2719,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4332324,
             "range": "± 12472",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cedfc6b48d4aee6e0c1921e5be0e29227e8344a8",
+          "message": "Merge pull request #184 from lambdaclass/remove-should-panic\n\nRemove should panic",
+          "timestamp": "2022-06-28T11:13:20-03:00",
+          "tree_id": "bd856520d8053a7d51f21b42b8e0e4eeb3533c66",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/cedfc6b48d4aee6e0c1921e5be0e29227e8344a8"
+        },
+        "date": 1656425875913,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8678639,
+            "range": "± 7642",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4313915,
+            "range": "± 4216",
             "unit": "ns/iter"
           }
         ]
