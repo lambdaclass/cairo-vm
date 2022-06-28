@@ -31,3 +31,6 @@ flamegraph:
 
 compare_benchmarks:
 	cd bench && ./run_benchmarks.sh
+
+compare_traces:
+	cd tests && ./compare_traces

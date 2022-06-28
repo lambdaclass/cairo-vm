@@ -283,6 +283,7 @@ dependencies = [
  "num-traits",
  "rusty-hook",
  "serde",
+ "serde_bytes",
  "serde_json",
  "starknet-crypto",
  "wasmer",

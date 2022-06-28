@@ -16,7 +16,7 @@ struct Args {
     #[clap(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
     #[clap(long, value_parser)]
-    trace: Option<PathBuf>,
+    trace_file: Option<PathBuf>,
 }
 
 fn main() -> Result<(), CairoRunError> {
@@ -26,7 +26,7 @@ fn main() -> Result<(), CairoRunError> {
         Err(error) => return Err(error),
     };
 
-    if let Some(trace_path) = args.trace {
+    if let Some(trace_path) = args.trace_file {
         cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path);
     }
 
