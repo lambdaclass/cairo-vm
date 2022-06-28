@@ -6,6 +6,7 @@ mod types;
 mod utils;
 mod vm;
 use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::vm::errors::runner_errors::RunnerError;
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
@@ -18,6 +19,9 @@ struct Args {
     trace_file: Option<PathBuf>,
     #[structopt(long = "--print_output")]
     print_output: bool,
+    trace: Option<PathBuf>,
+    #[structopt(long = "--print_memory")]
+    memory_file: Option<PathBuf>,
 }
 
 fn main() -> Result<(), CairoRunError> {
@@ -33,6 +37,13 @@ fn main() -> Result<(), CairoRunError> {
 
     if args.print_output {
         cairo_run::write_output(&mut cairo_runner)?;
+    }
+
+    if let Some(memory_path) = args.memory_file {
+        match cairo_run::write_binary_memory(&cairo_runner.relocated_memory, &memory_path) {
+            Ok(()) => (),
+            Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
+        }
     }
 
     Ok(())
