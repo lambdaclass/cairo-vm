@@ -66,14 +66,17 @@ pub fn write_binary_trace(relocated_trace: &[RelocatedTraceEntry], trace_file: &
    The memory pairs (address, value) are encoded and concatenated in the file
    given by the path `memory_file`.
 
-    * address -> 8-byte encoded
-    * value -> 32-byte encoded
+   * address -> 8-byte encoded
+   * value -> 32-byte encoded
 */
 pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(memory_file).expect("Error while creating memory file");
+    let mut buffer = match File::create(memory_file) {
+        Ok(buffer) => buffer,
+        Err(e) => return Err(e),
+    };
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
@@ -108,6 +111,49 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Read;
+
+    fn run_test_program(program_path: &Path) -> Result<CairoRunner, CairoRunError> {
+        let program = match Program::new(program_path) {
+            Ok(program) => program,
+            Err(e) => return Err(CairoRunError::Program(e)),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program);
+
+        cairo_runner.initialize_segments(None);
+
+        let end = match cairo_runner.initialize_main_entrypoint() {
+            Ok(end) => end,
+            Err(e) => return Err(CairoRunError::Runner(e)),
+        };
+
+        cairo_runner
+            .initialize_vm()
+            .expect("Couldn't initialize VM");
+
+        assert!(cairo_runner.run_until_pc(end).is_ok());
+
+        Ok(cairo_runner)
+    }
+
+    fn compare_files(file_path_1: &Path, file_path_2: &Path) -> io::Result<()> {
+        let mut file_1 = File::open(file_path_1)?;
+        let mut file_2 = File::open(file_path_2)?;
+
+        let mut buffer_1 = Vec::new();
+        let mut buffer_2 = Vec::new();
+
+        file_1.read_to_end(&mut buffer_1)?;
+        file_2.read_to_end(&mut buffer_2)?;
+
+        assert_eq!(&buffer_1.len(), &buffer_2.len());
+
+        for (buf_byte_1, buf_byte_2) in buffer_1.iter().zip(buffer_2.iter()) {
+            assert_eq!(buf_byte_1, buf_byte_2);
+        }
+        Ok(())
+    }
 
     #[test]
     fn write_binary_trace_file() {
@@ -142,32 +188,22 @@ mod tests {
     #[test]
     fn write_binary_memory_file() {
         let program_path = Path::new("tests/support/struct.json");
-        let serialized_memory_filename = "tests/support/struct_cleopatra.memory";
-        let serialized_memory_path = Path::new(serialized_memory_filename.clone());
-        let program = Program::new(program_path).expect("Couldn't open program");
-        let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.initialize_segments(None);
-        let end = cairo_runner
-            .initialize_main_entrypoint()
-            .expect("Couldn't initialize main entry point");
-        cairo_runner
-            .initialize_vm()
-            .expect("Couldn't initialize VM");
-        assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
-        cairo_runner.relocate().expect("Couldn't relocate memory");
-        write_binary_memory(&cairo_runner.relocated_memory, serialized_memory_path).unwrap();
+        let expected_memory_path = Path::new("tests/support/struct.memory");
+        let cleopatra_memory_path = Path::new("tests/support/struct_cleopatra.memory");
 
-        println!("Memory: {:?}", &cairo_runner.relocated_memory);
+        // run test program until the end
+        let mut cairo_runner = match run_test_program(program_path) {
+            Ok(cairo_runner) => cairo_runner,
+            Err(_) => panic!("Could not run test program"),
+        };
 
-        let expected_memory_buffer = File::open("tests/support/struct.memory")
-            .expect("Couldn't open python VM generated memory file");
-        let expected_memory: Vec<u8> = bincode::deserialize_from(&expected_memory_buffer)
-            .expect("Couldn't deserialize python VM generated trace");
-        let serialized_buffer =
-            File::open(serialized_memory_filename).expect("Couldn't open rust VM generated memory");
-        let serialized_cleopatra_memory: Vec<u8> = bincode::deserialize_from(&serialized_buffer)
-            .expect("Couldn't deserialize rust VM generated memory");
+        // relocate memory so we can dump it to file
+        assert!(cairo_runner.relocate().is_ok());
 
-        assert!(expected_memory == serialized_cleopatra_memory);
+        // write cleopatra vm memory file
+        assert!(write_binary_memory(&cairo_runner.relocated_memory, cleopatra_memory_path).is_ok());
+
+        // compare that the original cairo vm memory file and cleopatra vm memory files are equal
+        assert!(compare_files(cleopatra_memory_path, expected_memory_path).is_ok());
     }
 }
