@@ -16,7 +16,7 @@ pub struct ProgramJson {
     pub hints: HashMap<usize, Vec<HintParams>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct HintParams {
     #[serde(with = "serde_bytes")]
     pub code: Vec<u8>,
@@ -24,11 +24,11 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
 }
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct ApTracking {
     pub group: usize,
     pub offset: usize,
@@ -207,7 +207,24 @@ mod tests {
                         "type": "struct"
                     }
                 },
-                "hints": {}
+                "hints": {
+                    "0": [
+                        {
+                            "accessible_scopes": [
+                                "starkware.cairo.common.alloc",
+                                "starkware.cairo.common.alloc.alloc"
+                            ],
+                            "code": "memory[ap] = segments.add()",
+                            "flow_tracking_data": {
+                                "ap_tracking": {
+                                    "group": 0,
+                                    "offset": 0
+                                },
+                                "reference_ids": {}
+                            }
+                        }
+                    ]
+                }
             }"#;
 
         // ProgramJson instance for the json with an even length encoded hex.
@@ -224,10 +241,32 @@ mod tests {
             MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
+        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        hints.insert(
+            0,
+            vec![HintParams {
+                code: vec![
+                    109, 101, 109, 111, 114, 121, 91, 97, 112, 93, 32, 61, 32, 115, 101, 103, 109,
+                    101, 110, 116, 115, 46, 97, 100, 100, 40, 41,
+                ],
+                accessible_scopes: vec![
+                    String::from("starkware.cairo.common.alloc"),
+                    String::from("starkware.cairo.common.alloc.alloc"),
+                ],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                },
+            }],
+        );
+
         assert_eq!(program_json.prime, bigint!(10));
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
+        assert_eq!(program_json.hints, hints);
     }
 
     #[test]
@@ -308,6 +347,40 @@ mod tests {
             MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
+        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        hints.insert(
+            0,
+            vec![HintParams {
+                code: vec![
+                    109, 101, 109, 111, 114, 121, 91, 97, 112, 93, 32, 61, 32, 115, 101, 103, 109,
+                    101, 110, 116, 115, 46, 97, 100, 100, 40, 41,
+                ],
+                accessible_scopes: vec![
+                    String::from("starkware.cairo.common.alloc"),
+                    String::from("starkware.cairo.common.alloc.alloc"),
+                ],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                },
+            }],
+        );
+        hints.insert(
+            46,
+            vec![HintParams {
+                code: vec![105, 109, 112, 111, 114, 116, 32, 109, 97, 116, 104],
+                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 5,
+                        offset: 0,
+                    },
+                },
+            }],
+        );
+
         assert_eq!(
             program.prime,
             BigInt::parse_bytes(
@@ -319,5 +392,6 @@ mod tests {
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
+        assert_eq!(program.hints, hints);
     }
 }
