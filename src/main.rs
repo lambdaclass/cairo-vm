@@ -16,8 +16,8 @@ struct Args {
     filename: PathBuf,
     #[clap(long, value_parser)]
     trace_file: Option<PathBuf>,
-    #[structopt(long = "--program_output")]
-    program_output: bool,
+    #[structopt(long = "--print_output")]
+    print_output: bool,
 }
 
 fn main() -> Result<(), CairoRunError> {
@@ -31,7 +31,7 @@ fn main() -> Result<(), CairoRunError> {
         cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path);
     }
 
-    if args.program_output {
+    if args.print_output {
         cairo_run::write_output(&mut cairo_runner)?;
     }
 
