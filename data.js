@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656425877566,
+  "lastUpdate": 1656426604818,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -2755,6 +2755,38 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4313915,
             "range": "± 4216",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "67040e6d41a2b105410c6c54c22c50dbd486d295",
+          "message": "Cairo programs",
+          "timestamp": "2022-06-28T13:26:45Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/188/commits/67040e6d41a2b105410c6c54c22c50dbd486d295"
+        },
+        "date": 1656426603011,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 10790249,
+            "range": "± 340683",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 5251260,
+            "range": "± 185416",
             "unit": "ns/iter"
           }
         ]
