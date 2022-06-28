@@ -39,7 +39,7 @@ pub fn cairo_run(path: &Path) -> Result<CairoRunner, CairoRunError> {
     Ok(cairo_runner)
 }
 
-pub fn write_output(cairo_runner: &CairoRunner) -> Result<(), CairoRunError> {
+pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
     if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
         return Err(CairoRunError::Runner(error));
     }
