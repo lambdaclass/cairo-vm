@@ -27,12 +27,12 @@ fn main() -> Result<(), CairoRunError> {
         Err(error) => return Err(error),
     };
 
-    if args.program_output {
-        cairo_run::write_output(&cairo_runner);
-    }
-
     if let Some(trace_path) = args.trace_file {
         cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path);
+    }
+
+    if args.program_output {
+        cairo_run::write_output(cairo_runner)?;
     }
 
     Ok(())
