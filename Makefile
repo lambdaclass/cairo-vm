@@ -1,4 +1,4 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks
 
 deps:
 	cargo install --version 1.1.0 cargo-criterion
@@ -28,6 +28,14 @@ benchmark:
 
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
+
+compare_benchmarks_deps:
+	pyenv install pypy3.7-7.3.9
+	pyenv global pypy3.7-7.3.9
+	pip install cairo_lang
+	pyenv instal 3.7.12
+	pyenv global 3.7.12
+	pip install cairo_lang
 
 compare_benchmarks:
 	cd bench && ./run_benchmarks.sh
