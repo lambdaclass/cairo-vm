@@ -8,7 +8,7 @@ for file in ${test_files[@]}; do
     cairo-compile "support/$file.cairo" --output "support/traces/$file.json"
 
     cairo_output=$( (cairo-run --layout all --print_output --program "support/traces/$file.json" --trace_file "support/traces/$file.trace") | tr -dc 0-9 ) 
-    cleopatra_output=$( (../target/release/cleopatra-run "support/traces/$file.json" --trace "support/traces/$file.cleo.trace") | tr -dc 0-9 )
+    cleopatra_output=$( (../target/release/cleopatra-run --print_output "support/traces/$file.json" --trace "support/traces/$file.cleo.trace") | tr -dc 0-9 )
 
     if [[ $cairo_output != $cleopatra_output ]]; then
         echo "Warning: Cairo output ($cairo_output) and Cleopatra output ($cleopatra_output) differ"
