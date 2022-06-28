@@ -14,7 +14,9 @@ check:
 	cargo check
 
 test:
+	cd tests; ./setup_tests
 	cargo test
+	rm cairo_programs/*.json
 
 clippy:
 	cargo clippy  -- -D warnings
