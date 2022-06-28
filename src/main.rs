@@ -22,7 +22,7 @@ struct Args {
 
 fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
-    let cairo_runner = match cairo_run::cairo_run(&args.filename) {
+    let mut cairo_runner = match cairo_run::cairo_run(&args.filename) {
         Ok(runner) => runner,
         Err(error) => return Err(error),
     };
@@ -32,7 +32,7 @@ fn main() -> Result<(), CairoRunError> {
     }
 
     if args.program_output {
-        cairo_run::write_output(cairo_runner)?;
+        cairo_run::write_output(&mut cairo_runner)?;
     }
 
     Ok(())
