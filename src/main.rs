@@ -16,7 +16,7 @@ struct Args {
     filename: PathBuf,
     #[clap(long, value_parser)]
     trace_file: Option<PathBuf>,
-    #[clap(long)]
+    #[structopt(long = "--program_output")]
     program_output: bool,
 }
 
