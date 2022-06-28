@@ -5,13 +5,11 @@ end
 
 func fib_wrapper(n):
     # Call fib(1, 1, 1000).
-    fib(1,1,1000)
     let result: felt = fib(1,1,1000)
 
     # Make sure the 1000th Fibonacci number is 222450955505511890955301767713383614666194461405743219770606958667979327682.
     assert result = 222450955505511890955301767713383614666194461405743219770606958667979327682 
     if n != 0:
-        # tempvar m = n - 1
         fib_wrapper(n - 1)
     end
     ret
