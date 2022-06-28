@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656430944201,
+  "lastUpdate": 1656435465496,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -2951,6 +2951,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4240981,
             "range": "± 4433",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e7942d9fef653da9d300e00d1d31322603ff2e88",
+          "message": "Merge pull request #191 from lambdaclass/memory-file-arg\n\nAdd memory_file command line argument functionality",
+          "timestamp": "2022-06-28T13:53:14-03:00",
+          "tree_id": "d42c17542e1fd635e3d919576bdfd9fae53c4f69",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/e7942d9fef653da9d300e00d1d31322603ff2e88"
+        },
+        "date": 1656435464619,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8778160,
+            "range": "± 31160",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4336487,
+            "range": "± 91726",
             "unit": "ns/iter"
           }
         ]
