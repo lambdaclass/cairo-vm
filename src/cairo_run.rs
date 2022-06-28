@@ -81,7 +81,9 @@ pub fn write_binary_memory(
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
 
-    for (i, memory_cell) in relocated_memory.iter().filter(|x| !x.is_none()).enumerate() {
+    // filters None's from the relocated memory
+    let filtered_memory_iter = relocated_memory.iter().filter(|x| !x.is_none());
+    for (i, memory_cell) in filtered_memory_iter.enumerate() {
         match memory_cell {
             None => continue,
             Some(unwrapped_memory_cell) => {
