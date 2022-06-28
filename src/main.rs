@@ -20,7 +20,7 @@ struct Args {
     #[structopt(long = "--print_output")]
     print_output: bool,
     trace: Option<PathBuf>,
-    #[clap(long, value_parser)]
+    #[structopt(long = "--print_memory")]
     memory_file: Option<PathBuf>,
 }
 
