@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656426978733,
+  "lastUpdate": 1656427710251,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -2819,6 +2819,38 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 5123410,
             "range": "± 9869",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "c27e655f9083b906751ceda077888bef1f08fa53",
+          "message": "Add memory_file command line argument functionality",
+          "timestamp": "2022-06-28T13:26:45Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/191/commits/c27e655f9083b906751ceda077888bef1f08fa53"
+        },
+        "date": 1656427708737,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8579148,
+            "range": "± 6397",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4313319,
+            "range": "± 3835",
             "unit": "ns/iter"
           }
         ]
