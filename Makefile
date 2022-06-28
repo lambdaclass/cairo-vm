@@ -14,7 +14,7 @@ check:
 	cargo check
 
 test:
-	cd tests; ./setup_tests
+	cd tests; ./setup_tests.sh
 	cargo test
 	rm cairo_programs/*.json
 
