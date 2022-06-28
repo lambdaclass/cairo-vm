@@ -16,17 +16,23 @@ struct Args {
     filename: PathBuf,
     #[clap(long, value_parser)]
     trace_file: Option<PathBuf>,
+    #[structopt(long = "--print_output")]
+    print_output: bool,
 }
 
 fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
-    let cairo_runner = match cairo_run::cairo_run(&args.filename) {
+    let mut cairo_runner = match cairo_run::cairo_run(&args.filename) {
         Ok(runner) => runner,
         Err(error) => return Err(error),
     };
 
     if let Some(trace_path) = args.trace_file {
         cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path);
+    }
+
+    if args.print_output {
+        cairo_run::write_output(&mut cairo_runner)?;
     }
 
     Ok(())
