@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn deserialize_program_json_from_json_file_a() {
         // Open json file with (valid) even length encoded hex
-        let file = File::open("tests/support/valid_program_a.json").unwrap();
+        let file = File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn deserialize_program_json_from_json_file_b() {
         // Open json file with (valid) odd length encoded hex
-        let file = File::open("tests/support/valid_program_b.json").unwrap();
+        let file = File::open("cairo_programs/manually_compiled/valid_program_b.json").unwrap();
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
@@ -257,7 +257,8 @@ mod tests {
     #[test]
     fn deserialize_program_json_from_json_file_gives_error() {
         // Open json file with (invalid) even length encoded hex
-        let even_length_file = File::open("tests/support/invalid_even_length_hex.json").unwrap();
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/invalid_even_length_hex.json").unwrap();
         let mut reader = BufReader::new(even_length_file);
 
         let even_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
@@ -265,7 +266,8 @@ mod tests {
         assert!(even_result.is_err());
 
         // Open json file with (invalid) odd length encoded hex
-        let odd_length_file = File::open("tests/support/invalid_odd_length_hex.json").unwrap();
+        let odd_length_file =
+            File::open("cairo_programs/manually_compiled/invalid_odd_length_hex.json").unwrap();
         let mut reader = BufReader::new(odd_length_file);
 
         let odd_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
@@ -275,8 +277,10 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program(Path::new("tests/support/valid_program_a.json"))
-            .expect("Failed to deserialize program");
+        let program: Program = deserialize_program(Path::new(
+            "cairo_programs/manually_compiled/valid_program_a.json",
+        ))
+        .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![

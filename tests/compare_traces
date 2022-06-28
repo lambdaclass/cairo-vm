@@ -1,20 +1,20 @@
 #!/bin/sh
 
-test_files=("bitwise_output" "bitwise_recursion" "integration" "pedersen_test" "struct" )
+test_files=($(ls -p ../cairo_programs | grep -v / | sed -E 's/\.cairo//'))
 
 cargo build --release
 
 for file in ${test_files[@]}; do
-    cairo-compile "support/$file.cairo" --output "support/traces/$file.json"
+    cairo-compile "../cairo_programs/$file.cairo" --output "$file.json"
 
-    cairo_output=$( (cairo-run --layout all --print_output --program "support/traces/$file.json" --trace_file "support/traces/$file.trace") | tr -dc 0-9 ) 
-    cleopatra_output=$( (../target/release/cleopatra-run --print_output "support/traces/$file.json" --trace "support/traces/$file.cleo.trace") | tr -dc 0-9 )
+    cairo_output=$( (cairo-run --layout all --print_output --program "$file.json" --trace_file "$file.trace") | tr -dc 0-9 ) 
+    cleopatra_output=$( (../target/release/cleopatra-run --print_output "$file.json" --trace-file "$file.cleopatra.trace") | tr -dc 0-9 )
 
     if [[ $cairo_output != $cleopatra_output ]]; then
         echo "Warning: Cairo output ($cairo_output) and Cleopatra output ($cleopatra_output) differ"
     fi
 
-    if ! diff -q support/traces/$file{,.cleo}.trace; then
+    if ! diff -q $file{,.cleopatra}.trace; then
         echo "Traces for $file differ"
         exit 1
     else
@@ -22,4 +22,5 @@ for file in ${test_files[@]}; do
     fi
 done
 
-rm support/traces/*
+rm *.trace
+rm *.json
