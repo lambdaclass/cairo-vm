@@ -128,9 +128,7 @@ mod tests {
             Err(e) => return Err(CairoRunError::Runner(e)),
         };
 
-        cairo_runner
-            .initialize_vm()
-            .expect("Couldn't initialize VM");
+        assert!(cairo_runner.initialize_vm().is_ok());
 
         assert!(cairo_runner.run_until_pc(end).is_ok());
 
