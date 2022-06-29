@@ -5,6 +5,7 @@ use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::execute_hint::execute_hint;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
@@ -423,6 +424,15 @@ impl VirtualMachine {
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
+        if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
+            for hint_code in hint_list {
+                if execute_hint(self, hint_code).is_err() {
+                    return Err(VirtualMachineError::HintException(
+                        self.run_context.pc.clone(),
+                    ));
+                }
+            }
+        }
         self.skip_instruction_execution = false;
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
