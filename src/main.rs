@@ -1,13 +1,8 @@
 #![deny(warnings)]
-mod cairo_run;
-mod math_utils;
-mod serde;
-mod types;
-mod utils;
-mod vm;
-use crate::vm::errors::cairo_run_errors::CairoRunError;
-use crate::vm::errors::runner_errors::RunnerError;
 use clap::{Parser, ValueHint};
+use cleopatra_cairo::cairo_run;
+use cleopatra_cairo::vm::errors::cairo_run_errors::CairoRunError;
+use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
