@@ -576,8 +576,8 @@ mod tests {
     #[test]
     fn get_initial_stack_for_ecop_not_included() {
         let builtin = EcOpBuiltinRunner::new(false, 8);
-        let initial_stack = builtin.initial_stack().unwrap();
-        assert_eq!(initial_stack, Vec::new());
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack, Ok(Vec::new()));
     }
 
     #[test]
@@ -619,8 +619,8 @@ mod tests {
     #[test]
     fn get_initial_stack_for_pedersen_not_included() {
         let builtin = HashBuiltinRunner::new(false, 8);
-        let initial_stack = builtin.initial_stack().unwrap();
-        assert_eq!(initial_stack, Vec::new());
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack, Ok(Vec::new()));
     }
 
     #[test]
@@ -752,8 +752,8 @@ mod tests {
     #[test]
     fn get_initial_stack_for_bitwise_not_included() {
         let builtin = BitwiseBuiltinRunner::new(false, 8);
-        let initial_stack = builtin.initial_stack().unwrap();
-        assert_eq!(initial_stack, Vec::new());
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack, Ok(Vec::new()));
     }
 
     #[test]
