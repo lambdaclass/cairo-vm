@@ -35,7 +35,6 @@ pub enum VirtualMachineError {
     HintException(MaybeRelocatable),
     MemoryError(MemoryError),
     UnknownHinError(String),
-    NoIds(String),
     NoRangeCheckBuiltin,
     IncorrectIds,
 }
@@ -92,7 +91,6 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::HintException(address) => write!(f, "Got an exception while executing a hint at pc: {:?}", address),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
             VirtualMachineError::UnknownHinError(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
-            VirtualMachineError::NoIds(hint_code) => write!(f, "No ids were given for hint requiring ids: {:?}", hint_code),
             VirtualMachineError::NoRangeCheckBuiltin => {
                 write!(f, "Expected range_check builtin to be present")
             },

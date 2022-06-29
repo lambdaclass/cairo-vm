@@ -9,18 +9,12 @@ use crate::vm::vm_core::VirtualMachine;
 pub fn execute_hint(
     vm: &mut VirtualMachine,
     hint_code: &[u8],
-    ids: Option<HashMap<String, BigInt>>,
+    ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => {
-            if let Some(ids) = ids {
-                is_nn(vm, ids)
-            } else {
-                Err(VirtualMachineError::NoIds(String::from(
-                    "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1",
-                )))
-            }
+            is_nn(vm, ids)
         }
         Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
             hint_code,
@@ -47,7 +41,7 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
         );
-        execute_hint(&mut vm, hint_code, None).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 1);
         //new segment base (0,0) is inserted into ap (0,0)
@@ -69,7 +63,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
-        execute_hint(&mut vm, hint_code, None).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
         //new segment base (3,0) is inserted into ap (2,6)
@@ -87,7 +81,7 @@ mod tests {
             Vec::new(),
         );
         assert_eq!(
-            execute_hint(&mut vm, hint_code, None),
+            execute_hint(&mut vm, hint_code, HashMap::new()),
             Err(VirtualMachineError::UnknownHinError(
                 String::from_utf8(hint_code.to_vec()).unwrap()
             ))
@@ -114,7 +108,7 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(-1));
         //Execute the hint
-        execute_hint(&mut vm, hint_code, Some(ids)).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         //Check that ap now contains false (0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -142,7 +136,7 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(1));
         //Execute the hint
-        execute_hint(&mut vm, hint_code, Some(ids)).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -168,7 +162,7 @@ mod tests {
         ids.insert(String::from("a"), bigint!(1));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, Some(ids)),
+            execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -194,33 +188,8 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, Some(ids)),
+            execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::IncorrectIds)
-        );
-    }
-
-    #[test]
-    fn run_is_nn_hint_no_ids() {
-        let hint_code =
-            "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        //Execute the hint
-        assert_eq!(
-            execute_hint(&mut vm, hint_code, None),
-            Err(VirtualMachineError::NoIds(
-                String::from_utf8(hint_code.to_vec()).unwrap()
-            ))
         );
     }
 }
