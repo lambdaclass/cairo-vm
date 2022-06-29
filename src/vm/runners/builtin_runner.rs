@@ -624,6 +624,12 @@ mod tests {
     }
 
     #[test]
+    fn get_initial_stack_for_pedersen_with_error() {
+        let builtin = HashBuiltinRunner::new(true, 8);
+        assert_eq!(builtin.initial_stack(), Err(RunnerError::UninitializedBase));
+    }
+
+    #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let mut memory = Memory::new();
         let mut builtin = HashBuiltinRunner::new(true, 8);
@@ -740,6 +746,12 @@ mod tests {
         let builtin = BitwiseBuiltinRunner::new(false, 8);
         let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(initial_stack, Vec::new());
+    }
+
+    #[test]
+    fn get_initial_stack_for_bitwise_with_error() {
+        let builtin = BitwiseBuiltinRunner::new(true, 8);
+        assert_eq!(builtin.initial_stack(), Err(RunnerError::UninitializedBase));
     }
 
     #[test]
