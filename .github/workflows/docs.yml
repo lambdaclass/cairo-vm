@@ -23,5 +23,6 @@ jobs:
       with:
         branch: gh-pages
         folder: target/doc
+        force: false
         clean: false
         commit-message: update html docs for ${{ github.sha }}
