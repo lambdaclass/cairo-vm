@@ -149,6 +149,16 @@ mod decoder_test {
     use super::*;
 
     #[test]
+    fn invalid_op1_reg() {
+        let error = decode_instruction(0x294F800080008000, None);
+        assert_eq!(error, Err(VirtualMachineError::InvalidOp1Reg(3)));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Invalid op1_register value: 3"
+        )
+    }
+
+    #[test]
     fn decode_flags_call_add_jmp_add_imm_fp_fp() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
