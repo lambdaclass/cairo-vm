@@ -290,9 +290,11 @@ mod tests {
             fp: MaybeRelocatable::from(bigint!(6)),
             prime: bigint!(39),
         };
-
-        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, VirtualMachineError::ImmShouldBe1,);
+        
+        let error = run_context.compute_op1_addr(&instruction, None);
+        assert_eq!(error, Err(VirtualMachineError::ImmShouldBe1));
+        
+        if let Err(error) = error {
             assert_eq!(error.to_string(), "In immediate mode, off2 should be 1");
         }
     }
