@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656529614312,
+  "lastUpdate": 1656529679231,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -3887,6 +3887,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4230911,
             "range": "± 6684",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dc0a490ab981bd72fda6144228e75aedbf69d52e",
+          "message": "Merge pull request #205 from lambdaclass/remove-mods-from-main\n\nremove modules from main.rs",
+          "timestamp": "2022-06-29T16:02:14-03:00",
+          "tree_id": "e96a32c7474e3ef1336d762fd14d731322989806",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/dc0a490ab981bd72fda6144228e75aedbf69d52e"
+        },
+        "date": 1656529676742,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 10786666,
+            "range": "± 387010",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 5165522,
+            "range": "± 187534",
             "unit": "ns/iter"
           }
         ]
