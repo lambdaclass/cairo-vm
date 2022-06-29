@@ -10,7 +10,7 @@ The code of the original Cairo VM can be found [here](https://github.com/starkwa
 ## Dependencies
 - Rust
 - Cargo
-- PyEnv for running the original VM and compiling cairo programs
+- PyEnv, CPython and PyPy for running the original VM and compiling cairo programs
 
 ## Running Cleopatra
 Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
