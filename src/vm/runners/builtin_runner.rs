@@ -528,7 +528,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint_str, relocatable};
+    use crate::{bigint, bigint_str, relocatable};
 
     #[test]
     fn initialize_segments_for_output() {
@@ -742,6 +742,14 @@ mod tests {
     }
 
     #[test]
+    fn deduce_memory_cell_pedersen_for_no_relocatable_address() {
+        let memory = Memory::new();
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
+        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+    }
+
+    #[test]
     fn get_initial_stack_for_bitwise_not_included() {
         let builtin = BitwiseBuiltinRunner::new(false, 8);
         let initial_stack = builtin.initial_stack().unwrap();
@@ -881,6 +889,14 @@ mod tests {
             .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_no_relocatable_address() {
+        let memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
+        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
 
     #[test]
