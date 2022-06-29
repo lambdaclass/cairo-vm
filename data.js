@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656529587402,
+  "lastUpdate": 1656529614312,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -3851,6 +3851,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 3720324,
             "range": "± 4109",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6a34df66d132452b5e7141d589f2e709b2e3507",
+          "message": "Merge pull request #204 from lambdaclass/add-builtin-runner-tests\n\nbuiltin_runner.rs unit tests",
+          "timestamp": "2022-06-29T16:02:06-03:00",
+          "tree_id": "90c8abf1aa6f9cee08359b5f35f1f3147db24be9",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/d6a34df66d132452b5e7141d589f2e709b2e3507"
+        },
+        "date": 1656529613071,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8713377,
+            "range": "± 119766",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4230911,
+            "range": "± 6684",
             "unit": "ns/iter"
           }
         ]
