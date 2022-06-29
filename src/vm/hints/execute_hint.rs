@@ -2,10 +2,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::add_segment;
 use crate::vm::vm_core::VirtualMachine;
 
-pub fn execute_hint(
-    vm: &mut VirtualMachine,
-    hint_code: &Vec<u8>,
-) -> Result<(), VirtualMachineError> {
+pub fn execute_hint(vm: &mut VirtualMachine, hint_code: &[u8]) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code).unwrap() {
         "memory[ap] = segments.add()" => add_segment(vm),
         _ => Ok(()),
@@ -27,7 +24,7 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
         );
-        execute_hint(&mut vm, &hint_code.to_vec()).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code).expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 1);
         //new segment base (0,0) is inserted into ap (0,0)
@@ -49,7 +46,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
-        execute_hint(&mut vm, &hint_code.to_vec()).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code).expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
         //new segment base (3,0) is inserted into ap (2,6)

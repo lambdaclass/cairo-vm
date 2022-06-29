@@ -238,7 +238,7 @@ impl CairoRunner {
                 }
             }
         }
-        return hint_dictionary;
+        hint_dictionary
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
