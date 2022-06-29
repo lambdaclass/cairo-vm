@@ -427,9 +427,8 @@ impl VirtualMachine {
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list_borrowed) = self.hints.get(&self.run_context.pc) {
-            let hint_list = hint_list_borrowed.clone();
-            for hint_code in hint_list.iter() {
+        if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
+            for hint_code in hint_list.clone().iter() {
                 if execute_hint(self, hint_code).is_err() {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
