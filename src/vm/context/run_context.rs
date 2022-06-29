@@ -292,10 +292,7 @@ mod tests {
         };
 
         if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(
-                error
-                VirtualMachineError::ImmShouldBe1,
-            );
+            assert_eq!(error, VirtualMachineError::ImmShouldBe1,);
             assert_eq!(error.to_string(), "In immediate mode, off2 should be 1");
         }
     }
@@ -356,7 +353,7 @@ mod tests {
         };
 
         if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, Err(VirtualMachineError::UnknownOp0));
+            assert_eq!(error, VirtualMachineError::UnknownOp0);
             assert_eq!(error.to_string(), "op0 must be known in double dereference");
         }
     }
