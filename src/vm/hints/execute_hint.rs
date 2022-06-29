@@ -60,4 +60,19 @@ mod tests {
             Ok(Some(&MaybeRelocatable::from((3, 0))))
         );
     }
+
+    #[test]
+    fn run_unknown_hint() {
+        let hint_code = "random_invalid_code".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        assert_eq!(
+            execute_hint(&mut vm, hint_code),
+            Err(VirtualMachineError::UnknownHinError(
+                String::from_utf8(hint_code.to_vec()).unwrap()
+            ))
+        );
+    }
 }
