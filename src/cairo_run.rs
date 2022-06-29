@@ -56,13 +56,10 @@ pub fn write_binary_trace(
     let mut buffer = File::create(trace_file).expect("Could not create trace file");
 
     for (i, entry) in relocated_trace.iter().enumerate() {
-        match bincode::serialize_into(&mut buffer, entry) {
-            Ok(()) => continue,
-            Err(e) => {
-                let error_string =
-                    format!("Failed to dump trace at position {i}, serialize error: {e}");
-                return Err(Error::new(ErrorKind::Other, error_string));
-            }
+        if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
+            let error_string =
+                format!("Failed to dump trace at position {i}, serialize error: {e}");
+            return Err(Error::new(ErrorKind::Other, error_string));
         }
     }
 
@@ -194,10 +191,10 @@ mod tests {
         let cleopatra_trace_path = Path::new("tests/support/struct_cleopatra.trace");
 
         // run test program until the end
-        let mut cairo_runner = match run_test_program(program_path) {
-            Ok(cairo_runner) => cairo_runner,
-            Err(_) => panic!("Could not run test program"),
-        };
+        let cairo_runner_result = run_test_program(program_path);
+        assert!(cairo_runner_result.is_ok());
+
+        let mut cairo_runner = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
         assert!(cairo_runner.relocate().is_ok());
