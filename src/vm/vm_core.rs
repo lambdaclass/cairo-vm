@@ -29,7 +29,7 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
-    pub hints: HashMap<MaybeRelocatable, Vec<Vec<u8>>>,
+    pub hints: HashMap<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -62,7 +62,7 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
-            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -428,8 +428,8 @@ impl VirtualMachine {
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
-            for hint_code in hint_list.clone().iter() {
-                if execute_hint(self, hint_code, None).is_err() {
+            for (hint_code, ids) in hint_list.clone().iter() {
+                if execute_hint(self, hint_code, ids.clone()).is_err() {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
                     ));
@@ -2302,7 +2302,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
-            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -3411,7 +3411,10 @@ mod tests {
         );
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
-            vec![("memory[ap] = segments.add()".as_bytes()).to_vec()],
+            vec![(
+                ("memory[ap] = segments.add()".as_bytes()).to_vec(),
+                HashMap::new(),
+            )],
         );
 
         //Create program and execution segments

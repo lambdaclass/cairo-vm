@@ -221,20 +221,24 @@ impl CairoRunner {
             Ok(_) => Ok(()),
         }
     }
-    fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<Vec<u8>>> {
-        let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new();
+    fn get_hint_dictionary(
+        &self,
+    ) -> HashMap<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>> {
+        let mut hint_dictionary =
+            HashMap::<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>::new();
         for (_hint_index, hints) in self.program.hints.iter() {
             for hint_data in hints.iter() {
                 let key = MaybeRelocatable::from((
                     hint_data.flow_tracking_data.ap_tracking.group,
                     hint_data.flow_tracking_data.ap_tracking.offset,
                 ));
+                //TODO: replace HashMap::new() with proper ids once ids is deserialized
                 if let Some(hint_list) = hint_dictionary.get_mut(&key) {
                     //Add hint code to list of hints at given pc
-                    hint_list.push(hint_data.code.clone());
+                    hint_list.push((hint_data.code.clone(), HashMap::new()));
                 } else {
                     //Insert the first hint at a given pc
-                    hint_dictionary.insert(key, vec![hint_data.code.clone()]);
+                    hint_dictionary.insert(key, vec![(hint_data.code.clone(), HashMap::new())]);
                 }
             }
         }
