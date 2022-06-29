@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656538158870,
+  "lastUpdate": 1656538670842,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -4339,6 +4339,38 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4789168,
             "range": "± 280703",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "3add17c2b49a7a3c96f52adf4ffbad129ac4cd99",
+          "message": "Add support for the hint in is_nn (math_cmp.cairo)",
+          "timestamp": "2022-06-28T20:14:01Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/210/commits/3add17c2b49a7a3c96f52adf4ffbad129ac4cd99"
+        },
+        "date": 1656538668253,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 9234940,
+            "range": "± 506980",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4441234,
+            "range": "± 334906",
             "unit": "ns/iter"
           }
         ]
