@@ -63,7 +63,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-pc (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
             VirtualMachineError::NoDst => write!(f,  "Couldn't get or load dst"),
             VirtualMachineError::InvalidRes(n) => write!(f, "Invalid res value: {}", n),
-            VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid res value: {}", n),
+            VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid opcode value: {}", n),
             VirtualMachineError::RelocatableAdd => {
                 write!(f, "Cannot add two relocatable values")
             }
