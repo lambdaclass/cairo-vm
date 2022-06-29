@@ -33,9 +33,10 @@ pub fn execute_hint(
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::{BigInt, Sign};
-
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
+    use num_bigint::{BigInt, Sign};
+    use num_traits::FromPrimitive;
 
     use super::*;
     #[test]
@@ -90,6 +91,34 @@ mod tests {
             Err(VirtualMachineError::UnknownHinError(
                 String::from_utf8(hint_code.to_vec()).unwrap()
             ))
+        );
+    }
+
+    #[test]
+    fn run_is_nn_hint_false() {
+        let hint_code =
+            "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(-1));
+        //Execute the hint
+        execute_hint(&mut vm, hint_code, Some(ids)).expect("Error while executing hint");
+        //Check that ap now contains false (0)
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
 }

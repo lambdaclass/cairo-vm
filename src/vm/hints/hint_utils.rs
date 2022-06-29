@@ -34,9 +34,9 @@ pub fn is_nn(
                     None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                     Some(builtin) => {
                         //Main logic (assert a is not negative and within the expected range)
-                        let mut value = bigint!(1);
+                        let mut value = bigint!(0);
                         if *a > bigint!(0) && *a < vm.prime && *a < builtin._bound {
-                            value = bigint!(0);
+                            value = bigint!(1);
                         }
                         match vm
                             .memory
