@@ -1,4 +1,5 @@
 use crate::types::relocatable::MaybeRelocatable;
+use num_bigint::BigInt;
 use std::fmt;
 
 use super::memory_errors::MemoryError;
@@ -21,6 +22,7 @@ pub enum RunnerError {
     ExpectedInteger(MaybeRelocatable),
     MemoryGet(MaybeRelocatable),
     FailedMemoryGet(MemoryError),
+    EcOpBuiltinScalarLimit(BigInt),
 }
 
 impl fmt::Display for RunnerError {
@@ -63,6 +65,10 @@ impl fmt::Display for RunnerError {
             RunnerError::FailedMemoryGet(error) => {
                 write!(f, "Failed fetching memory address.")?;
                 error.fmt(f)
+            }
+
+            RunnerError::EcOpBuiltinScalarLimit(scalar) => {
+                write!(f, "EcOpBuiltin: m should be at most {}", scalar)
             }
         }
     }

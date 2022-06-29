@@ -1,9 +1,8 @@
-use std::path::Path;
-
-use crate::serde::deserialize_program;
+use crate::serde::deserialize_program::{deserialize_program, HintParams};
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
+use std::{collections::HashMap, path::Path};
 
 #[derive(Clone)]
 pub struct Program {
@@ -11,11 +10,12 @@ pub struct Program {
     pub prime: BigInt,
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
+    pub hints: HashMap<usize, Vec<HintParams>>,
 }
 
 impl Program {
     pub fn new(path: &Path) -> Result<Program, ProgramError> {
-        deserialize_program::deserialize_program(path)
+        deserialize_program(path)
     }
 }
 
@@ -26,8 +26,10 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = Program::new(Path::new("tests/support/valid_program_a.json"))
-            .expect("Failed to deserialize program");
+        let program: Program = Program::new(Path::new(
+            "cairo_programs/manually_compiled/valid_program_a.json",
+        ))
+        .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![

@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::{is_subsequence, to_field_element};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -27,7 +28,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
-    relocated_memory: Vec<Option<BigInt>>,
+    pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Vec<RelocatedTraceEntry>,
 }
 
@@ -231,28 +232,27 @@ impl CairoRunner {
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
     /// Uses the relocation_table to asign each index a number according to the value on its segment number
-    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) {
-        assert!(
-            self.relocated_memory.is_empty(),
-            "Memory has been already relocated"
-        );
+    fn relocate_memory(&mut self, relocation_table: &Vec<usize>) -> Result<(), MemoryError> {
+        if !(self.relocated_memory.is_empty()) {
+            return Err(MemoryError::Relocation);
+        }
         //Relocated addresses start at 1
         self.relocated_memory.push(None);
         for (index, segment) in self.vm.memory.data.iter().enumerate() {
-            //Check that each segment was relocated correctly
-            assert!(
-                self.relocated_memory.len() == relocation_table[index],
-                "Inconsistent Relocation"
-            );
+            if self.relocated_memory.len() != relocation_table[index] {
+                return Err(MemoryError::Relocation);
+            }
+
             for element in segment {
                 match element {
                     Some(elem) => self
                         .relocated_memory
-                        .push(Some(relocate_value(elem.clone(), relocation_table))),
+                        .push(Some(relocate_value(elem.clone(), relocation_table)?)),
                     None => self.relocated_memory.push(None),
                 }
             }
         }
+        Ok(())
     }
 
     ///Relocates the VM's trace, turning relocatable registers to numbered ones
@@ -279,7 +279,9 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
-        self.relocate_memory(&relocation_table);
+        if let Err(memory_error) = self.relocate_memory(&relocation_table) {
+            return Err(TraceError::MemoryError(memory_error));
+        }
         self.relocate_trace(&relocation_table)?;
         Ok(())
     }
@@ -341,6 +343,7 @@ mod tests {
     use super::*;
     use crate::vm::trace::trace_entry::TraceEntry;
     use crate::{bigint64, bigint_str, relocatable};
+    use std::collections::HashMap;
 
     #[test]
     #[should_panic]
@@ -351,6 +354,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let _cairo_runner = CairoRunner::new(&program);
     }
@@ -363,6 +367,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         //We only check that the creation doesnt panic
         let _cairo_runner = CairoRunner::new(&program);
@@ -376,6 +381,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let program_base = Some(Relocatable {
@@ -415,6 +421,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -449,6 +456,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -475,6 +483,7 @@ mod tests {
                 MaybeRelocatable::from(bigint!(6)),
             ],
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -515,6 +524,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..3 {
@@ -556,6 +566,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -581,6 +592,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -602,6 +614,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -642,6 +655,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -691,6 +705,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let stack = vec![MaybeRelocatable::from(bigint!(7))];
@@ -709,6 +724,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_main_entrypoint().unwrap();
@@ -722,6 +738,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: Some(1),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -738,6 +755,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: Some(1),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -771,6 +789,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: Some(1),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -824,6 +843,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: Some(1),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -888,6 +908,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(3),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1049,6 +1070,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(4),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1248,6 +1270,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(8),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1479,6 +1502,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(3),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1597,6 +1621,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(8),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1796,6 +1821,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(4),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2034,6 +2060,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(13),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2294,6 +2321,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..4 {
@@ -2354,7 +2382,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        cairo_runner.relocate_memory(&rel_table);
+        assert_eq!(cairo_runner.relocate_memory(&rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2441,6 +2469,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(4),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2454,7 +2483,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        cairo_runner.relocate_memory(&rel_table);
+        assert_eq!(cairo_runner.relocate_memory(&rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2571,6 +2600,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(4),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2691,6 +2721,7 @@ mod tests {
             prime: bigint!(17),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2761,6 +2792,7 @@ mod tests {
                 MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
             ],
             main: Some(4),
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2785,6 +2817,7 @@ mod tests {
             ),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2827,6 +2860,7 @@ mod tests {
             ),
             data: Vec::new(),
             main: None,
+            hints: HashMap::new(),
         };
         let cairo_runner = CairoRunner::new(&program);
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
