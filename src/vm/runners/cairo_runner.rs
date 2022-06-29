@@ -225,8 +225,22 @@ impl CairoRunner {
         }
     }
     fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<Vec<u8>>> {
-        let hint_dictionary = HashMap::new();
-        for hints in self.program.hints {}
+        let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new();
+        for (_hint_index, hints) in self.program.hints.iter() {
+            for hint_data in hints.iter() {
+                let key = MaybeRelocatable::from((
+                    hint_data.flow_tracking_data.ap_tracking.group,
+                    hint_data.flow_tracking_data.ap_tracking.offset,
+                ));
+                if let Some(hint_list) = hint_dictionary.get_mut(&key) {
+                    //Add hint code to list of hints at given pc
+                    hint_list.push(hint_data.code.clone());
+                } else {
+                    //Insert the first hint at a given pc
+                    hint_dictionary.insert(key, vec![hint_data.code.clone()]);
+                }
+            }
+        }
         return hint_dictionary;
     }
 
