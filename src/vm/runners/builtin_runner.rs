@@ -574,6 +574,13 @@ mod tests {
     }
 
     #[test]
+    fn get_initial_stack_for_ecop_not_included() {
+        let builtin = EcOpBuiltinRunner::new(false, 8);
+        let initial_stack = builtin.initial_stack().unwrap();
+        assert_eq!(initial_stack, Vec::new());
+    }
+
+    #[test]
     fn get_initial_stack_for_range_check_not_included() {
         let builtin = RangeCheckBuiltinRunner::new(false, bigint!(8), 8);
         let initial_stack = builtin.initial_stack().unwrap();
@@ -607,6 +614,13 @@ mod tests {
         let builtin = OutputBuiltinRunner::new(false);
         let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(initial_stack.len(), 0);
+    }
+
+    #[test]
+    fn get_initial_stack_for_pedersen_not_included() {
+        let builtin = HashBuiltinRunner::new(false, 8);
+        let initial_stack = builtin.initial_stack().unwrap();
+        assert_eq!(initial_stack, Vec::new());
     }
 
     #[test]
@@ -719,6 +733,13 @@ mod tests {
         builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn get_initial_stack_for_bitwise_not_included() {
+        let builtin = BitwiseBuiltinRunner::new(false, 8);
+        let initial_stack = builtin.initial_stack().unwrap();
+        assert_eq!(initial_stack, Vec::new());
     }
 
     #[test]
