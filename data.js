@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656519707195,
+  "lastUpdate": 1656520608922,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -3519,6 +3519,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4761974,
             "range": "± 245760",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "700d46fd38b8d9455e78194e0c5f7f4ab8dfa942",
+          "message": "Merge pull request #197 from lambdaclass/modify-fibonacci-programs\n\nModify Fibonacci programs",
+          "timestamp": "2022-06-29T13:31:12-03:00",
+          "tree_id": "e34fd36d6d455cfdf0841769e3fda021db3562b9",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/700d46fd38b8d9455e78194e0c5f7f4ab8dfa942"
+        },
+        "date": 1656520606279,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 10024027,
+            "range": "± 150014",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 5013397,
+            "range": "± 54341",
             "unit": "ns/iter"
           }
         ]
