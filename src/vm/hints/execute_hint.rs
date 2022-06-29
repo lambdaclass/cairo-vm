@@ -22,7 +22,6 @@ pub fn execute_hint(
                 )))
             }
         }
-
         Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
             hint_code,
         ))),

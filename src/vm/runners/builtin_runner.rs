@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::math_utils::{ec_add, ec_double};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -17,7 +19,7 @@ pub struct RangeCheckBuiltinRunner {
     _cells_per_instance: i32,
     _n_input_cells: i32,
     _inner_rc_bound: BigInt,
-    _bound: BigInt,
+    pub _bound: BigInt,
     _n_parts: u32,
 }
 pub struct OutputBuiltinRunner {
@@ -68,6 +70,7 @@ pub trait BuiltinRunner {
         address: &MaybeRelocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
+    fn as_any(&self) -> &dyn Any;
 }
 
 impl RangeCheckBuiltinRunner {
@@ -134,6 +137,10 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl OutputBuiltinRunner {
@@ -177,6 +184,10 @@ impl BuiltinRunner for OutputBuiltinRunner {
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -269,6 +280,10 @@ impl BuiltinRunner for HashBuiltinRunner {
             Err(RunnerError::NonRelocatableAddress)
         }
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl BitwiseBuiltinRunner {
@@ -353,6 +368,10 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         } else {
             Err(RunnerError::NonRelocatableAddress)
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -521,6 +540,10 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         } else {
             Err(RunnerError::NonRelocatableAddress)
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
