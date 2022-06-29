@@ -173,7 +173,7 @@ mod decoder_test {
     }
 
     #[test]
-    fn invalid_invalid_opcode() {
+    fn invalid_opcode() {
         let error = decode_instruction(0x3948800080008000, None);
         assert_eq!(error, Err(VirtualMachineError::InvalidOpcode(3)));
         assert_eq!(error.unwrap_err().to_string(), "Invalid opcode value: 3")
