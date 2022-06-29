@@ -293,10 +293,10 @@ mod tests {
 
         let error = run_context.compute_op1_addr(&instruction, None);
         assert_eq!(error, Err(VirtualMachineError::ImmShouldBe1));
-
-        if let Err(error) = error {
-            assert_eq!(error.to_string(), "In immediate mode, off2 should be 1");
-        }
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "In immediate mode, off2 should be 1"
+        );
     }
 
     #[test]
@@ -354,9 +354,11 @@ mod tests {
             prime: bigint!(39),
         };
 
-        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
-            assert_eq!(error, VirtualMachineError::UnknownOp0);
-            assert_eq!(error.to_string(), "op0 must be known in double dereference");
-        }
+        let error = run_context.compute_op1_addr(&instruction, None);
+        assert_eq!(error, Err(VirtualMachineError::UnknownOp0));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "op0 must be known in double dereference"
+        );
     }
 }
