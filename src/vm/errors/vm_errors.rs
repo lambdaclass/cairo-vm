@@ -7,8 +7,6 @@ use crate::vm::errors::runner_errors::RunnerError;
 #[derive(Debug, PartialEq)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
-    InvalidDstReg(i64),
-    InvalidOp0Reg(i64),
     InvalidOp1Reg(i64),
     ImmShouldBe1,
     UnknownOp0,
@@ -39,8 +37,6 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidInstructionEncoding => {
                 write!(f, "Instruction should be an int. Found:")
             }
-            VirtualMachineError::InvalidDstReg(n) => write!(f, "Invalid dst_register value: {}", n),
-            VirtualMachineError::InvalidOp0Reg(n) => write!(f, "Invalid op0_register value: {}", n),
             VirtualMachineError::InvalidOp1Reg(n) => write!(f, "Invalid op1_register value: {}", n),
             VirtualMachineError::ImmShouldBe1 => {
                 write!(f, "In immediate mode, off2 should be 1")

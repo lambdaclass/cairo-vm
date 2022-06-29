@@ -51,16 +51,16 @@ pub fn decode_instruction(
     let opcode_num = (flags & OPCODE_MASK) >> OPCODE_OFF;
 
     // Match each flag to its corresponding enum value
-    let dst_register = match dst_reg_num {
-        0 => instruction::Register::AP,
-        1 => instruction::Register::FP,
-        _ => return Err(VirtualMachineError::InvalidDstReg(dst_reg_num)),
+    let dst_register = if dst_reg_num == 1 {
+        instruction::Register::FP
+    } else {
+        instruction::Register::AP
     };
 
-    let op0_register = match op0_reg_num {
-        0 => instruction::Register::AP,
-        1 => instruction::Register::FP,
-        _ => return Err(VirtualMachineError::InvalidOp0Reg(dst_reg_num)),
+    let op0_register = if op0_reg_num == 1 {
+        instruction::Register::FP
+    } else {
+        instruction::Register::AP
     };
 
     let op1_addr = match op1_src_num {
