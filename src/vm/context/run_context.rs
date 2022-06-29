@@ -290,10 +290,14 @@ mod tests {
             fp: MaybeRelocatable::from(bigint!(6)),
             prime: bigint!(39),
         };
-        assert_eq!(
-            Err(VirtualMachineError::ImmShouldBe1),
-            run_context.compute_op1_addr(&instruction, None)
-        );
+
+        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(
+                error
+                VirtualMachineError::ImmShouldBe1,
+            );
+            assert_eq!(error.to_string(), "In immediate mode, off2 should be 1");
+        }
     }
 
     #[test]
@@ -350,9 +354,10 @@ mod tests {
             fp: MaybeRelocatable::from(bigint!(6)),
             prime: bigint!(39),
         };
-        assert_eq!(
-            Err(VirtualMachineError::UnknownOp0),
-            run_context.compute_op1_addr(&instruction, None)
-        );
+
+        if let Err(error) = run_context.compute_op1_addr(&instruction, None) {
+            assert_eq!(error, Err(VirtualMachineError::UnknownOp0));
+            assert_eq!(error.to_string(), "op0 must be known in double dereference");
+        }
     }
 }
