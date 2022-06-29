@@ -54,15 +54,19 @@ mod tests {
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        let error = relocate_trace_register(value, &relocation_table);
-        assert_eq!(error, Err(TraceError::RegNotRelocatable));
+        if let Err(error) = relocate_trace_register(value, &relocation_table) {
+            assert_eq!(error, TraceError::RegNotRelocatable);
+            assert_eq!(error.to_string(), "Trace register must be relocatable");
+        }
     }
 
     #[test]
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        let error = relocate_trace_register(value, &relocation_table);
-        assert_eq!(error, Err(TraceError::NoRelocationFound));
+        if let Err(error) = relocate_trace_register(value, &relocation_table) {
+            assert_eq!(error, TraceError::NoRelocationFound);
+            assert_eq!(error.to_string(), "No relocation found for this segment");
+        }
     }
 }
