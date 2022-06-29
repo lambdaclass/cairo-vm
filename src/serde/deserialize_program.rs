@@ -2,7 +2,7 @@ use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
 use num_bigint::{BigInt, Sign};
-use serde::{de, de::SeqAccess, Deserialize, Deserializer};
+use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -27,6 +27,8 @@ pub struct HintParams {
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
+    #[serde(deserialize_with = "deserialize_hashmap_string_to_bigint")]
+    pub reference_ids: HashMap<String, u64>,
 }
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct ApTracking {
@@ -104,6 +106,45 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     }
 }
 
+struct ReferenceIdsVisitor;
+
+impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
+    type Value = HashMap<String, u64>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("Could not deserialize hashmap")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut data: HashMap<String, u64> = HashMap::new();
+
+        // while let Some((key, value)) = map.next_entry::<(String, BigInt)>()? {
+        while let Some((key, value)) = map.next_entry::<&str, u64>()? {
+            data.insert(String::from(key), value);
+            // if let Some(no_prefix_hex) = value.strip_prefix("0x") {
+            //     // Add padding if necessary
+            //     let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+            //     let decoded_result: Result<Vec<u8>, hex::FromHexError> =
+            //         hex::decode(&no_prefix_hex);
+
+            //     match decoded_result {
+            //         Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
+            //             Sign::Plus,
+            //             &decoded_hex,
+            //         ))),
+            //         Err(e) => return Err(e).map_err(de::Error::custom),
+            //     };
+            // } else {
+            //     return Err(String::from("hex prefix error")).map_err(de::Error::custom);
+            // };
+        }
+        Ok(data)
+    }
+}
+
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
 }
@@ -112,6 +153,12 @@ pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
     d.deserialize_seq(MaybeRelocatableVisitor)
+}
+
+pub fn deserialize_hashmap_string_to_bigint<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<HashMap<String, u64>, D::Error> {
+    d.deserialize_seq(ReferenceIdsVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -220,7 +267,12 @@ mod tests {
                                     "group": 0,
                                     "offset": 0
                                 },
-                                "reference_ids": {}
+                                "reference_ids": {
+                                    "starkware.cairo.common.math.split_felt.high": 15,
+                                    "starkware.cairo.common.math.split_felt.low": 14,
+                                    "starkware.cairo.common.math.split_felt.range_check_ptr": 16,
+                                    "starkware.cairo.common.math.split_felt.value": 12
+                                }
                             }
                         }
                     ]
@@ -258,6 +310,7 @@ mod tests {
                         group: 0,
                         offset: 0,
                     },
+                    reference_ids: HashMap::new(),
                 },
             }],
         );
@@ -368,6 +421,7 @@ mod tests {
                         group: 0,
                         offset: 0,
                     },
+                    reference_ids: HashMap::new(),
                 },
             }],
         );
@@ -381,6 +435,7 @@ mod tests {
                         group: 5,
                         offset: 0,
                     },
+                    reference_ids: HashMap::new(),
                 },
             }],
         );
