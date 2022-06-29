@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use num_bigint::BigInt;
+
 use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
@@ -10,4 +14,10 @@ pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
         Ok(_) => Ok(()),
         Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
     }
+}
+pub fn is_nn(
+    _vm: &mut VirtualMachine,
+    _ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    Ok(())
 }
