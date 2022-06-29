@@ -1,3 +1,4 @@
+use crate::vm::errors::memory_errors::MemoryError;
 use num_bigint::BigInt;
 use std::fmt;
 
@@ -32,6 +33,7 @@ pub enum VirtualMachineError {
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
     RunnerError(RunnerError),
     HintException(MaybeRelocatable),
+    MemoryError(MemoryError),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -84,6 +86,7 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
             VirtualMachineError::HintException(address) => write!(f, "Got an exception while executing a hint at pc: {:?}", address),
+            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
         }
     }
 }

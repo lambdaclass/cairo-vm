@@ -9,6 +9,7 @@ use crate::vm::hints::execute_hint::execute_hint;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::{HashMap, HashSet};
@@ -25,6 +26,7 @@ pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub segments: MemorySegmentManager,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<Vec<u8>>>,
@@ -67,6 +69,7 @@ impl VirtualMachine {
             trace: Vec::<TraceEntry>::new(),
             current_step: 0,
             skip_instruction_execution: false,
+            segments: MemorySegmentManager::new(),
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
@@ -424,8 +427,9 @@ impl VirtualMachine {
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
-            for hint_code in hint_list {
+        if let Some(hint_list_borrowed) = self.hints.get(&self.run_context.pc) {
+            let hint_list = hint_list_borrowed.clone();
+            for hint_code in hint_list.iter() {
                 if execute_hint(self, hint_code).is_err() {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
@@ -2305,6 +2309,7 @@ mod tests {
             trace: Vec::<TraceEntry>::new(),
             current_step: 1,
             skip_instruction_execution: false,
+            segments: MemorySegmentManager::new(),
         };
 
         assert_eq!(

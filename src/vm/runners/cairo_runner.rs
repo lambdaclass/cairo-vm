@@ -12,7 +12,6 @@ use crate::vm::runners::builtin_runner::{
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
@@ -22,7 +21,6 @@ pub struct CairoRunner {
     program: Program,
     pub vm: VirtualMachine,
     _layout: String,
-    pub segments: MemorySegmentManager,
     final_pc: Option<Relocatable>,
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
@@ -87,7 +85,6 @@ impl CairoRunner {
         CairoRunner {
             program: program.clone(),
             _layout: String::from("plain"),
-            segments: MemorySegmentManager::new(),
             vm: VirtualMachine::new(program.prime.clone(), builtin_runners),
             final_pc: None,
             program_base: None,
@@ -103,11 +100,11 @@ impl CairoRunner {
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
-            None => Some(self.segments.add(&mut self.vm.memory, None)),
+            None => Some(self.vm.segments.add(&mut self.vm.memory, None)),
         };
-        self.execution_base = Some(self.segments.add(&mut self.vm.memory, None));
+        self.execution_base = Some(self.vm.segments.add(&mut self.vm.memory, None));
         for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
-            builtin_runner.initialize_segments(&mut self.segments, &mut self.vm.memory);
+            builtin_runner.initialize_segments(&mut self.vm.segments, &mut self.vm.memory);
         }
     }
 
@@ -122,7 +119,7 @@ impl CairoRunner {
                 offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
-            match self.segments.load_data(
+            match self.vm.segments.load_data(
                 &mut self.vm.memory,
                 &MaybeRelocatable::RelocatableValue(prog_base),
                 self.program.data.clone(),
@@ -131,7 +128,7 @@ impl CairoRunner {
                 Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
             }
             if let Some(exec_base) = &self.execution_base {
-                match self.segments.load_data(
+                match self.vm.segments.load_data(
                     &mut self.vm.memory,
                     &MaybeRelocatable::RelocatableValue(exec_base.clone()),
                     stack,
@@ -154,7 +151,7 @@ impl CairoRunner {
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Result<MaybeRelocatable, RunnerError> {
-        let end = self.segments.add(&mut self.vm.memory, None);
+        let end = self.vm.segments.add(&mut self.vm.memory, None);
         stack.append(&mut vec![
             return_fp,
             MaybeRelocatable::RelocatableValue(end.clone()),
@@ -182,7 +179,7 @@ impl CairoRunner {
             stack.append(&mut builtin_runner.initial_stack()?);
         }
         //Different process if proof_mode is enabled
-        let return_fp = self.segments.add(&mut self.vm.memory, None);
+        let return_fp = self.vm.segments.add(&mut self.vm.memory, None);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
@@ -293,10 +290,11 @@ impl CairoRunner {
     }
 
     pub fn relocate(&mut self) -> Result<(), TraceError> {
-        self.segments.compute_effective_sizes(&self.vm.memory);
+        self.vm.segments.compute_effective_sizes(&self.vm.memory);
         // relocate_segments can fail if compute_effective_sizes is not called before.
         // The expect should be unreachable.
         let relocation_table = self
+            .vm
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
@@ -313,7 +311,7 @@ impl CairoRunner {
         //If the output builtin is present it will always be the first one
         if !self.vm.builtin_runners.is_empty() && self.vm.builtin_runners[0].0 == *"output" {
             let builtin = &self.vm.builtin_runners[0].1;
-            self.segments.compute_effective_sizes(&self.vm.memory);
+            self.vm.segments.compute_effective_sizes(&self.vm.memory);
 
             let base = match builtin.base() {
                 Some(base) => base,
@@ -327,12 +325,12 @@ impl CairoRunner {
 
             // After this if block,
             // segment_used_sizes is always Some(_)
-            if self.segments.segment_used_sizes == None {
-                self.segments.compute_effective_sizes(&self.vm.memory);
+            if self.vm.segments.segment_used_sizes == None {
+                self.vm.segments.compute_effective_sizes(&self.vm.memory);
             }
 
             // See previous comment, the unwrap below is safe.
-            for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
+            for i in 0..self.vm.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
                 let value =
                     match self.vm.memory.get(
                         &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
@@ -409,7 +407,7 @@ mod tests {
             segment_index: 5,
             offset: 9,
         });
-        cairo_runner.segments.num_segments = 6;
+        cairo_runner.vm.segments.num_segments = 6;
         cairo_runner.initialize_segments(program_base);
         assert_eq!(
             cairo_runner.program_base,
@@ -431,7 +429,7 @@ mod tests {
             Some(relocatable!(7, 0))
         );
 
-        assert_eq!(cairo_runner.segments.num_segments, 8);
+        assert_eq!(cairo_runner.vm.segments.num_segments, 8);
     }
 
     #[test]
@@ -466,7 +464,7 @@ mod tests {
             Some(relocatable!(2, 0))
         );
 
-        assert_eq!(cairo_runner.segments.num_segments, 3);
+        assert_eq!(cairo_runner.vm.segments.num_segments, 3);
     }
 
     #[test]
@@ -508,7 +506,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(Relocatable {
             segment_index: 1,
@@ -549,7 +550,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..3 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
@@ -591,7 +595,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.execution_base = Some(Relocatable {
             segment_index: 2,
@@ -617,7 +624,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
@@ -639,7 +649,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -680,7 +693,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -2346,7 +2362,10 @@ mod tests {
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..4 {
-            cairo_runner.segments.add(&mut cairo_runner.vm.memory, None);
+            cairo_runner
+                .vm
+                .segments
+                .add(&mut cairo_runner.vm.memory, None);
         }
         cairo_runner
             .vm
@@ -2397,9 +2416,11 @@ mod tests {
             )
             .unwrap();
         cairo_runner
+            .vm
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
         let rel_table = cairo_runner
+            .vm
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
@@ -2498,9 +2519,11 @@ mod tests {
         cairo_runner.initialize_vm().unwrap();
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         cairo_runner
+            .vm
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
         let rel_table = cairo_runner
+            .vm
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
@@ -2629,9 +2652,11 @@ mod tests {
         cairo_runner.initialize_vm().unwrap();
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         cairo_runner
+            .vm
             .segments
             .compute_effective_sizes(&cairo_runner.vm.memory);
         let rel_table = cairo_runner
+            .vm
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
@@ -2767,7 +2792,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
-        cairo_runner.segments.segment_used_sizes = Some(vec![0, 0, 2]);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
@@ -2857,7 +2882,7 @@ mod tests {
                 )),
             )
             .unwrap();
-        cairo_runner.segments.segment_used_sizes = Some(vec![0, 0, 1]);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 1]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
