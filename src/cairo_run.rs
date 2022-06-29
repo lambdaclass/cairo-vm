@@ -4,7 +4,7 @@ use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, Error, ErrorKind, Write};
 use std::path::Path;
 
 pub fn cairo_run(path: &Path) -> Result<CairoRunner, CairoRunError> {
@@ -49,16 +49,24 @@ pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError>
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
 /// entry is composed of 3 usize values that are padded to always reach 64 bit size.
-pub fn write_binary_trace(relocated_trace: &[RelocatedTraceEntry], trace_file: &Path) {
-    let mut buffer = File::create(trace_file).expect("Error while creating trace file");
+pub fn write_binary_trace(
+    relocated_trace: &[RelocatedTraceEntry],
+    trace_file: &Path,
+) -> io::Result<()> {
+    let mut buffer = File::create(trace_file).expect("Could not create trace file");
+
     for (i, entry) in relocated_trace.iter().enumerate() {
-        if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
-            println!(
-                "Failed to dump trace at position {}, serialize error: {}",
-                i, e
-            );
+        match bincode::serialize_into(&mut buffer, entry) {
+            Ok(()) => continue,
+            Err(e) => {
+                let error_string =
+                    format!("Failed to dump trace at position {i}, serialize error: {e}");
+                return Err(Error::new(ErrorKind::Other, error_string));
+            }
         }
     }
+
+    Ok(())
 }
 
 /*
@@ -73,10 +81,7 @@ pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = match File::create(memory_file) {
-        Ok(buffer) => buffer,
-        Err(e) => return Err(e),
-    };
+    let mut buffer = File::create(memory_file).expect("Could not create memory_file");
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
@@ -156,33 +161,52 @@ mod tests {
     }
 
     #[test]
+    fn cairo_run_with_no_data_program() {
+        // a compiled program with no `data` key.
+        // it should fail when the program is loaded.
+        let no_data_program_path = Path::new("tests/support/no_data_program.json");
+
+        assert!(cairo_run(no_data_program_path).is_err());
+    }
+
+    #[test]
+    fn cairo_run_with_no_main_program() {
+        // a compiled program with no main scope
+        // it should fail when trying to run initialize_main_entrypoint.
+        let no_main_program_path = Path::new("tests/support/no_main_program.json");
+
+        assert!(cairo_run(no_main_program_path).is_err());
+    }
+
+    #[test]
+    fn cairo_run_with_invalid_memory() {
+        // the program invalid_memory.json has an invalid memory cell and errors when trying to
+        // decode the instruction.
+        let invalid_memory = Path::new("tests/support/invalid_memory.json");
+
+        assert!(cairo_run(invalid_memory).is_err());
+    }
+
+    #[test]
     fn write_binary_trace_file() {
         let program_path = Path::new("tests/support/struct.json");
-        let serialized_trace_filename = "tests/support/struct_cleopatra.trace";
-        let serialized_trace_path = Path::new(serialized_trace_filename.clone());
-        let program = Program::new(program_path).expect("Couldn't open program");
-        let mut cairo_runner = CairoRunner::new(&program);
-        cairo_runner.initialize_segments(None);
-        let end = cairo_runner
-            .initialize_main_entrypoint()
-            .expect("Couldn't initialize main entry point");
-        cairo_runner
-            .initialize_vm()
-            .expect("Couldn't initialize VM");
-        assert!(cairo_runner.run_until_pc(end) == Ok(()), "Execution failed");
-        cairo_runner.relocate().expect("Couldn't relocate memory");
-        write_binary_trace(&cairo_runner.relocated_trace, serialized_trace_path);
+        let expected_trace_path = Path::new("tests/support/struct.trace");
+        let cleopatra_trace_path = Path::new("tests/support/struct_cleopatra.trace");
 
-        let expected_trace_buffer = File::open("tests/support/struct.trace")
-            .expect("Couldn't open python VM generated trace");
-        let expected_trace: Vec<u8> = bincode::deserialize_from(&expected_trace_buffer)
-            .expect("Couldn't deserialize python VM generated trace");
-        let serialized_buffer =
-            File::open(serialized_trace_filename).expect("Couldn't open rust VM generated trace");
-        let serialized_program: Vec<u8> = bincode::deserialize_from(&serialized_buffer)
-            .expect("Couldn't deserialize rust VM generated trace");
+        // run test program until the end
+        let mut cairo_runner = match run_test_program(program_path) {
+            Ok(cairo_runner) => cairo_runner,
+            Err(_) => panic!("Could not run test program"),
+        };
 
-        assert!(expected_trace == serialized_program);
+        // relocate memory so we can dump it to file
+        assert!(cairo_runner.relocate().is_ok());
+
+        // write cleopatra vm trace file
+        assert!(write_binary_trace(&cairo_runner.relocated_trace, cleopatra_trace_path).is_ok());
+
+        // compare that the original cairo vm trace file and cleopatra vm trace files are equal
+        assert!(compare_files(cleopatra_trace_path, expected_trace_path).is_ok());
     }
 
     #[test]
