@@ -17,7 +17,7 @@ pub fn execute_hint(
             if let Some(ids) = ids {
                 is_nn(vm, ids)
             } else {
-                Err(VirtualMachineError::NoIdsError(String::from(
+                Err(VirtualMachineError::NoIds(String::from(
                     "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1",
                 )))
             }
@@ -143,10 +143,84 @@ mod tests {
         ids.insert(String::from("a"), bigint!(1));
         //Execute the hint
         execute_hint(&mut vm, hint_code, Some(ids)).expect("Error while executing hint");
-        //Check that ap now contains false (0)
+        //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+        );
+    }
+
+    #[test]
+    fn run_is_nn_hint_no_range_check_builtin() {
+        let hint_code =
+            "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(1));
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, Some(ids)),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn run_is_nn_hint_incorrect_ids() {
+        let hint_code =
+            "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("b"), bigint!(1));
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, Some(ids)),
+            Err(VirtualMachineError::IncorrectIds)
+        );
+    }
+
+    #[test]
+    fn run_is_nn_hint_no_ids() {
+        let hint_code =
+            "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, None),
+            Err(VirtualMachineError::NoIds(
+                String::from_utf8(hint_code.to_vec()).unwrap()
+            ))
         );
     }
 }

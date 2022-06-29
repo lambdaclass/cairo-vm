@@ -50,8 +50,8 @@ pub fn is_nn(
                     }
                 }
             }
-            return Err(VirtualMachineError::NoRangeCheckBuiltin);
         }
+        return Err(VirtualMachineError::NoRangeCheckBuiltin);
     }
     Err(VirtualMachineError::IncorrectIds)
 }
