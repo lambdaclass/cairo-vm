@@ -3,9 +3,14 @@ use crate::vm::hints::hint_utils::add_segment;
 use crate::vm::vm_core::VirtualMachine;
 
 pub fn execute_hint(vm: &mut VirtualMachine, hint_code: &[u8]) -> Result<(), VirtualMachineError> {
-    match std::str::from_utf8(hint_code).unwrap() {
-        "memory[ap] = segments.add()" => add_segment(vm),
-        _ => Ok(()),
+    match std::str::from_utf8(hint_code) {
+        Ok("memory[ap] = segments.add()") => add_segment(vm),
+        Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
+            hint_code,
+        ))),
+        Err(_) => Err(VirtualMachineError::HintException(
+            vm.run_context.pc.clone(),
+        )),
     }
 }
 
