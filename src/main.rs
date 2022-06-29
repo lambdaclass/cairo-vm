@@ -15,7 +15,7 @@ use std::path::PathBuf;
 struct Args {
     #[clap(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
-    #[clap(long, value_parser)]
+    #[clap(long = "--trace_file", value_parser)]
     trace_file: Option<PathBuf>,
     #[structopt(long = "--print_output")]
     print_output: bool,
