@@ -10,7 +10,7 @@ use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -26,7 +26,7 @@ pub struct VirtualMachine {
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
-    //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
+    pub hints: HashMap<MaybeRelocatable, Vec<Vec<u8>>>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -59,6 +59,7 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
+            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -2288,6 +2289,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),

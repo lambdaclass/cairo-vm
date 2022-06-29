@@ -14,6 +14,7 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
+use std::collections::HashMap;
 use std::io;
 
 pub struct CairoRunner {
@@ -216,10 +217,16 @@ impl CairoRunner {
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
+        self.vm.hints = self.get_hint_dictionary();
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
         }
+    }
+    fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<Vec<u8>>> {
+        let hint_dictionary = HashMap::new();
+        for hints in self.program.hints {}
+        return hint_dictionary;
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
