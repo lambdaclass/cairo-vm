@@ -1,9 +1,16 @@
 # Cleopatra Cairo VM
 [![rust](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml)[![benchmark](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cleopatra_cairo/)[![codecov](https://codecov.io/gh/lambdaclass/cleopatra_cairo/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cleopatra_cairo)
 
+![](./bonaparte.webp)
+
 Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet.
 
 The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
+
+## Dependencies
+- Rust
+- Cargo
+- PyEnv, CPython and PyPy for running the original VM and compiling cairo programs
 
 ## Running Cleopatra
 Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.

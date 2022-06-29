@@ -7,7 +7,7 @@ use cleopatra_cairo::{
 
 #[test]
 fn bitwise_integration_test() {
-    let program = Program::new(Path::new("tests/support/bitwise_builtin_test.json"))
+    let program = Program::new(Path::new("cairo_programs/bitwise_builtin_test.json"))
         .expect("Failed to deserialize program");
     let mut cairo_runner = CairoRunner::new(&program);
     cairo_runner.initialize_segments(None);

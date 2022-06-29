@@ -485,11 +485,12 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 };
             }
             //Assert that m is under the limit defined by scalar_limit.
-            assert!(
-                input_cells[M_INDEX] < &self.scalar_limit,
-                "EcOpBuiltin: m should be at most {}",
-                self.scalar_limit
-            );
+            if input_cells[M_INDEX] >= &self.scalar_limit {
+                return Err(RunnerError::EcOpBuiltinScalarLimit(
+                    self.scalar_limit.clone(),
+                ));
+            }
+
             // Assert that if the current address is part of a point, the point is on the curve
             for pair in &EC_POINT_INDICES[0..1] {
                 assert!(
@@ -566,10 +567,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn get_initial_stack_for_range_check_included_without_base() {
         let builtin = RangeCheckBuiltinRunner::new(true, bigint!(8), 8);
-        let _initial_stack = builtin.initial_stack().unwrap();
+        let error = builtin.initial_stack();
+        assert_eq!(error, Err(RunnerError::UninitializedBase));
     }
 
     #[test]
@@ -595,10 +596,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn get_initial_stack_for_output_included_without_base() {
         let builtin = OutputBuiltinRunner::new(true);
-        let _initial_stack = builtin.initial_stack().unwrap();
+        let error = builtin.initial_stack();
+        assert_eq!(error, Err(RunnerError::UninitializedBase));
     }
 
     #[test]
@@ -1253,7 +1254,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn deduce_memory_cell_ec_op_for_preset_memory_m_over_scalar_limit() {
         let mut memory = Memory::new();
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
@@ -1310,8 +1310,12 @@ mod tests {
             )
             .unwrap();
 
-        builtin
-            .deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory)
-            .unwrap();
+        let error = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        assert_eq!(
+            error,
+            Err(RunnerError::EcOpBuiltinScalarLimit(
+                builtin.scalar_limit.clone()
+            ))
+        );
     }
 }

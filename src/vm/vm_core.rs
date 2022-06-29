@@ -3211,7 +3211,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(3, 0));
@@ -3267,7 +3266,19 @@ mod tests {
                 )),
             )
             .unwrap();
-        vm.verify_auto_deductions().unwrap();
+        let error = vm.verify_auto_deductions();
+        assert_eq!(
+            error,
+            Err(VirtualMachineError::InconsistentAutoDeduction(
+                String::from("ec_op"),
+                MaybeRelocatable::Int(bigint_str!(
+                    b"2739017437753868763038285897969098325279422804143820990343394856167768859289"
+                )),
+                Some(MaybeRelocatable::Int(bigint_str!(
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
+                )))
+            ))
+        );
     }
 
     #[test]
