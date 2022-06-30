@@ -669,9 +669,11 @@ mod tests {
     fn get_instruction_encoding_unsuccesful() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new());
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        let error = vm.get_instruction_encoding();
+        assert_eq!(error, Err(VirtualMachineError::InvalidInstructionEncoding));
         assert_eq!(
-            Err(VirtualMachineError::InvalidInstructionEncoding),
-            vm.get_instruction_encoding()
+            error.unwrap_err().to_string(),
+            "Instruction should be an int. Found:"
         );
     }
 
@@ -836,9 +838,11 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
+        let error = vm.update_ap(&instruction, &operands);
+        assert_eq!(error, Err(VirtualMachineError::UnconstrainedResAdd));
         assert_eq!(
-            Err(VirtualMachineError::UnconstrainedResAdd),
-            vm.update_ap(&instruction, &operands)
+            error.unwrap_err().to_string(),
+            "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD"
         );
     }
 
@@ -1069,9 +1073,11 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
+        let error = vm.update_pc(&instruction, &operands);
+        assert_eq!(error, Err(VirtualMachineError::UnconstrainedResJump));
         assert_eq!(
-            Err(VirtualMachineError::UnconstrainedResJump),
-            vm.update_pc(&instruction, &operands)
+            error.unwrap_err().to_string(),
+            "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP"
         );
     }
 
@@ -1137,9 +1143,11 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
+        let error = vm.update_pc(&instruction, &operands);
+        assert_eq!(error, Err(VirtualMachineError::UnconstrainedResJumpRel));
         assert_eq!(
-            Err(VirtualMachineError::UnconstrainedResJumpRel),
-            vm.update_pc(&instruction, &operands)
+            error.unwrap_err().to_string(),
+            "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL"
         );
     }
 
@@ -2170,10 +2178,12 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
+        let error = vm.opcode_assertions(&instruction, &operands);
+        assert_eq!(error, Err(VirtualMachineError::UnconstrainedResAssertEq));
         assert_eq!(
-            vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::UnconstrainedResAssertEq)
-        );
+            error.unwrap_err().to_string(),
+            "Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ"
+        )
     }
 
     #[test]
@@ -2205,12 +2215,17 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
+        let error = vm.opcode_assertions(&instruction, &operands);
         assert_eq!(
-            vm.opcode_assertions(&instruction, &operands),
+            error,
             Err(VirtualMachineError::DiffAssertValues(
                 bigint!(8),
                 bigint!(9)
             ))
+        );
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "ASSERT_EQ instruction failed; res:8 != dst:9"
         );
     }
 
@@ -2243,13 +2258,15 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
+        let error = vm.opcode_assertions(&instruction, &operands);
         assert_eq!(
-            vm.opcode_assertions(&instruction, &operands),
+            error,
             Err(VirtualMachineError::CantWriteReturnPc(
                 bigint!(9),
                 bigint!(5)
             ))
         );
+        assert_eq!(error.unwrap_err().to_string(), "Call failed to write return-pc (inconsistent op0): 9 != 5. Did you forget to increment ap?");
     }
 
     #[test]
@@ -2295,13 +2312,15 @@ mod tests {
             skip_instruction_execution: false,
         };
 
+        let error = vm.opcode_assertions(&instruction, &operands);
         assert_eq!(
-            vm.opcode_assertions(&instruction, &operands),
+            error,
             Err(VirtualMachineError::CantWriteReturnFp(
                 bigint!(8),
                 bigint!(6)
             ))
         );
+        assert_eq!(error.unwrap_err().to_string(), "Call failed to write return-fp (inconsistent dst): 8 != 6. Did you forget to increment ap?");
     }
 
     #[test]
@@ -3277,6 +3296,7 @@ mod tests {
                 )))
             ))
         );
+        assert_eq!(error.unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected Int(2739017437753868763038285897969098325279422804143820990343394856167768859289), got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
     }
 
     #[test]
