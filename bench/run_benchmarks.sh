@@ -13,7 +13,7 @@ cargo build --release
 
 # Fibonacci Benchmarks
 
-echo -e "\n*** fibonacci.cairo times ***\n" >> results
+echo -e "\n*** fibonacci.cairo times ***" >> results
 
 echo "Compiling Fibonacci cairo program"
 cairo-compile fibonacci.cairo --output fibonacci.json
@@ -28,7 +28,7 @@ echo "$cairo_fibonacci_time" >> results
 
 # Integration Benchamarks
 
-echo -e "\n*** integration_builtins.cairo times ***\n" >> results
+echo -e "\n*** integration_builtins.cairo times ***" >> results
 
 echo "Compiling builtins integration cairo program"
 cairo-compile integration_builtins.cairo --output integration_builtins.json
@@ -49,7 +49,7 @@ echo "$cairo_pypy_builtins_time" >> results
 
 # Alloc() Benchamarks
 
-echo -e "\n*** compare_arrays.cairo times ***\n" >> results
+echo -e "\n*** compare_arrays.cairo times ***" >> results
 
 echo "Compiling compare arrays cairo program"
 cairo-compile compare_arrays.cairo --output compare_arrays.json
