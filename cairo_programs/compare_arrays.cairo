@@ -1,7 +1,6 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.alloc import alloc
 
-
 func compare_arrays(array_a: felt*, array_b: felt*, array_length: felt, iterator: felt ) -> (r: felt):
     if iterator == array_length:
         return(TRUE)
