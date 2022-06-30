@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656605065922,
+  "lastUpdate": 1656607519834,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -4767,6 +4767,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4217678,
             "range": "± 2773",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5255e559684e688b848a73aabd018a08581b95ec",
+          "message": "Merge pull request #206 from lambdaclass/alloc-simple\n\nAdd support for alloc hint in Rust",
+          "timestamp": "2022-06-30T13:40:45-03:00",
+          "tree_id": "31258387253261dc995e930f830bb2501311ea62",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/5255e559684e688b848a73aabd018a08581b95ec"
+        },
+        "date": 1656607518841,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8846632,
+            "range": "± 28791",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4363150,
+            "range": "± 4535",
             "unit": "ns/iter"
           }
         ]
