@@ -83,8 +83,75 @@ pub fn is_nn(
 //        ids.small_inputs = int(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
-    _vm: &mut VirtualMachine,
-    _ids: HashMap<String, MaybeRelocatable>,
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
-    Ok(())
+    //Check that ids contains the needed values
+    if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
+        ids.get(&String::from("a")),
+        ids.get(&String::from("b")),
+        ids.get(&String::from("small_inputs")),
+    ) {
+        //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
+        //small_inputs needs to be None, as we cant change it value otherwise
+        match (
+            vm.memory.get(a_addr),
+            vm.memory.get(b_addr),
+            vm.memory.get(small_inputs_addr),
+        ) {
+            (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b)), Ok(None)) => {
+                //Check that the values at the ids address are Int
+                if let (&MaybeRelocatable::Int(ref a), &MaybeRelocatable::Int(ref b)) =
+                    (maybe_rel_a, maybe_rel_b)
+                {
+                    for (name, builtin) in &vm.builtin_runners {
+                        //Check that range_check_builtin is present
+                        if name == &String::from("range_check") {
+                            match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                                None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+                                Some(builtin) => {
+                                    //Assert a <= b
+                                    if a % vm.prime.clone() > b % vm.prime.clone() {
+                                        return Err(VirtualMachineError::NonLeFelt(
+                                            a.clone(),
+                                            b.clone(),
+                                        ));
+                                    }
+                                    //Calculate value of small_inputs
+                                    let mut value = bigint!(0);
+                                    if *a < builtin._bound && (a - b) < builtin._bound {
+                                        value = bigint!(1);
+                                    }
+                                    match vm
+                                        .memory
+                                        .insert(&small_inputs_addr, &MaybeRelocatable::from(value))
+                                    {
+                                        Ok(_) => return Ok(()),
+                                        Err(memory_error) => {
+                                            return Err(VirtualMachineError::MemoryError(
+                                                memory_error,
+                                            ))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                } else {
+                    return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+                }
+            }
+            _ => return Err(VirtualMachineError::FailedToGetIds),
+        }
+    } else {
+        Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("a"),
+                String::from("b"),
+                String::from("small_inputs"),
+            ],
+            ids.into_keys().collect(),
+        ))
+    }
 }

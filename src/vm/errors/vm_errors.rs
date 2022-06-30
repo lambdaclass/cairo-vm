@@ -39,6 +39,8 @@ pub enum VirtualMachineError {
     IncorrectIds(Vec<String>, Vec<String>),
     MemoryGet(MaybeRelocatable),
     ExpectedInteger(MaybeRelocatable),
+    FailedToGetIds,
+    NonLeFelt(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -104,6 +106,12 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::ExpectedInteger(addr) => {
                 write!(f, "Expected integer at address {:?}", addr)
+            },
+            VirtualMachineError::FailedToGetIds => {
+                write!(f, "Failed to get ids from memory")
+            },
+            VirtualMachineError::NonLeFelt(a, b) => {
+                write!(f, "Assertion failed, {}, is not less or equal to {}", a, b)
             },
         }
     }
