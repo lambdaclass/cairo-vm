@@ -34,7 +34,7 @@ compare_benchmarks_deps:
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
-	pyenv instal 3.7.12
+	pyenv install 3.7.12
 	pyenv global 3.7.12
 	pip install cairo_lang
 
