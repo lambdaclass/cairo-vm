@@ -274,8 +274,12 @@ mod tests {
     fn add_relocatable_to_relocatable_should_fail() {
         let addr_a = &MaybeRelocatable::from((7, 5));
         let addr_b = MaybeRelocatable::RelocatableValue(relocatable!(7, 10));
-        let added_addr = addr_a.add_mod(addr_b, bigint!(17));
-        assert_eq!(Err(VirtualMachineError::RelocatableAdd), added_addr);
+        let error = addr_a.add_mod(addr_b, bigint!(17));
+        assert_eq!(error, Err(VirtualMachineError::RelocatableAdd));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Cannot add two relocatable values"
+        );
     }
 
     #[test]
