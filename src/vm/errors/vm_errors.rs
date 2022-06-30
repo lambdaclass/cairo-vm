@@ -1,8 +1,11 @@
+use crate::vm::errors::memory_errors::MemoryError;
 use num_bigint::BigInt;
 use std::fmt;
 
+use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::errors::runner_errors::RunnerError;
+
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
     InvalidDstReg(i64),
@@ -10,7 +13,6 @@ pub enum VirtualMachineError {
     InvalidOp1Reg(i64),
     ImmShouldBe1,
     UnknownOp0,
-    InvalidFpUpdate,
     InvalidApUpdate(i64),
     InvalidPcUpdate(i64),
     UnconstrainedResAdd,
@@ -28,6 +30,11 @@ pub enum VirtualMachineError {
     OffsetExeeded(BigInt),
     NotImplemented,
     DiffIndexSub,
+    InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    RunnerError(RunnerError),
+    InvalidHintEncoding(MaybeRelocatable),
+    MemoryError(MemoryError),
+    UnknownHint(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -45,7 +52,6 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnknownOp0 => {
                 write!(f, "op0 must be known in double dereference")
             }
-            VirtualMachineError::InvalidFpUpdate => write!(f, "Invalid fp_update value"),
             VirtualMachineError::InvalidApUpdate(n) => write!(f, "Invalid ap_update value: {}", n),
             VirtualMachineError::InvalidPcUpdate(n) => write!(f, "Invalid pc_update value: {}", n),
             VirtualMachineError::UnconstrainedResAdd => {
@@ -62,7 +68,7 @@ impl fmt::Display for VirtualMachineError {
             }
             VirtualMachineError::DiffAssertValues(res, dst) => write!(f, "ASSERT_EQ instruction failed; res:{} != dst:{}", res, dst),
             VirtualMachineError::CantWriteReturnPc(op0, ret_pc) => write!(f, "Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0, ret_pc),
-            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-pc (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
+            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-fp (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
             VirtualMachineError::NoDst => write!(f,  "Couldn't get or load dst"),
             VirtualMachineError::InvalidRes(n) => write!(f, "Invalid res value: {}", n),
             VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid res value: {}", n),
@@ -71,11 +77,18 @@ impl fmt::Display for VirtualMachineError {
             }
             VirtualMachineError::OffsetExeeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
             VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
-            VirtualMachineError::PureValue => Ok(()), //TODO
+            VirtualMachineError::PureValue => Ok(()),
             VirtualMachineError::DiffIndexSub => write!(
                 f,
                 "Can only subtract two relocatable values of the same segment"
             ),
+            VirtualMachineError::InconsistentAutoDeduction(builtin_name, expected_value, current_value) => {
+                write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
+            },
+            VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
+            VirtualMachineError::InvalidHintEncoding(address) => write!(f, "Invalid hint encoding at pc: {:?}", address),
+            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
         }
     }
 }

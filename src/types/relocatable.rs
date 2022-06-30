@@ -1,4 +1,7 @@
-use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
+use crate::{
+    bigint,
+    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 
@@ -37,12 +40,16 @@ impl From<BigInt> for MaybeRelocatable {
 
 impl MaybeRelocatable {
     ///Adds a bigint to self, then performs mod prime
-    pub fn add_int_mod(&self, other: BigInt, prime: BigInt) -> MaybeRelocatable {
+    pub fn add_int_mod(
+        &self,
+        other: BigInt,
+        prime: BigInt,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
             MaybeRelocatable::Int(ref value) => {
                 let mut num = Clone::clone(value);
                 num = (other + num) % prime;
-                MaybeRelocatable::Int(num)
+                Ok(MaybeRelocatable::Int(num))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
@@ -50,12 +57,12 @@ impl MaybeRelocatable {
                 big_offset %= prime;
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => panic!("Offset exeeds maximum offset value"),
+                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
                 };
-                MaybeRelocatable::RelocatableValue(Relocatable {
+                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
-                })
+                }))
             }
         }
     }
@@ -149,16 +156,22 @@ impl MaybeRelocatable {
 ///Turns a MaybeRelocatable into a BigInt value
 /// If the value is an Int, it will extract the BigInt value from it
 /// If the value is Relocatable, it will relocate it using the relocation_table
-pub fn relocate_value(value: MaybeRelocatable, relocation_table: &Vec<usize>) -> BigInt {
+pub fn relocate_value(
+    value: MaybeRelocatable,
+    relocation_table: &Vec<usize>,
+) -> Result<BigInt, MemoryError> {
     match value {
-        MaybeRelocatable::Int(num) => num,
+        MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            assert!(
-                relocation_table.len() > relocatable.segment_index,
-                "No relocation found for this segment"
-            );
-            BigInt::from_usize(relocation_table[relocatable.segment_index] + relocatable.offset)
-                .unwrap()
+            if relocation_table.len() <= relocatable.segment_index {
+                return Err(MemoryError::Relocation);
+            }
+            match BigInt::from_usize(
+                relocation_table[relocatable.segment_index] + relocatable.offset,
+            ) {
+                None => Err(MemoryError::Relocation),
+                Some(relocated_value) => Ok(relocated_value),
+            }
         }
     }
 }
@@ -176,7 +189,7 @@ mod tests {
     fn add_bigint_to_int() {
         let addr = MaybeRelocatable::from(bigint!(7));
         let added_addr = addr.add_int_mod(bigint!(2), bigint!(17));
-        assert_eq!(MaybeRelocatable::Int(bigint!(9)), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(9))), added_addr);
     }
 
     #[test]
@@ -190,14 +203,14 @@ mod tests {
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_int_mod(bigint!(2), bigint!(121));
-        assert_eq!(MaybeRelocatable::from((7, 67)), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from((7, 67))), added_addr);
     }
 
     #[test]
     fn add_usize_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_int_mod(bigint!(2), bigint!(121));
-        assert_eq!(MaybeRelocatable::from((7, 67)), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from((7, 67))), added_addr);
     }
 
     #[test]
@@ -219,7 +232,7 @@ mod tests {
                 ],
             ),
         );
-        assert_eq!(MaybeRelocatable::Int(bigint!(4)), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(4))), added_addr);
     }
 
     #[test]
@@ -230,7 +243,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         );
         assert_eq!(
-            MaybeRelocatable::RelocatableValue(relocatable!(1, 9)),
+            Ok(MaybeRelocatable::RelocatableValue(relocatable!(1, 9))),
             added_addr
         );
     }
@@ -343,21 +356,23 @@ mod tests {
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, &relocation_table), bigint!(12));
+        assert_eq!(relocate_value(value, &relocation_table), Ok(bigint!(12)));
     }
 
     #[test]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        assert_eq!(relocate_value(value, &relocation_table), bigint!(7));
+        assert_eq!(relocate_value(value, &relocation_table), Ok(bigint!(7)));
     }
 
     #[test]
-    #[should_panic]
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        relocate_value(value, &relocation_table);
+        assert_eq!(
+            relocate_value(value, &relocation_table),
+            Err(MemoryError::Relocation)
+        );
     }
 }

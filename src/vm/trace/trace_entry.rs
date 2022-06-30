@@ -2,6 +2,7 @@
 ///Holds the register values before the instruction was executed.
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::trace_errors::TraceError;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq)]
 pub struct TraceEntry {
@@ -10,11 +11,11 @@ pub struct TraceEntry {
     pub fp: MaybeRelocatable,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct RelocatedTraceEntry {
-    pub pc: usize,
     pub ap: usize,
     pub fp: usize,
+    pub pc: usize,
 }
 
 pub fn relocate_trace_register(
@@ -24,14 +25,14 @@ pub fn relocate_trace_register(
     match value {
         MaybeRelocatable::Int(_num) => Err(TraceError::RegNotRelocatable),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            assert!(
-                relocation_table.len() > relocatable.segment_index,
-                "No relocation found for this segment"
-            );
+            if relocation_table.len() <= relocatable.segment_index {
+                return Err(TraceError::NoRelocationFound);
+            }
             Ok(relocation_table[relocatable.segment_index] + relocatable.offset)
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -50,18 +51,26 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(bigint!(7));
         let relocation_table = vec![1, 2, 5];
-        relocate_trace_register(value, &relocation_table).unwrap();
+        let error = relocate_trace_register(value, &relocation_table);
+        assert_eq!(error, Err(TraceError::RegNotRelocatable));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Trace register must be relocatable"
+        );
     }
 
     #[test]
-    #[should_panic]
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
-        relocate_trace_register(value, &relocation_table).unwrap();
+        let error = relocate_trace_register(value, &relocation_table);
+        assert_eq!(error, Err(TraceError::NoRelocationFound));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "No relocation found for this segment"
+        );
     }
 }

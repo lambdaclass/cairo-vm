@@ -1,9 +1,12 @@
-use crate::types::{program::Program, relocatable::MaybeRelocatable};
+use crate::types::{
+    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
+};
 use num_bigint::{BigInt, Sign};
-use serde::{de, de::SeqAccess, Deserialize, Deserializer};
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem};
+use num_traits::abs;
+use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
+use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_bigint_hex")]
     pub prime: BigInt,
@@ -11,8 +14,28 @@ pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
+    pub hints: HashMap<usize, Vec<HintParams>>,
 }
 
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct HintParams {
+    #[serde(with = "serde_bytes")]
+    pub code: Vec<u8>,
+    pub accessible_scopes: Vec<String>,
+    pub flow_tracking_data: FlowTrackingData,
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct FlowTrackingData {
+    pub ap_tracking: ApTracking,
+    #[serde(deserialize_with = "deserialize_map_to_string_and_bigint_hashmap")]
+    pub reference_ids: HashMap<String, BigInt>,
+}
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct ApTracking {
+    pub group: usize,
+    pub offset: usize,
+}
 #[derive(Deserialize, Debug)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -84,6 +107,36 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     }
 }
 
+struct ReferenceIdsVisitor;
+
+impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
+    type Value = HashMap<String, BigInt>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a map with string keys and integer values")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut data: HashMap<String, BigInt> = HashMap::new();
+
+        while let Some((key, value)) = map.next_entry::<String, i64>()? {
+            if value >= 0 {
+                data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
+            } else {
+                data.insert(
+                    key,
+                    BigInt::from_bytes_le(Sign::Minus, &abs(value).to_le_bytes()),
+                );
+            }
+        }
+
+        Ok(data)
+    }
+}
+
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
 }
@@ -92,6 +145,12 @@ pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
     d.deserialize_seq(MaybeRelocatableVisitor)
+}
+
+pub fn deserialize_map_to_string_and_bigint_hashmap<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<HashMap<String, BigInt>, D::Error> {
+    d.deserialize_map(ReferenceIdsVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -104,21 +163,24 @@ fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-pub fn deserialize_program_json(path: &str) -> ProgramJson {
-    let file = File::open(path).unwrap();
+pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
+    let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
-    serde_json::from_reader(&mut reader).unwrap()
+    let program_json = serde_json::from_reader(&mut reader)?;
+
+    Ok(program_json)
 }
 
-pub fn deserialize_program(path: &str) -> Program {
-    let program_json: ProgramJson = deserialize_program_json(path);
-    Program {
+pub fn deserialize_program(path: &Path) -> Result<Program, ProgramError> {
+    let program_json: ProgramJson = deserialize_program_json(path)?;
+    Ok(Program {
         builtins: program_json.builtins,
         prime: program_json.prime,
         data: program_json.data,
         main: program_json.identifiers["__main__.main"].pc,
-    }
+        hints: program_json.hints,
+    })
 }
 
 #[cfg(test)]
@@ -183,6 +245,29 @@ mod tests {
                         "size": 0,
                         "type": "struct"
                     }
+                },
+                "hints": {
+                    "0": [
+                        {
+                            "accessible_scopes": [
+                                "starkware.cairo.common.alloc",
+                                "starkware.cairo.common.alloc.alloc"
+                            ],
+                            "code": "memory[ap] = segments.add()",
+                            "flow_tracking_data": {
+                                "ap_tracking": {
+                                    "group": 0,
+                                    "offset": 0
+                                },
+                                "reference_ids": {
+                                    "starkware.cairo.common.math.split_felt.high": 0,
+                                    "starkware.cairo.common.math.split_felt.low": -14,
+                                    "starkware.cairo.common.math.split_felt.range_check_ptr": 16,
+                                    "starkware.cairo.common.math.split_felt.value": 12
+                                }
+                            }
+                        }
+                    ]
                 }
             }"#;
 
@@ -200,16 +285,56 @@ mod tests {
             MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
+        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        hints.insert(
+            0,
+            vec![HintParams {
+                code: vec![
+                    109, 101, 109, 111, 114, 121, 91, 97, 112, 93, 32, 61, 32, 115, 101, 103, 109,
+                    101, 110, 116, 115, 46, 97, 100, 100, 40, 41,
+                ],
+                accessible_scopes: vec![
+                    String::from("starkware.cairo.common.alloc"),
+                    String::from("starkware.cairo.common.alloc.alloc"),
+                ],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::from([
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.high"),
+                            bigint!(0),
+                        ),
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.low"),
+                            bigint!(-14),
+                        ),
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.range_check_ptr"),
+                            bigint!(16),
+                        ),
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.value"),
+                            bigint!(12),
+                        ),
+                    ]),
+                },
+            }],
+        );
+
         assert_eq!(program_json.prime, bigint!(10));
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
+        assert_eq!(program_json.hints, hints);
     }
 
     #[test]
     fn deserialize_program_json_from_json_file_a() {
         // Open json file with (valid) even length encoded hex
-        let file = File::open("tests/support/valid_program_a.json").unwrap();
+        let file = File::open("cairo_programs/manually_compiled/valid_program_a.json").unwrap();
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
@@ -231,7 +356,7 @@ mod tests {
     #[test]
     fn deserialize_program_json_from_json_file_b() {
         // Open json file with (valid) odd length encoded hex
-        let file = File::open("tests/support/valid_program_b.json").unwrap();
+        let file = File::open("cairo_programs/manually_compiled/valid_program_b.json").unwrap();
         let mut reader = BufReader::new(file);
 
         let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
@@ -253,7 +378,8 @@ mod tests {
     #[test]
     fn deserialize_program_json_from_json_file_gives_error() {
         // Open json file with (invalid) even length encoded hex
-        let even_length_file = File::open("tests/support/invalid_even_length_hex.json").unwrap();
+        let even_length_file =
+            File::open("cairo_programs/manually_compiled/invalid_even_length_hex.json").unwrap();
         let mut reader = BufReader::new(even_length_file);
 
         let even_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
@@ -261,7 +387,8 @@ mod tests {
         assert!(even_result.is_err());
 
         // Open json file with (invalid) odd length encoded hex
-        let odd_length_file = File::open("tests/support/invalid_odd_length_hex.json").unwrap();
+        let odd_length_file =
+            File::open("cairo_programs/manually_compiled/invalid_odd_length_hex.json").unwrap();
         let mut reader = BufReader::new(odd_length_file);
 
         let odd_result: Result<ProgramJson, _> = serde_json::from_reader(&mut reader);
@@ -271,7 +398,10 @@ mod tests {
 
     #[test]
     fn deserialize_program_test() {
-        let program: Program = deserialize_program("tests/support/valid_program_a.json");
+        let program: Program = deserialize_program(Path::new(
+            "cairo_programs/manually_compiled/valid_program_a.json",
+        ))
+        .expect("Failed to deserialize program");
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
@@ -282,6 +412,42 @@ mod tests {
             MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
             MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
+
+        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        hints.insert(
+            0,
+            vec![HintParams {
+                code: vec![
+                    109, 101, 109, 111, 114, 121, 91, 97, 112, 93, 32, 61, 32, 115, 101, 103, 109,
+                    101, 110, 116, 115, 46, 97, 100, 100, 40, 41,
+                ],
+                accessible_scopes: vec![
+                    String::from("starkware.cairo.common.alloc"),
+                    String::from("starkware.cairo.common.alloc.alloc"),
+                ],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::new(),
+                },
+            }],
+        );
+        hints.insert(
+            46,
+            vec![HintParams {
+                code: vec![105, 109, 112, 111, 114, 116, 32, 109, 97, 116, 104],
+                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking {
+                        group: 5,
+                        offset: 0,
+                    },
+                    reference_ids: HashMap::new(),
+                },
+            }],
+        );
 
         assert_eq!(
             program.prime,
@@ -294,5 +460,6 @@ mod tests {
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
+        assert_eq!(program.hints, hints);
     }
 }

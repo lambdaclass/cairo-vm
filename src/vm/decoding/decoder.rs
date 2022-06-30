@@ -1,3 +1,4 @@
+use crate::bigint64;
 use crate::types::instruction;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
@@ -6,7 +7,6 @@ use num_traits::FromPrimitive;
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
-#[allow(dead_code)]
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
 pub fn decode_instruction(
     encoded_instr: i64,
@@ -119,10 +119,9 @@ pub fn decode_instruction(
     };
 
     Ok(instruction::Instruction {
-        // TODO: Replace or confirm the unrwap is safe
-        off0: BigInt::from_i64(off0).unwrap(),
-        off1: BigInt::from_i64(off1).unwrap(),
-        off2: BigInt::from_i64(off2).unwrap(),
+        off0: bigint64!(off0),
+        off1: bigint64!(off1),
+        off2: bigint64!(off2),
         imm,
         dst_register,
         op0_register,
@@ -135,7 +134,6 @@ pub fn decode_instruction(
     })
 }
 
-#[allow(dead_code)]
 fn decode_offset(offset: i64) -> i64 {
     let vectorized_offset: [u8; 8] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);

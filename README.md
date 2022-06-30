@@ -1,6 +1,16 @@
 # Cleopatra Cairo VM
+[![rust](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml)[![benchmark](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cleopatra_cairo/)[![codecov](https://codecov.io/gh/lambdaclass/cleopatra_cairo/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cleopatra_cairo)
 
-Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet. We are working on it.
+![](./bonaparte.webp)
+
+Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet.
+
+The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
+
+## Dependencies
+- Rust
+- Cargo
+- PyEnv, CPython and PyPy for running the original VM and compiling cairo programs
 
 ## Running Cleopatra
 Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
@@ -25,9 +35,15 @@ cargo test
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
 
 ## Cleopatra benchmarks:
-Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonacci number we got the following benchmarks:
-* Execution time with [Criterion](./docs/benchmarks/cairo_run_criterion_benchmark.pdf)
-* [Flamegraph](./docs/benchmarks/flamegraph.svg) 
+Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
+* Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
+* [Flamegraph](./docs/benchmarks/flamegraph.svg)
+* Github action [results](https://lambdaclass.github.io/cleopatra_cairo/)
+
+Run the benchmark suite with cargo:
+```bash
+cargo bench
+```
 
 ## Cairo
 
@@ -38,7 +54,7 @@ Running a [Cairo program](./benches/fibonacci.cairo) that gets the 100th Fibonac
 
 ## Original Cairo VM Internals
 
-We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/cleopatra_cairo_vm/README.md).
+We wrote a document explaining how the Cairo VM works. It can be found [here](./docs/python_vm/README.md).
 
 ## Compilers and interpreters
 

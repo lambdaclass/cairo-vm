@@ -1,4 +1,3 @@
-# Documetation
-* [How does the original Cairo VM work?](./cleopatra_cairo_vm/)
-* [Control flow diagrams](./diagram/)
-* [Benchamarks](./benchmarks/)
+# Documentation
+* [How does the original Cairo VM work?](./python_vm/)
+* [Benchmarks](./benchmarks/)
