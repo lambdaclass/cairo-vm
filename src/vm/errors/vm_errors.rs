@@ -36,7 +36,7 @@ pub enum VirtualMachineError {
     MemoryError(MemoryError),
     UnknownHinError(String),
     NoRangeCheckBuiltin,
-    IncorrectIds,
+    IncorrectIds(Vec<String>, Vec<String>),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -94,8 +94,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::NoRangeCheckBuiltin => {
                 write!(f, "Expected range_check builtin to be present")
             },
-            VirtualMachineError::IncorrectIds => {
-                write!(f, "Incorrect Ids")
+            VirtualMachineError::IncorrectIds(expected, existing) => {
+                write!(f, "Expected ids to contain {:?}, got: {:?}", expected, existing)
             },
         }
     }

@@ -53,5 +53,8 @@ pub fn is_nn(
         }
         return Err(VirtualMachineError::NoRangeCheckBuiltin);
     }
-    Err(VirtualMachineError::IncorrectIds)
+    Err(VirtualMachineError::IncorrectIds(
+        vec![String::from("a")],
+        ids.into_keys().collect(),
+    ))
 }

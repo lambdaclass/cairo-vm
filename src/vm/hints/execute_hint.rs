@@ -189,7 +189,10 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
-            Err(VirtualMachineError::IncorrectIds)
+            Err(VirtualMachineError::IncorrectIds(
+                vec![String::from("a")],
+                vec![String::from("b")]
+            ))
         );
     }
 }
