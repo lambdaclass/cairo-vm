@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656602142166,
+  "lastUpdate": 1656602185086,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -4631,6 +4631,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4983809,
             "range": "± 55951",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7011bd2df1b96fbc6c015348202a67410751105a",
+          "message": "Merge pull request #199 from lambdaclass/display-coverage\n\n [coverage] Add memory errors display check",
+          "timestamp": "2022-06-30T12:11:47-03:00",
+          "tree_id": "9864f618a79c1f6f46bf32f57282921616eb3007",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/7011bd2df1b96fbc6c015348202a67410751105a"
+        },
+        "date": 1656602184134,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 9125015,
+            "range": "± 32356",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4379411,
+            "range": "± 6453",
             "unit": "ns/iter"
           }
         ]
