@@ -398,8 +398,12 @@ mod tests {
     fn sub_relocatable_from_relocatable_diff_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((8, 7));
-        let sub_addr = addr_a.sub(addr_b);
-        assert_eq!(Err(VirtualMachineError::DiffIndexSub), sub_addr);
+        let error = addr_a.sub(addr_b);
+        assert_eq!(error, Err(VirtualMachineError::DiffIndexSub));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Can only subtract two relocatable values of the same segment"
+        );
     }
 
     #[test]
