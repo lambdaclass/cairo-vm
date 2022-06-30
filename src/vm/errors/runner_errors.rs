@@ -39,9 +39,9 @@ impl fmt::Display for RunnerError {
             RunnerError::MissingMain => write!(f, "Missing main()"),
             RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
             RunnerError::WriteFail => write!(f, "Failed to write program output"),
-            RunnerError::NoPC => write!(f, "Found None PC durin VM initialization"),
-            RunnerError::NoAP => write!(f, "Found None AP durin VM initialization"),
-            RunnerError::NoFP => write!(f, "Found None FP durin VM initialization"),
+            RunnerError::NoPC => write!(f, "Found None PC during VM initialization"),
+            RunnerError::NoAP => write!(f, "Found None AP during VM initialization"),
+            RunnerError::NoFP => write!(f, "Found None FP during VM initialization"),
             RunnerError::MemoryValidationError(error) => {
                 write!(f, "Memory validation failed during VM initialization.")?;
                 error.fmt(f)
@@ -63,7 +63,7 @@ impl fmt::Display for RunnerError {
                 write!(f, "Failed to retrieve value from address {:?}", addr)
             }
             RunnerError::FailedMemoryGet(error) => {
-                write!(f, "Failed fetching memory address.")?;
+                write!(f, "Failed to fetch memory address.")?;
                 error.fmt(f)
             }
 

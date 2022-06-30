@@ -37,6 +37,8 @@ pub enum VirtualMachineError {
     UnknownHinError(String),
     NoRangeCheckBuiltin,
     IncorrectIds(Vec<String>, Vec<String>),
+    MemoryGet(MaybeRelocatable),
+    ExpectedInteger(MaybeRelocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -96,6 +98,12 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::IncorrectIds(expected, existing) => {
                 write!(f, "Expected ids to contain {:?}, got: {:?}", expected, existing)
+            },
+            VirtualMachineError::MemoryGet(addr) => {
+                write!(f, "Failed to retrieve value from address {:?}", addr)
+            },
+            VirtualMachineError::ExpectedInteger(addr) => {
+                write!(f, "Expected integer at address {:?}", addr)
             },
         }
     }

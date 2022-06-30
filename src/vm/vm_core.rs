@@ -23,9 +23,11 @@ pub struct Operands {
 }
 
 #[derive(Clone)]
+
 pub struct HintData {
     pub hint_code: Vec<u8>,
-    pub ids: HashMap<String, BigInt>,
+    //Maps the name of the variable to its location in memory
+    pub ids: HashMap<String, MaybeRelocatable>,
 }
 pub struct VirtualMachine {
     pub run_context: RunContext,
@@ -52,7 +54,7 @@ pub struct VirtualMachine {
 }
 
 impl HintData {
-    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, BigInt>) -> HintData {
+    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, MaybeRelocatable>) -> HintData {
         HintData { hint_code, ids }
     }
 }
