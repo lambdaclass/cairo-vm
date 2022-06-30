@@ -22,6 +22,11 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
+#[derive(Clone)]
+pub struct HintData {
+    pub hint_code: Vec<u8>,
+    pub ids: HashMap<String, BigInt>,
+}
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
@@ -29,7 +34,7 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
-    pub hints: HashMap<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>,
+    pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -44,6 +49,12 @@ pub struct VirtualMachine {
     pub trace: Vec<TraceEntry>,
     current_step: usize,
     skip_instruction_execution: bool,
+}
+
+impl HintData {
+    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, BigInt>) -> HintData {
+        HintData { hint_code, ids }
+    }
 }
 
 impl VirtualMachine {
@@ -62,7 +73,7 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
-            hints: HashMap::<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -428,8 +439,9 @@ impl VirtualMachine {
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
-            for (hint_code, ids) in hint_list.clone().iter() {
-                if execute_hint(self, hint_code, ids.clone()).is_err() {
+            for hint_data in hint_list.clone().iter() {
+                if execute_hint(self, &hint_data.hint_code.clone(), hint_data.ids.clone()).is_err()
+                {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
                     ));
@@ -2302,7 +2314,7 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
-            hints: HashMap::<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -3411,8 +3423,8 @@ mod tests {
         );
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
-            vec![(
-                ("memory[ap] = segments.add()".as_bytes()).to_vec(),
+            vec![HintData::new(
+                "memory[ap] = segments.add()".as_bytes().to_vec(),
                 HashMap::new(),
             )],
         );

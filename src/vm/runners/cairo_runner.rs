@@ -11,7 +11,7 @@ use crate::vm::runners::builtin_runner::{
     RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::{HintData, VirtualMachine};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
@@ -221,11 +221,8 @@ impl CairoRunner {
             Ok(_) => Ok(()),
         }
     }
-    fn get_hint_dictionary(
-        &self,
-    ) -> HashMap<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>> {
-        let mut hint_dictionary =
-            HashMap::<MaybeRelocatable, Vec<(Vec<u8>, HashMap<String, BigInt>)>>::new();
+    fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<HintData>> {
+        let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
         for (_hint_index, hints) in self.program.hints.iter() {
             for hint_data in hints.iter() {
                 let key = MaybeRelocatable::from((
@@ -235,10 +232,13 @@ impl CairoRunner {
                 //TODO: replace HashMap::new() with proper ids once ids is deserialized
                 if let Some(hint_list) = hint_dictionary.get_mut(&key) {
                     //Add hint code to list of hints at given pc
-                    hint_list.push((hint_data.code.clone(), HashMap::new()));
+                    hint_list.push(HintData::new(hint_data.code.clone(), HashMap::new()));
                 } else {
                     //Insert the first hint at a given pc
-                    hint_dictionary.insert(key, vec![(hint_data.code.clone(), HashMap::new())]);
+                    hint_dictionary.insert(
+                        key,
+                        vec![HintData::new(hint_data.code.clone(), HashMap::new())],
+                    );
                 }
             }
         }
