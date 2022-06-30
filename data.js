@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656602185086,
+  "lastUpdate": 1656602322107,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -4667,6 +4667,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4379411,
             "range": "± 6453",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3d0fe8f81051cc4aee008154a11b9f20e82a18b9",
+          "message": "Merge pull request #208 from lambdaclass/add-cairo_run-errors-tests\n\n[coverage] Add error tests of functions in cairo_run",
+          "timestamp": "2022-06-30T12:14:06-03:00",
+          "tree_id": "97b414704e453c85dcbedaa47336ea3716548e6e",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/3d0fe8f81051cc4aee008154a11b9f20e82a18b9"
+        },
+        "date": 1656602320922,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8775879,
+            "range": "± 90818",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4277509,
+            "range": "± 4873",
             "unit": "ns/iter"
           }
         ]
