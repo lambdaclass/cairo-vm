@@ -31,41 +31,37 @@ pub fn is_nn(
         match vm.memory.get(a_addr) {
             Ok(Some(maybe_rel_a)) => {
                 //Check that the value at the ids address is an Int
-                if let &MaybeRelocatable::Int(ref a) = maybe_rel_a {
+                if let MaybeRelocatable::Int(ref a) = maybe_rel_a.clone() {
                     for (name, builtin) in &vm.builtin_runners {
                         //Check that range_check_builtin is present
                         if name == &String::from("range_check") {
-                            match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
-                                None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+                            return match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                                None => Err(VirtualMachineError::NoRangeCheckBuiltin),
                                 Some(builtin) => {
                                     //Main logic (assert a is not negative and within the expected range)
                                     let mut value = bigint!(0);
                                     if *a > bigint!(0) && *a < vm.prime && *a < builtin._bound {
                                         value = bigint!(1);
                                     }
-                                    match vm
+                                    return match vm
                                         .memory
-                                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                                    {
-                                        Ok(_) => return Ok(()),
-                                        Err(memory_error) => {
-                                            return Err(VirtualMachineError::MemoryError(
-                                                memory_error,
-                                            ))
-                                        }
-                                    }
+                                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value)) {
+                                        Ok(_) => Ok(()),
+                                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+                                        
+                                    };
                                 }
                             }
                         }
                     }
-                    return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                    Err(VirtualMachineError::NoRangeCheckBuiltin)
                 } else {
-                    return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+                    Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
                 }
             }
-            Ok(None) => return Err(VirtualMachineError::MemoryGet(a_addr.clone())),
-            Err(memory_error) => return Err(VirtualMachineError::MemoryError(memory_error)),
-        };
+            Ok(None) => Err(VirtualMachineError::MemoryGet(a_addr.clone())),
+            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+        }
     } else {
         Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a")],
@@ -124,7 +120,7 @@ pub fn assert_le_felt(
                                     }
                                     match vm
                                         .memory
-                                        .insert(&small_inputs_addr, &MaybeRelocatable::from(value))
+                                        .insert(small_inputs_addr, &MaybeRelocatable::from(value))
                                     {
                                         Ok(_) => return Ok(()),
                                         Err(memory_error) => {
@@ -137,12 +133,12 @@ pub fn assert_le_felt(
                             }
                         }
                     }
-                    return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                    Err(VirtualMachineError::NoRangeCheckBuiltin)
                 } else {
-                    return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+                    Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
                 }
             }
-            _ => return Err(VirtualMachineError::FailedToGetIds),
+            _ => Err(VirtualMachineError::FailedToGetIds),
         }
     } else {
         Err(VirtualMachineError::IncorrectIds(
