@@ -5,10 +5,8 @@ use crate::vm::vm_core::VirtualMachine;
 pub fn execute_hint(vm: &mut VirtualMachine, hint_code: &[u8]) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
-        Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
-            hint_code,
-        ))),
-        Err(_) => Err(VirtualMachineError::HintException(
+        Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
+        Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
         )),
     }
@@ -70,9 +68,21 @@ mod tests {
         );
         assert_eq!(
             execute_hint(&mut vm, hint_code),
-            Err(VirtualMachineError::UnknownHinError(
+            Err(VirtualMachineError::UnknownHint(
                 String::from_utf8(hint_code.to_vec()).unwrap()
             ))
+        );
+    }
+    #[test]
+    fn run_invalid_encoding_hint() {
+        let hint_code = [0x80];
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        assert_eq!(
+            execute_hint(&mut vm, &hint_code),
+            Err(VirtualMachineError::InvalidHintEncoding(vm.run_context.pc))
         );
     }
 }
