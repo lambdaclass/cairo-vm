@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656601879322,
+  "lastUpdate": 1656602142166,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -4595,6 +4595,42 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(bench/criterion/integration.json",
             "value": 4491326,
             "range": "± 142875",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b46212e3e2101287ed5b5ea8a5db3f4a817367b0",
+          "message": "Merge pull request #211 from lambdaclass/reference_ids-deserialization\n\nAdd reference_ids deserialization functionality",
+          "timestamp": "2022-06-30T12:10:26-03:00",
+          "tree_id": "d917dab1af19702112ad027703a617e6eed8bfb0",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/b46212e3e2101287ed5b5ea8a5db3f4a817367b0"
+        },
+        "date": 1656602140582,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 10309313,
+            "range": "± 142131",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4983809,
+            "range": "± 55951",
             "unit": "ns/iter"
           }
         ]
