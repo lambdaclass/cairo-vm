@@ -2,6 +2,7 @@ use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
 use num_bigint::{BigInt, Sign};
+use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
@@ -121,8 +122,15 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
     {
         let mut data: HashMap<String, BigInt> = HashMap::new();
 
-        while let Some((key, value)) = map.next_entry::<String, usize>()? {
-            data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
+        while let Some((key, value)) = map.next_entry::<String, i64>()? {
+            if value >= 0 {
+                data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
+            } else {
+                data.insert(
+                    key,
+                    BigInt::from_bytes_le(Sign::Minus, &abs(value).to_le_bytes()),
+                );
+            }
         }
 
         Ok(data)
@@ -252,8 +260,8 @@ mod tests {
                                     "offset": 0
                                 },
                                 "reference_ids": {
-                                    "starkware.cairo.common.math.split_felt.high": 15,
-                                    "starkware.cairo.common.math.split_felt.low": 14,
+                                    "starkware.cairo.common.math.split_felt.high": 0,
+                                    "starkware.cairo.common.math.split_felt.low": -14,
                                     "starkware.cairo.common.math.split_felt.range_check_ptr": 16,
                                     "starkware.cairo.common.math.split_felt.value": 12
                                 }
@@ -297,11 +305,11 @@ mod tests {
                     reference_ids: HashMap::from([
                         (
                             String::from("starkware.cairo.common.math.split_felt.high"),
-                            bigint!(15),
+                            bigint!(0),
                         ),
                         (
                             String::from("starkware.cairo.common.math.split_felt.low"),
-                            bigint!(14),
+                            bigint!(-14),
                         ),
                         (
                             String::from("starkware.cairo.common.math.split_felt.range_check_ptr"),
