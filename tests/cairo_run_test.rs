@@ -32,3 +32,9 @@ fn cairo_run_integration_with_alloc_locals() {
     ))
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_compare_arrays() {
+    cairo_run::cairo_run(Path::new("cairo_programs/compare_arrays.json"))
+        .expect("Couldn't run program");
+}

@@ -1,3 +1,4 @@
+use crate::vm::errors::memory_errors::MemoryError;
 use num_bigint::BigInt;
 use std::fmt;
 
@@ -31,6 +32,9 @@ pub enum VirtualMachineError {
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
     RunnerError(RunnerError),
+    InvalidHintEncoding(MaybeRelocatable),
+    MemoryError(MemoryError),
+    UnknownHint(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -82,6 +86,9 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
             },
             VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
+            VirtualMachineError::InvalidHintEncoding(address) => write!(f, "Invalid hint encoding at pc: {:?}", address),
+            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
         }
     }
 }

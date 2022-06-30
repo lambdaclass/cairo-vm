@@ -5,12 +5,14 @@ use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::execute_hint::execute_hint;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -24,9 +26,10 @@ pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub segments: MemorySegmentManager,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
-    //hints: HashMap<MaybeRelocatable, Vec<CompiledHint>>,
+    pub hints: HashMap<MaybeRelocatable, Vec<Vec<u8>>>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -59,12 +62,14 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
+            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 0,
             skip_instruction_execution: false,
+            segments: MemorySegmentManager::new(),
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
@@ -422,6 +427,11 @@ impl VirtualMachine {
     }
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
+        if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
+            for hint_code in hint_list.clone().iter() {
+                execute_hint(self, hint_code)?
+            }
+        }
         self.skip_instruction_execution = false;
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
@@ -2305,11 +2315,13 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
             current_step: 1,
             skip_instruction_execution: false,
+            segments: MemorySegmentManager::new(),
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);
@@ -3384,5 +3396,182 @@ mod tests {
             )
             .unwrap();
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
+    }
+
+    /*
+    Program used for this test:
+    from starkware.cairo.common.alloc import alloc
+    func main{}():
+        let vec: felt* = alloc()
+        assert vec[0] = 1
+        return()
+    end
+    Memory: {RelocatableValue(segment_index=0, offset=0): 290341444919459839,
+        RelocatableValue(segment_index=0, offset=1): 1,
+        RelocatableValue(segment_index=0, offset=2): 2345108766317314046,
+        RelocatableValue(segment_index=0, offset=3): 1226245742482522112,
+        RelocatableValue(segment_index=0, offset=4): 3618502788666131213697322783095070105623107215331596699973092056135872020478,
+        RelocatableValue(segment_index=0, offset=5): 5189976364521848832,
+        RelocatableValue(segment_index=0, offset=6): 1,
+        RelocatableValue(segment_index=0, offset=7): 4611826758063128575,
+        RelocatableValue(segment_index=0, offset=8): 2345108766317314046,
+        RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+        RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+     */
+
+    #[test]
+    fn test_step_for_preset_memory_with_alloc_hint() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        vm.hints.insert(
+            MaybeRelocatable::from((0, 0)),
+            vec![("memory[ap] = segments.add()".as_bytes()).to_vec()],
+        );
+
+        //Create program and execution segments
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialzie registers
+        vm.run_context.pc = MaybeRelocatable::from((0, 3));
+        vm.run_context.ap = MaybeRelocatable::from((1, 2));
+        vm.run_context.fp = MaybeRelocatable::from((1, 2));
+        //Initialize memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint64!(290341444919459839)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint64!(2345108766317314046)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint64!(1226245742482522112)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint_str!(
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020478"
+                )),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint64!(5189976364521848832)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 6)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 7)),
+                &MaybeRelocatable::from(bigint64!(4611826758063128575)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 8)),
+                &MaybeRelocatable::from(bigint64!(2345108766317314046)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((3, 0)),
+            )
+            .unwrap();
+
+        //Run Steps
+        for _ in 0..6 {
+            assert_eq!(vm.step(), Ok(()));
+        }
+        //Compare trace
+        assert_eq!(
+            vm.trace[0],
+            TraceEntry {
+                pc: MaybeRelocatable::from((0, 3)),
+                fp: MaybeRelocatable::from((1, 2)),
+                ap: MaybeRelocatable::from((1, 2))
+            }
+        );
+        assert_eq!(
+            vm.trace[1],
+            TraceEntry {
+                pc: MaybeRelocatable::from((0, 0)),
+                fp: MaybeRelocatable::from((1, 4)),
+                ap: MaybeRelocatable::from((1, 4))
+            }
+        );
+        assert_eq!(
+            vm.trace[2],
+            TraceEntry {
+                pc: MaybeRelocatable::from((0, 2)),
+                fp: MaybeRelocatable::from((1, 4)),
+                ap: MaybeRelocatable::from((1, 5))
+            }
+        );
+        assert_eq!(
+            vm.trace[3],
+            TraceEntry {
+                pc: MaybeRelocatable::from((0, 5)),
+                fp: MaybeRelocatable::from((1, 2)),
+                ap: MaybeRelocatable::from((1, 5))
+            }
+        );
+        assert_eq!(
+            vm.trace[4],
+            TraceEntry {
+                pc: MaybeRelocatable::from((0, 7)),
+                fp: MaybeRelocatable::from((1, 2)),
+                ap: MaybeRelocatable::from((1, 6))
+            }
+        );
+        assert_eq!(
+            vm.trace[5],
+            TraceEntry {
+                pc: MaybeRelocatable::from((0, 8)),
+                fp: MaybeRelocatable::from((1, 2)),
+                ap: MaybeRelocatable::from((1, 6))
+            }
+        );
+
+        //Compare final register values
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 6)));
+        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
+
+        //Check that the array created through alloc contains the element we inserted
+        //As there are no builtins present, the next segment crated will have the index 2
+        assert_eq!(
+            vm.memory.data[2],
+            vec![Some(MaybeRelocatable::from(bigint!(1)))]
+        );
     }
 }
