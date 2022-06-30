@@ -53,7 +53,7 @@ pub fn write_binary_trace(
     relocated_trace: &[RelocatedTraceEntry],
     trace_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(trace_file).expect("Could not create trace file");
+    let mut buffer = File::create(trace_file)?;
 
     for (i, entry) in relocated_trace.iter().enumerate() {
         if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
@@ -78,7 +78,7 @@ pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(memory_file).expect("Could not create memory_file");
+    let mut buffer = File::create(memory_file)?;
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
@@ -192,8 +192,6 @@ mod tests {
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
-        assert!(cairo_runner_result.is_ok());
-
         let mut cairo_runner = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
@@ -213,10 +211,8 @@ mod tests {
         let cleopatra_memory_path = Path::new("tests/support/struct_cleopatra.memory");
 
         // run test program until the end
-        let mut cairo_runner = match run_test_program(program_path) {
-            Ok(cairo_runner) => cairo_runner,
-            Err(_) => panic!("Could not run test program"),
-        };
+        let cairo_runner_result = run_test_program(program_path);
+        let mut cairo_runner = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
         assert!(cairo_runner.relocate().is_ok());
