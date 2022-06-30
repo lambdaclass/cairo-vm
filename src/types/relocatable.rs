@@ -406,8 +406,9 @@ mod tests {
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from(bigint!(5));
-        let sub_addr = addr_a.sub(addr_b);
-        assert_eq!(Err(VirtualMachineError::NotImplemented), sub_addr);
+        let error = addr_a.sub(addr_b);
+        assert_eq!(error, Err(VirtualMachineError::NotImplemented));
+        assert_eq!(error.unwrap_err().to_string(), "This is not implemented");
     }
 
     #[test]
