@@ -180,6 +180,7 @@ pub fn relocate_value(
 mod tests {
     use super::*;
     use crate::bigint;
+    use crate::bigint_str;
     use crate::relocatable;
     use num_bigint::BigInt;
     use num_bigint::Sign;
@@ -204,6 +205,25 @@ mod tests {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_int_mod(bigint!(2), bigint!(121));
         assert_eq!(Ok(MaybeRelocatable::from((7, 67))), added_addr);
+    }
+
+    #[test]
+    fn add_int_mod_offset_exceeded() {
+        let addr = MaybeRelocatable::from((0, 0));
+        let error = addr.add_int_mod(
+            bigint_str!(b"18446744073709551616"),
+            bigint_str!(b"18446744073709551617"),
+        );
+        assert_eq!(
+            error,
+            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+                b"18446744073709551616"
+            )))
+        );
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Offset 18446744073709551616 exeeds maximum offset value"
+        );
     }
 
     #[test]
@@ -318,6 +338,40 @@ mod tests {
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 14))),
             added_addr
+        );
+    }
+
+    #[test]
+    fn add_int_rel_int_offset_exceeded() {
+        let addr = MaybeRelocatable::from((0, 0));
+        let error = addr.add_mod(
+            MaybeRelocatable::from(bigint_str!(b"18446744073709551616")),
+            bigint_str!(b"18446744073709551617"),
+        );
+        assert_eq!(
+            error,
+            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+                b"18446744073709551616"
+            )))
+        );
+    }
+
+    #[test]
+    fn add_int_int_rel_offset_exceeded() {
+        let addr = MaybeRelocatable::Int(bigint_str!(b"18446744073709551616"));
+        let relocatable = Relocatable {
+            offset: 0,
+            segment_index: 0,
+        };
+        let error = addr.add_mod(
+            MaybeRelocatable::RelocatableValue(relocatable),
+            bigint_str!(b"18446744073709551617"),
+        );
+        assert_eq!(
+            error,
+            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+                b"18446744073709551616"
+            )))
         );
     }
 
