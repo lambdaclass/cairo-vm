@@ -56,6 +56,10 @@ mod tests {
         let relocation_table = vec![1, 2, 5];
         let error = relocate_trace_register(value, &relocation_table);
         assert_eq!(error, Err(TraceError::RegNotRelocatable));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Trace register must be relocatable"
+        );
     }
 
     #[test]
@@ -64,5 +68,9 @@ mod tests {
         let relocation_table = vec![1, 2];
         let error = relocate_trace_register(value, &relocation_table);
         assert_eq!(error, Err(TraceError::NoRelocationFound));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "No relocation found for this segment"
+        );
     }
 }

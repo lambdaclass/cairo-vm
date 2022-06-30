@@ -182,6 +182,10 @@ mod memory_tests {
         let memory = Memory::new();
         let error = memory.get(&key);
         assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Memory addresses must be relocatable"
+        );
     }
 
     #[test]
@@ -191,6 +195,10 @@ mod memory_tests {
         let mut memory = Memory::new();
         let error = memory.insert(&key, &val);
         assert_eq!(error, Err(MemoryError::UnallocatedSegment(0, 0)));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Can't insert into segment #0; memory only has 0 segment"
+        );
     }
 
     #[test]
@@ -208,6 +216,7 @@ mod memory_tests {
             error,
             Err(MemoryError::InconsistentMemory(key, val_a, val_b))
         );
+        assert_eq!(error.unwrap_err().to_string(), "Inconsistent memory assignment at address RelocatableValue(Relocatable { segment_index: 0, offset: 0 }). Int(5) != Int(6)");
     }
 
     #[test]
@@ -217,6 +226,10 @@ mod memory_tests {
         let mut memory = Memory::new();
         let error = memory.insert(&key, &val);
         assert_eq!(error, Err(MemoryError::AddressNotRelocatable));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Memory addresses must be relocatable"
+        );
     }
 
     #[test]
@@ -300,9 +313,11 @@ mod memory_tests {
             )
             .unwrap();
         builtin.add_validation_rule(&mut memory);
+        let error = memory.validate_existing_memory();
+        assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
-            memory.validate_existing_memory(),
-            Err(MemoryError::NumOutOfBounds)
+            error.unwrap_err().to_string(),
+            "Range-check validation failed, number is out of valid range"
         );
     }
 
@@ -321,9 +336,11 @@ mod memory_tests {
             )
             .unwrap();
         builtin.add_validation_rule(&mut memory);
+        let error = memory.validate_existing_memory();
+        assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
-            memory.validate_existing_memory(),
-            Err(MemoryError::FoundNonInt)
+            error.unwrap_err().to_string(),
+            "Range-check validation failed, encountered non-int value"
         );
     }
 

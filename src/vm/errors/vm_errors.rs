@@ -60,7 +60,7 @@ impl fmt::Display for VirtualMachineError {
             }
             VirtualMachineError::DiffAssertValues(res, dst) => write!(f, "ASSERT_EQ instruction failed; res:{} != dst:{}", res, dst),
             VirtualMachineError::CantWriteReturnPc(op0, ret_pc) => write!(f, "Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0, ret_pc),
-            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-pc (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
+            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-fp (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
             VirtualMachineError::NoDst => write!(f,  "Couldn't get or load dst"),
             VirtualMachineError::InvalidRes(n) => write!(f, "Invalid res value: {}", n),
             VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid opcode value: {}", n),

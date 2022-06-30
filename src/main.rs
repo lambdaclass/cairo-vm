@@ -1,13 +1,8 @@
 #![deny(warnings)]
-mod cairo_run;
-mod math_utils;
-mod serde;
-mod types;
-mod utils;
-mod vm;
-use crate::vm::errors::cairo_run_errors::CairoRunError;
-use crate::vm::errors::runner_errors::RunnerError;
 use clap::{Parser, ValueHint};
+use cleopatra_cairo::cairo_run;
+use cleopatra_cairo::vm::errors::cairo_run_errors::CairoRunError;
+use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -15,7 +10,7 @@ use std::path::PathBuf;
 struct Args {
     #[clap(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
-    #[clap(long, value_parser)]
+    #[clap(long = "--trace_file", value_parser)]
     trace_file: Option<PathBuf>,
     #[structopt(long = "--print_output")]
     print_output: bool,
@@ -32,7 +27,10 @@ fn main() -> Result<(), CairoRunError> {
     };
 
     if let Some(trace_path) = args.trace_file {
-        cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path);
+        match cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path) {
+            Ok(()) => (),
+            Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
+        }
     }
 
     if args.print_output {
