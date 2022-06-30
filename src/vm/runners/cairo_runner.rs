@@ -286,52 +286,65 @@ impl CairoRunner {
         Ok(())
     }
 
-    ///Writes the values hosted in the output builtin's segment
+    /// Get the values hosted in the output builtin's segment
     /// Does nothing if the output builtin is not present in the program
-    pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
+    pub fn get_output(&mut self) -> Result<Option<String>, RunnerError> {
         //If the output builtin is present it will always be the first one
-        if !self.vm.builtin_runners.is_empty() && self.vm.builtin_runners[0].0 == *"output" {
-            let builtin = &self.vm.builtin_runners[0].1;
-            self.segments.compute_effective_sizes(&self.vm.memory);
-
-            let base = match builtin.base() {
-                Some(base) => base,
-                None => return Err(RunnerError::UninitializedBase),
-            };
-
-            let write_result = writeln!(stdout, "Program Output: ");
-            if write_result.is_err() {
-                return Err(RunnerError::WriteFail);
-            }
-
-            // After this if block,
-            // segment_used_sizes is always Some(_)
-            if self.segments.segment_used_sizes == None {
+        let opt_output =
+            if !self.vm.builtin_runners.is_empty() && self.vm.builtin_runners[0].0 == *"output" {
+                let builtin = &self.vm.builtin_runners[0].1;
                 self.segments.compute_effective_sizes(&self.vm.memory);
-            }
 
-            // See previous comment, the unwrap below is safe.
-            for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
-                let value =
-                    match self.vm.memory.get(
+                let base = match builtin.base() {
+                    Some(base) => base,
+                    None => return Err(RunnerError::UninitializedBase),
+                };
+
+                // After this if block,
+                // segment_used_sizes is always Some(_)
+                if self.segments.segment_used_sizes == None {
+                    self.segments.compute_effective_sizes(&self.vm.memory);
+                }
+
+                let mut output = String::new();
+
+                // See previous comment, the unwrap below is safe.
+                for i in 0..self.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
+                    let value = match self.vm.memory.get(
                         &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
                     ) {
                         Ok(val) => val,
                         Err(e) => return Err(RunnerError::FailedMemoryGet(e)),
                     };
 
-                if let Some(&MaybeRelocatable::Int(ref num)) = value {
-                    let write_result = writeln!(
-                        stdout,
-                        "{}",
-                        to_field_element(num.clone(), self.vm.prime.clone())
-                    );
-                    if write_result.is_err() {
-                        return Err(RunnerError::WriteFail);
+                    if let Some(&MaybeRelocatable::Int(ref num)) = value {
+                        output.push_str(&format!(
+                            "{}\n",
+                            to_field_element(num.clone(), self.vm.prime.clone())
+                        ));
                     }
                 }
+
+                Some(output)
+            } else {
+                None
+            };
+
+        Ok(opt_output)
+    }
+
+    /// Writes the values hosted in the output builtin's segment
+    /// Does nothing if the output builtin is not present in the program
+    pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
+        let opt_output = self.get_output()?;
+
+        if let Some(output) = opt_output {
+            let write_result = write!(stdout, "Program Output:\n{}", output);
+            if write_result.is_err() {
+                return Err(RunnerError::WriteFail);
             }
         }
+
         Ok(())
     }
 }
@@ -2751,7 +2764,7 @@ mod tests {
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n1\n2\n"))
+            Ok(String::from("Program Output:\n1\n2\n"))
         );
     }
 
@@ -2804,7 +2817,7 @@ mod tests {
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n1\n17\n"))
+            Ok(String::from("Program Output:\n1\n17\n"))
         );
     }
 
@@ -2841,7 +2854,7 @@ mod tests {
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
+            Ok(String::from("Program Output:\n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
         );
     }
 
