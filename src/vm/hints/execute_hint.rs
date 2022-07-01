@@ -15,16 +15,7 @@ pub fn execute_hint(
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => {
             is_nn(vm, ids)
         }
-        Ok(
-            "from starkware.cairo.common.math_utils import assert_integer
-        assert_integer(ids.a)
-        assert_integer(ids.b)
-        a = ids.a % PRIME
-        b = ids.b % PRIME
-        assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
-
-        ids.small_inputs = int(
-            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
+        Ok("from starkware.cairo.common.math_utils import assert_integer\n            assert_integer(ids.a)\n            assert_integer(ids.b)\n            a = ids.a % PRIME\n            b = ids.b % PRIME\n            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\n            ids.small_inputs = int(\n                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
         ) => assert_le_felt(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
             hint_code,
@@ -288,6 +279,120 @@ mod tests {
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
+        );
+    }
+
+    #[test]
+    fn run_assert_le_felt_valid() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //ids.b
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //create memory gap, so ids.small_inputs contains None
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, MaybeRelocatable>::new();
+        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        ids.insert(String::from("b"), MaybeRelocatable::from((0, 1)));
+        ids.insert(String::from("small_inputs"), MaybeRelocatable::from((0, 2)));
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Hint would return an error if the assertion fails
+    }
+
+    #[test]
+    fn run_is_assert_le_felt_invalid() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //ids.b
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //create memory gap, so ids.small_inputs contains None
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, MaybeRelocatable>::new();
+        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        ids.insert(String::from("b"), MaybeRelocatable::from((0, 1)));
+        ids.insert(String::from("small_inputs"), MaybeRelocatable::from((0, 2)));
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
 }
