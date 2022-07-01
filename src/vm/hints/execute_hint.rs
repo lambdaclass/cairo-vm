@@ -31,10 +31,8 @@ pub fn execute_hint(
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\n            assert_integer(ids.a)\n            assert_integer(ids.b)\n            a = ids.a % PRIME\n            b = ids.b % PRIME\n            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\n            ids.small_inputs = int(\n                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
         ) => assert_le_felt(vm, ids),
-        Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
-            hint_code,
-        ))),
-        Err(_) => Err(VirtualMachineError::HintException(
+        Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
+        Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
         )),
     }
@@ -99,7 +97,7 @@ mod tests {
         );
         assert_eq!(
             execute_hint(&mut vm, hint_code, HashMap::new()),
-            Err(VirtualMachineError::UnknownHinError(
+            Err(VirtualMachineError::UnknownHint(
                 String::from_utf8(hint_code.to_vec()).unwrap()
             ))
         );
@@ -194,6 +192,19 @@ mod tests {
     }
 
     #[test]
+    fn run_invalid_encoding_hint() {
+        let hint_code = [0x80];
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        assert_eq!(
+            execute_hint(&mut vm, &hint_code, HashMap::new()),
+            Err(VirtualMachineError::InvalidHintEncoding(vm.run_context.pc))
+        );
+    }
+
+    #[test]
     fn run_is_nn_hint_no_range_check_builtin() {
         let hint_code =
             "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
@@ -227,7 +238,7 @@ mod tests {
         }];
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }

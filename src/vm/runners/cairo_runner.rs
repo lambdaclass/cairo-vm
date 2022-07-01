@@ -233,7 +233,10 @@ impl CairoRunner {
                 //TODO: replace HashMap::new() with proper ids once ids is deserialized
                 if let Some(hint_list) = hint_dictionary.get_mut(&key) {
                     //Add hint code to list of hints at given pc
-                    hint_list.push(HintData::new(hint_data.code.clone(), HashMap::new()));
+                    hint_list.push(HintData::new(
+                        hint_data.code.clone(),
+                        hint_data.flow_tracking_data.reference_ids.clone(),
+                    ));
                 } else {
                     //Insert the first hint at a given pc
                     hint_dictionary.insert(

@@ -8,8 +8,6 @@ use crate::vm::errors::runner_errors::RunnerError;
 #[derive(Debug, PartialEq)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
-    InvalidDstReg(i64),
-    InvalidOp0Reg(i64),
     InvalidOp1Reg(i64),
     ImmShouldBe1,
     UnknownOp0,
@@ -32,9 +30,8 @@ pub enum VirtualMachineError {
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
     RunnerError(RunnerError),
-    HintException(MaybeRelocatable),
+    InvalidHintEncoding(MaybeRelocatable),
     MemoryError(MemoryError),
-    UnknownHinError(String),
     NoRangeCheckBuiltin,
     IncorrectIds(Vec<String>, Vec<String>),
     MemoryGet(MaybeRelocatable),
@@ -42,6 +39,7 @@ pub enum VirtualMachineError {
     FailedToGetIds,
     NonLeFelt(BigInt, BigInt),
     FailedToGetReference(BigInt),
+    UnknownHint(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -50,8 +48,6 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidInstructionEncoding => {
                 write!(f, "Instruction should be an int. Found:")
             }
-            VirtualMachineError::InvalidDstReg(n) => write!(f, "Invalid dst_register value: {}", n),
-            VirtualMachineError::InvalidOp0Reg(n) => write!(f, "Invalid op0_register value: {}", n),
             VirtualMachineError::InvalidOp1Reg(n) => write!(f, "Invalid op1_register value: {}", n),
             VirtualMachineError::ImmShouldBe1 => {
                 write!(f, "In immediate mode, off2 should be 1")
@@ -75,10 +71,10 @@ impl fmt::Display for VirtualMachineError {
             }
             VirtualMachineError::DiffAssertValues(res, dst) => write!(f, "ASSERT_EQ instruction failed; res:{} != dst:{}", res, dst),
             VirtualMachineError::CantWriteReturnPc(op0, ret_pc) => write!(f, "Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0, ret_pc),
-            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-pc (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
+            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-fp (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
             VirtualMachineError::NoDst => write!(f,  "Couldn't get or load dst"),
             VirtualMachineError::InvalidRes(n) => write!(f, "Invalid res value: {}", n),
-            VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid res value: {}", n),
+            VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid opcode value: {}", n),
             VirtualMachineError::RelocatableAdd => {
                 write!(f, "Cannot add two relocatable values")
             }
@@ -93,9 +89,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
             },
             VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
-            VirtualMachineError::HintException(address) => write!(f, "Got an exception while executing a hint at pc: {:?}", address),
-            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
-            VirtualMachineError::UnknownHinError(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
+            VirtualMachineError::InvalidHintEncoding(address) => write!(f, "Invalid hint encoding at pc: {:?}", address),
             VirtualMachineError::NoRangeCheckBuiltin => {
                 write!(f, "Expected range_check builtin to be present")
             },
@@ -117,6 +111,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FailedToGetReference(reference_id) => {
                 write!(f, "Failed to get reference for id {}", reference_id)
             },
+            VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
+            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
         }
     }
 }

@@ -551,7 +551,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint_str, relocatable};
+    use crate::{bigint, bigint_str, relocatable};
 
     #[test]
     fn initialize_segments_for_output() {
@@ -597,6 +597,13 @@ mod tests {
     }
 
     #[test]
+    fn get_initial_stack_for_ecop_not_included() {
+        let builtin = EcOpBuiltinRunner::new(false, 8);
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack, Ok(Vec::new()));
+    }
+
+    #[test]
     fn get_initial_stack_for_range_check_not_included() {
         let builtin = RangeCheckBuiltinRunner::new(false, bigint!(8), 8);
         let initial_stack = builtin.initial_stack().unwrap();
@@ -630,6 +637,19 @@ mod tests {
         let builtin = OutputBuiltinRunner::new(false);
         let initial_stack = builtin.initial_stack().unwrap();
         assert_eq!(initial_stack.len(), 0);
+    }
+
+    #[test]
+    fn get_initial_stack_for_pedersen_not_included() {
+        let builtin = HashBuiltinRunner::new(false, 8);
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack, Ok(Vec::new()));
+    }
+
+    #[test]
+    fn get_initial_stack_for_pedersen_with_error() {
+        let builtin = HashBuiltinRunner::new(true, 8);
+        assert_eq!(builtin.initial_stack(), Err(RunnerError::UninitializedBase));
     }
 
     #[test]
@@ -742,6 +762,27 @@ mod tests {
         builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_pedersen_for_no_relocatable_address() {
+        let memory = Memory::new();
+        let mut builtin = HashBuiltinRunner::new(true, 8);
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
+        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
+    }
+
+    #[test]
+    fn get_initial_stack_for_bitwise_not_included() {
+        let builtin = BitwiseBuiltinRunner::new(false, 8);
+        let initial_stack = builtin.initial_stack();
+        assert_eq!(initial_stack, Ok(Vec::new()));
+    }
+
+    #[test]
+    fn get_initial_stack_for_bitwise_with_error() {
+        let builtin = BitwiseBuiltinRunner::new(true, 8);
+        assert_eq!(builtin.initial_stack(), Err(RunnerError::UninitializedBase));
     }
 
     #[test]
@@ -871,6 +912,14 @@ mod tests {
             .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn deduce_memory_cell_bitwise_for_no_relocatable_address() {
+        let memory = Memory::new();
+        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
+        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
+        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
 
     #[test]

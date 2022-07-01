@@ -4,7 +4,8 @@ use crate::types::{
     relocatable::MaybeRelocatable,
 };
 use num_bigint::{BigInt, Sign};
-use serde::{de, de::SeqAccess, Deserialize, Deserializer};
+use num_traits::abs;
+use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -29,6 +30,8 @@ pub struct HintParams {
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
+    #[serde(deserialize_with = "deserialize_map_to_string_and_bigint_hashmap")]
+    pub reference_ids: HashMap<String, BigInt>,
 }
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct ApTracking {
@@ -106,6 +109,36 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     }
 }
 
+struct ReferenceIdsVisitor;
+
+impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
+    type Value = HashMap<String, BigInt>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a map with string keys and integer values")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut data: HashMap<String, BigInt> = HashMap::new();
+
+        while let Some((key, value)) = map.next_entry::<String, i64>()? {
+            if value >= 0 {
+                data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
+            } else {
+                data.insert(
+                    key,
+                    BigInt::from_bytes_le(Sign::Minus, &abs(value).to_le_bytes()),
+                );
+            }
+        }
+
+        Ok(data)
+    }
+}
+
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
 }
@@ -114,6 +147,12 @@ pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
     d.deserialize_seq(MaybeRelocatableVisitor)
+}
+
+pub fn deserialize_map_to_string_and_bigint_hashmap<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<HashMap<String, BigInt>, D::Error> {
+    d.deserialize_map(ReferenceIdsVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -225,7 +264,12 @@ mod tests {
                                     "group": 0,
                                     "offset": 0
                                 },
-                                "reference_ids": {}
+                                "reference_ids": {
+                                    "starkware.cairo.common.math.split_felt.high": 0,
+                                    "starkware.cairo.common.math.split_felt.low": -14,
+                                    "starkware.cairo.common.math.split_felt.range_check_ptr": 16,
+                                    "starkware.cairo.common.math.split_felt.value": 12
+                                }
                             }
                         }
                     ]
@@ -263,6 +307,24 @@ mod tests {
                         group: 0,
                         offset: 0,
                     },
+                    reference_ids: HashMap::from([
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.high"),
+                            bigint!(0),
+                        ),
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.low"),
+                            bigint!(-14),
+                        ),
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.range_check_ptr"),
+                            bigint!(16),
+                        ),
+                        (
+                            String::from("starkware.cairo.common.math.split_felt.value"),
+                            bigint!(12),
+                        ),
+                    ]),
                 },
             }],
         );
@@ -373,6 +435,7 @@ mod tests {
                         group: 0,
                         offset: 0,
                     },
+                    reference_ids: HashMap::new(),
                 },
             }],
         );
@@ -386,6 +449,7 @@ mod tests {
                         group: 5,
                         offset: 0,
                     },
+                    reference_ids: HashMap::new(),
                 },
             }],
         );

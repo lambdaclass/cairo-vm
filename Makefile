@@ -24,6 +24,7 @@ coverage:
 	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
 
 benchmark:
+	cd bench/criterion; ./setup_benchmarks.sh
 	cargo criterion --bench criterion_benchmark
 	@echo 'Report: target/criterion/reports/index.html'
 
@@ -34,7 +35,7 @@ compare_benchmarks_deps:
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
-	pyenv instal 3.7.12
+	pyenv install 3.7.12
 	pyenv global 3.7.12
 	pip install cairo_lang
 
