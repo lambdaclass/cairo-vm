@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656687062791,
+  "lastUpdate": 1656687302118,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -5293,6 +5293,48 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/linear-search.json",
             "value": 1590,
             "range": "± 119",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f021c6feb6d15aa4184f26c3bc3c71c641ad95a9",
+          "message": "Merge pull request #221 from lambdaclass/fix-memory-arg\n\nFix memory argument name",
+          "timestamp": "2022-07-01T11:49:59-03:00",
+          "tree_id": "c81e09f1ee0b87e0f82a1b5c473494c0921668e8",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/f021c6feb6d15aa4184f26c3bc3c71c641ad95a9"
+        },
+        "date": 1656687299645,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 7842994,
+            "range": "± 45953",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4297285,
+            "range": "± 4916",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1508,
+            "range": "± 211",
             "unit": "ns/iter"
           }
         ]
