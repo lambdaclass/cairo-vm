@@ -4,7 +4,9 @@ use crate::types::{
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
+use regex::Regex;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
+use std::str::FromStr;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -169,13 +171,28 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         formatter.write_str("Could not deserialize hexadecimal string")
     }
 
-    fn visit_str<E>(self, _value: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
+        let num_re = Regex::new(r"(-?\d+)").unwrap();
+        let reg_re = Regex::new(r"\w[.p]").unwrap();
+
+        let offset = num_re.captures(&value).unwrap();
+        let register_str = reg_re.captures(&value).unwrap();
+
+        println!("REGISTER: {}", &register_str[0]);
+        println!("OFFSET: {}", &offset[0]);
+
+        let reg = match &register_str[0] {
+            "fp" => Register::FP,
+            "ap" => Register::AP,
+            _ => return Err("hola").map_err(de::Error::custom),
+        };
+
         Ok(ValueAddress {
-            register: Register::FP,
-            offset: -1,
+            register: reg,
+            offset: i32::from_str(&offset[0]).unwrap(),
         })
     }
 }
@@ -482,7 +499,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         register: Register::FP,
-                        offset: -1,
+                        offset: -4,
                     },
                     // value: String::from("[cast(fp + (-4), felt*)]"),
                 },
@@ -495,7 +512,7 @@ mod tests {
                     // value: String::from("[cast(fp + (-3), felt*)]"),
                     value_address: ValueAddress {
                         register: Register::FP,
-                        offset: -1,
+                        offset: -3,
                     },
                 },
             ],
