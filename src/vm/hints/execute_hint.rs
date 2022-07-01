@@ -19,6 +19,11 @@ pub struct ValueAddress {
     pub register: Register,
     pub offset: i32,
 }
+#[derive(Debug, PartialEq, Clone)]
+pub struct HintReference {
+    pub register: Register,
+    pub offset: i32,
+}
 pub fn execute_hint(
     vm: &mut VirtualMachine,
     hint_code: &[u8],
@@ -131,12 +136,9 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![Reference {
-            pc: None,
-            value_address: ValueAddress {
-                register: Register::FP,
-                offset: -1,
-            },
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
         }];
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
@@ -175,12 +177,9 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![Reference {
-            pc: None,
-            value_address: ValueAddress {
-                register: Register::FP,
-                offset: -1,
-            },
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
         }];
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
@@ -229,12 +228,9 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![Reference {
-            pc: None,
-            value_address: ValueAddress {
-                register: Register::FP,
-                offset: -1,
-            },
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
         }];
         //Execute the hint
         assert_eq!(
@@ -294,12 +290,9 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![Reference {
-            pc: None,
-            value_address: ValueAddress {
-                register: Register::FP,
-                offset: -1,
-            },
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
         }];
         //Execute the hint
         assert_eq!(
@@ -338,12 +331,9 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![Reference {
-            pc: None,
-            value_address: ValueAddress {
-                register: Register::FP,
-                offset: -1,
-            },
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
         }];
         //Execute the hint
         assert_eq!(
@@ -407,26 +397,17 @@ mod tests {
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
-            Reference {
-                pc: None,
-                value_address: ValueAddress {
-                    register: Register::FP,
-                    offset: -4,
-                },
+            HintReference {
+                register: Register::FP,
+                offset: -4,
             },
-            Reference {
-                pc: None,
-                value_address: ValueAddress {
-                    register: Register::FP,
-                    offset: -3,
-                },
+            HintReference {
+                register: Register::FP,
+                offset: -3,
             },
-            Reference {
-                pc: None,
-                value_address: ValueAddress {
-                    register: Register::FP,
-                    offset: -2,
-                },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
             },
         ];
         //Execute the hint
@@ -487,26 +468,17 @@ mod tests {
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
-            Reference {
-                pc: None,
-                value_address: ValueAddress {
-                    register: Register::FP,
-                    offset: -4,
-                },
+            HintReference {
+                register: Register::FP,
+                offset: -4,
             },
-            Reference {
-                pc: None,
-                value_address: ValueAddress {
-                    register: Register::FP,
-                    offset: -3,
-                },
+            HintReference {
+                register: Register::FP,
+                offset: -3,
             },
-            Reference {
-                pc: None,
-                value_address: ValueAddress {
-                    register: Register::FP,
-                    offset: -2,
-                },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
             },
         ];
         //Execute the hint

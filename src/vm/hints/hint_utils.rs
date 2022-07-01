@@ -11,36 +11,36 @@ use crate::{
     },
 };
 
-use super::execute_hint::{Reference, ValueAddress};
+use super::execute_hint::HintReference;
 fn compute_addr_from_reference(
-    value_address: &ValueAddress,
+    hint_reference: &HintReference,
     run_context: &RunContext,
 ) -> Option<MaybeRelocatable> {
-    let register = match value_address.register {
+    let register = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
         Register::AP => run_context.ap.clone(),
     };
     if let MaybeRelocatable::RelocatableValue(relocatable) = register {
-        if value_address.offset.is_negative()
-            && relocatable.offset < value_address.offset.abs() as usize
+        if hint_reference.offset.is_negative()
+            && relocatable.offset < hint_reference.offset.abs() as usize
         {
             return None;
         }
         return Some(MaybeRelocatable::from((
             relocatable.segment_index,
-            (relocatable.offset as i32 + value_address.offset) as usize,
+            (relocatable.offset as i32 + hint_reference.offset) as usize,
         )));
     }
     None
 }
 fn get_address_from_reference(
     reference_id: &BigInt,
-    references: &Vec<Reference>,
+    references: &Vec<HintReference>,
     run_context: &RunContext,
 ) -> Option<MaybeRelocatable> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
-            return compute_addr_from_reference(&references[index].value_address, run_context);
+            return compute_addr_from_reference(&references[index], run_context);
         }
     }
     None

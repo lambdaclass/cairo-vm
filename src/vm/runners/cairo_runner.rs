@@ -6,6 +6,7 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::execute_hint::HintReference;
 use crate::vm::runners::builtin_runner::{
     BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
     RangeCheckBuiltinRunner,
@@ -216,11 +217,21 @@ impl CairoRunner {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
         self.vm.hints = self.get_hint_dictionary();
-        self.vm.references = self.program.reference_manager.references.clone();
+        self.vm.references = self.get_reference_list();
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
         }
+    }
+    fn get_reference_list(&self) -> Vec<HintReference> {
+        let mut references = Vec::<HintReference>::new();
+        for reference in self.program.reference_manager.references.iter() {
+            references.push(HintReference {
+                register: reference.value_address.register.clone(),
+                offset: reference.value_address.offset,
+            })
+        }
+        references
     }
     fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<HintData>> {
         let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
@@ -230,7 +241,6 @@ impl CairoRunner {
                     hint_data.flow_tracking_data.ap_tracking.group,
                     hint_data.flow_tracking_data.ap_tracking.offset,
                 ));
-                //TODO: replace HashMap::new() with proper ids once ids is deserialized
                 if let Some(hint_list) = hint_dictionary.get_mut(&key) {
                     //Add hint code to list of hints at given pc
                     hint_list.push(HintData::new(

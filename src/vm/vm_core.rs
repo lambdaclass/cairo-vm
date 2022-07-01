@@ -14,7 +14,7 @@ use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::{HashMap, HashSet};
 
-use super::hints::execute_hint::Reference;
+use super::hints::execute_hint::HintReference;
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -39,7 +39,7 @@ pub struct VirtualMachine {
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
-    pub references: Vec<Reference>,
+    pub references: Vec<HintReference>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -79,7 +79,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
-            references: Vec::<Reference>::new(),
+            references: Vec::<HintReference>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -2368,7 +2368,7 @@ mod tests {
             _program_base: None,
             builtin_runners: Vec::new(),
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
-            references: Vec::<Reference>::new(),
+            references: Vec::<HintReference>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
