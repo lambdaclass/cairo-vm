@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn, is_nn_out_of_range};
+use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn, is_nn_out_of_range, assert_not_zero};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -25,6 +25,8 @@ pub fn execute_hint(
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"
+        ) => assert_not_zero(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
