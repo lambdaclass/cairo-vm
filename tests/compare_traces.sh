@@ -1,4 +1,6 @@
 #!/bin/sh
+rm -f *.trace
+rm -f *.json
 
 test_files=($(ls -p ../cairo_programs | grep -v / | grep -v .json | sed -E 's/\.cairo//'))
 
