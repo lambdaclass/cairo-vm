@@ -1,13 +1,15 @@
 #!/bin/bash
 
-rm -f ../cairo_programs/*.json
-rm -f ../cairo_programs/*.trace
-rm -f ../cairo_programs/*.memory
+tests_path="../cairo_programs"
 
-test_files=($(ls -p ../cairo_programs | grep -v / | sed -E 's/\.cairo//'))
+rm -f $tests_path/*.json
+rm -f $tests_path/*.trace
+rm -f $tests_path/*.memory
+
+test_files=($(ls -p $tests_path | grep -v / | sed -E 's/\.cairo//'))
 
 for file in ${test_files[@]}; do
-    cairo-compile "../cairo_programs/$file.cairo" --output "../cairo_programs/$file.json"
+    cairo-compile "$tests_path/$file.cairo" --output "$tests_path/$file.json"
 done
 
-cairo-run --program ../cairo_programs/struct.json --trace_file ../cairo_programs/struct.trace --memory_file ../cairo_programs/struct.memory
+cairo-run --program $tests_path/struct.json --trace_file $tests_path/struct.trace --memory_file $tests_path/struct.memory
