@@ -59,7 +59,6 @@ pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 pub fn is_nn(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
-    references: Vec<Reference>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
@@ -72,7 +71,7 @@ pub fn is_nn(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr =
-        if let Some(a_addr) = get_address_from_reference(a_ref, &references, &vm.run_context) {
+        if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
             a_addr
         } else {
             return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
@@ -128,7 +127,6 @@ pub fn is_nn(
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
-    references: Vec<Reference>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     if let (Some(a_ref), Some(b_ref), Some(small_inputs_ref)) = (
@@ -138,9 +136,9 @@ pub fn assert_le_felt(
     ) {
         //Check that each reference id corresponds to a value in the reference manager
         if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
-            get_address_from_reference(a_ref, &references, &vm.run_context),
-            get_address_from_reference(b_ref, &references, &vm.run_context),
-            get_address_from_reference(small_inputs_ref, &references, &vm.run_context),
+            get_address_from_reference(a_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(b_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context),
         ) {
             //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
             //small_inputs needs to be None, as we cant change it value otherwise

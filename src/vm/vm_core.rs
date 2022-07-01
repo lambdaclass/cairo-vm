@@ -14,6 +14,8 @@ use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::{HashMap, HashSet};
 
+use super::hints::execute_hint::Reference;
+
 #[derive(PartialEq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
@@ -37,6 +39,7 @@ pub struct VirtualMachine {
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
+    pub references: Vec<Reference>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -76,6 +79,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
+            references: Vec::<Reference>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -442,13 +446,7 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                if execute_hint(
-                    self,
-                    &hint_data.hint_code.clone(),
-                    hint_data.ids.clone(),
-                    Vec::new(),
-                )
-                .is_err()
+                if execute_hint(self, &hint_data.hint_code.clone(), hint_data.ids.clone()).is_err()
                 {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
@@ -2323,6 +2321,7 @@ mod tests {
             _program_base: None,
             builtin_runners: Vec::new(),
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
+            references: Vec::<Reference>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
