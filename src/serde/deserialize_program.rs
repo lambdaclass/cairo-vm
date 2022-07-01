@@ -1,3 +1,4 @@
+use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
@@ -15,6 +16,7 @@ pub struct ProgramJson {
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
     pub hints: HashMap<usize, Vec<HintParams>>,
+    pub reference_manager: ReferenceManager,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -39,6 +41,24 @@ pub struct ApTracking {
 #[derive(Deserialize, Debug)]
 pub struct Identifier {
     pub pc: Option<usize>,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct ReferenceManager {
+    pub references: Vec<Reference>,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct Reference {
+    pub ap_tracking_data: ApTracking,
+    pub pc: Option<usize>,
+    pub value_address: ValueAddress,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct ValueAddress {
+    register: Register,
+    offset: i32,
 }
 
 struct BigIntVisitor;
@@ -133,6 +153,43 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
             }
         }
 
+        Ok(data)
+    }
+}
+
+struct ReferencesVisitor;
+
+impl<'de> de::Visitor<'de> for ReferencesVisitor {
+    type Value = Vec<Reference>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a list with references")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut data: Vec<Reference> = vec![];
+
+        while let Some(value) = seq.next_element::<String>()? {
+            if let Some(no_prefix_hex) = value.strip_prefix("0x") {
+                // Add padding if necessary
+                let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+                let decoded_result: Result<Vec<u8>, hex::FromHexError> =
+                    hex::decode(&no_prefix_hex);
+
+                match decoded_result {
+                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
+                        Sign::Plus,
+                        &decoded_hex,
+                    ))),
+                    Err(e) => return Err(e).map_err(de::Error::custom),
+                };
+            } else {
+                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
+            };
+        }
         Ok(data)
     }
 }
@@ -268,6 +325,26 @@ mod tests {
                             }
                         }
                     ]
+                },
+                "reference_manager": {
+                    "references": [
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "[cast(fp + (-4), felt*)]"
+                        },
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "[cast(fp + (-3), felt*)]"
+                        }
+                    ]
                 }
             }"#;
 
@@ -324,11 +401,33 @@ mod tests {
             }],
         );
 
+        let reference_manager = ReferenceManager {
+            references: vec![
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value: String::from("[cast(fp + (-4), felt*)]"),
+                },
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value: String::from("[cast(fp + (-3), felt*)]"),
+                },
+            ],
+        };
+
         assert_eq!(program_json.prime, bigint!(10));
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
         assert_eq!(program_json.hints, hints);
+        assert_eq!(program_json.reference_manager, reference_manager);
     }
 
     #[test]
