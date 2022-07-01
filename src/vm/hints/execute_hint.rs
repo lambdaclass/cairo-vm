@@ -57,7 +57,9 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
         );
-        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
+        //ids and references are not needed for this test
+        execute_hint(&mut vm, hint_code, HashMap::new(), Vec::new())
+            .expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 1);
         //new segment base (0,0) is inserted into ap (0,0)
@@ -79,7 +81,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
-        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
+        //ids and references are not needed for this test
+        execute_hint(&mut vm, hint_code, HashMap::new(), Vec::new())
+            .expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
         //new segment base (3,0) is inserted into ap (2,6)
@@ -97,7 +101,7 @@ mod tests {
             Vec::new(),
         );
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new()),
+            execute_hint(&mut vm, hint_code, HashMap::new(), Vec::new()),
             Err(VirtualMachineError::UnknownHinError(
                 String::from_utf8(hint_code.to_vec()).unwrap()
             ))
@@ -118,8 +122,9 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
+        //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory
         vm.memory
             .insert(
@@ -128,10 +133,18 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        //Create references
+        let references = vec![Reference {
+            pc: None,
+            value_address: ValueAddress {
+                register: Register::FP,
+                offset: -1,
+            },
+        }];
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, references).expect("Error while executing hint");
         //Check that ap now contains false (0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -153,8 +166,9 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
+        //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory
         vm.memory
             .insert(
@@ -163,10 +177,18 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        //Create references
+        let references = vec![Reference {
+            pc: None,
+            value_address: ValueAddress {
+                register: Register::FP,
+                offset: -1,
+            },
+        }];
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, references).expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -185,8 +207,9 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
+        //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory
         vm.memory
             .insert(
@@ -195,11 +218,19 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        //Create references
+        let references = vec![Reference {
+            pc: None,
+            value_address: ValueAddress {
+                register: Register::FP,
+                offset: -1,
+            },
+        }];
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, references),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -221,11 +252,11 @@ mod tests {
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("b"), MaybeRelocatable::from((0, 0)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("b"), bigint!(0));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, Vec::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a")],
                 vec![String::from("b")]
@@ -247,15 +278,24 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
+        //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Dont insert ids into memory
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        //Create references
+        let references = vec![Reference {
+            pc: None,
+            value_address: ValueAddress {
+                register: Register::FP,
+                offset: -1,
+            },
+        }];
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, references),
             Err(VirtualMachineError::MemoryGet(MaybeRelocatable::from((
                 0, 0
             ))))
@@ -276,8 +316,9 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
+        //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory
         vm.memory
             .insert(
@@ -286,11 +327,19 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        //Create references
+        let references = vec![Reference {
+            pc: None,
+            value_address: ValueAddress {
+                register: Register::FP,
+                offset: -1,
+            },
+        }];
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, references),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -319,8 +368,8 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((0, 4));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Insert ids into memory
         //ids.a
         vm.memory
@@ -344,12 +393,36 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
-        ids.insert(String::from("b"), MaybeRelocatable::from((0, 1)));
-        ids.insert(String::from("small_inputs"), MaybeRelocatable::from((0, 2)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
+        //Create references
+        let references = vec![
+            Reference {
+                pc: None,
+                value_address: ValueAddress {
+                    register: Register::FP,
+                    offset: -4,
+                },
+            },
+            Reference {
+                pc: None,
+                value_address: ValueAddress {
+                    register: Register::FP,
+                    offset: -3,
+                },
+            },
+            Reference {
+                pc: None,
+                value_address: ValueAddress {
+                    register: Register::FP,
+                    offset: -2,
+                },
+            },
+        ];
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(execute_hint(&mut vm, hint_code, ids, references), Ok(()));
         //Hint would return an error if the assertion fails
     }
 
@@ -375,8 +448,8 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((0, 4));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Insert ids into memory
         //ids.a
         vm.memory
@@ -400,13 +473,37 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, MaybeRelocatable>::new();
-        ids.insert(String::from("a"), MaybeRelocatable::from((0, 0)));
-        ids.insert(String::from("b"), MaybeRelocatable::from((0, 1)));
-        ids.insert(String::from("small_inputs"), MaybeRelocatable::from((0, 2)));
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
+        //Create references
+        let references = vec![
+            Reference {
+                pc: None,
+                value_address: ValueAddress {
+                    register: Register::FP,
+                    offset: -4,
+                },
+            },
+            Reference {
+                pc: None,
+                value_address: ValueAddress {
+                    register: Register::FP,
+                    offset: -3,
+                },
+            },
+            Reference {
+                pc: None,
+                value_address: ValueAddress {
+                    register: Register::FP,
+                    offset: -2,
+                },
+            },
+        ];
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, references),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }

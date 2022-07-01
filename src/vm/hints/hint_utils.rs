@@ -13,12 +13,12 @@ use crate::{
 
 use super::execute_hint::{Reference, ValueAddress};
 fn compute_addr_from_reference(
-    value_address: ValueAddress,
-    run_context: RunContext,
+    value_address: &ValueAddress,
+    run_context: &RunContext,
 ) -> Option<MaybeRelocatable> {
     let register = match value_address.register {
-        Register::FP => run_context.fp,
-        Register::AP => run_context.ap,
+        Register::FP => run_context.fp.clone(),
+        Register::AP => run_context.ap.clone(),
     };
     if let MaybeRelocatable::RelocatableValue(relocatable) = register {
         if value_address.offset.is_negative()
@@ -28,19 +28,19 @@ fn compute_addr_from_reference(
         }
         return Some(MaybeRelocatable::from((
             relocatable.segment_index,
-            (relocatable.segment_index as i32 + value_address.offset) as usize,
+            (relocatable.offset as i32 + value_address.offset) as usize,
         )));
     }
     None
 }
 fn get_address_from_reference(
     reference_id: &BigInt,
-    references: Vec<Reference>,
-    run_context: RunContext,
+    references: &Vec<Reference>,
+    run_context: &RunContext,
 ) -> Option<MaybeRelocatable> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
-            compute_addr_from_reference(references[index].value_address, run_context);
+            return compute_addr_from_reference(&references[index].value_address, run_context);
         }
     }
     None
@@ -71,12 +71,12 @@ pub fn is_nn(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let a_addr = if let Some(a_addr) = get_address_from_reference(a_ref, references, vm.run_context)
-    {
-        a_addr
-    } else {
-        return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
-    };
+    let a_addr =
+        if let Some(a_addr) = get_address_from_reference(a_ref, &references, &vm.run_context) {
+            a_addr
+        } else {
+            return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
+        };
     //Check that the ids are in memory
     match vm.memory.get(&a_addr) {
         Ok(Some(maybe_rel_a)) => {
@@ -138,9 +138,9 @@ pub fn assert_le_felt(
     ) {
         //Check that each reference id corresponds to a value in the reference manager
         if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
-            get_address_from_reference(a_ref, references, vm.run_context),
-            get_address_from_reference(b_ref, references, vm.run_context),
-            get_address_from_reference(small_inputs_ref, references, vm.run_context),
+            get_address_from_reference(a_ref, &references, &vm.run_context),
+            get_address_from_reference(b_ref, &references, &vm.run_context),
+            get_address_from_reference(small_inputs_ref, &references, &vm.run_context),
         ) {
             //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
             //small_inputs needs to be None, as we cant change it value otherwise

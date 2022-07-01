@@ -442,7 +442,13 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                if execute_hint(self, &hint_data.hint_code.clone(), hint_data.ids.clone()).is_err()
+                if execute_hint(
+                    self,
+                    &hint_data.hint_code.clone(),
+                    hint_data.ids.clone(),
+                    Vec::new(),
+                )
+                .is_err()
                 {
                     return Err(VirtualMachineError::HintException(
                         self.run_context.pc.clone(),
