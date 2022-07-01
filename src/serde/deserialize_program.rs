@@ -57,8 +57,8 @@ pub struct Reference {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ValueAddress {
-    register: Register,
-    offset: i32,
+    pub register: Register,
+    pub offset: i32,
 }
 
 struct BigIntVisitor;
@@ -157,42 +157,34 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
     }
 }
 
-struct ReferencesVisitor;
+// struct ReferenceVisitor;
 
-impl<'de> de::Visitor<'de> for ReferencesVisitor {
-    type Value = Vec<Reference>;
+// impl<'de> de::Visitor<'de> for ReferenceVisitor {
+//     type Value = Reference;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a list with references")
-    }
+//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         formatter.write_str("a list with references")
+//     }
 
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-    where
-        A: SeqAccess<'de>,
-    {
-        let mut data: Vec<Reference> = vec![];
+//     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+//     where
+//         A: MapAccess<'de>,
+//     {
+//         while let Some(entry) = map.next_entry()? {
+//             match entry.0 {
 
-        while let Some(value) = seq.next_element::<String>()? {
-            if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-                // Add padding if necessary
-                let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
-                let decoded_result: Result<Vec<u8>, hex::FromHexError> =
-                    hex::decode(&no_prefix_hex);
+//                 data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
+//             } else {
+//                 data.insert(
+//                     key,
+//                     BigInt::from_bytes_le(Sign::Minus, &abs(value).to_le_bytes()),
+//                 );
+//             }
+//         }
 
-                match decoded_result {
-                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
-                        Sign::Plus,
-                        &decoded_hex,
-                    ))),
-                    Err(e) => return Err(e).map_err(de::Error::custom),
-                };
-            } else {
-                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
-            };
-        }
-        Ok(data)
-    }
-}
+//         Ok(data)
+
+// }
 
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
