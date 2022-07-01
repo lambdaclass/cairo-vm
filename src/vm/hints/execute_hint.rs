@@ -46,6 +46,7 @@ pub fn execute_hint(
 #[cfg(test)]
 mod tests {
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
     use num_traits::FromPrimitive;
@@ -90,6 +91,38 @@ mod tests {
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((2, 6))),
             Ok(Some(&MaybeRelocatable::from((3, 0))))
+        );
+    }
+
+    #[test]
+    fn run_alloc_hint_ap_is_not_empty() {
+        let hint_code = "memory[ap] = segments.add()".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        //Add 3 segments to the memory
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        vm.run_context.ap = MaybeRelocatable::from((2, 6));
+        //Insert something into ap
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 6)),
+                &MaybeRelocatable::from((2, 6)),
+            )
+            .unwrap();
+        //ids and references are not needed for this test
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((2, 6)),
+                    MaybeRelocatable::from((2, 6)),
+                    MaybeRelocatable::from((3, 0))
+                )
+            ))
         );
     }
 
