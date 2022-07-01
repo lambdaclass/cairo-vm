@@ -41,6 +41,7 @@ pub enum VirtualMachineError {
     ExpectedInteger(MaybeRelocatable),
     FailedToGetIds,
     NonLeFelt(BigInt, BigInt),
+    FailedToGetReference(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -112,6 +113,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NonLeFelt(a, b) => {
                 write!(f, "Assertion failed, {}, is not less or equal to {}", a, b)
+            },
+            VirtualMachineError::FailedToGetReference(reference_id) => {
+                write!(f, "Failed to get reference for id {}", reference_id)
             },
         }
     }

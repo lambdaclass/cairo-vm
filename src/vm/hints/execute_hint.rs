@@ -1,22 +1,37 @@
 use std::collections::HashMap;
 
-use crate::types::relocatable::MaybeRelocatable;
+use num_bigint::BigInt;
+
+use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn};
 use crate::vm::vm_core::VirtualMachine;
 
+//This strucuts belong to serde, replace with import path
+#[derive(Debug, PartialEq)]
+pub struct Reference {
+    pub pc: Option<usize>,
+    pub value_address: ValueAddress,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ValueAddress {
+    register: Register,
+    offset: i32,
+}
 pub fn execute_hint(
     vm: &mut VirtualMachine,
     hint_code: &[u8],
-    ids: HashMap<String, MaybeRelocatable>,
+    ids: HashMap<String, BigInt>,
+    references: Vec<Reference>,
 ) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => {
-            is_nn(vm, ids)
+            is_nn(vm, ids, references)
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\n            assert_integer(ids.a)\n            assert_integer(ids.b)\n            a = ids.a % PRIME\n            b = ids.b % PRIME\n            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\n            ids.small_inputs = int(\n                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
-        ) => assert_le_felt(vm, ids),
+        ) => assert_le_felt(vm, ids, references),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHinError(String::from(
             hint_code,
         ))),

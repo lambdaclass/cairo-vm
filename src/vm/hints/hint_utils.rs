@@ -6,10 +6,19 @@ use crate::{
     bigint,
     types::relocatable::MaybeRelocatable,
     vm::{
-        errors::vm_errors::VirtualMachineError, runners::builtin_runner::RangeCheckBuiltinRunner,
-        vm_core::VirtualMachine,
+        context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
+        runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
     },
 };
+
+use super::execute_hint::Reference;
+
+fn get_address_from_reference(
+    reference_id: &BigInt,
+    references: Vec<Reference>,
+    run_context: RunContext,
+) -> Option<MaybeRelocatable> {
+}
 
 pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let new_segment_base =
@@ -23,16 +32,24 @@ pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, MaybeRelocatable>,
+    ids: HashMap<String, BigInt>,
+    references: Vec<Reference>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that ids contains the needed values
-    let a_addr = if let Some(a_addr) = ids.get(&String::from("a")) {
-        a_addr
+    //Check that ids contains the reference id for each variable used by the hint
+    let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
+        a_ref
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a")],
             ids.into_keys().collect(),
         ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let a_addr = if let Some(a_addr) = get_address_from_reference(a_ref, references, vm.run_context)
+    {
+        a_addr
+    } else {
+        return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
     };
     //Check that the ids are in memory
     match vm.memory.get(a_addr) {
@@ -84,10 +101,11 @@ pub fn is_nn(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, MaybeRelocatable>,
+    ids: HashMap<String, BigInt>,
+    references: Vec<Reference>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the needed values
-    if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
+    if let (Some(a_ref), Some(b_ref), Some(small_inputs_rf)) = (
         ids.get(&String::from("a")),
         ids.get(&String::from("b")),
         ids.get(&String::from("small_inputs")),

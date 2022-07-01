@@ -26,8 +26,8 @@ pub struct Operands {
 
 pub struct HintData {
     pub hint_code: Vec<u8>,
-    //Maps the name of the variable to its location in memory
-    pub ids: HashMap<String, MaybeRelocatable>,
+    //Maps the name of the variable to its reference id
+    pub ids: HashMap<String, BigInt>,
 }
 pub struct VirtualMachine {
     pub run_context: RunContext,
@@ -54,7 +54,7 @@ pub struct VirtualMachine {
 }
 
 impl HintData {
-    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, MaybeRelocatable>) -> HintData {
+    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, BigInt>) -> HintData {
         HintData { hint_code, ids }
     }
 }
