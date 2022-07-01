@@ -26,47 +26,51 @@ pub fn is_nn(
     ids: HashMap<String, MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the needed values
-    if let Some(a_addr) = ids.get(&String::from("a")) {
-        //Check that the ids are in memory
-        match vm.memory.get(a_addr) {
-            Ok(Some(maybe_rel_a)) => {
-                //Check that the value at the ids address is an Int
-                if let MaybeRelocatable::Int(ref a) = maybe_rel_a.clone() {
-                    for (name, builtin) in &vm.builtin_runners {
-                        //Check that range_check_builtin is present
-                        if name == &String::from("range_check") {
-                            return match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
-                                None => Err(VirtualMachineError::NoRangeCheckBuiltin),
-                                Some(builtin) => {
-                                    //Main logic (assert a is not negative and within the expected range)
-                                    let mut value = bigint!(0);
-                                    if *a > bigint!(0) && *a < vm.prime && *a < builtin._bound {
-                                        value = bigint!(1);
-                                    }
-                                    return match vm
-                                        .memory
-                                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value)) {
-                                        Ok(_) => Ok(()),
-                                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
-                                        
-                                    };
-                                }
-                            }
-                        }
-                    }
-                    Err(VirtualMachineError::NoRangeCheckBuiltin)
-                } else {
-                    Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
-                }
-            }
-            Ok(None) => Err(VirtualMachineError::MemoryGet(a_addr.clone())),
-            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
-        }
+    let a_addr = if let Some(a_addr) = ids.get(&String::from("a")) {
+        a_addr
     } else {
-        Err(VirtualMachineError::IncorrectIds(
+        return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a")],
             ids.into_keys().collect(),
-        ))
+        ));
+    };
+    //Check that the ids are in memory
+    match vm.memory.get(a_addr) {
+        Ok(Some(maybe_rel_a)) => {
+            //Check that the value at the ids address is an Int
+            let a = if let MaybeRelocatable::Int(ref a) = maybe_rel_a {
+                a
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+            };
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                if name == &String::from("range_check") {
+                    let range_check_builtin = if let Some(range_check_builtin) =
+                        builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                    {
+                        range_check_builtin
+                    } else {
+                        return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                    };
+                    //Main logic (assert a is not negative and within the expected range)
+                    let mut value = bigint!(0);
+                    if *a > bigint!(0) && *a < vm.prime && *a < range_check_builtin._bound {
+                        value = bigint!(1);
+                    }
+                    return match vm
+                        .memory
+                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+                    {
+                        Ok(_) => Ok(()),
+                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+                    };
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        }
+        Ok(None) => Err(VirtualMachineError::MemoryGet(a_addr.clone())),
+        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
     }
 }
 //Implements hint:from starkware.cairo.common.math_utils import assert_integer
