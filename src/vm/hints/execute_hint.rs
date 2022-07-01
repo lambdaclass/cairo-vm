@@ -16,8 +16,8 @@ pub struct Reference {
 
 #[derive(Debug, PartialEq)]
 pub struct ValueAddress {
-    register: Register,
-    offset: i32,
+    pub register: Register,
+    pub offset: i32,
 }
 pub fn execute_hint(
     vm: &mut VirtualMachine,

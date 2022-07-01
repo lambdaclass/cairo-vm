@@ -1,23 +1,49 @@
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
 use crate::{
     bigint,
-    types::relocatable::MaybeRelocatable,
+    types::{instruction::Register, relocatable::MaybeRelocatable},
     vm::{
         context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
         runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
     },
 };
 
-use super::execute_hint::Reference;
-
+use super::execute_hint::{Reference, ValueAddress};
+fn compute_addr_from_reference(
+    value_address: ValueAddress,
+    run_context: RunContext,
+) -> Option<MaybeRelocatable> {
+    let register = match value_address.register {
+        Register::FP => run_context.fp,
+        Register::AP => run_context.ap,
+    };
+    if let MaybeRelocatable::RelocatableValue(relocatable) = register {
+        if value_address.offset.is_negative()
+            && relocatable.offset < value_address.offset.abs() as usize
+        {
+            return None;
+        }
+        return Some(MaybeRelocatable::from((
+            relocatable.segment_index,
+            (relocatable.segment_index as i32 + value_address.offset) as usize,
+        )));
+    }
+    None
+}
 fn get_address_from_reference(
     reference_id: &BigInt,
     references: Vec<Reference>,
     run_context: RunContext,
 ) -> Option<MaybeRelocatable> {
+    if let Some(index) = reference_id.to_usize() {
+        if index < references.len() {
+            compute_addr_from_reference(references[index].value_address, run_context);
+        }
+    }
+    None
 }
 
 pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
