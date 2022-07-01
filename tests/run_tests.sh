@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm ../cairo_programs/*.json
+rm -f ../cairo_programs/*.json
 
 test_files=($(ls -p ../cairo_programs | grep -v / | sed -E 's/\.cairo//'))
 
