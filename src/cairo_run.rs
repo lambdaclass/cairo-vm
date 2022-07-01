@@ -161,7 +161,7 @@ mod tests {
     fn cairo_run_with_no_data_program() {
         // a compiled program with no `data` key.
         // it should fail when the program is loaded.
-        let no_data_program_path = Path::new("tests/support/no_data_program.json");
+        let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
 
         assert!(cairo_run(no_data_program_path).is_err());
     }
@@ -170,7 +170,7 @@ mod tests {
     fn cairo_run_with_no_main_program() {
         // a compiled program with no main scope
         // it should fail when trying to run initialize_main_entrypoint.
-        let no_main_program_path = Path::new("tests/support/no_main_program.json");
+        let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
 
         assert!(cairo_run(no_main_program_path).is_err());
     }
@@ -179,16 +179,16 @@ mod tests {
     fn cairo_run_with_invalid_memory() {
         // the program invalid_memory.json has an invalid memory cell and errors when trying to
         // decode the instruction.
-        let invalid_memory = Path::new("tests/support/invalid_memory.json");
+        let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
 
         assert!(cairo_run(invalid_memory).is_err());
     }
 
     #[test]
     fn write_binary_trace_file() {
-        let program_path = Path::new("tests/support/struct.json");
-        let expected_trace_path = Path::new("tests/support/struct.trace");
-        let cleopatra_trace_path = Path::new("tests/support/struct_cleopatra.trace");
+        let program_path = Path::new("cairo_programs/struct.json");
+        let expected_trace_path = Path::new("cairo_programs/struct.trace");
+        let cleopatra_trace_path = Path::new("cairo_programs/struct_cleopatra.trace");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
@@ -206,9 +206,9 @@ mod tests {
 
     #[test]
     fn write_binary_memory_file() {
-        let program_path = Path::new("tests/support/struct.json");
-        let expected_memory_path = Path::new("tests/support/struct.memory");
-        let cleopatra_memory_path = Path::new("tests/support/struct_cleopatra.memory");
+        let program_path = Path::new("cairo_programs/struct.json");
+        let expected_memory_path = Path::new("cairo_programs/struct.memory");
+        let cleopatra_memory_path = Path::new("cairo_programs/struct_cleopatra.memory");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
