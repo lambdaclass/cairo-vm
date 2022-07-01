@@ -1,10 +1,11 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
 tests_path="../cairo_programs"
 
 rm -f $tests_path/*.trace
 rm -f $tests_path/*.json
 
-test_files=($(ls -p ../cairo_programs | grep -v / | grep -v .json | sed -E 's/\.cairo//'))
+test_files=($(ls -p $tests_path | grep -v / | grep -v .json | sed -E 's/\.cairo//'))
 
 cargo build --release
 

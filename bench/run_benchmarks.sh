@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 tests_path="../cairo_programs"
 
 set -e
