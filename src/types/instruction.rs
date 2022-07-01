@@ -1,6 +1,7 @@
 use num_bigint::BigInt;
+use serde::Deserialize;
 
-#[derive(Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub enum Register {
     AP,
     FP,

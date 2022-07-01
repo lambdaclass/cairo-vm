@@ -33,6 +33,7 @@ pub struct FlowTrackingData {
     #[serde(deserialize_with = "deserialize_map_to_string_and_bigint_hashmap")]
     pub reference_ids: HashMap<String, BigInt>,
 }
+
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct ApTracking {
     pub group: usize,
@@ -52,6 +53,8 @@ pub struct ReferenceManager {
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
     pub pc: Option<usize>,
+    #[serde(deserialize_with = "deserialize_value_address")]
+    #[serde(rename(deserialize = "value"))]
     pub value_address: ValueAddress,
 }
 
@@ -157,6 +160,26 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
     }
 }
 
+struct ValueAddressVisitor;
+
+impl<'de> de::Visitor<'de> for ValueAddressVisitor {
+    type Value = ValueAddress;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("Could not deserialize hexadecimal string")
+    }
+
+    fn visit_str<E>(self, _value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ValueAddress {
+            register: Register::FP,
+            offset: -1,
+        })
+    }
+}
+
 // struct ReferenceVisitor;
 
 // impl<'de> de::Visitor<'de> for ReferenceVisitor {
@@ -170,20 +193,70 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
 //     where
 //         A: MapAccess<'de>,
 //     {
-//         while let Some(entry) = map.next_entry()? {
-//             match entry.0 {
+//         let mut ap_tracking: ApTracking;
+//         let mut pc: usize;
+//         let mut value: String;
 
-//                 data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
-//             } else {
-//                 data.insert(
-//                     key,
-//                     BigInt::from_bytes_le(Sign::Minus, &abs(value).to_le_bytes()),
-//                 );
+//         while let Some((k, v)) = map.next_entry>()? {
+//             match k {
+//                 ReferenceKey::ApTracking => {
+//                     ap_tracking = v;
+//                 }
+//                 ReferenceKey::Pc => {
+//                     pc = v;
+//                 }
+//                 ReferenceKey::Value => {
+//                     value = v;
+//                 }
+//                 _ => {
+//                     ap_tracking = ApTracking { group: 0, offset: 0};
+//                     pc = 0;
+//                     value = String::from("hola");
+//                     return Err("Reference deserialize error").map_err(de::Error::custom)
+//                 }
 //             }
 //         }
 
-//         Ok(data)
+//         Ok(Reference{ap_tracking_data: ap_tracking, pc: Some(pc), value: value })
+//     }
 
+// }
+
+// #[derive(Deserialize, Debug)]
+// enum ReferenceKey {
+//     ApTracking,
+//     Pc,
+//     Value,
+// }
+
+// #[derive(Deserialize, Debug)]
+// enum ReferenceValue {
+//     ApTracking(ApTracking),
+//     Pc(usize),
+//     Value(String),
+
+// }
+
+// struct ReferenceKeyVisitor;
+
+// impl <'de> de::Visitor<'de> for ReferenceKeyVisitor {
+//     type Value = ReferenceKey;
+
+//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         formatter.write_str("a map with string keys and integer values")
+//     }
+
+//     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+//         where E: de::Error,
+//     {
+//         match value {
+//             "ap_tracking_data" => Ok(ReferenceKey::ApTracking),
+//             "pc" => Ok(ReferenceKey::Pc),
+//             "value" => Ok(ReferenceKey::Value),
+//             _ => Err("Hola").map_err(de::Error::custom),
+//         }
+
+//     }
 // }
 
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
@@ -200,6 +273,12 @@ pub fn deserialize_map_to_string_and_bigint_hashmap<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<HashMap<String, BigInt>, D::Error> {
     d.deserialize_map(ReferenceIdsVisitor)
+}
+
+pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<ValueAddress, D::Error> {
+    d.deserialize_str(ValueAddressVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -401,7 +480,11 @@ mod tests {
                         offset: 0,
                     },
                     pc: Some(0),
-                    value: String::from("[cast(fp + (-4), felt*)]"),
+                    value_address: ValueAddress {
+                        register: Register::FP,
+                        offset: -1,
+                    },
+                    // value: String::from("[cast(fp + (-4), felt*)]"),
                 },
                 Reference {
                     ap_tracking_data: ApTracking {
@@ -409,7 +492,11 @@ mod tests {
                         offset: 0,
                     },
                     pc: Some(0),
-                    value: String::from("[cast(fp + (-3), felt*)]"),
+                    // value: String::from("[cast(fp + (-3), felt*)]"),
+                    value_address: ValueAddress {
+                        register: Register::FP,
+                        offset: -1,
+                    },
                 },
             ],
         };
