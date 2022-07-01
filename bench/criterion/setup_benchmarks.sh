@@ -1,9 +1,11 @@
 #!/bin/bash
 
-rm ../../cairo_programs/*.json
+rm *.json
 
-test_files=("bin-search")
+test_files=("integration" "fibonacci_1000" "linear-search")
 
 for file in ${test_files[@]}; do
-    cairo-compile "../../cairo_programs/$file.cairo" --output "../../cairo_programs/$file.json"
+    cairo-compile "../../cairo_programs/$file.cairo" --output "$file.json"
 done
+
+rm *.json
