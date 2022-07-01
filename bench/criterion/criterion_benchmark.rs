@@ -3,7 +3,7 @@ use std::path::Path;
 use cleopatra_cairo::cairo_run;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-const BENCH_NAMES: &'static [&'static str] = &["bin-search"];
+const BENCH_NAMES: &'static [&'static str] = &["linear-search"];
 const BENCH_PATH: &'static str = "cairo_programs/";
 
 pub fn criterion_benchmark_fibonacci(c: &mut Criterion) {
