@@ -216,6 +216,7 @@ impl CairoRunner {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
         self.vm.hints = self.get_hint_dictionary();
+        self.vm.references = self.program.reference_manager.references.clone();
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
@@ -364,6 +365,7 @@ mod tests {
     use num_bigint::Sign;
 
     use super::*;
+    use crate::types::program::ReferenceManager;
     use crate::vm::trace::trace_entry::TraceEntry;
     use crate::{bigint64, bigint_str, relocatable};
     use std::collections::HashMap;
@@ -378,6 +380,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let _cairo_runner = CairoRunner::new(&program);
     }
@@ -391,6 +396,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         //We only check that the creation doesnt panic
         let _cairo_runner = CairoRunner::new(&program);
@@ -405,6 +413,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let program_base = Some(Relocatable {
@@ -445,6 +456,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -480,6 +494,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(1, 0));
@@ -507,6 +524,9 @@ mod tests {
             ],
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -551,6 +571,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..3 {
@@ -596,6 +619,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -625,6 +651,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -650,6 +679,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -694,6 +726,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..2 {
@@ -747,6 +782,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         let stack = vec![MaybeRelocatable::from(bigint!(7))];
@@ -766,6 +804,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_main_entrypoint().unwrap();
@@ -780,6 +821,9 @@ mod tests {
             data: Vec::new(),
             main: Some(1),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -797,6 +841,9 @@ mod tests {
             data: Vec::new(),
             main: Some(1),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.program_base = Some(relocatable!(0, 0));
@@ -831,6 +878,9 @@ mod tests {
             data: Vec::new(),
             main: Some(1),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -885,6 +935,9 @@ mod tests {
             data: Vec::new(),
             main: Some(1),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -950,6 +1003,9 @@ mod tests {
             ],
             main: Some(3),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1112,6 +1168,9 @@ mod tests {
             ],
             main: Some(4),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1312,6 +1371,9 @@ mod tests {
             ],
             main: Some(8),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1544,6 +1606,9 @@ mod tests {
             ],
             main: Some(3),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1663,6 +1728,9 @@ mod tests {
             ],
             main: Some(8),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -1863,6 +1931,9 @@ mod tests {
             ],
             main: Some(4),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2102,6 +2173,9 @@ mod tests {
             ],
             main: Some(13),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2363,6 +2437,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         for _ in 0..4 {
@@ -2516,6 +2593,9 @@ mod tests {
             ],
             main: Some(4),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2649,6 +2729,9 @@ mod tests {
             ],
             main: Some(4),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2772,6 +2855,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2843,6 +2929,9 @@ mod tests {
             ],
             main: Some(4),
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2868,6 +2957,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let mut cairo_runner = CairoRunner::new(&program);
         cairo_runner.initialize_segments(None);
@@ -2911,6 +3003,9 @@ mod tests {
             data: Vec::new(),
             main: None,
             hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
         };
         let cairo_runner = CairoRunner::new(&program);
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));

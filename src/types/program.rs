@@ -1,8 +1,15 @@
 use crate::serde::deserialize_program::{deserialize_program, HintParams};
 use crate::types::errors::program_errors::ProgramError;
 use crate::types::relocatable::MaybeRelocatable;
+use crate::vm::hints::execute_hint::Reference;
 use num_bigint::BigInt;
 use std::{collections::HashMap, path::Path};
+
+//Remove once deserialize
+#[derive(Debug, PartialEq, Clone)]
+pub struct ReferenceManager {
+    pub references: Vec<Reference>,
+}
 
 #[derive(Clone)]
 pub struct Program {
@@ -11,6 +18,7 @@ pub struct Program {
     pub data: Vec<MaybeRelocatable>,
     pub main: Option<usize>,
     pub hints: HashMap<usize, Vec<HintParams>>,
+    pub reference_manager: ReferenceManager,
 }
 
 impl Program {

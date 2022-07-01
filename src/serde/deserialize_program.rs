@@ -1,5 +1,7 @@
 use crate::types::{
-    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
+    errors::program_errors::ProgramError,
+    program::{Program, ReferenceManager},
+    relocatable::MaybeRelocatable,
 };
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::SeqAccess, Deserialize, Deserializer};
@@ -141,6 +143,9 @@ pub fn deserialize_program(path: &Path) -> Result<Program, ProgramError> {
         data: program_json.data,
         main: program_json.identifiers["__main__.main"].pc,
         hints: program_json.hints,
+        reference_manager: ReferenceManager {
+            references: Vec::new(),
+        },
     })
 }
 

@@ -1,6 +1,6 @@
 use num_bigint::BigInt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Register {
     AP,
     FP,

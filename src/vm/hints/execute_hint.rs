@@ -8,13 +8,13 @@ use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn};
 use crate::vm::vm_core::VirtualMachine;
 
 //This strucuts belong to serde, replace with import path
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Reference {
     pub pc: Option<usize>,
     pub value_address: ValueAddress,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ValueAddress {
     pub register: Register,
     pub offset: i32,
