@@ -65,13 +65,13 @@ cleo_search_time=$( (time ../target/release/cleopatra-run linear-search.json) 2>
 echo -e "\nRust Cleopatra VM linear search time:" >> results
 echo "$cleo_search_time" >> results
 
-cairo_search_time=$( (time cairo-run --program lineal-search.json) 2>&1 &)
+cairo_search_time=$( (time cairo-run --program linear-search.json) 2>&1 &)
 echo -e "\nPython Original Cairo VM time:" >> results
 echo "$cairo_search_time" >> results
 
 pyenv global pypy3.7-7.3.9
 
-cairo_pypy_search_time=$( (time cairo-run --program lineal-search.json) 2>&1 &)
+cairo_pypy_search_time=$( (time cairo-run --program linear-search.json) 2>&1 &)
 echo -e "\nPyPy Original Cairo VM lineal search time:" >> results
 echo "$cairo_pypy_search_time" >> results
 
