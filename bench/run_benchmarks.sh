@@ -2,9 +2,7 @@
 set -e
 echo "Cleaning old results"
 rm -f results
-rm -f fibonacci.json
-rm -f integration_builtins.json
-rm -f compare_arrays.json
+rm -f *.json
 
 pyenv global 3.7.12
 
@@ -25,6 +23,21 @@ echo "$cleo_fibonacci_time" >> results
 cairo_fibonacci_time=$( (time cairo-run --program fibonacci.json) 2>&1 &)
 echo -e "\nOriginal Cairo VM fibonacci.cairo:" >> results
 echo "$cairo_fibonacci_time" >> results
+
+# Factorial Benchmarks
+
+echo -e "\n*** factorial.cairo times ***" >> results
+
+echo "Compiling factorial cairo program"
+cairo-compile factorial.cairo --output factorial.json
+
+cleo_factorial_time=$( (time ../target/release/cleopatra-run factorial.json) 2>&1 &)
+echo -e "\nRust Cleopatra VM  factorial.cairo time:" >> results
+echo "$cleo_factorial_time" >> results
+
+cairo_factorial_time=$( (time cairo-run --program factorial.json) 2>&1 &)
+echo -e "\nOriginal Cairo VM  factorial.cairo time:" >> results
+echo "$cairo_factorial_time" >> results
 
 # Integration Benchamarks
 
@@ -66,6 +79,5 @@ cat results
 
 echo "Cleaning results"
 rm results
-rm -f fibonacci.json
-rm -f compare_arrays.json
-rm -f integration_builtins.json
+rm -f *.json
+
