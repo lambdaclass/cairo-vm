@@ -215,6 +215,37 @@ mod tests {
     }
 
     #[test]
+    fn run_assert_not_zero_true() {
+        let hint_code =
+    "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        vm.segments.add(&mut vm.memory, None);
+        // }
+        // //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+
+        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+    }
+
+    #[test]
     fn run_invalid_encoding_hint() {
         let hint_code = [0x80];
         let mut vm = VirtualMachine::new(
