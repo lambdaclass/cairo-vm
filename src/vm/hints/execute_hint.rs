@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn};
+use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, assert_not_equal, is_nn};
 use crate::vm::vm_core::VirtualMachine;
 
 //These structs belong to serde, replace with import path
@@ -36,6 +36,14 @@ pub fn execute_hint(
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\n            assert_integer(ids.a)\n            assert_integer(ids.b)\n            a = ids.a % PRIME\n            b = ids.b % PRIME\n            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\n            ids.small_inputs = int(\n                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
         ) => assert_le_felt(vm, ids),
+        Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue\n
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\n
+            both_relocatable = (\n
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n
+                ids.a.segment_index == ids.b.segment_index)\n
+            assert both_ints or both_relocatable, \\n
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\n
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.") => assert_not_equal(vm, ids), 
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

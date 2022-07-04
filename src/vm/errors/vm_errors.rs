@@ -2,7 +2,7 @@ use crate::vm::errors::memory_errors::MemoryError;
 use num_bigint::BigInt;
 use std::fmt;
 
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 
 #[derive(Debug, PartialEq)]
@@ -40,6 +40,9 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     FailedToGetReference(BigInt),
     UnknownHint(String),
+    DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
+    AssertNonEqualFail(MaybeRelocatable, MaybeRelocatable),
+    DiffIndexComp(Relocatable, Relocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -113,6 +116,15 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::DiffTypeComparison(a, b) => {
+                write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to a integer value", a, b)
+            },
+            VirtualMachineError::AssertNonEqualFail(a, b) => {
+                write!(f, "assert_non_equal failed: {:?} =  {:?}", a, b)
+            },
+            VirtualMachineError::DiffIndexComp(a, b) => {
+                write!(f, "Failed to compare {:?} and  {:?}, cant compare two relocatable values of different segment indexes", a, b)
+            },
         }
     }
 }
