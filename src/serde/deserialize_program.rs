@@ -63,8 +63,8 @@ pub struct Reference {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ValueAddress {
-    pub register: Option<Register>,
-    pub offset: Option<i32>,
+    pub register: Register,
+    pub offset: i32,
 }
 
 struct BigIntVisitor;
@@ -176,36 +176,28 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        // regex for capturing the register the address is referenced to
-        let register_re = match Regex::new(r"[af]p") {
-            Ok(register_re) => register_re,
-            Err(e) => return Err(e).map_err(de::Error::custom),
-        };
-        // regex for capturing the offset of the reference
-        let offset_re = match Regex::new(r"(-?\d+)") {
-            Ok(offset_re) => offset_re,
-            Err(e) => return Err(e).map_err(de::Error::custom),
+        let value_re = Regex::new(r"^\[cast\(([af]p)(?: \+ \((-?\d+)\))?, [^\)]+\)\]$").unwrap();
+        let captures = if let Some(captures) = value_re.captures(value) {
+            captures
+        } else {
+            return Err("invalid value").map_err(de::Error::custom);
         };
 
-        let register_capture = register_re.captures(value);
-        let offset_capture = offset_re.captures(value);
-
-        // if `fp` or `ap` are not captured, assign None to register
-        let register = match register_capture {
-            Some(register_str) => match &register_str[0] {
-                "fp" => Some(Register::FP),
-                "ap" => Some(Register::AP),
-                _ => None,
+        let register = match captures.get(1) {
+            Some(register_str) => match register_str.as_str() {
+                "fp" => Register::FP,
+                "ap" => Register::AP,
+                _ => return Err("invalid register").map_err(de::Error::custom),
             },
-            _ => None,
+            None => return Err("missing register").map_err(de::Error::custom),
         };
 
-        let offset = match offset_capture {
-            Some(offset_str) => match i32::from_str(&offset_str[0]) {
-                Ok(offset) => Some(offset),
+        let offset = match captures.get(2) {
+            Some(offset_str) => match i32::from_str(offset_str.as_str()) {
+                Ok(offset) => offset,
                 Err(e) => return Err(e).map_err(de::Error::custom),
             },
-            _ => None,
+            None => 0,
         };
 
         Ok(ValueAddress { offset, register })
@@ -434,8 +426,8 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset: Some(-4),
+                        register: Register::FP,
+                        offset: -4,
                     },
                 },
                 Reference {
@@ -445,8 +437,8 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Some(Register::FP),
-                        offset: Some(-3),
+                        register: Register::FP,
+                        offset: -3,
                     },
                 },
             ],
