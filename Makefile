@@ -32,6 +32,12 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
+	pyenv install pypy3.7-7.3.9
+	pyenv global pypy3.7-7.3.9
+	pip install cairo_lang
+	pyenv install 3.7.12
+	pyenv global 3.7.12
+	pip install cairo_lang
 
 build:
 	cargo build --release
@@ -58,15 +64,7 @@ benchmark: $(COMPILED_BENCHES)
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
-compare_benchmarks_deps:
-	pyenv install pypy3.7-7.3.9
-	pyenv global pypy3.7-7.3.9
-	pip install cairo_lang
-	pyenv install 3.7.12
-	pyenv global 3.7.12
-	pip install cairo_lang
-
-compare_benchmarks:
+compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
 
 compare_vm_output: $(CLEO_TRACE) $(CAIRO_TRACE) $(CLEO_MEM) $(CAIRO_MEM)
