@@ -13,7 +13,7 @@ cargo build --release
 
 echo -e "\n*** fibonacci.cairo times ***" >> results
 
-echo "Compiling Fibonacci cairo program"
+echo "Compiling fibonacci cairo program"
 cairo-compile fibonacci.cairo --output fibonacci.json
 
 cleo_fibonacci_time=$( (time ../target/release/cleopatra-run fibonacci.json) 2>&1 &)
@@ -77,12 +77,16 @@ echo "$cairo_pypy_compare_arrays_time" >> results
 
 # Search Benchamarks
 
+echo -e "\n*** linear-search.cairo times ***" >> results
+
 echo "Compiling linear search cairo program"
 cairo-compile ../cairo_programs/linear-search.cairo --output linear-search.json
 
 cleo_search_time=$( (time ../target/release/cleopatra-run linear-search.json) 2>&1 &)
 echo -e "\nRust Cleopatra VM linear search time:" >> results
 echo "$cleo_search_time" >> results
+
+pyenv global 3.7.12
 
 cairo_search_time=$( (time cairo-run --program linear-search.json) 2>&1 &)
 echo -e "\nPython Original Cairo VM time:" >> results
@@ -97,5 +101,7 @@ echo "$cairo_pypy_search_time" >> results
 cat results
 
 echo "Cleaning results"
+
+pyenv global 3.7.12
 rm results
 rm -f *.json
