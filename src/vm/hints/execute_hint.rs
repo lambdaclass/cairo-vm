@@ -34,7 +34,15 @@ pub fn execute_hint(
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => {
             is_nn(vm, ids)
         }
-        Ok("from starkware.cairo.common.math_utils import assert_integer\n            assert_integer(ids.a)\n            assert_integer(ids.b)\n            a = ids.a % PRIME\n            b = ids.b % PRIME\n            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\n            ids.small_inputs = int(\n                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        Ok(
+            "from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
