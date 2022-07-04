@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656900077147,
+  "lastUpdate": 1656900164447,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6017,6 +6017,46 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/linear-search.json",
             "value": 1478,
             "range": "± 71",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "federico.carrone@gmail.com",
+            "name": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "federico.carrone@gmail.com",
+            "name": "unbalancedparentheses"
+          },
+          "distinct": true,
+          "id": "0d88af23aa24dc593b0dfa6b424e5de52d0d5b23",
+          "message": "move deps install",
+          "timestamp": "2022-07-03T22:58:02-03:00",
+          "tree_id": "012a164785ed678ba0a18864e59b1b76f62742ea",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/0d88af23aa24dc593b0dfa6b424e5de52d0d5b23"
+        },
+        "date": 1656900163532,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8575278,
+            "range": "± 67777",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 3438261,
+            "range": "± 3421",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1353,
+            "range": "± 67",
             "unit": "ns/iter"
           }
         ]
