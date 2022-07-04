@@ -520,4 +520,227 @@ mod tests {
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
+
+    #[test]
+    fn run_is_assert_le_felt_small_inputs_not_local() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //ids.b
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //ids.small_inputs (insert into memory, instead of leaving a gap for it (local var))
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -4,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -3,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn run_is_assert_le_felt_a_is_not_integer() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+        //ids.b
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //create memory gap, so ids.small_inputs contains None
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -4,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -3,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_is_assert_le_felt_b_is_not_integer() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'
+
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //ids.b
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+        //create memory gap, so ids.small_inputs contains None
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -4,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -3,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 1))
+            ))
+        );
+    }
 }
