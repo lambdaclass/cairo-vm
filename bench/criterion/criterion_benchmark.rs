@@ -4,7 +4,7 @@ use cleopatra_cairo::cairo_run;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const BENCH_NAMES: &'static [&'static str] = &["fibonacci_1000", "integration", "linear-search"];
-const BENCH_PATH: &'static str = "bench/criterion/";
+const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
 
 pub fn criterion_benchmark_integration(c: &mut Criterion) {
     c.bench_function("cairo_run(bench/criterion/integration.json", |b| {
