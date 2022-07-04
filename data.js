@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656960490792,
+  "lastUpdate": 1656960918445,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6671,6 +6671,48 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1574,
             "range": "± 87",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8e6cf7603ad664b944277964b1a99c4b62bf8332",
+          "message": "Merge pull request #200 from PartyLich/ci/add-gh-pages-docs-workflow\n\nci: add gh-pages docs workflow",
+          "timestamp": "2022-07-04T15:49:15-03:00",
+          "tree_id": "d5d4790bedaf08522d114b437e97688a954b0413",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/8e6cf7603ad664b944277964b1a99c4b62bf8332"
+        },
+        "date": 1656960914911,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 11493932,
+            "range": "± 558225",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4945573,
+            "range": "± 157988",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1938,
+            "range": "± 129",
             "unit": "ns/iter"
           }
         ]
