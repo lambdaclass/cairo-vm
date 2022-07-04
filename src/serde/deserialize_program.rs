@@ -176,25 +176,28 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let num_re = Regex::new(r"(-?\d+)").unwrap();
-        let reg_re = Regex::new(r".p").unwrap();
+        // regex for capturing the register the address is referenced to
+        let register_re = Regex::new(r".p").unwrap();
+        // regex for capturing the offset of the reference
+        let offset_re = Regex::new(r"(-?\d+)").unwrap();
 
-        let offset_capture = num_re.captures(value);
-        let register_capture = reg_re.captures(value);
+        let register_capture = register_re.captures(value);
+        let offset_capture = offset_re.captures(value);
 
-        let offset = match offset_capture {
-            Some(offset_str) => match i32::from_str(&offset_str[0]) {
-                Ok(offset) => Some(offset),
-                Err(e) => return Err(e).map_err(de::Error::custom),
-            },
-            _ => None,
-        };
-
+        // if `fp` or `ap` are not captured, assign None to register
         let register = match register_capture {
             Some(register_str) => match &register_str[0] {
                 "fp" => Some(Register::FP),
                 "ap" => Some(Register::AP),
                 _ => None,
+            },
+            _ => None,
+        };
+
+        let offset = match offset_capture {
+            Some(offset_str) => match i32::from_str(&offset_str[0]) {
+                Ok(offset) => Some(offset),
+                Err(e) => return Err(e).map_err(de::Error::custom),
             },
             _ => None,
         };
