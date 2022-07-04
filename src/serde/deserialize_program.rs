@@ -41,6 +41,7 @@ pub struct ApTracking {
     pub group: usize,
     pub offset: usize,
 }
+
 #[derive(Deserialize, Debug)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -196,85 +197,6 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         })
     }
 }
-
-// struct ReferenceVisitor;
-
-// impl<'de> de::Visitor<'de> for ReferenceVisitor {
-//     type Value = Reference;
-
-//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-//         formatter.write_str("a list with references")
-//     }
-
-//     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-//     where
-//         A: MapAccess<'de>,
-//     {
-//         let mut ap_tracking: ApTracking;
-//         let mut pc: usize;
-//         let mut value: String;
-
-//         while let Some((k, v)) = map.next_entry>()? {
-//             match k {
-//                 ReferenceKey::ApTracking => {
-//                     ap_tracking = v;
-//                 }
-//                 ReferenceKey::Pc => {
-//                     pc = v;
-//                 }
-//                 ReferenceKey::Value => {
-//                     value = v;
-//                 }
-//                 _ => {
-//                     ap_tracking = ApTracking { group: 0, offset: 0};
-//                     pc = 0;
-//                     value = String::from("hola");
-//                     return Err("Reference deserialize error").map_err(de::Error::custom)
-//                 }
-//             }
-//         }
-
-//         Ok(Reference{ap_tracking_data: ap_tracking, pc: Some(pc), value: value })
-//     }
-
-// }
-
-// #[derive(Deserialize, Debug)]
-// enum ReferenceKey {
-//     ApTracking,
-//     Pc,
-//     Value,
-// }
-
-// #[derive(Deserialize, Debug)]
-// enum ReferenceValue {
-//     ApTracking(ApTracking),
-//     Pc(usize),
-//     Value(String),
-
-// }
-
-// struct ReferenceKeyVisitor;
-
-// impl <'de> de::Visitor<'de> for ReferenceKeyVisitor {
-//     type Value = ReferenceKey;
-
-//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-//         formatter.write_str("a map with string keys and integer values")
-//     }
-
-//     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-//         where E: de::Error,
-//     {
-//         match value {
-//             "ap_tracking_data" => Ok(ReferenceKey::ApTracking),
-//             "pc" => Ok(ReferenceKey::Pc),
-//             "value" => Ok(ReferenceKey::Value),
-//             _ => Err("Hola").map_err(de::Error::custom),
-//         }
-
-//     }
-// }
 
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
