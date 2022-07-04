@@ -63,8 +63,8 @@ pub struct Reference {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ValueAddress {
-    pub register: Register,
-    pub offset: i32,
+    pub register: Option<Register>,
+    pub offset: Option<i32>,
 }
 
 struct BigIntVisitor;
@@ -177,24 +177,29 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         E: de::Error,
     {
         let num_re = Regex::new(r"(-?\d+)").unwrap();
-        let reg_re = Regex::new(r"\w[.p]").unwrap();
+        let reg_re = Regex::new(r".p").unwrap();
 
-        let offset = num_re.captures(&value).unwrap();
-        let register_str = reg_re.captures(&value).unwrap();
+        let offset_capture = num_re.captures(value);
+        let register_capture = reg_re.captures(value);
 
-        println!("REGISTER: {}", &register_str[0]);
-        println!("OFFSET: {}", &offset[0]);
-
-        let reg = match &register_str[0] {
-            "fp" => Register::FP,
-            "ap" => Register::AP,
-            _ => return Err("hola").map_err(de::Error::custom),
+        let offset = match offset_capture {
+            Some(offset_str) => match i32::from_str(&offset_str[0]) {
+                Ok(offset) => Some(offset),
+                Err(e) => return Err(e).map_err(de::Error::custom),
+            },
+            _ => None,
         };
 
-        Ok(ValueAddress {
-            register: reg,
-            offset: i32::from_str(&offset[0]).unwrap(),
-        })
+        let register = match register_capture {
+            Some(register_str) => match &register_str[0] {
+                "fp" => Some(Register::FP),
+                "ap" => Some(Register::AP),
+                _ => None,
+            },
+            _ => None,
+        };
+
+        Ok(ValueAddress { offset, register })
     }
 }
 
@@ -420,10 +425,9 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Register::FP,
-                        offset: -4,
+                        register: Some(Register::FP),
+                        offset: Some(-4),
                     },
-                    // value: String::from("[cast(fp + (-4), felt*)]"),
                 },
                 Reference {
                     ap_tracking_data: ApTracking {
@@ -431,10 +435,9 @@ mod tests {
                         offset: 0,
                     },
                     pc: Some(0),
-                    // value: String::from("[cast(fp + (-3), felt*)]"),
                     value_address: ValueAddress {
-                        register: Register::FP,
-                        offset: -3,
+                        register: Some(Register::FP),
+                        offset: Some(-3),
                     },
                 },
             ],
