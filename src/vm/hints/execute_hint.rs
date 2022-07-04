@@ -222,6 +222,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
         );
+        //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
             offset: -1,
@@ -253,6 +254,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
         );
+        //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
             offset: -1,
@@ -280,13 +282,14 @@ mod tests {
     }
 
     #[test]
-    fn run_assert_not_zero_failed_to_get_reference() {
+    fn run_assert_not_zero_false_with_prime() {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'".as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
         );
+        //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
             offset: -1,
@@ -300,10 +303,48 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(0)),
+                &MaybeRelocatable::from(vm.prime.clone()),
             )
             .unwrap();
         //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::AssertNotZero(
+                vm.prime.clone(),
+                vm.prime
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_not_zero_failed_to_get_reference() {
+        let hint_code =
+    "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        vm.segments.add(&mut vm.memory, None);
+        // }
+        // //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+        //Create invalid id value
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(10));
 
@@ -321,6 +362,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
         );
+        //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
             offset: -1,
@@ -337,7 +379,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
-        //Create ids
+        //Create invalid id key
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("incorrect_id"), bigint!(0));
 
