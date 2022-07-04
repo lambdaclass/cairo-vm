@@ -3,7 +3,13 @@ use std::path::Path;
 use cleopatra_cairo::cairo_run;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-const BENCH_NAMES: &'static [&'static str] = &["fibonacci_1000", "integration", "linear-search"];
+const BENCH_NAMES: &'static [&'static str] = &[
+    "factorial_multirun",
+    "fibonacci_1000",
+    "fibonacci_1000_multirun",
+    "integration_builtins",
+    "linear_search",
+];
 const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
 
 pub fn criterion_benchmark_integration(c: &mut Criterion) {
