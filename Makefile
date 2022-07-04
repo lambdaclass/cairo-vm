@@ -69,7 +69,7 @@ compare_benchmarks_deps:
 compare_benchmarks:
 	cd bench && ./run_benchmarks.sh
 
-compare_traces:
+compare_traces: $(CLEO_TRACE) $(CAIRO_TRACE)
 	cd tests; ./compare_traces.sh
 
 clean:
