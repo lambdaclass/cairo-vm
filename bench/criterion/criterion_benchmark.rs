@@ -13,12 +13,6 @@ const BENCH_NAMES: &'static [&'static str] = &[
 ];
 const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
 
-pub fn criterion_benchmark_integration(c: &mut Criterion) {
-    c.bench_function("cairo_run(bench/criterion/integration.json", |b| {
-        b.iter(|| cairo_run::cairo_run(black_box(Path::new("bench/criterion/integration.json"))))
-    });
-}
-
 pub fn criterion_benchmarks(c: &mut Criterion) {
     for benchmark_name in build_bench_strings() {
         c.bench_function(&benchmark_name.0, |b| {
@@ -44,7 +38,6 @@ fn build_bench_strings() -> Vec<(String, String)> {
 
 criterion_group!(
     benches,
-    criterion_benchmark_integration,
     criterion_benchmarks
 );
 criterion_main!(benches);
