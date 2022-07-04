@@ -52,7 +52,6 @@ coverage:
 	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
 
 benchmark: $(COMPILED_BENCHES)
-	#cd bench/criterion; ./setup_benchmarks.sh
 	cargo criterion --bench criterion_benchmark
 	@echo 'Report: target/criterion/reports/index.html'
 
