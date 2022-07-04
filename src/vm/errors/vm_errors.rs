@@ -40,6 +40,7 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     FailedToGetReference(BigInt),
     UnknownHint(String),
+    AssertNotZero(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -113,6 +114,10 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::AssertNotZero(value, prime) => {
+                write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            },
+
         }
     }
 }

@@ -299,14 +299,17 @@ pub fn assert_not_zero(
     match vm.memory.get(&value_addr) {
         Ok(Some(maybe_rel_value)) => {
             //Check that the value at the ids address is an Int
-            if let &MaybeRelocatable::Int(ref a) = maybe_rel_value {
-                if a % &vm.prime == bigint!(0) {
-                    return Err(VirtualMachineError::FailedToGetIds);
+            if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                if value % &vm.prime == bigint!(0) {
+                    return Err(VirtualMachineError::AssertNotZero(
+                        value.clone(),
+                        vm.prime.clone(),
+                    ));
                 } else {
                     return Ok(());
                 }
             } else {
-                return Err(VirtualMachineError::FailedToGetIds);
+                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
             }
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
