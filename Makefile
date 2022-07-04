@@ -1,4 +1,5 @@
 .PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks clean
+
 TEST_DIR=cairo_programs
 TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
 COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
@@ -6,6 +7,10 @@ CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS
 CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
 CLEO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cleopatra.memory, $(COMPILED_TESTS))
 CLEO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cleopatra.trace, $(COMPILED_TESTS))
+
+BENCH_DIR=cairo_programs/benchmarks
+BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
+COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
 
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
@@ -21,6 +26,9 @@ $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 
 $(TEST_DIR)/%.trace: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --trace_file $@
+
+$(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
+	cairo-compile $< --output $@
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
@@ -43,8 +51,8 @@ clippy:
 coverage:
 	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
 
-benchmark:
-	cd bench/criterion; ./setup_benchmarks.sh
+benchmark: $(COMPILED_BENCHES)
+	#cd bench/criterion; ./setup_benchmarks.sh
 	cargo criterion --bench criterion_benchmark
 	@echo 'Report: target/criterion/reports/index.html'
 
@@ -69,3 +77,4 @@ clean:
 	rm -f $(TEST_DIR)/*.json
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
+	rm -f $(BENCH_DIR)/*.json
