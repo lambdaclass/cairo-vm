@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn};
+use crate::vm::hints::hint_utils::{add_segment, assert_250_bit, assert_le_felt, is_nn};
 use crate::vm::vm_core::VirtualMachine;
 
 //These structs belong to serde, replace with import path
@@ -44,6 +44,14 @@ pub fn execute_hint(
             ids.small_inputs = int(
                 a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
+        Ok(
+            "from starkware.cairo.common.math_utils import as_int\n
+        # Correctness check.
+        value = as_int(ids.value, PRIME) % PRIME
+        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
+        # Calculation for the assertion.
+        ids.high, ids.low = divmod(ids.value, ids.SHIFT)",
+        ) => assert_250_bit(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

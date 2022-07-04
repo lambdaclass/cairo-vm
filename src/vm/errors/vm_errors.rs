@@ -40,6 +40,7 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     FailedToGetReference(BigInt),
     UnknownHint(String),
+    ValueOutside250BitRange(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -113,6 +114,7 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
         }
     }
 }
