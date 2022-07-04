@@ -1,4 +1,4 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks clean
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output
 
 TEST_DIR=cairo_programs
 TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
@@ -42,7 +42,7 @@ deps:
 build:
 	cargo build --release
 
-run: 
+run:
 	cargo run
 
 check:
@@ -66,9 +66,12 @@ flamegraph:
 
 compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
-
+ 
 compare_vm_output: $(CLEO_TRACE) $(CAIRO_TRACE) $(CLEO_MEM) $(CAIRO_MEM)
 	cd tests; ./compare_vm_output.sh
+
+docs:
+	cargo doc --verbose --release --locked --no-deps
 
 clean:
 	rm -f $(TEST_DIR)/*.json
