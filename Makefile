@@ -69,8 +69,8 @@ compare_benchmarks_deps:
 compare_benchmarks:
 	cd bench && ./run_benchmarks.sh
 
-compare_traces: $(CLEO_TRACE) $(CAIRO_TRACE)
-	cd tests; ./compare_traces.sh
+compare_vm_output: $(CLEO_TRACE) $(CAIRO_TRACE) $(CLEO_MEM) $(CAIRO_MEM)
+	cd tests; ./compare_vm_output.sh
 
 clean:
 	rm -f $(TEST_DIR)/*.json

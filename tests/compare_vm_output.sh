@@ -10,3 +10,12 @@ for file in $(ls $tests_path | grep .trace | sed -E 's/(\.cleopatra)?\.trace//')
         echo "Traces for $file match"
     fi
 done
+
+for file in $(ls $tests_path | grep .memory | sed -E 's/(\.cleopatra)?\.memory//'); do
+    if ! diff -q $tests_path/$file{,.cleopatra}.memory; then
+        echo "Memory differs for $file"
+        exit 1
+    else
+        echo "Memory mateches for $file"
+    fi
+done
