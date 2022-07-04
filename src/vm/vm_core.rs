@@ -150,10 +150,9 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => self
-                        .run_context
-                        .pc
-                        .add_int_mod(num_res, self.prime.clone())?,
+                    MaybeRelocatable::Int(num_res) => {
+                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
+                    }
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
