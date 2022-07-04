@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656900164447,
+  "lastUpdate": 1656900345067,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6057,6 +6057,48 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/linear-search.json",
             "value": 1353,
             "range": "± 67",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d63e5aac10d1f844d4d3163f4cac6b233acb01a0",
+          "message": "Update README.md",
+          "timestamp": "2022-07-03T23:00:22-03:00",
+          "tree_id": "367612fde1b6beb8060638c983639983ef3907ee",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/d63e5aac10d1f844d4d3163f4cac6b233acb01a0"
+        },
+        "date": 1656900342538,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 9988194,
+            "range": "± 108696",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4555437,
+            "range": "± 53098",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1705,
+            "range": "± 165",
             "unit": "ns/iter"
           }
         ]
