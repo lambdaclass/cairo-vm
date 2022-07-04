@@ -4,7 +4,7 @@ use cleopatra_cairo::cairo_run;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const BENCH_NAMES: &'static [&'static str] = &[
-    "compare_arrays_200000"
+    "compare_arrays_200000",
     "factorial_multirun",
     "fibonacci_1000",
     "fibonacci_1000_multirun",
@@ -36,8 +36,5 @@ fn build_bench_strings() -> Vec<(String, String)> {
     full_string
 }
 
-criterion_group!(
-    benches,
-    criterion_benchmarks
-);
+criterion_group!(benches, criterion_benchmarks);
 criterion_main!(benches);
