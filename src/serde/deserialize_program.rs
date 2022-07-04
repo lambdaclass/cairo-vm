@@ -169,7 +169,7 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     type Value = ValueAddress;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("Could not deserialize hexadecimal string")
+        formatter.write_str("a string representing the address in memory of a variable")
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -177,9 +177,15 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         E: de::Error,
     {
         // regex for capturing the register the address is referenced to
-        let register_re = Regex::new(r".p").unwrap();
+        let register_re = match Regex::new(r"[af]p") {
+            Ok(register_re) => register_re,
+            Err(e) => return Err(e).map_err(de::Error::custom),
+        };
         // regex for capturing the offset of the reference
-        let offset_re = Regex::new(r"(-?\d+)").unwrap();
+        let offset_re = match Regex::new(r"(-?\d+)") {
+            Ok(offset_re) => offset_re,
+            Err(e) => return Err(e).map_err(de::Error::custom),
+        };
 
         let register_capture = register_re.captures(value);
         let offset_capture = offset_re.captures(value);
