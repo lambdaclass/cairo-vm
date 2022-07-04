@@ -100,7 +100,7 @@ echo "$cairo_compare_arrays_time" >> results
 pyenv global pypy3.7-7.3.9
 
 cairo_pypy_compare_arrays_time=$( (time cairo-run --program compare_arrays.json) 2>&1 &)
-echo -e "\nPyPy Original Cairo VM compare_arrays.cairo time:" >> results
+echo -e "\nPyPy Cairo VM compare_arrays.cairo time:" >> results
 echo "$cairo_pypy_compare_arrays_time" >> results
 
 pyenv global 3.7.12
