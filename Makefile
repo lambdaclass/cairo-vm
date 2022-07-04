@@ -1,4 +1,4 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs
 
 deps:
 	cargo install --version 1.1.0 cargo-criterion
@@ -13,7 +13,7 @@ deps:
 build:
 	cargo build --release
 
-run: 
+run:
 	cargo run
 
 check:
@@ -42,3 +42,6 @@ compare_benchmarks:
 
 compare_traces:
 	cd tests && ./compare_traces
+
+docs:
+	cargo doc --verbose --release --locked --no-deps
