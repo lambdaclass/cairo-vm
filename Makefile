@@ -1,5 +1,26 @@
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks
+.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks clean
+TEST_DIR=cairo_programs
+TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
+COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
+CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS))
+CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
+CLEO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cleopatra.memory, $(COMPILED_TESTS))
+CLEO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cleopatra.trace, $(COMPILED_TESTS))
 
+$(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
+	cairo-compile $< --output $@
+
+$(TEST_DIR)/%.cleopatra.memory: $(TEST_DIR)/%.json build
+	./target/release/cleopatra-run $< --memory_file $@
+
+$(TEST_DIR)/%.cleopatra.trace: $(TEST_DIR)/%.json build
+	./target/release/cleopatra-run $< --trace_file $@
+
+$(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
+	cairo-run --layout all --program $< --memory_file $@
+
+$(TEST_DIR)/%.trace: $(TEST_DIR)/%.json
+	cairo-run --layout all --program $< --trace_file $@
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
@@ -13,8 +34,7 @@ run:
 check:
 	cargo check
 
-test:
-	cd tests; ./run_tests.sh
+test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM)
 	cargo test
 
 clippy:
@@ -44,3 +64,8 @@ compare_benchmarks:
 
 compare_traces:
 	cd tests; ./compare_traces.sh
+
+clean:
+	rm -f $(TEST_DIR)/*.json
+	rm -f $(TEST_DIR)/*.memory
+	rm -f $(TEST_DIR)/*.trace
