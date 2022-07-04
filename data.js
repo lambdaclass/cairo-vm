@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656966144692,
+  "lastUpdate": 1656975899304,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6807,6 +6807,44 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/linear-search.json",
             "value": 1605,
             "range": "± 108",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "0568153a1abe0e1c354a3257dc90e05493572f01",
+          "message": "Add support to deserialize reference manager from json compiled programs",
+          "timestamp": "2022-07-04T14:31:28Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/230/commits/0568153a1abe0e1c354a3257dc90e05493572f01"
+        },
+        "date": 1656975898329,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8910709,
+            "range": "± 52541",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 9617204,
+            "range": "± 19163",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1448,
+            "range": "± 47",
             "unit": "ns/iter"
           }
         ]
