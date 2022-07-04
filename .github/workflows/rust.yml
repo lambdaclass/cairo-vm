@@ -32,6 +32,8 @@ jobs:
       run: make build
     - name: Run tests
       run: make test
+    - name: Compare memory and trace
+      run: make compare_vm_output
     - name: Run clippy
       run: make clippy
     - name: Coverage
