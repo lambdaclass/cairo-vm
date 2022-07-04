@@ -34,16 +34,20 @@ pub fn execute_hint(
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => {
             is_nn(vm, ids)
         }
-        Ok("from starkware.cairo.common.math_utils import assert_integer\n            assert_integer(ids.a)\n            assert_integer(ids.b)\n            a = ids.a % PRIME\n            b = ids.b % PRIME\n            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\n            ids.small_inputs = int(\n                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        Ok("from starkware.cairo.common.math_utils import assert_integer
+            assert_integer(ids.a)
+            assert_integer(ids.b)
+            a = ids.a % PRIME
+            b = ids.b % PRIME
+            assert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n
+            ids.small_inputs = int(
+                a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
         ) => assert_le_felt(vm, ids),
-        Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue\n
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\n
-            both_relocatable = (\n
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n
-                ids.a.segment_index == ids.b.segment_index)\n
-            assert both_ints or both_relocatable, \\n
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\n
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.") => assert_not_equal(vm, ids), 
+        Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)\n            assert both_ints or both_relocatable, f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\n            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'") => assert_not_equal(vm, ids), 
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
@@ -53,7 +57,9 @@ pub fn execute_hint(
 
 #[cfg(test)]
 mod tests {
+    use crate::relocatable;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
@@ -748,6 +754,348 @@ mod tests {
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_non_equal_int_false() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)
+            assert both_ints or both_relocatable, \
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::AssertNonEqualFail(
+                MaybeRelocatable::from(bigint!(1)),
+                MaybeRelocatable::from(bigint!(1))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_non_equal_int_true() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)
+            assert both_ints or both_relocatable, \
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+    }
+
+    #[test]
+    fn run_assert_non_equal_relocatable_false() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)
+            assert both_ints or both_relocatable, \
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::AssertNonEqualFail(
+                MaybeRelocatable::from((0, 0)),
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_non_equal_relocatable_true() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)
+            assert both_ints or both_relocatable, \
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 1)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+    }
+
+    #[test]
+    fn run_assert_non_equal_relocatable_diff_index() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)
+            assert both_ints or both_relocatable, \
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::DiffIndexComp(
+                relocatable!(1, 0),
+                relocatable!(0, 0)
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_non_equal_relocatable_and_integer() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
+            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+            both_relocatable = (
+                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+                ids.a.segment_index == ids.b.segment_index)
+            assert both_ints or both_relocatable, \
+                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::DiffTypeComparison(
+                MaybeRelocatable::from((1, 0)),
+                MaybeRelocatable::from(bigint!(1))
             ))
         );
     }
