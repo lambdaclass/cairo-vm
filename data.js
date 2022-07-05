@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657058919431,
+  "lastUpdate": 1657058999769,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -8243,6 +8243,44 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1650,
             "range": "± 130",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "104d5642acac608f3677591b0243fb467759da9f",
+          "message": "Add implementation for hint on assert_non_equal (math.cairo)",
+          "timestamp": "2022-07-05T14:17:07Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/229/commits/104d5642acac608f3677591b0243fb467759da9f"
+        },
+        "date": 1657058998774,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8615432,
+            "range": "± 100527",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 4251268,
+            "range": "± 2764",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1519,
+            "range": "± 84",
             "unit": "ns/iter"
           }
         ]
