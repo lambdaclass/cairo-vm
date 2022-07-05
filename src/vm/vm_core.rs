@@ -14,6 +14,8 @@ use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::{HashMap, HashSet};
 
+use super::hints::execute_hint::HintReference;
+
 #[derive(PartialEq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
@@ -22,6 +24,13 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
+#[derive(Clone, Debug)]
+
+pub struct HintData {
+    pub hint_code: Vec<u8>,
+    //Maps the name of the variable to its reference id
+    pub ids: HashMap<String, BigInt>,
+}
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
@@ -29,7 +38,8 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
-    pub hints: HashMap<MaybeRelocatable, Vec<Vec<u8>>>,
+    pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
+    pub references: Vec<HintReference>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -44,6 +54,12 @@ pub struct VirtualMachine {
     pub trace: Vec<TraceEntry>,
     current_step: usize,
     skip_instruction_execution: bool,
+}
+
+impl HintData {
+    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, BigInt>) -> HintData {
+        HintData { hint_code, ids }
+    }
 }
 
 impl VirtualMachine {
@@ -62,7 +78,8 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
-            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
+            references: Vec::<HintReference>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -428,8 +445,8 @@ impl VirtualMachine {
 
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
-            for hint_code in hint_list.clone().iter() {
-                execute_hint(self, hint_code)?
+            for hint_data in hint_list.clone().iter() {
+                execute_hint(self, &hint_data.hint_code, hint_data.ids.clone())?
             }
         }
         self.skip_instruction_execution = false;
@@ -2350,7 +2367,8 @@ mod tests {
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
-            hints: HashMap::<MaybeRelocatable, Vec<Vec<u8>>>::new(),
+            hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
+            references: Vec::<HintReference>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
@@ -3462,7 +3480,10 @@ mod tests {
         );
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
-            vec![("memory[ap] = segments.add()".as_bytes()).to_vec()],
+            vec![HintData::new(
+                "memory[ap] = segments.add()".as_bytes().to_vec(),
+                HashMap::new(),
+            )],
         );
 
         //Create program and execution segments

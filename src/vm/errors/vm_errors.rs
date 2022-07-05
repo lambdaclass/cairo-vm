@@ -32,6 +32,13 @@ pub enum VirtualMachineError {
     RunnerError(RunnerError),
     InvalidHintEncoding(MaybeRelocatable),
     MemoryError(MemoryError),
+    NoRangeCheckBuiltin,
+    IncorrectIds(Vec<String>, Vec<String>),
+    MemoryGet(MaybeRelocatable),
+    ExpectedInteger(MaybeRelocatable),
+    FailedToGetIds,
+    NonLeFelt(BigInt, BigInt),
+    FailedToGetReference(BigInt),
     UnknownHint(String),
 }
 
@@ -83,8 +90,29 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
             VirtualMachineError::InvalidHintEncoding(address) => write!(f, "Invalid hint encoding at pc: {:?}", address),
-            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::NoRangeCheckBuiltin => {
+                write!(f, "Expected range_check builtin to be present")
+            },
+            VirtualMachineError::IncorrectIds(expected, existing) => {
+                write!(f, "Expected ids to contain {:?}, got: {:?}", expected, existing)
+            },
+            VirtualMachineError::MemoryGet(addr) => {
+                write!(f, "Failed to retrieve value from address {:?}", addr)
+            },
+            VirtualMachineError::ExpectedInteger(addr) => {
+                write!(f, "Expected integer at address {:?}", addr)
+            },
+            VirtualMachineError::FailedToGetIds => {
+                write!(f, "Failed to get ids from memory")
+            },
+            VirtualMachineError::NonLeFelt(a, b) => {
+                write!(f, "Assertion failed, {}, is not less or equal to {}", a, b)
+            },
+            VirtualMachineError::FailedToGetReference(reference_id) => {
+                write!(f, "Failed to get reference for id {}", reference_id)
+            },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
+            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
         }
     }
 }
