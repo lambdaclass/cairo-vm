@@ -216,7 +216,7 @@ impl CairoRunner {
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
-        self.vm.hints = self.get_hint_dictionary();
+        self.vm.hints = self.get_hint_dictionary()?;
         self.vm.references = self.get_reference_list();
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
@@ -235,7 +235,7 @@ impl CairoRunner {
         }
         references
     }
-    fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<HintData>> {
+    fn get_hint_dictionary(&self) -> Result<HashMap<MaybeRelocatable, Vec<HintData>>, RunnerError> {
         let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
         for (hint_index, hints) in self.program.hints.iter() {
             for hint_data in hints.iter() {
@@ -256,23 +256,27 @@ impl CairoRunner {
                             hint_data.code.clone(),
                             CairoRunner::remove_path_from_reference_ids(
                                 &hint_data.flow_tracking_data.reference_ids,
-                            ),
+                            )?,
                         )],
                     );
                 }
             }
         }
-        hint_dictionary
+        Ok(hint_dictionary)
     }
 
     fn remove_path_from_reference_ids(
         referece_ids: &HashMap<String, BigInt>,
-    ) -> HashMap<String, BigInt> {
+    ) -> Result<HashMap<String, BigInt>, RunnerError> {
         let mut reference_ids_new = HashMap::<String, BigInt>::new();
         for (path, value) in referece_ids {
-            reference_ids_new.insert(path.rsplit('.').next().unwrap().to_string(), value.clone());
+            if let Some(name) = path.rsplit('.').next() {
+                reference_ids_new.insert(name.to_string(), value.clone());
+            } else {
+                return Err(RunnerError::FailedToParseIdsNameFromPath(path.clone()));
+            }
         }
-        reference_ids_new
+        Ok(reference_ids_new)
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {

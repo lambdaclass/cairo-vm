@@ -23,6 +23,7 @@ pub enum RunnerError {
     MemoryGet(MaybeRelocatable),
     FailedMemoryGet(MemoryError),
     EcOpBuiltinScalarLimit(BigInt),
+    FailedToParseIdsNameFromPath(String),
 }
 
 impl fmt::Display for RunnerError {
@@ -69,6 +70,13 @@ impl fmt::Display for RunnerError {
 
             RunnerError::EcOpBuiltinScalarLimit(scalar) => {
                 write!(f, "EcOpBuiltin: m should be at most {}", scalar)
+            }
+            RunnerError::FailedToParseIdsNameFromPath(path) => {
+                write!(
+                    f,
+                    "Failed to get variable name from path: {:?}, when parsing reference ids",
+                    path
+                )
             }
         }
     }
