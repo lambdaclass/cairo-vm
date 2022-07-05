@@ -41,4 +41,4 @@ jobs:
       with:
         fail_ci_if_error:     true
     - name: Cleanup tests
-      run: rm cairo_programs/*.json
+      run: make clean
