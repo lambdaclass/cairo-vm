@@ -2,9 +2,9 @@ use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
+use lazy_regex::regex_captures;
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
-use regex::Regex;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::str::FromStr;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
@@ -63,7 +63,7 @@ pub struct Reference {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ValueAddress {
-    pub register: Register,
+    pub register: Option<Register>,
     pub offset: i32,
 }
 
@@ -176,29 +176,23 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let value_re = Regex::new(r"^\[cast\(([af]p)(?: \+ \((-?\d+)\))?, [^\)]+\)\]$").unwrap();
-        let captures = if let Some(captures) = value_re.captures(value) {
-            captures
-        } else {
-            return Err("invalid value").map_err(de::Error::custom);
-        };
-
-        let register = match captures.get(1) {
-            Some(register_str) => match register_str.as_str() {
-                "fp" => Register::FP,
-                "ap" => Register::AP,
+        let register = match regex_captures!(r"^\[cast\(([af]p)(?:[^,])*, [^\)]+\)\]$", value) {
+            Some((_, register)) => match register {
+                "fp" => Some(Register::FP),
+                "ap" => Some(Register::AP),
                 _ => return Err("invalid register").map_err(de::Error::custom),
             },
-            None => return Err("missing register").map_err(de::Error::custom),
+            None => None,
         };
 
-        let offset = match captures.get(2) {
-            Some(offset_str) => match i32::from_str(offset_str.as_str()) {
-                Ok(offset) => offset,
-                Err(e) => return Err(e).map_err(de::Error::custom),
-            },
-            None => 0,
-        };
+        let offset =
+            match regex_captures!(r"^\[cast\((?:[af]p \+ )?\((-?\d+)\), [^\)]+\)\]$", value) {
+                Some((_, offset_str)) => match i32::from_str(offset_str) {
+                    Ok(offset) => offset,
+                    Err(e) => return Err(e).map_err(de::Error::custom),
+                },
+                None => 0,
+            };
 
         Ok(ValueAddress { offset, register })
     }
@@ -426,7 +420,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Register::FP,
+                        register: Some(Register::FP),
                         offset: -4,
                     },
                 },
@@ -437,7 +431,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        register: Register::FP,
+                        register: Some(Register::FP),
                         offset: -3,
                     },
                 },
