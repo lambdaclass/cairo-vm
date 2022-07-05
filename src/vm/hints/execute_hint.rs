@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn};
+use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn, is_nn_out_of_range};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -21,6 +21,9 @@ pub fn execute_hint(
         Ok("memory[ap] = segments.add()") => add_segment(vm),
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => {
             is_nn(vm, ids)
+        }
+        Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1") => {
+            is_nn_out_of_range(vm, ids)
         }
         Ok(
             "from starkware.cairo.common.math_utils import assert_integer
