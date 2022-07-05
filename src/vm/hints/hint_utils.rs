@@ -101,11 +101,11 @@ pub fn is_nn(
                         return Err(VirtualMachineError::NoRangeCheckBuiltin);
                     };
                     //Main logic (assert a is not negative and within the expected range)
-                    let mut value = bigint!(0);
+                    let mut value = bigint!(1);
                     if a % vm.prime.clone() >= bigint!(0)
                         && a % vm.prime.clone() < range_check_builtin._bound
                     {
-                        value = bigint!(1);
+                        value = bigint!(0);
                     }
                     return match vm
                         .memory
@@ -165,12 +165,12 @@ pub fn is_nn_out_of_range(
                         return Err(VirtualMachineError::NoRangeCheckBuiltin);
                     };
                     //Main logic (assert a is not negative and within the expected range)
-                    let mut value = bigint!(0);
+                    let mut value = bigint!(1);
                     if (-a.clone() - bigint!(1)) % vm.prime.clone() >= bigint!(0)
                         && (-a.clone() - bigint!(1)) % &vm.prime.clone()
                             < range_check_builtin._bound
                     {
-                        value = bigint!(1);
+                        value = bigint!(0);
                     }
                     return match vm
                         .memory
