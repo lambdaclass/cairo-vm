@@ -6,13 +6,18 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 ## func assert_not_zero: 
 * Status: WIP, https://github.com/lambdaclass/cleopatra_cairo/pull/225
-* Assign: Peter
+* Assignee: Peter
 * Hints:
+
+```
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert_integer(ids.value)
         assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'
     %}
+```
+
+
 
 * depends on functions: None
 
@@ -21,6 +26,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 * Status: WIP,  https://github.com/lambdaclass/cleopatra_cairo/pull/229
 * Assignee: Fede
 * Hints:
+```
     %{
         from starkware.cairo.lang.vm.relocatable import RelocatableValue
         both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
@@ -31,57 +37,62 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
             f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
         assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
     %}
+```
 
 * depends on functions: None
 
 
 ## func assert_nn{range_check_ptr}(a):
 * Status: WIP, https://github.com/lambdaclass/cleopatra_cairo/pull/243
-* Assign: Peter 
+* Assignee: Peter 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert_integer(ids.a)
         assert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'
     %}
+```
 
 * depends on functions: None
 
 ## func assert_le{range_check_ptr}(a, b):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints: None
 * depends on functions: 
-    * assert_nn
+    * `assert_nn`
 
 
 ## func assert_lt{range_check_ptr}(a, b):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints: None
-* depends on functions: assert_le
+* depends on functions:
+    * `assert_le`
 
 ## func assert_nn_le{range_check_ptr}(a, b):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints: None
 * depends on functions:
-    * assert_nn
-    * assert_le
+    * `assert_nn`
+    * `assert_le`
 
 ## func assert_in_range{range_check_ptr}(value, lower, upper):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints: None
 * depends on functions:
-    * assert_le
+    * `assert_le`
 
 
 ## func assert_250_bit{range_check_ptr}(value):
 * Status: WIP, https://github.com/lambdaclass/cleopatra_cairo/pull/231
-* Assign: Fede
+* Assignee: Fede
 * Hints:
 
+```
     %{
         from starkware.cairo.common.math_utils import as_int
 
@@ -92,15 +103,17 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
         # Calculation for the assertion.
         ids.high, ids.low = divmod(ids.value, ids.SHIFT)
     %}
+```
 
 * depends on functions:
-    * assert_le
+    * `assert_le`
 
 
 ## func split_felt{range_check_ptr}(value) -> (high : felt, low : felt):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128
@@ -109,15 +122,17 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
         ids.low = ids.value & ((1 << 128) - 1)
         ids.high = ids.value >> 128
     %}
+```
 
 * depends on functions:
-    * assert_le
+    * `assert_le`
 
 
 ## func assert_le_felt{range_check_ptr}(a, b):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert_integer(ids.a)
@@ -129,17 +144,19 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
         ids.small_inputs = int(
             a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
     %}
+```
 
 * depends on functions:
-    * assert_nn_le
-    * split_felt
-    * assert_le
+    * `assert_nn_le`
+    * `split_felt`
+    * `assert_le`
 
 
 ## func assert_lt_felt{range_check_ptr}(a, b):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert_integer(ids.a)
@@ -147,41 +164,47 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
         assert (ids.a % PRIME) < (ids.b % PRIME), \
             f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     %}
+```
 
 * depends on functions:
-    * split_felt
-    * assert_lt
+    * `split_felt`
+    * `assert_lt`
 
 
 ## func abs_value{range_check_ptr}(value):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import is_positive
         ids.is_positive = 1 if is_positive(
             value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
     %}
+```
 
 * depends on functions: None
 
 
 ## func sign{range_check_ptr}(value):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import is_positive
         ids.is_positive = 1 if is_positive(
             value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
     %}
+```
 * depends on functions: None
 
 
 ## func unsigned_div_rem{range_check_ptr}(value, div):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import assert_integer
         assert_integer(ids.div)
@@ -189,14 +212,16 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
             f'div={hex(ids.div)} is out of the valid range.'
         ids.q, ids.r = divmod(ids.value, ids.div)
     %}
+```
 
 * depends on functions:
-    * assert_le
+    * `assert_le`
 
 ## func signed_div_rem{range_check_ptr}(value, div, bound):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.cairo.common.math_utils import as_int, assert_integer
 
@@ -216,31 +241,37 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
         ids.biased_q = q + ids.bound
     %}
+```
 
 * depends on functions:
-    * assert_le
+    * `assert_le`
 
 
 
 ## func split_int{range_check_ptr}(value, n, base, bound, output : felt*):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{ assert ids.value == 0, 'split_int(): value is out of range.' %}
+```
 
+```
     %{
         memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
         assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
     %}
+```
 
 * depends on functions:
-    * assert_nn_le
+    * `assert_nn_le`
 
 
 ## func sqrt{range_check_ptr}(value):
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:
+```
     %{
         from starkware.python.math_utils import isqrt
         value = ids.value % PRIME
@@ -248,13 +279,14 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
         assert 2 ** 250 < PRIME
         ids.root = isqrt(value)
     %}
+```
 
 * depends on functions:
-    * assert_nn_le
-    * assert_in_range
+    * `assert_nn_le`
+    * `assert_in_range`
 
 ## func horner_eval
 * Status:
-* Assign: 
+* Assignee: 
 * Hints:None 
 * depends on functions: None
