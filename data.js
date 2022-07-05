@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657061018764,
+  "lastUpdate": 1657061104223,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -8505,6 +8505,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1544,
             "range": "± 72",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "15911a3bb437c5f530d294d99893a929ca46ef4a",
+          "message": "Merge pull request #210 from lambdaclass/is_nn-hint\n\nAdd support for the hint in is_nn (math_cmp.cairo)",
+          "timestamp": "2022-07-05T19:39:40-03:00",
+          "tree_id": "f5cf65a9cf032c4c9efc7f9d84e06cef24a39c7b",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/15911a3bb437c5f530d294d99893a929ca46ef4a"
+        },
+        "date": 1657061102313,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1614,
+            "range": "± 77",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 1626,
+            "range": "± 126",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 1622,
+            "range": "± 67",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 1627,
+            "range": "± 75",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1634,
+            "range": "± 127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 1640,
+            "range": "± 152",
             "unit": "ns/iter"
           }
         ]
