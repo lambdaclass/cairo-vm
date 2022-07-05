@@ -4,7 +4,7 @@ from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math_cmp import is_le
 
-#Returns TRUE is array_a is greater than array_b, which means every element in a is greater than every element in b
+#Returns TRUE is array_a is lesser than array_b, which means every element in a is lesser than every element in b
 func compare_lesser_array{range_check_ptr: felt}(array_a: felt*, array_b: felt*, array_length: felt, iterator: felt ) -> (r: felt):
     if iterator == array_length:
         return(TRUE)
