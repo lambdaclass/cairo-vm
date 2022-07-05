@@ -65,15 +65,14 @@ pub fn is_nn(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let a_ref =
-        if let Some(a_ref) = ids.get(&String::from("starkware.cairo.common.math_cmp.is_nn.a")) {
-            a_ref
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("starkware.cairo.common.math_cmp.is_nn.a")],
-                ids.into_keys().collect(),
-            ));
-        };
+    let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
+        a_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a")],
+            ids.into_keys().collect(),
+        ));
+    };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr =
         if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
@@ -129,15 +128,14 @@ pub fn is_nn_out_of_range(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let a_ref =
-        if let Some(a_ref) = ids.get(&String::from("starkware.cairo.common.math_cmp.is_nn.a")) {
-            a_ref
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("starkware.cairo.common.math_cmp.is_nn.a")],
-                ids.into_keys().collect(),
-            ));
-        };
+    let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
+        a_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a")],
+            ids.into_keys().collect(),
+        ));
+    };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr =
         if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
@@ -203,23 +201,17 @@ pub fn assert_le_felt(
     //Check that ids contains the reference id for each variable used by the hint
     let (a_ref, b_ref, small_inputs_ref) =
         if let (Some(a_ref), Some(b_ref), Some(small_inputs_ref)) = (
-            ids.get(&String::from(
-                "starkware.cairo.common.math.assert_le_felt.a",
-            )),
-            ids.get(&String::from(
-                "starkware.cairo.common.math.assert_le_felt.b",
-            )),
-            ids.get(&String::from(
-                "starkware.cairo.common.math.assert_le_felt.small_inputs",
-            )),
+            ids.get(&String::from("a")),
+            ids.get(&String::from("b")),
+            ids.get(&String::from("small_inputs")),
         ) {
             (a_ref, b_ref, small_inputs_ref)
         } else {
             return Err(VirtualMachineError::IncorrectIds(
                 vec![
-                    String::from("starkware.cairo.common.math.assert_le_felt.a"),
-                    String::from("starkware.cairo.common.math.assert_le_felt.b"),
-                    String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
+                    String::from("a"),
+                    String::from("b"),
+                    String::from("small_inputs"),
                 ],
                 ids.into_keys().collect(),
             ));

@@ -156,10 +156,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -200,10 +197,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -254,10 +248,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -288,16 +279,13 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.b"),
-            bigint!(0),
-        );
+        ids.insert(String::from("b"), bigint!(0));
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("starkware.cairo.common.math_cmp.is_nn.a")],
-                vec![String::from("starkware.cairo.common.math_cmp.is_nn.b")]
+                vec![String::from("a")],
+                vec![String::from("b")]
             ))
         );
     }
@@ -322,10 +310,7 @@ mod tests {
         //Dont insert ids into memory
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -366,10 +351,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -386,7 +368,7 @@ mod tests {
 
     #[test]
     fn run_assert_le_felt_valid() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integerassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -424,18 +406,9 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.a"),
-            bigint!(0),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.b"),
-            bigint!(1),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
-            bigint!(2),
-        );
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
             HintReference {
@@ -458,7 +431,7 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_invalid() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integerassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -496,18 +469,9 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.a"),
-            bigint!(0),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.b"),
-            bigint!(1),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
-            bigint!(2),
-        );
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
             HintReference {
@@ -532,7 +496,7 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_small_inputs_not_local() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integerassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -570,18 +534,9 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.a"),
-            bigint!(0),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.b"),
-            bigint!(1),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
-            bigint!(2),
-        );
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
             HintReference {
@@ -606,7 +561,7 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_a_is_not_integer() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integerassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -644,18 +599,9 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.a"),
-            bigint!(0),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.b"),
-            bigint!(1),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
-            bigint!(2),
-        );
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
             HintReference {
@@ -682,7 +628,7 @@ mod tests {
 
     #[test]
     fn run_is_assert_le_felt_b_is_not_integer() {
-        let hint_code = "from starkware.cairo.common.math_utils import assert_integerassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -720,18 +666,9 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.a"),
-            bigint!(0),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.b"),
-            bigint!(1),
-        );
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
-            bigint!(2),
-        );
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
         vm.references = vec![
             HintReference {
@@ -783,10 +720,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -828,10 +762,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,

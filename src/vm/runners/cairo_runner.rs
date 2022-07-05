@@ -254,13 +254,25 @@ impl CairoRunner {
                         key,
                         vec![HintData::new(
                             hint_data.code.clone(),
-                            hint_data.flow_tracking_data.reference_ids.clone(),
+                            CairoRunner::remove_path_from_reference_ids(
+                                &hint_data.flow_tracking_data.reference_ids,
+                            ),
                         )],
                     );
                 }
             }
         }
         hint_dictionary
+    }
+
+    fn remove_path_from_reference_ids(
+        referece_ids: &HashMap<String, BigInt>,
+    ) -> HashMap<String, BigInt> {
+        let mut reference_ids_new = HashMap::<String, BigInt>::new();
+        for (path, value) in referece_ids {
+            reference_ids_new.insert(path.rsplit('.').next().unwrap().to_string(), value.clone());
+        }
+        reference_ids_new
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
