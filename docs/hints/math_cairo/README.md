@@ -1,4 +1,4 @@
-# math.cairo implementation
+# Implementation of math.cairo functions
 A resume of the math.cairo functions, hints used and function depedencies 
 
 https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882a0b0a49603/src/starkware/cairo/common/math.cairo#L39
