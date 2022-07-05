@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657022705669,
+  "lastUpdate": 1657029539310,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6957,6 +6957,48 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1659,
             "range": "± 103",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mail@fcarrone.com",
+            "name": "Federico Carrone",
+            "username": "unbalancedparentheses"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fae86b87aaa65de4ea6f6d15f68051124e36be90",
+          "message": "Merge pull request #234 from Oppen/deserialize-reference-manager\n\nDeserialize reference manager",
+          "timestamp": "2022-07-05T10:53:45-03:00",
+          "tree_id": "b02b4bb595f816bd853dc2c2f42869a92cf18e1d",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/fae86b87aaa65de4ea6f6d15f68051124e36be90"
+        },
+        "date": 1657029538262,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(bench/criterion/fibonacci_1000.json",
+            "value": 8482041,
+            "range": "± 25414",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(bench/criterion/integration.json",
+            "value": 3945213,
+            "range": "± 4378",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/linear-search.json",
+            "value": 1502,
+            "range": "± 97",
             "unit": "ns/iter"
           }
         ]
