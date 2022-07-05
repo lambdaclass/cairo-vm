@@ -2160,6 +2160,41 @@ mod tests {
     }
 
     #[test]
+    fn compute_operands_deduce_dst_none() {
+        let instruction = Instruction {
+            off0: bigint!(2),
+            off1: bigint!(0),
+            off2: bigint!(0),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Unconstrained,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
+
+        let mem_arr = vec![(
+            MaybeRelocatable::from((0, 0)),
+            MaybeRelocatable::Int(bigint64!(0x206800180018001)),
+        )];
+
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
+
+        vm.memory =
+            memory_from(mem_arr.clone(), 1).expect("Unexpected memory initialization failure");
+        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        vm.run_context.ap = MaybeRelocatable::from((0, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 0));
+
+        let error = vm.compute_operands(&instruction);
+        assert_eq!(error, Err(VirtualMachineError::NoDst));
+        assert_eq!(error.unwrap_err().to_string(), "Couldn't get or load dst");
+    }
+
+    #[test]
     fn opcode_assertions_res_unconstrained() {
         let instruction = Instruction {
             off0: bigint!(1),

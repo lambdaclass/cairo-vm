@@ -15,7 +15,7 @@ struct Args {
     #[structopt(long = "--print_output")]
     print_output: bool,
     trace: Option<PathBuf>,
-    #[structopt(long = "--print_memory")]
+    #[structopt(long = "--memory_file")]
     memory_file: Option<PathBuf>,
 }
 

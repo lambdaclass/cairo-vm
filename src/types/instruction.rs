@@ -7,6 +7,7 @@ pub enum Register {
     FP,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Instruction {
     pub off0: BigInt,
     pub off1: BigInt,
