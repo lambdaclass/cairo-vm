@@ -19,7 +19,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 
 
-* depends on functions: None
+* Depends on functions: None
 
 
 ## func assert_not_equal(a, b):
@@ -39,7 +39,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions: None
+* Depends on functions: None
 
 
 ## func assert_nn{range_check_ptr}(a):
@@ -54,13 +54,13 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions: None
+* Depends on functions: None
 
 ## func assert_le{range_check_ptr}(a, b):
 * Status:
 * Assignee: 
 * Hints: None
-* depends on functions: 
+* Depends on functions: 
     * `assert_nn`
 
 
@@ -68,14 +68,14 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 * Status:
 * Assignee: 
 * Hints: None
-* depends on functions:
+* Depends on functions:
     * `assert_le`
 
 ## func assert_nn_le{range_check_ptr}(a, b):
 * Status:
 * Assignee: 
 * Hints: None
-* depends on functions:
+* Depends on functions:
     * `assert_nn`
     * `assert_le`
 
@@ -83,7 +83,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 * Status:
 * Assignee: 
 * Hints: None
-* depends on functions:
+* Depends on functions:
     * `assert_le`
 
 
@@ -105,8 +105,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
-    * `assert_le`
+* Depends on functions: None
 
 
 ## func split_felt{range_check_ptr}(value) -> (high : felt, low : felt):
@@ -124,7 +123,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `assert_le`
 
 
@@ -146,7 +145,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `assert_nn_le`
     * `split_felt`
     * `assert_le`
@@ -166,7 +165,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `split_felt`
     * `assert_lt`
 
@@ -183,7 +182,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions: None
+* Depends on functions: None
 
 
 ## func sign{range_check_ptr}(value):
@@ -197,7 +196,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
             value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
     %}
 ```
-* depends on functions: None
+* Depends on functions: None
 
 
 ## func unsigned_div_rem{range_check_ptr}(value, div):
@@ -214,7 +213,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `assert_le`
 
 ## func signed_div_rem{range_check_ptr}(value, div, bound):
@@ -243,7 +242,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `assert_le`
 
 
@@ -263,7 +262,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `assert_nn_le`
 
 
@@ -281,7 +280,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
     %}
 ```
 
-* depends on functions:
+* Depends on functions:
     * `assert_nn_le`
     * `assert_in_range`
 
@@ -289,4 +288,4 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 * Status:
 * Assignee: 
 * Hints:None 
-* depends on functions: None
+* Depends on functions: None
