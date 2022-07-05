@@ -17,7 +17,7 @@ for file in $(ls $tests_path | grep .cleopatra.memory | sed -E 's/\.cleopatra\.m
         echo "Memory differs for $file"
         exit_code=1
     else
-        echo "Memory mateches for $file"
+        echo "Memory matches for $file"
     fi
 done
 
