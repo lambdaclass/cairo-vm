@@ -24,7 +24,7 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 
 pub struct HintData {
     pub hint_code: Vec<u8>,

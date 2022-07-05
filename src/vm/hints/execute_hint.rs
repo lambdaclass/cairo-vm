@@ -7,18 +7,6 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn};
 use crate::vm::vm_core::VirtualMachine;
 
-//These structs belong to serde, replace with import path
-#[derive(Debug, PartialEq, Clone)]
-pub struct Reference {
-    pub pc: Option<usize>,
-    pub value_address: ValueAddress,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ValueAddress {
-    pub register: Register,
-    pub offset: i32,
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
     pub register: Register,
@@ -175,7 +163,10 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(
+            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
+            bigint!(0),
+        );
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -216,7 +207,10 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(
+            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
+            bigint!(0),
+        );
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -267,7 +261,10 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(
+            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
+            bigint!(0),
+        );
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -298,13 +295,16 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("b"), bigint!(0));
+        ids.insert(
+            String::from("starkware.cairo.common.math_cmp.is_nn.b"),
+            bigint!(0),
+        );
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("a")],
-                vec![String::from("b")]
+                vec![String::from("starkware.cairo.common.math_cmp.is_nn.a")],
+                vec![String::from("starkware.cairo.common.math_cmp.is_nn.b")]
             ))
         );
     }
@@ -329,7 +329,10 @@ mod tests {
         //Dont insert ids into memory
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(
+            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
+            bigint!(0),
+        );
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -370,7 +373,10 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(
+            String::from("starkware.cairo.common.math_cmp.is_nn.a"),
+            bigint!(0),
+        );
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -433,9 +439,18 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("small_inputs"), bigint!(2));
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.a"),
+            bigint!(0),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.b"),
+            bigint!(1),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
+            bigint!(2),
+        );
         //Create references
         vm.references = vec![
             HintReference {
@@ -504,9 +519,18 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("small_inputs"), bigint!(2));
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.a"),
+            bigint!(0),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.b"),
+            bigint!(1),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
+            bigint!(2),
+        );
         //Create references
         vm.references = vec![
             HintReference {
@@ -577,9 +601,18 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("small_inputs"), bigint!(2));
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.a"),
+            bigint!(0),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.b"),
+            bigint!(1),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
+            bigint!(2),
+        );
         //Create references
         vm.references = vec![
             HintReference {
@@ -650,9 +683,18 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("small_inputs"), bigint!(2));
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.a"),
+            bigint!(0),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.b"),
+            bigint!(1),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
+            bigint!(2),
+        );
         //Create references
         vm.references = vec![
             HintReference {
@@ -725,9 +767,18 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("small_inputs"), bigint!(2));
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.a"),
+            bigint!(0),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.b"),
+            bigint!(1),
+        );
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_le_felt.small_inputs"),
+            bigint!(2),
+        );
         //Create references
         vm.references = vec![
             HintReference {

@@ -1,8 +1,6 @@
 use crate::types::instruction::Register;
 use crate::types::{
-    errors::program_errors::ProgramError,
-    program::{Program, ReferenceManager},
-    relocatable::MaybeRelocatable,
+    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
 use lazy_regex::regex_captures;
 use num_bigint::{BigInt, Sign};
@@ -49,12 +47,12 @@ pub struct Identifier {
     pub pc: Option<usize>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
     pub pc: Option<usize>,
@@ -63,7 +61,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct ValueAddress {
     pub register: Option<Register>,
     pub offset: i32,
@@ -251,9 +249,7 @@ pub fn deserialize_program(path: &Path) -> Result<Program, ProgramError> {
         data: program_json.data,
         main: program_json.identifiers["__main__.main"].pc,
         hints: program_json.hints,
-        reference_manager: ReferenceManager {
-            references: Vec::new(),
-        },
+        reference_manager: program_json.reference_manager,
     })
 }
 

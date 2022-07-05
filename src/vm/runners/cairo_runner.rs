@@ -226,21 +226,22 @@ impl CairoRunner {
     fn get_reference_list(&self) -> Vec<HintReference> {
         let mut references = Vec::<HintReference>::new();
         for reference in self.program.reference_manager.references.iter() {
-            references.push(HintReference {
-                register: reference.value_address.register.clone(),
-                offset: reference.value_address.offset,
-            })
+            if let Some(register) = &reference.value_address.register {
+                references.push(HintReference {
+                    register: register.clone(),
+                    offset: reference.value_address.offset,
+                })
+            }
         }
         references
     }
     fn get_hint_dictionary(&self) -> HashMap<MaybeRelocatable, Vec<HintData>> {
         let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
-        for (_hint_index, hints) in self.program.hints.iter() {
+        for (hint_index, hints) in self.program.hints.iter() {
             for hint_data in hints.iter() {
-                let key = MaybeRelocatable::from((
-                    hint_data.flow_tracking_data.ap_tracking.group,
-                    hint_data.flow_tracking_data.ap_tracking.offset,
-                ));
+                //Key refers to the pc the where the hint should be called in step
+                //The segment index of pc will always be 0 as it lives in the program segment
+                let key = MaybeRelocatable::from((0, *hint_index));
                 if let Some(hint_list) = hint_dictionary.get_mut(&key) {
                     //Add hint code to list of hints at given pc
                     hint_list.push(HintData::new(
@@ -251,7 +252,10 @@ impl CairoRunner {
                     //Insert the first hint at a given pc
                     hint_dictionary.insert(
                         key,
-                        vec![HintData::new(hint_data.code.clone(), HashMap::new())],
+                        vec![HintData::new(
+                            hint_data.code.clone(),
+                            hint_data.flow_tracking_data.reference_ids.clone(),
+                        )],
                     );
                 }
             }
@@ -378,7 +382,7 @@ mod tests {
     use num_bigint::Sign;
 
     use super::*;
-    use crate::types::program::ReferenceManager;
+    use crate::serde::deserialize_program::ReferenceManager;
     use crate::vm::trace::trace_entry::TraceEntry;
     use crate::{bigint64, bigint_str, relocatable};
     use std::collections::HashMap;
