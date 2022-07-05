@@ -176,23 +176,25 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let register = match regex_captures!(r"^\[cast\(([af]p)(?:[^,])*, [^\)]+\)\]$", value) {
-            Some((_, register)) => match register {
+        let register = if let Some((_, register)) = regex_captures!(r"([af]p)", value) {
+            match register {
                 "fp" => Some(Register::FP),
                 "ap" => Some(Register::AP),
-                _ => return Err("invalid register").map_err(de::Error::custom),
-            },
-            None => None,
+                _ => {
+                    unreachable!();
+                }
+            }
+        } else {
+            None
         };
-
-        let offset =
-            match regex_captures!(r"^\[cast\((?:[af]p \+ )?\((-?\d+)\), [^\)]+\)\]$", value) {
-                Some((_, offset_str)) => match i32::from_str(offset_str) {
-                    Ok(offset) => offset,
-                    Err(e) => return Err(e).map_err(de::Error::custom),
-                },
-                None => 0,
-            };
+        let offset = if let Some((_, offset_str)) = regex_captures!(r"(-?\d+)", value) {
+            match i32::from_str(offset_str) {
+                Ok(offset) => offset,
+                Err(e) => return Err(e).map_err(de::Error::custom),
+            }
+        } else {
+            0
+        };
 
         Ok(ValueAddress { offset, register })
     }
