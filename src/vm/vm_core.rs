@@ -24,7 +24,7 @@ pub struct Operands {
     op1: MaybeRelocatable,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 
 pub struct HintData {
     pub hint_code: Vec<u8>,
@@ -446,7 +446,7 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                execute_hint(self, &hint_data.hint_code.clone(), hint_data.ids.clone())?
+                execute_hint(self, &hint_data.hint_code, hint_data.ids.clone())?
             }
         }
         self.skip_instruction_execution = false;

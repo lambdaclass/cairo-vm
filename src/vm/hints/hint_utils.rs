@@ -1,18 +1,14 @@
+use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
+use crate::vm::{
+    context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
+    runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
+};
+use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
-use crate::{
-    bigint,
-    types::{instruction::Register, relocatable::MaybeRelocatable},
-    vm::{
-        context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
-    },
-};
-
 ///Computes the memory address indicated by the HintReference
-use super::execute_hint::HintReference;
 fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
@@ -100,9 +96,75 @@ pub fn is_nn(
                         return Err(VirtualMachineError::NoRangeCheckBuiltin);
                     };
                     //Main logic (assert a is not negative and within the expected range)
-                    let mut value = bigint!(0);
-                    if *a > bigint!(0) && *a < vm.prime && *a < range_check_builtin._bound {
-                        value = bigint!(1);
+                    let mut value = bigint!(1);
+                    if a % vm.prime.clone() >= bigint!(0)
+                        && a % vm.prime.clone() < range_check_builtin._bound
+                    {
+                        value = bigint!(0);
+                    }
+                    return match vm
+                        .memory
+                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+                    {
+                        Ok(_) => Ok(()),
+                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+                    };
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        }
+        Ok(None) => Err(VirtualMachineError::MemoryGet(a_addr.clone())),
+        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+    }
+}
+
+//Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
+pub fn is_nn_out_of_range(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
+        a_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let a_addr =
+        if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
+            a_addr
+        } else {
+            return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
+        };
+    //Check that the ids are in memory
+    match vm.memory.get(&a_addr) {
+        Ok(Some(maybe_rel_a)) => {
+            //Check that the value at the ids address is an Int
+            let a = if let MaybeRelocatable::Int(ref a) = maybe_rel_a {
+                a
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+            };
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                if name == &String::from("range_check") {
+                    let range_check_builtin = if let Some(range_check_builtin) =
+                        builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                    {
+                        range_check_builtin
+                    } else {
+                        return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                    };
+                    //Main logic (assert a is not negative and within the expected range)
+                    let mut value = bigint!(1);
+                    if (-a.clone() - bigint!(1)) % vm.prime.clone() >= bigint!(0)
+                        && (-a.clone() - bigint!(1)) % &vm.prime.clone()
+                            < range_check_builtin._bound
+                    {
+                        value = bigint!(0);
                     }
                     return match vm
                         .memory
