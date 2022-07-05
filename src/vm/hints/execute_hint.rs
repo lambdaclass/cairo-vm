@@ -483,6 +483,289 @@ mod tests {
     }
 
     #[test]
+    fn run_assert_nn_valid() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+
+        vm.segments.add(&mut vm.memory, None);
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_nn.a"),
+            bigint!(0),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -4,
+        }];
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Hint would return an error if the assertion fails
+    }
+
+    #[test]
+    fn run_assert_nn_invalid() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(-1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_nn.a"),
+            bigint!(0),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -4,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+        );
+    }
+
+    #[test]
+    fn run_assert_nn_incorrect_ids() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+
+        vm.segments.add(&mut vm.memory, None);
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(-1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("incorrect_id"), bigint!(0));
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -4,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::IncorrectIds(
+                vec![String::from("starkware.cairo.common.math.assert_nn.a")],
+                vec![String::from("incorrect_id")],
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_nn_incorrect_reference() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+
+        vm.segments.add(&mut vm.memory, None);
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(-1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_nn.a"),
+            bigint!(0),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: 10,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn run_assert_nn_a_is_not_integer() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+
+        vm.segments.add(&mut vm.memory, None);
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((10, 10)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_nn.a"),
+            bigint!(0),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -4,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_nn_no_range_check_builtin() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![],
+        );
+
+        vm.segments.add(&mut vm.memory, None);
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_nn.a"),
+            bigint!(0),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -4,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn run_assert_nn_reference_is_not_in_memory() {
+        let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+
+        vm.segments.add(&mut vm.memory, None);
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(
+            String::from("starkware.cairo.common.math.assert_nn.a"),
+            bigint!(0),
+        );
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -4,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
     fn run_is_assert_le_felt_invalid() {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)"
             .as_bytes();
