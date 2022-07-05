@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    add_segment, assert_le_felt, assert_not_equal, is_nn, is_nn_out_of_range,
+    add_segment, assert_le_felt, assert_nn, assert_not_equal, is_nn, is_nn_out_of_range,
 };
 use crate::vm::vm_core::VirtualMachine;
 
@@ -28,6 +28,8 @@ pub fn execute_hint(
         ) => assert_le_felt(vm, ids),
         Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
         ) => assert_not_equal(vm, ids),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
+        ) => assert_nn(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
