@@ -519,7 +519,7 @@ impl VirtualMachine {
         }
 
         if matches!(res, None) {
-            match (op0.clone(), op1.clone()) {
+            match (&op0, &op1) {
                 (Some(ref unwrapped_op0), Some(ref unwrapped_op1)) => {
                     res = self.compute_res(instruction, unwrapped_op0, unwrapped_op1)?;
                 }
@@ -568,7 +568,7 @@ impl VirtualMachine {
             };
         }
 
-        match (dst, op0.clone(), op1.clone()) {
+        match (dst, op0, op1) {
             (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => Ok((
                 Operands {
                     dst: unwrapped_dst,
