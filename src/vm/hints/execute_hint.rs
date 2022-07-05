@@ -170,7 +170,7 @@ mod tests {
         //Check that ap now contains false (0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
 
@@ -214,7 +214,7 @@ mod tests {
         //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
 
@@ -797,7 +797,7 @@ mod tests {
         //Check that ap now contains false (0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
 
@@ -842,7 +842,7 @@ mod tests {
         //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
 }
