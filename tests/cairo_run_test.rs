@@ -38,3 +38,9 @@ fn cairo_run_compare_arrays() {
     cairo_run::cairo_run(Path::new("cairo_programs/compare_arrays.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_compare_greater_array() {
+    cairo_run::cairo_run(Path::new("cairo_programs/compare_greater_array.json"))
+        .expect("Couldn't run program");
+}
