@@ -1,18 +1,14 @@
+use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
+use crate::vm::{
+    context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
+    runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
+};
+use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
-use crate::{
-    bigint,
-    types::{instruction::Register, relocatable::MaybeRelocatable},
-    vm::{
-        context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
-    },
-};
-
 ///Computes the memory address indicated by the HintReference
-use super::execute_hint::HintReference;
 fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
