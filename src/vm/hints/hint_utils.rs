@@ -5,6 +5,7 @@ use crate::vm::{
 };
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
@@ -312,7 +313,7 @@ pub fn assert_not_equal(
     match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b) % vm.prime.clone() == bigint!(0) {
+                if (a - b).mod_floor(&vm.prime) == bigint!(0) {
                     return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),
