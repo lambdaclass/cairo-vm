@@ -353,15 +353,14 @@ pub fn assert_nn(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for 'a' variable used by the hint
-    let a_ref =
-        if let Some(a_ref) = ids.get(&String::from("starkware.cairo.common.math.assert_nn.a")) {
-            a_ref
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("starkware.cairo.common.math.assert_nn.a")],
-                ids.into_keys().collect(),
-            ));
-        };
+    let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
+        a_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a")],
+            ids.into_keys().collect(),
+        ));
+    };
     //Check that 'a' reference id corresponds to a value in the reference manager
     let a_addr =
         if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
@@ -385,8 +384,8 @@ pub fn assert_nn(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         Some(builtin) => {
                             // assert 0 <= ids.a % PRIME < range_check_builtin.bound
-                            if bigint!(0) <= a % vm.prime.clone()
-                                && a % vm.prime.clone() < builtin._bound
+                            if bigint!(0) <= a.mod_floor(&vm.prime)
+                                && a.mod_floor(&vm.prime) < builtin._bound
                             {
                                 return Ok(());
                             } else {

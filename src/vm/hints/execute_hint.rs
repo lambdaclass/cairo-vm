@@ -508,10 +508,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -548,10 +545,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -600,7 +594,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("starkware.cairo.common.math.assert_nn.a")],
+                vec![String::from("a")],
                 vec![String::from("incorrect_id")],
             ))
         );
@@ -632,10 +626,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -674,10 +665,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -715,10 +703,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
@@ -749,10 +734,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(
-            String::from("starkware.cairo.common.math.assert_nn.a"),
-            bigint!(0),
-        );
+        ids.insert(String::from("a"), bigint!(0));
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
