@@ -67,8 +67,8 @@ flamegraph:
 compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
  
-compare_vm_output: $(CLEO_TRACE) $(CAIRO_TRACE) $(CLEO_MEM) $(CAIRO_MEM)
-	cd tests; ./compare_vm_state.sh
+compare_trace_memory: $(CLEO_TRACE) $(CAIRO_TRACE) $(CLEO_MEM) $(CAIRO_MEM)
+	cd tests; ./compare_vm_state.sh trace memory
 
 docs:
 	cargo doc --verbose --release --locked --no-deps
