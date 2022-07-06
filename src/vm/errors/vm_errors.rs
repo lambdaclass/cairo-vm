@@ -41,7 +41,7 @@ pub enum VirtualMachineError {
     FailedToGetReference(BigInt),
     UnknownHint(String),
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
-    AssertNonEqualFail(MaybeRelocatable, MaybeRelocatable),
+    AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
     DiffIndexComp(Relocatable, Relocatable),
 }
 
@@ -119,8 +119,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::DiffTypeComparison(a, b) => {
                 write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to a integer value", a, b)
             },
-            VirtualMachineError::AssertNonEqualFail(a, b) => {
-                write!(f, "assert_non_equal failed: {:?} =  {:?}", a, b)
+            VirtualMachineError::AssertNotEqualFail(a, b) => {
+                write!(f, "assert_not_equal failed: {:?} =  {:?}", a, b)
             },
             VirtualMachineError::DiffIndexComp(a, b) => {
                 write!(f, "Failed to compare {:?} and  {:?}, cant compare two relocatable values of different segment indexes", a, b)

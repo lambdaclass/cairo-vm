@@ -314,7 +314,7 @@ pub fn assert_not_equal(
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
                 if (a - b) % vm.prime.clone() == bigint!(0) {
-                    return Err(VirtualMachineError::AssertNonEqualFail(
+                    return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),
                     ));
@@ -326,7 +326,7 @@ pub fn assert_not_equal(
                     return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
                 };
                 if a.offset == b.offset {
-                    return Err(VirtualMachineError::AssertNonEqualFail(
+                    return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),
                     ));
