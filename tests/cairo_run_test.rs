@@ -56,3 +56,12 @@ fn cairo_run_assert_le_felt_hint() {
     cairo_run::cairo_run(Path::new("cairo_programs/assert_le_felt_hint.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+//Needs compound refrence deserialization + handling to work
+fn cairo_run_assert_250_bit_element_array() {
+    cairo_run::cairo_run(Path::new(
+        "cairo_programs/assert_250_bit_element_array.json",
+    ))
+    .expect("Couldn't run program");
+}

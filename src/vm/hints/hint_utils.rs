@@ -344,7 +344,7 @@ pub fn assert_250_bit(
                 return Err(VirtualMachineError::ExpectedInteger(low_addr.clone()));
             };
             //Main logic
-            let int_value = as_int(value.clone(), vm.prime.clone()) % vm.prime.clone();
+            let int_value = as_int(value.clone(), vm.prime.clone()).mod_floor(&vm.prime);
             if int_value > upper_bound || (high.clone(), low.clone()) != int_value.div_rem(&shift) {
                 return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
             }

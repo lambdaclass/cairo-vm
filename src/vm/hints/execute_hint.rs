@@ -27,12 +27,7 @@ pub fn execute_hint(
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
-        Ok("from starkware.cairo.common.math_utils import as_int\n
-        # Correctness check.
-        value = as_int(ids.value, PRIME) % PRIME
-        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
-        # Calculation for the assertion.
-        ids.high, ids.low = divmod(ids.value, ids.SHIFT)",
+        Ok("from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)",
         ) => assert_250_bit(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
@@ -788,12 +783,7 @@ mod tests {
 
     #[test]
     fn run_assert_250_bit_valid() {
-        let hint_code = "from starkware.cairo.common.math_utils import as_int\n
-        # Correctness check.
-        value = as_int(ids.value, PRIME) % PRIME
-        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
-        # Calculation for the assertion.
-        ids.high, ids.low = divmod(ids.value, ids.SHIFT)"
+        let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -853,12 +843,7 @@ mod tests {
 
     #[test]
     fn run_assert_250_bit_invalid() {
-        let hint_code = "from starkware.cairo.common.math_utils import as_int\n
-        # Correctness check.
-        value = as_int(ids.value, PRIME) % PRIME
-        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
-        # Calculation for the assertion.
-        ids.high, ids.low = divmod(ids.value, ids.SHIFT)"
+        let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
