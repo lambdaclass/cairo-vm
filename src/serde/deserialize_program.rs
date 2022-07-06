@@ -2,11 +2,11 @@ use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
-use lazy_regex::regex_captures;
+// use lazy_regex::regex_captures;
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
-use std::str::FromStr;
+// use std::str::FromStr;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -64,7 +64,10 @@ pub struct Reference {
 #[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct ValueAddress {
     pub register: Option<Register>,
-    pub offset: i32,
+    pub offset1: i32,
+    pub offset2: i32,
+    pub immediate: Option<BigInt>,
+    pub dereference: bool,
 }
 
 struct BigIntVisitor;
@@ -176,29 +179,142 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let register = if let Some((_, register)) = regex_captures!(r"([af]p)", value) {
-            match register {
-                "fp" => Some(Register::FP),
-                "ap" => Some(Register::AP),
-                _ => {
-                    unreachable!();
-                }
-            }
-        } else {
-            None
-        };
-        let offset = if let Some((_, offset_str)) = regex_captures!(r"(-?\d+)", value) {
-            match i32::from_str(offset_str) {
-                Ok(offset) => offset,
-                Err(e) => return Err(e).map_err(de::Error::custom),
-            }
-        } else {
-            0
-        };
+        // let register = if let Some((_, register)) = regex_captures!(r"([af]p)", value) {
+        //     match register {
+        //         "fp" => Some(Register::FP),
+        //         "ap" => Some(Register::AP),
+        //         _ => {
+        //             unreachable!();
+        //         }
+        //     }
+        // } else {
+        //     None
+        // };
+        // let offset = if let Some((_, offset_str)) = regex_captures!(r"(-?\d+)", value) {
+        //     match i32::from_str(offset_str) {
+        //         Ok(offset) => offset,
+        //         Err(e) => return Err(e).map_err(de::Error::custom),
+        //     }
+        // } else {
+        //     0
+        // };
 
-        Ok(ValueAddress { offset, register })
+        // Ok(ValueAddress { offset, register })
+        let res = match value.chars().nth(0) {
+            Some('[') => parse_dereference(&value.to_string()).unwrap(),
+            Some('c') => parse_reference(&value.to_string()).unwrap(),
+            _ => return Err("Hola").map_err(de::Error::custom),
+        };
+    
+        Ok(res)
     }
 }
+
+fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
+
+    let splitted: Vec<_> = value.split(" + ").collect();
+
+    match splitted.len() {
+        1 => {
+            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
+                "ap" => Some(Register::AP),
+                "fp" => Some(Register::FP),
+                _ =>  None,
+            };
+
+            return Ok(ValueAddress {register, offset1: 0, offset2: 0, immediate: None, dereference: false }) 
+        }
+        2 => {
+            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
+                "ap" => Some(Register::AP),
+                "fp" => Some(Register::FP),
+                _ =>  None,
+            };
+
+            let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
+            offset1_str.retain(|c| !r#"()"#.contains(c));
+
+            let offset1: i32 = offset1_str.parse().unwrap();
+
+            return Ok(ValueAddress {register, offset1, offset2: 0, immediate: None, dereference: false })
+
+        }
+        3 => {
+            let register = match splitted[0].split("[").collect::<Vec<_>>()[1] {
+                "ap" => Some(Register::AP),
+                "fp" => Some(Register::FP),
+                _ =>  None,
+            };
+
+            let mut offset1_str = splitted[1].to_string();
+            offset1_str.retain(|c| !r#"()]"#.contains(c));
+
+            let offset1: i32 = offset1_str.parse().unwrap();
+
+            let mut immediate_str= splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
+            immediate_str.retain(|c| !r#"()"#.contains(c));
+
+            let immediate: BigInt = immediate_str.parse().unwrap();
+
+            return Ok(ValueAddress { register, offset1, offset2: 0, immediate: Some(immediate), dereference: false })
+        }
+        _ => return Err(()),
+    }
+}
+
+fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
+
+    let splitted: Vec<_> = value.split(" + ").collect();
+
+    match splitted.len() {
+        1 => {
+            let str_tmp: Vec<_> = splitted[0].split(",").collect();
+
+            let register = match str_tmp[0].split("(").collect::<Vec<_>>()[1] {
+                "ap" => Some(Register::AP),
+                "fp" => Some(Register::FP),
+                _ =>  None,
+            };
+
+            return Ok(ValueAddress {register, offset1: 0, offset2: 0, immediate: None, dereference: true }) 
+        }
+        2 => {
+            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
+                "ap" => Some(Register::AP),
+                "fp" => Some(Register::FP),
+                _ =>  None,
+            };
+
+            let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
+            offset1_str.retain(|c| !r#"()"#.contains(c));
+
+            let offset1: i32 = offset1_str.parse().unwrap();
+
+            return Ok(ValueAddress {register, offset1, offset2: 0, immediate: None, dereference: true })
+
+        }
+        3 => {
+            let register = match splitted[0].split("[").collect::<Vec<_>>()[2] {
+                "ap" => Some(Register::AP),
+                "fp" => Some(Register::FP),
+                _ =>  None,
+            };
+
+            let mut offset1_str = splitted[1].to_string();
+            offset1_str.retain(|c| !r#"()]"#.contains(c));
+
+            let offset1: i32 = offset1_str.parse().unwrap();
+
+            let mut offset2_str = splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
+            offset2_str.retain(|c| !r#"()"#.contains(c));
+
+            let offset2: i32 = offset2_str.parse().unwrap();
+
+            return Ok(ValueAddress { register, offset1, offset2, immediate: None, dereference: true })
+        }
+        _ => return Err(()),
+    }
+} 
 
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
@@ -356,6 +472,22 @@ mod tests {
                             },
                             "pc": 0,
                             "value": "[cast(fp + (-3), felt*)]"
+                        },
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "cast([fp + (-3)] + 2, felt)"
+                        },
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "[cast(fp, felt*)]"
                         }
                     ]
                 }
@@ -424,7 +556,10 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         register: Some(Register::FP),
-                        offset: -4,
+                        offset1: -4,
+                        offset2: 0,
+                        immediate: None,
+                        dereference: true,
                     },
                 },
                 Reference {
@@ -435,7 +570,38 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         register: Some(Register::FP),
-                        offset: -3,
+                        offset1: -3,
+                        offset2: 0,
+                        immediate: None,
+                        dereference: true,
+                    },
+                },
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value_address: ValueAddress {
+                        register: Some(Register::FP),
+                        offset1: -3,
+                        offset2: 0,
+                        immediate: Some(bigint!(2)),
+                        dereference: false,
+                    },
+                },
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value_address: ValueAddress {
+                        register: Some(Register::FP),
+                        offset1: 0,
+                        offset2: 0,
+                        immediate: None,
+                        dereference: true,
                     },
                 },
             ],
