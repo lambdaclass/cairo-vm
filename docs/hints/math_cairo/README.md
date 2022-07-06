@@ -58,7 +58,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 ## func assert_le{range_check_ptr}(a, b):
 * Status:
-* Assignee: 
+* Assignee: Fede
 * Hints: None
 * Depends on functions: 
     * `assert_nn`
