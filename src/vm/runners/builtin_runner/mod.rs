@@ -10,14 +10,11 @@ use num_bigint::{BigInt, Sign};
 use num_traits::FromPrimitive;
 use starknet_crypto::{pedersen_hash, FieldElement};
 
+mod output;
 mod range_check;
-pub use range_check::RangeCheckBuiltinRunner;
 
-pub struct OutputBuiltinRunner {
-    included: bool,
-    base: Option<Relocatable>,
-    _stop_ptr: Option<Relocatable>,
-}
+pub use output::OutputBuiltinRunner;
+pub use range_check::RangeCheckBuiltinRunner;
 
 pub struct HashBuiltinRunner {
     pub base: Option<Relocatable>,
@@ -62,54 +59,6 @@ pub trait BuiltinRunner {
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
-}
-
-impl OutputBuiltinRunner {
-    pub fn new(included: bool) -> OutputBuiltinRunner {
-        OutputBuiltinRunner {
-            included,
-            base: None,
-            _stop_ptr: None,
-        }
-    }
-}
-
-impl BuiltinRunner for OutputBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = Some(segments.add(memory, None))
-    }
-
-    fn initial_stack(&self) -> Result<Vec<MaybeRelocatable>, RunnerError> {
-        if self.included {
-            if let Some(builtin_base) = &self.base {
-                Ok(vec![MaybeRelocatable::RelocatableValue(
-                    builtin_base.clone(),
-                )])
-            } else {
-                Err(RunnerError::UninitializedBase)
-            }
-        } else {
-            Ok(Vec::new())
-        }
-    }
-
-    fn base(&self) -> Option<Relocatable> {
-        self.base.clone()
-    }
-
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
-
-    fn deduce_memory_cell(
-        &mut self,
-        _address: &MaybeRelocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl HashBuiltinRunner {
@@ -472,51 +421,13 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint, bigint_str, relocatable};
-
-    #[test]
-    fn initialize_segments_for_output() {
-        let mut builtin = OutputBuiltinRunner::new(true);
-        let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        builtin.initialize_segments(&mut segments, &mut memory);
-        assert_eq!(builtin.base, Some(relocatable!(0, 0)));
-    }
+    use crate::{bigint, bigint_str};
 
     #[test]
     fn get_initial_stack_for_ecop_not_included() {
         let builtin = EcOpBuiltinRunner::new(false, 8);
         let initial_stack = builtin.initial_stack();
         assert_eq!(initial_stack, Ok(Vec::new()));
-    }
-
-    #[test]
-    fn get_initial_stack_for_output_included_with_base() {
-        let mut builtin = OutputBuiltinRunner::new(true);
-        builtin.base = Some(Relocatable {
-            segment_index: 1,
-            offset: 0,
-        });
-        let initial_stack = builtin.initial_stack().unwrap();
-        assert_eq!(
-            initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue(builtin.base().unwrap())
-        );
-        assert_eq!(initial_stack.len(), 1);
-    }
-
-    #[test]
-    fn get_initial_stack_for_output_included_without_base() {
-        let builtin = OutputBuiltinRunner::new(true);
-        let error = builtin.initial_stack();
-        assert_eq!(error, Err(RunnerError::UninitializedBase));
-    }
-
-    #[test]
-    fn get_initial_stack_for_output_not_included() {
-        let builtin = OutputBuiltinRunner::new(false);
-        let initial_stack = builtin.initial_stack().unwrap();
-        assert_eq!(initial_stack.len(), 0);
     }
 
     #[test]
