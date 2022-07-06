@@ -109,8 +109,8 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 
 ## func split_felt{range_check_ptr}(value) -> (high : felt, low : felt):
-* Status:
-* Assignee: 
+* Status: WIP
+* Assignee: Peter
 * Hints:
 ```
     %{
