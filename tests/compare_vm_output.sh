@@ -13,7 +13,7 @@ for file in $(ls $tests_path | grep .cleopatra.trace | sed -E 's/\.cleopatra\.tr
 done
 
 for file in $(ls $tests_path | grep .cleopatra.memory | sed -E 's/\.cleopatra\.memory//'); do
-    if ! ./memory_comparator.py $tests_path/$file{,.cleopatra}.memory; then
+        if ! ./memory_comparator.py $tests_path/$file{,.cleopatra}.memory > /dev/null 2>&1; then
         echo "Memory differs for $file"
         exit_code=1
     else
