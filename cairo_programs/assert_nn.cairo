@@ -25,4 +25,4 @@ func main{range_check_ptr: felt}():
     assert_nn_manual_implementation(y)
 
     return ()
-end    
+end
