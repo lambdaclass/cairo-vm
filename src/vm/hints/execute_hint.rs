@@ -27,8 +27,7 @@ pub fn execute_hint(
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
-        Ok(
-            "from starkware.cairo.common.math_utils import as_int\n
+        Ok("from starkware.cairo.common.math_utils import as_int\n
         # Correctness check.
         value = as_int(ids.value, PRIME) % PRIME
         assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
@@ -785,5 +784,140 @@ mod tests {
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
+    }
+
+    #[test]
+    fn run_assert_250_bit_valid() {
+        let hint_code = "from starkware.cairo.common.math_utils import as_int\n
+        # Correctness check.
+        value = as_int(ids.value, PRIME) % PRIME
+        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
+        # Calculation for the assertion.
+        ids.high, ids.low = divmod(ids.value, ids.SHIFT)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Insert ids into memory
+        //ids.value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //ids.high
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //ids.low
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -3,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Hint would return an error if the assertion fails
+    }
+
+    #[test]
+    fn run_assert_250_bit_invalid() {
+        let hint_code = "from starkware.cairo.common.math_utils import as_int\n
+        # Correctness check.
+        value = as_int(ids.value, PRIME) % PRIME
+        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n
+        # Calculation for the assertion.
+        ids.high, ids.low = divmod(ids.value, ids.SHIFT)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Insert ids into memory
+        //ids.value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(2).pow(251)),
+            )
+            .unwrap();
+        //ids.high
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //ids.low
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -3,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ValueOutside250BitRange(
+                bigint!(2).pow(251)
+            ))
+        );
+        //Hint would return an error if the assertion fails
     }
 }
