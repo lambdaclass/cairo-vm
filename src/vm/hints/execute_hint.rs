@@ -213,6 +213,52 @@ mod tests {
     }
 
     #[test]
+    //This test contemplates the case when the number itself is negative, but it is within the range (-prime, -range_check_bound)
+    //Making the comparison return 1 (true)
+    fn run_is_nn_hint_true_border_case() {
+        let hint_code =
+            "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                //(-prime) + 1
+                &MaybeRelocatable::from(
+                    BigInt::new(Sign::Minus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]) + bigint!(1),
+                ),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        //Execute the hint
+        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        //Check that ap now contains true (1)
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+    }
+
+    #[test]
     fn run_invalid_encoding_hint() {
         let hint_code = [0x80];
         let mut vm = VirtualMachine::new(
@@ -715,7 +761,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(2).pow(300)),
+                &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //Create ids
@@ -728,7 +774,6 @@ mod tests {
         }];
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
-        //Check that ap now contains false (0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
@@ -770,7 +815,6 @@ mod tests {
         }];
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
-        //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
