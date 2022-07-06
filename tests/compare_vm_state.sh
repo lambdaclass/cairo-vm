@@ -45,7 +45,7 @@ fi
 if (($failed_tests == 0)); then
     echo "All $passed_tests tests passed; no discrepancies found"
 else
-        echo "Comparisons: $failed_tests failed, $passed_tests passed out of $(($failed_tests + $passed_tests))" 
+        echo "Comparisons: $failed_tests failed, $passed_tests passed, $(($failed_tests + $passed_tests)) total" 
 fi
 
 exit "${exit_code}"
