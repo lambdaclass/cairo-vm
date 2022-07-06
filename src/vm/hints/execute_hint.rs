@@ -27,11 +27,7 @@ pub fn execute_hint(
         }
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
-        Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)\n            assert both_ints or both_relocatable, f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\n            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'") => assert_not_equal(vm, ids), 
+        Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'") => assert_not_equal(vm, ids), 
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
@@ -785,15 +781,8 @@ mod tests {
         );
     }
     #[test]
-    fn run_assert_non_equal_int_false() {
-        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)
-            assert both_ints or both_relocatable, \
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+    fn run_assert_not_equal_int_false() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -844,15 +833,8 @@ mod tests {
     }
 
     #[test]
-    fn run_assert_non_equal_int_true() {
-        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)
-            assert both_ints or both_relocatable, \
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+    fn run_assert_not_equal_int_true() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -897,15 +879,8 @@ mod tests {
     }
 
     #[test]
-    fn run_assert_non_equal_relocatable_false() {
-        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)
-            assert both_ints or both_relocatable, \
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+    fn run_assert_not_equal_relocatable_false() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -956,15 +931,8 @@ mod tests {
     }
 
     #[test]
-    fn run_assert_non_equal_relocatable_true() {
-        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)
-            assert both_ints or both_relocatable, \
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+    fn run_assert_not_equal_relocatable_true() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1010,14 +978,7 @@ mod tests {
 
     #[test]
     fn run_assert_non_equal_relocatable_diff_index() {
-        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)
-            assert both_ints or both_relocatable, \
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1068,15 +1029,8 @@ mod tests {
     }
 
     #[test]
-    fn run_assert_non_equal_relocatable_and_integer() {
-        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue
-            both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
-            both_relocatable = (
-                isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
-                ids.a.segment_index == ids.b.segment_index)
-            assert both_ints or both_relocatable, \
-                f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-            assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
+    fn run_assert_not_equal_relocatable_and_integer() {
+        let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
