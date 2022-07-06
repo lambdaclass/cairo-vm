@@ -308,8 +308,7 @@ pub fn assert_not_equal(
     } else {
         return Err(VirtualMachineError::FailedToGetIds);
     };
-    //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
-    //small_inputs needs to be None, as we cant change it value otherwise
+    //Check that the ids are in memory
     match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
