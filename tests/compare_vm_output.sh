@@ -2,14 +2,14 @@
 
 tests_path="../cairo_programs"
 exit_code=0
-trace=true
-memory=true
+trace=false
+memory=false
 
 for i in $@; do
     case $i in
-        "trace") trace=1
+        "trace") trace=true
         ;;
-        "memory") trace=1
+        "memory") memory=true
         ;;
         *)
         ;;
