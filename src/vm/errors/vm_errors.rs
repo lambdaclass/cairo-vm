@@ -117,7 +117,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
             VirtualMachineError::DiffTypeComparison(a, b) => {
-                write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to a integer value", a, b)
+                write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to an integer value", a, b)
             },
             VirtualMachineError::AssertNotEqualFail(a, b) => {
                 write!(f, "assert_not_equal failed: {:?} =  {:?}", a, b)
