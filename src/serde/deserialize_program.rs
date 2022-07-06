@@ -205,13 +205,12 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
             Some('c') => parse_reference(&value.to_string()).unwrap(),
             _ => return Err("Hola").map_err(de::Error::custom),
         };
-    
+
         Ok(res)
     }
 }
 
 fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
-
     let splitted: Vec<_> = value.split(" + ").collect();
 
     match splitted.len() {
@@ -219,16 +218,22 @@ fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
             let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
                 "ap" => Some(Register::AP),
                 "fp" => Some(Register::FP),
-                _ =>  None,
+                _ => None,
             };
 
-            return Ok(ValueAddress {register, offset1: 0, offset2: 0, immediate: None, dereference: false }) 
+            return Ok(ValueAddress {
+                register,
+                offset1: 0,
+                offset2: 0,
+                immediate: None,
+                dereference: false,
+            });
         }
         2 => {
             let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
                 "ap" => Some(Register::AP),
                 "fp" => Some(Register::FP),
-                _ =>  None,
+                _ => None,
             };
 
             let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
@@ -236,14 +241,19 @@ fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
 
             let offset1: i32 = offset1_str.parse().unwrap();
 
-            return Ok(ValueAddress {register, offset1, offset2: 0, immediate: None, dereference: false })
-
+            return Ok(ValueAddress {
+                register,
+                offset1,
+                offset2: 0,
+                immediate: None,
+                dereference: false,
+            });
         }
         3 => {
             let register = match splitted[0].split("[").collect::<Vec<_>>()[1] {
                 "ap" => Some(Register::AP),
                 "fp" => Some(Register::FP),
-                _ =>  None,
+                _ => None,
             };
 
             let mut offset1_str = splitted[1].to_string();
@@ -251,19 +261,24 @@ fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
 
             let offset1: i32 = offset1_str.parse().unwrap();
 
-            let mut immediate_str= splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
+            let mut immediate_str = splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
             immediate_str.retain(|c| !r#"()"#.contains(c));
 
             let immediate: BigInt = immediate_str.parse().unwrap();
 
-            return Ok(ValueAddress { register, offset1, offset2: 0, immediate: Some(immediate), dereference: false })
+            return Ok(ValueAddress {
+                register,
+                offset1,
+                offset2: 0,
+                immediate: Some(immediate),
+                dereference: false,
+            });
         }
         _ => return Err(()),
     }
 }
 
 fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
-
     let splitted: Vec<_> = value.split(" + ").collect();
 
     match splitted.len() {
@@ -273,16 +288,22 @@ fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
             let register = match str_tmp[0].split("(").collect::<Vec<_>>()[1] {
                 "ap" => Some(Register::AP),
                 "fp" => Some(Register::FP),
-                _ =>  None,
+                _ => None,
             };
 
-            return Ok(ValueAddress {register, offset1: 0, offset2: 0, immediate: None, dereference: true }) 
+            return Ok(ValueAddress {
+                register,
+                offset1: 0,
+                offset2: 0,
+                immediate: None,
+                dereference: true,
+            });
         }
         2 => {
             let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
                 "ap" => Some(Register::AP),
                 "fp" => Some(Register::FP),
-                _ =>  None,
+                _ => None,
             };
 
             let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
@@ -290,14 +311,19 @@ fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
 
             let offset1: i32 = offset1_str.parse().unwrap();
 
-            return Ok(ValueAddress {register, offset1, offset2: 0, immediate: None, dereference: true })
-
+            return Ok(ValueAddress {
+                register,
+                offset1,
+                offset2: 0,
+                immediate: None,
+                dereference: true,
+            });
         }
         3 => {
             let register = match splitted[0].split("[").collect::<Vec<_>>()[2] {
                 "ap" => Some(Register::AP),
                 "fp" => Some(Register::FP),
-                _ =>  None,
+                _ => None,
             };
 
             let mut offset1_str = splitted[1].to_string();
@@ -310,11 +336,17 @@ fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
 
             let offset2: i32 = offset2_str.parse().unwrap();
 
-            return Ok(ValueAddress { register, offset1, offset2, immediate: None, dereference: true })
+            return Ok(ValueAddress {
+                register,
+                offset1,
+                offset2,
+                immediate: None,
+                dereference: true,
+            });
         }
         _ => return Err(()),
     }
-} 
+}
 
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
