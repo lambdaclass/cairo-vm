@@ -1,11 +1,12 @@
+use crate::types::instruction::Register;
 use crate::types::{
-    errors::program_errors::ProgramError,
-    program::{Program, ReferenceManager},
-    relocatable::MaybeRelocatable,
+    errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
+use lazy_regex::regex_captures;
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
+use std::str::FromStr;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -17,6 +18,7 @@ pub struct ProgramJson {
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
     pub hints: HashMap<usize, Vec<HintParams>>,
+    pub reference_manager: ReferenceManager,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -33,14 +35,36 @@ pub struct FlowTrackingData {
     #[serde(deserialize_with = "deserialize_map_to_string_and_bigint_hashmap")]
     pub reference_ids: HashMap<String, BigInt>,
 }
+
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct ApTracking {
     pub group: usize,
     pub offset: usize,
 }
+
 #[derive(Deserialize, Debug)]
 pub struct Identifier {
     pub pc: Option<usize>,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Clone)]
+pub struct ReferenceManager {
+    pub references: Vec<Reference>,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Clone)]
+pub struct Reference {
+    pub ap_tracking_data: ApTracking,
+    pub pc: Option<usize>,
+    #[serde(deserialize_with = "deserialize_value_address")]
+    #[serde(rename(deserialize = "value"))]
+    pub value_address: ValueAddress,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Clone)]
+pub struct ValueAddress {
+    pub register: Option<Register>,
+    pub offset: i32,
 }
 
 struct BigIntVisitor;
@@ -139,6 +163,43 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
     }
 }
 
+struct ValueAddressVisitor;
+
+impl<'de> de::Visitor<'de> for ValueAddressVisitor {
+    type Value = ValueAddress;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a string representing the address in memory of a variable")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let register = if let Some((_, register)) = regex_captures!(r"([af]p)", value) {
+            match register {
+                "fp" => Some(Register::FP),
+                "ap" => Some(Register::AP),
+                _ => {
+                    unreachable!();
+                }
+            }
+        } else {
+            None
+        };
+        let offset = if let Some((_, offset_str)) = regex_captures!(r"(-?\d+)", value) {
+            match i32::from_str(offset_str) {
+                Ok(offset) => offset,
+                Err(e) => return Err(e).map_err(de::Error::custom),
+            }
+        } else {
+            0
+        };
+
+        Ok(ValueAddress { offset, register })
+    }
+}
+
 pub fn deserialize_bigint_hex<'de, D: Deserializer<'de>>(d: D) -> Result<BigInt, D::Error> {
     d.deserialize_str(BigIntVisitor)
 }
@@ -153,6 +214,12 @@ pub fn deserialize_map_to_string_and_bigint_hashmap<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<HashMap<String, BigInt>, D::Error> {
     d.deserialize_map(ReferenceIdsVisitor)
+}
+
+pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<ValueAddress, D::Error> {
+    d.deserialize_str(ValueAddressVisitor)
 }
 
 // Checks if the hex string has an odd length.
@@ -182,9 +249,7 @@ pub fn deserialize_program(path: &Path) -> Result<Program, ProgramError> {
         data: program_json.data,
         main: program_json.identifiers["__main__.main"].pc,
         hints: program_json.hints,
-        reference_manager: ReferenceManager {
-            references: Vec::new(),
-        },
+        reference_manager: program_json.reference_manager,
     })
 }
 
@@ -273,6 +338,26 @@ mod tests {
                             }
                         }
                     ]
+                },
+                "reference_manager": {
+                    "references": [
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "[cast(fp + (-4), felt*)]"
+                        },
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "[cast(fp + (-3), felt*)]"
+                        }
+                    ]
                 }
             }"#;
 
@@ -329,11 +414,39 @@ mod tests {
             }],
         );
 
+        let reference_manager = ReferenceManager {
+            references: vec![
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value_address: ValueAddress {
+                        register: Some(Register::FP),
+                        offset: -4,
+                    },
+                },
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value_address: ValueAddress {
+                        register: Some(Register::FP),
+                        offset: -3,
+                    },
+                },
+            ],
+        };
+
         assert_eq!(program_json.prime, bigint!(10));
         assert_eq!(program_json.builtins, builtins);
         assert_eq!(program_json.data, data);
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
         assert_eq!(program_json.hints, hints);
+        assert_eq!(program_json.reference_manager, reference_manager);
     }
 
     #[test]
