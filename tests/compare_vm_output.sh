@@ -3,10 +3,13 @@
 tests_path="../cairo_programs"
 exit_code=0
 trace=true
+memory=true
 
 for i in $@; do
     case $i in
         "trace") trace=1
+        ;;
+        "memory") trace=1
         ;;
         *)
         ;;
@@ -24,13 +27,15 @@ if $trace; then
     done
 fi
 
-for file in $(ls $tests_path | grep .cleopatra.memory | sed -E 's/\.cleopatra\.memory//'); do
-        if ! ./memory_comparator.py $tests_path/$file{,.cleopatra}.memory > /dev/null 2>&1; then
-        echo "Memory differs for $file"
-        exit_code=1
-    else
-        echo "Memory matches for $file"
-    fi
-done
+if $memory; then
+    for file in $(ls $tests_path | grep .cleopatra.memory | sed -E 's/\.cleopatra\.memory//'); do
+            if ! ./memory_comparator.py $tests_path/$file{,.cleopatra}.memory > /dev/null 2>&1; then
+            echo "Memory differs for $file"
+            exit_code=1
+        else
+            echo "Memory matches for $file"
+        fi
+    done
+fi
 
 exit "${exit_code}"
