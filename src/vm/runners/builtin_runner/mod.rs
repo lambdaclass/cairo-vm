@@ -419,7 +419,7 @@ impl EcOpBuiltinRunner {
     ) -> (BigInt, BigInt) {
         let mut slope = m.clone();
         for _ in 0..height {
-            assert!((doubled_point.0.clone() - partial_sum.0.clone())% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+            assert!((doubled_point.0.clone() - partial_sum.0.clone())% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
             Attempting to compute P + m * Q where:\n
             P = {:?} \n
             m = {}\n
