@@ -15,23 +15,23 @@ from starkware.cairo.common.registers import get_fp_and_pc, get_label_location
 from starkware.cairo.common.uint256 import Uint256
 ```
 
-## func blake2s{range_check_ptr, blake2s_ptr : felt*}(data : felt*, n_bytes : felt):
+## func blake2s
 * Depends on functions: 
     * blake2s_as_words
 * Hints:None 
 
-## func blake2s_bigend{bitwise_ptr : BitwiseBuiltin*, range_check_ptr, blake2s_ptr : felt*}
+## func blake2s_bigend
 * Depends on functions: 
     * blake2s
 * Hints:None 
 
-## func blake2s_as_words{range_check_ptr, blake2s_ptr : felt*}(data : felt*, n_bytes : felt):
+## func blake2s_as_words
 * Depends on functions: 
     * blake2s_inner
 * Hints:None 
 
 
-## func blake2s_inner{range_check_ptr, blake2s_ptr : felt*}(data : felt*, n_bytes : felt, counter : felt):
+## func blake2s_inner
 * Depends on functions: 
     * is_le(import)
     * blake2s_last_block
@@ -44,9 +44,7 @@ from starkware.cairo.common.uint256 import Uint256
     %}
 ```
 
-## func blake2s_last_block{range_check_ptr, blake2s_ptr : felt*}(
-    data : felt*, n_bytes : felt, counter : felt
-)
+## func blake2s_last_block
 * Depends on functions: 
     * unsigned_div_rem(import)
     * memcpy(import)
@@ -60,9 +58,7 @@ from starkware.cairo.common.uint256 import Uint256
     %}
 ```
 
-## func finalize_blake2s{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
-    blake2s_ptr_start : felt*, blake2s_ptr_end : felt*
-):
+## func finalize_blake2s
 * Depends on functions: 
     * get_fp_and_pc(import)
     * _get_sigma()
@@ -94,12 +90,12 @@ from starkware.cairo.common.uint256 import Uint256
     %}
 ```
 
-## func _get_sigma() -> (sigma : felt*):
+## func _get_sigma():
 * Depends on functions: 
     * get_label_location(import)
 * Hints: None
 
-## func _finalize_blake2s_inner{range_check_ptr, bitwise_ptr : BitwiseBuiltin*, blake2s_ptr : felt*}(n : felt, sigma : felt*):
+## func _finalize_blake2s_inner:
 * Depends on functions: 
     * alloc(import)
     * _pack_ints
@@ -107,11 +103,11 @@ from starkware.cairo.common.uint256 import Uint256
     * _finalize_blake2s_inner
 * Hints: None
 
-## func _pack_ints{range_check_ptr, blake2s_ptr : felt*}(m, packed_values : felt*):
+## func _pack_ints:
 * Depends on functions: None
 * Hints: None
 
-## func blake2s_add_uint256{data : felt*}(num : Uint256):
+## func blake2s_add_uint256:
 * Depends on functions: None
 * Hints:
 ```
@@ -123,7 +119,7 @@ from starkware.cairo.common.uint256 import Uint256
     %}
 ```
 
-## func blake2s_add_uint256_bigend{bitwise_ptr : BitwiseBuiltin*, data : felt*}(num : Uint256):
+## func blake2s_add_uint256_bigend:
 * Depends on functions: None
 * Hints:
 ```
@@ -135,22 +131,18 @@ from starkware.cairo.common.uint256 import Uint256
     %}
 ```
 
-## func blake2s_add_felt{range_check_ptr, bitwise_ptr : BitwiseBuiltin*, data : felt*}(num : felt, bigend : felt):
+## func blake2s_add_felt:
 * Depends on functions: 
     * split_felt(import)
     * blake2s_add_uint256_bigend
     * blake2s_add_uint256
 * Hints: None
 
-## func blake2s_add_felts{range_check_ptr, bitwise_ptr : BitwiseBuiltin*, data : felt*}(
-    n_elements : felt, elements : felt*, bigend : felt
-) -> ():
+## func blake2s_add_felts:
 * Depends on functions: None
 * Hints: None
 
-## func blake2s_felts{range_check_ptr, bitwise_ptr : BitwiseBuiltin*, blake2s_ptr : felt*}(
-    n_elements : felt, elements : felt*, bigend : felt
-):
+## func blake2s_felts:
 * Depends on functions: 
     * alloc(import)
     * blake2s_add_felts
