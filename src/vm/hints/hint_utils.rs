@@ -326,7 +326,7 @@ pub fn is_positive(
                     };
                     //Main logic (assert a is positive)
                     let mut result = bigint!(0);
-                    let int_value = as_int(&value, &vm.prime);
+                    let int_value = as_int(value, &vm.prime);
                     if int_value.abs() > range_check_builtin._bound {
                         return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
                     }
