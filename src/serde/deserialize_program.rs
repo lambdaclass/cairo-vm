@@ -7,7 +7,8 @@ use num_bigint::{BigInt, Sign};
 use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 // use std::str::FromStr;
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
+use crate::serde::deserialize_utils;
+use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
@@ -86,7 +87,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
         // Strip the '0x' prefix from the encoded hex string
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
-            let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+            let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
             let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
 
             match decoded_result {
@@ -117,7 +118,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
         while let Some(value) = seq.next_element::<String>()? {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
-                let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+                let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
                 let decoded_result: Result<Vec<u8>, hex::FromHexError> =
                     hex::decode(&no_prefix_hex);
 
@@ -180,150 +181,12 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         E: de::Error,
     {
         let res = match value.chars().nth(0) {
-            Some('[') => parse_dereference(&value.to_string()).unwrap(),
-            Some('c') => parse_reference(&value.to_string()).unwrap(),
-            _ => return Err("Hola").map_err(de::Error::custom),
+            Some('[') => deserialize_utils::parse_dereference(&value.to_string()).unwrap(),
+            Some('c') => deserialize_utils::parse_reference(&value.to_string()).unwrap(),
+            _c => return Err("Expected '[' or 'c' as first char").map_err(de::Error::custom),
         };
 
         Ok(res)
-    }
-}
-
-fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
-    let splitted: Vec<_> = value.split(" + ").collect();
-
-    match splitted.len() {
-        1 => {
-            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            return Ok(ValueAddress {
-                register,
-                offset1: 0,
-                offset2: 0,
-                immediate: None,
-                dereference: false,
-            });
-        }
-        2 => {
-            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
-            offset1_str.retain(|c| !r#"()"#.contains(c));
-
-            let offset1: i32 = offset1_str.parse().unwrap();
-
-            return Ok(ValueAddress {
-                register,
-                offset1,
-                offset2: 0,
-                immediate: None,
-                dereference: false,
-            });
-        }
-        3 => {
-            let register = match splitted[0].split("[").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            let mut offset1_str = splitted[1].to_string();
-            offset1_str.retain(|c| !r#"()]"#.contains(c));
-
-            let offset1: i32 = offset1_str.parse().unwrap();
-
-            let mut immediate_str = splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
-            immediate_str.retain(|c| !r#"()"#.contains(c));
-
-            let immediate: BigInt = immediate_str.parse().unwrap();
-
-            return Ok(ValueAddress {
-                register,
-                offset1,
-                offset2: 0,
-                immediate: Some(immediate),
-                dereference: false,
-            });
-        }
-        _ => return Err(()),
-    }
-}
-
-fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
-    let splitted: Vec<_> = value.split(" + ").collect();
-
-    match splitted.len() {
-        1 => {
-            let str_tmp: Vec<_> = splitted[0].split(",").collect();
-
-            let register = match str_tmp[0].split("(").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            return Ok(ValueAddress {
-                register,
-                offset1: 0,
-                offset2: 0,
-                immediate: None,
-                dereference: true,
-            });
-        }
-        2 => {
-            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
-            offset1_str.retain(|c| !r#"()]"#.contains(c));
-
-            let offset1: i32 = offset1_str.parse().unwrap();
-
-            return Ok(ValueAddress {
-                register,
-                offset1,
-                offset2: 0,
-                immediate: None,
-                dereference: true,
-            });
-        }
-        3 => {
-            let register = match splitted[0].split("[").collect::<Vec<_>>()[2] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            let mut offset1_str = splitted[1].to_string();
-            offset1_str.retain(|c| !r#"()]"#.contains(c));
-
-            let offset1: i32 = offset1_str.parse().unwrap();
-
-            let mut offset2_str = splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
-            offset2_str.retain(|c| !r#"()"#.contains(c));
-
-            let offset2: i32 = offset2_str.parse().unwrap();
-
-            return Ok(ValueAddress {
-                register,
-                offset1,
-                offset2,
-                immediate: None,
-                dereference: true,
-            });
-        }
-        _ => return Err(()),
     }
 }
 
@@ -347,16 +210,6 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<ValueAddress, D::Error> {
     d.deserialize_str(ValueAddressVisitor)
-}
-
-// Checks if the hex string has an odd length.
-// If that is the case, prepends '0' to it.
-fn maybe_add_padding(mut hex: String) -> String {
-    if hex.len().rem(2) != 0 {
-        hex.insert(0, '0');
-        return hex;
-    }
-    hex
 }
 
 pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
