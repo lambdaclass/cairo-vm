@@ -171,7 +171,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 
 ## func abs_value{range_check_ptr}(value):
-* Status: WIP
+* Status: WIP https://github.com/lambdaclass/cleopatra_cairo/pull/249
 * Assignee: Fede
 * Hints:
 ```
@@ -186,7 +186,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 
 ## func sign{range_check_ptr}(value):
-* Status:
+* Status: Same as above
 * Assignee: 
 * Hints:
 ```
@@ -200,8 +200,8 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 
 ## func unsigned_div_rem{range_check_ptr}(value, div):
-* Status:
-* Assignee: 
+* Status: WIP
+* Assignee: Fede
 * Hints:
 ```
     %{
