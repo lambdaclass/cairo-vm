@@ -70,10 +70,10 @@ compare_benchmarks: $(COMPILED_BENCHES)
 compare_trace_memory: $(CLEO_TRACE) $(CAIRO_TRACE) $(CLEO_MEM) $(CAIRO_MEM)
 	cd tests; ./compare_vm_state.sh trace memory
 
-compare-trace: $(CLEO_TRACE) $(CAIRO_TRACE)
+compare_trace: $(CLEO_TRACE) $(CAIRO_TRACE)
 	cd tests; ./compare_vm_state.sh trace
 
-compare-memory: $(CLEO_MEM) $(CAIRO_MEM)
+compare_memory: $(CLEO_MEM) $(CAIRO_MEM)
 	cd tests; ./compare_vm_state.sh memory
 
 docs:
