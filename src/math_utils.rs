@@ -4,9 +4,9 @@ use num_integer::Integer;
 use num_traits::{abs, FromPrimitive};
 
 /// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
-pub fn as_int(val: BigInt, prime: BigInt) -> BigInt {
-    if val < prime {
-        val
+pub fn as_int(val: &BigInt, prime: &BigInt) -> BigInt {
+    if val < &prime.div_floor(&bigint!(2)) {
+        val.clone()
     } else {
         val - prime
     }
