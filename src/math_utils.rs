@@ -3,6 +3,15 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{abs, FromPrimitive};
 
+/// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
+pub fn as_int(val: BigInt, prime: BigInt) -> BigInt {
+    if val < prime {
+        val
+    } else {
+        val - prime
+    }
+}
+
 ///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
 fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
     let mut a = num_a;
