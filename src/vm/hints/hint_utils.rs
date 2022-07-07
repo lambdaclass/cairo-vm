@@ -368,35 +368,41 @@ pub fn assert_nn(
         } else {
             return Err(VirtualMachineError::FailedToGetIds);
         };
+
     //Check that the 'a' id is in memory
-    match vm.memory.get(&a_addr) {
-        Ok(Some(maybe_rel_a)) => {
-            //assert_integer(ids.a)
-            let a = if let &MaybeRelocatable::Int(ref a) = maybe_rel_a {
-                a
+    let maybe_rel_a = if let Ok(Some(maybe_rel_a)) = vm.memory.get(&a_addr) {
+        maybe_rel_a
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    //assert_integer(ids.a)
+    let a = if let &MaybeRelocatable::Int(ref a) = maybe_rel_a {
+        a
+    } else {
+        return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+    };
+
+    for (name, builtin) in &vm.builtin_runners {
+        //Check that range_check_builtin is present
+        if name == &String::from("range_check") {
+            let range_check_builtin = if let Some(range_check_builtin) =
+                builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+            {
+                range_check_builtin
             } else {
-                return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+                return Err(VirtualMachineError::NoRangeCheckBuiltin);
             };
-            for (name, builtin) in &vm.builtin_runners {
-                //Check that range_check_builtin is present
-                if name == &String::from("range_check") {
-                    match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
-                        None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
-                        Some(builtin) => {
-                            // assert 0 <= ids.a % PRIME < range_check_builtin.bound
-                            if bigint!(0) <= a.mod_floor(&vm.prime)
-                                && a.mod_floor(&vm.prime) < builtin._bound
-                            {
-                                return Ok(());
-                            } else {
-                                return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
-                            }
-                        }
-                    }
-                }
+
+            // assert 0 <= ids.a % PRIME < range_check_builtin.bound
+            if bigint!(0) <= a.mod_floor(&vm.prime)
+                && a.mod_floor(&vm.prime) < range_check_builtin._bound
+            {
+                return Ok(());
+            } else {
+                return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
             }
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
-        _ => Err(VirtualMachineError::FailedToGetIds),
     }
+    Err(VirtualMachineError::NoRangeCheckBuiltin)
 }
