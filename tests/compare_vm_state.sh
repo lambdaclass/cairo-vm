@@ -18,9 +18,10 @@ for i in $@; do
     esac
 done
 
-if $trace; then
-    for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
-        path_file="$tests_path/$file"
+for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
+    path_file="$tests_path/$file"
+
+    if $trace; then
         if ! diff -q $path_file.trace $path_file.cleopatra.trace; then
             echo "Traces for $file differ"
             exit_code=1
@@ -28,12 +29,9 @@ if $trace; then
         else
             passed_tests=$((passed_tests + 1))
         fi
-    done
-fi
+    fi
 
-if $memory; then
-    for file in $(ls $tests_path | grep .cleopatra.memory | sed -E 's/\.cleopatra\.memory//'); do
-        path_file="$tests_path/$file"
+    if $memory; then
         if ! ./memory_comparator.py $path_file.cleopatra.memory $path_file.memory> /dev/null 2>&1; then
             echo "Memory differs for $file"
             exit_code=1
@@ -41,8 +39,8 @@ if $memory; then
         else
             passed_tests=$((passed_tests + 1))
         fi
-    done
-fi
+    fi
+done
 
 if test $failed_tests = 0; then
     echo "All $passed_tests tests passed; no discrepancies found"
