@@ -1,4 +1,4 @@
-# Implementation of caro_keccak hints
+# Implementation of cairo_keccak hints
 
  A summary of the cairo_keccak functions, hints used and function depedencies
 
