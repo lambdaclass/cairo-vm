@@ -6,7 +6,7 @@ use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     add_segment, assert_le_felt, assert_nn, assert_not_equal, assert_not_zero, is_nn,
-    is_nn_out_of_range, is_positive, split_int, split_int_assert_range,
+    is_nn_out_of_range, is_positive, split_int, split_int_assert_range, split_felt
 };
 use crate::vm::vm_core::VirtualMachine;
 
@@ -42,6 +42,8 @@ pub fn execute_hint(
         ) => assert_nn(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"
         ) => assert_not_zero(vm, ids),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
+        ) => split_felt(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

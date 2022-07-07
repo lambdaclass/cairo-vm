@@ -669,3 +669,10 @@ pub fn is_positive(
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
+pub fn split_felt(
+    _vm: &mut VirtualMachine,
+    _ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    Ok(())
+}
