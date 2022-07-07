@@ -96,6 +96,7 @@ pub fn is_nn(
         } else {
             return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
         };
+    println!("a_addr: {:?}", a_addr);
     //Check that the ids are in memory
     match vm.memory.get(&a_addr) {
         Ok(Some(maybe_rel_a)) => {
