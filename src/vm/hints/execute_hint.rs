@@ -927,8 +927,8 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::ValueOutsideValidRange(as_int(
-                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
-                vm.prime.clone()
+                &BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
+                &vm.prime
             )))
         );
     }
