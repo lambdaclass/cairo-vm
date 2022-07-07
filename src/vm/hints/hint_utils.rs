@@ -18,36 +18,15 @@ fn compute_addr_from_reference(
         Register::FP => run_context.fp.clone(),
         Register::AP => run_context.ap.clone(),
     };
+
     if let MaybeRelocatable::RelocatableValue(relocatable) = register {
         if hint_reference.offset2 == 0 {
-            if hint_reference.offset1.is_negative()
-                && relocatable.offset < hint_reference.offset1.abs() as usize
-            {
-                return None;
-            }
-            println!("Entre al de siempre");
-            return Some(MaybeRelocatable::from((
-                relocatable.segment_index,
-                (relocatable.offset as i32 + hint_reference.offset1) as usize,
-            )));
+            return compute_addr_from_one_offset(relocatable, hint_reference);
         } else {
-            let addr = if hint_reference.offset1.is_negative()
-                && relocatable.offset < hint_reference.offset1.abs() as usize
-            {
-                return None;
-            } else {
-                Relocatable {
-                    segment_index: relocatable.segment_index,
-                    offset: (relocatable.offset as i32 + hint_reference.offset1) as usize,
-                }
-            };
-
-            return Some(MaybeRelocatable::from((
-                addr.segment_index,
-                (addr.offset as i32 + hint_reference.offset2) as usize,
-            )));
+            return compute_addr_from_two_offsets(relocatable, hint_reference);
         }
     }
+
     None
 }
 
@@ -63,6 +42,42 @@ fn get_address_from_reference(
         }
     }
     None
+}
+
+fn compute_addr_from_one_offset(
+    relocatable: Relocatable,
+    hint_reference: &HintReference,
+) -> Option<MaybeRelocatable> {
+    if hint_reference.offset1.is_negative()
+        && relocatable.offset < hint_reference.offset1.abs() as usize
+    {
+        return None;
+    }
+    return Some(MaybeRelocatable::from((
+        relocatable.segment_index,
+        (relocatable.offset as i32 + hint_reference.offset1) as usize,
+    )));
+}
+
+fn compute_addr_from_two_offsets(
+    relocatable: Relocatable,
+    hint_reference: &HintReference,
+) -> Option<MaybeRelocatable> {
+    let addr = if hint_reference.offset1.is_negative()
+        && relocatable.offset < hint_reference.offset1.abs() as usize
+    {
+        return None;
+    } else {
+        Relocatable {
+            segment_index: relocatable.segment_index,
+            offset: (relocatable.offset as i32 + hint_reference.offset1) as usize,
+        }
+    };
+
+    return Some(MaybeRelocatable::from((
+        addr.segment_index,
+        (addr.offset as i32 + hint_reference.offset2) as usize,
+    )));
 }
 
 ///Implements hint: memory[ap] = segments.add()

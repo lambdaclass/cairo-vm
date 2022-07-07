@@ -18,6 +18,8 @@ use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::io;
 
+use crate::types::instruction::Register;
+
 pub struct CairoRunner {
     program: Program,
     pub vm: VirtualMachine,
@@ -225,12 +227,23 @@ impl CairoRunner {
     }
     fn get_reference_list(&self) -> Vec<HintReference> {
         let mut references = Vec::<HintReference>::new();
+
+        // let r = &self.program.reference_manager.references[41];
+        // println!("REFERENCIA: {:?}", r);
+
         for reference in self.program.reference_manager.references.iter() {
             if let Some(register) = &reference.value_address.register {
                 references.push(HintReference {
                     register: register.clone(),
                     offset1: reference.value_address.offset1,
                     offset2: reference.value_address.offset2,
+                })
+            } else {
+                // just a dummy HintReference to maintian the same lenght of vectors Vec<References> and Vec<HintReference>
+                references.push(HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
                 })
             }
         }
