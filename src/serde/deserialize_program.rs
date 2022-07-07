@@ -286,7 +286,9 @@ fn parse_dereference(value: &String) -> Result<ValueAddress, ()> {
             };
 
             let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
-            offset1_str.retain(|c| !r#"()"#.contains(c));
+            offset1_str.retain(|c| !r#"()]"#.contains(c));
+
+            println!("Aca viene el error, {}", offset1_str);
 
             let offset1: i32 = offset1_str.parse().unwrap();
 

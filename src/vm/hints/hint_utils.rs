@@ -1,3 +1,4 @@
+use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -18,15 +19,34 @@ fn compute_addr_from_reference(
         Register::AP => run_context.ap.clone(),
     };
     if let MaybeRelocatable::RelocatableValue(relocatable) = register {
-        if hint_reference.offset.is_negative()
-            && relocatable.offset < hint_reference.offset.abs() as usize
-        {
-            return None;
+        if hint_reference.offset2 == 0 {
+            if hint_reference.offset1.is_negative()
+                && relocatable.offset < hint_reference.offset1.abs() as usize
+            {
+                return None;
+            }
+            println!("Entre al de siempre");
+            return Some(MaybeRelocatable::from((
+                relocatable.segment_index,
+                (relocatable.offset as i32 + hint_reference.offset1) as usize,
+            )));
+        } else {
+            let addr = if hint_reference.offset1.is_negative()
+                && relocatable.offset < hint_reference.offset1.abs() as usize
+            {
+                return None;
+            } else {
+                Relocatable {
+                    segment_index: relocatable.segment_index,
+                    offset: (relocatable.offset as i32 + hint_reference.offset1) as usize,
+                }
+            };
+
+            return Some(MaybeRelocatable::from((
+                addr.segment_index,
+                (addr.offset as i32 + hint_reference.offset2) as usize,
+            )));
         }
-        return Some(MaybeRelocatable::from((
-            relocatable.segment_index,
-            (relocatable.offset as i32 + hint_reference.offset) as usize,
-        )));
     }
     None
 }

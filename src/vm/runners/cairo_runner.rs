@@ -229,7 +229,8 @@ impl CairoRunner {
             if let Some(register) = &reference.value_address.register {
                 references.push(HintReference {
                     register: register.clone(),
-                    offset: reference.value_address.offset1,
+                    offset1: reference.value_address.offset1,
+                    offset2: reference.value_address.offset2,
                 })
             }
         }
