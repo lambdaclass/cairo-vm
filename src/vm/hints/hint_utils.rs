@@ -275,3 +275,96 @@ pub fn assert_le_felt(
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
+/// Returns q and r such that:
+///  0 <= q < rc_bound, 0 <= r < div and value = q * div + r.
+///  
+/// Assumption: 0 < div <= PRIME / rc_bound.
+/// Prover assumption: value / div < rc_bound.
+///  
+/// The value of div is restricted to make sure there is no overflow.
+/// q * div + r < (q + 1) * div <= rc_bound * (PRIME / rc_bound) = PRIME.
+pub fn unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
+        ids.get(&String::from("r")),
+        ids.get(&String::from("q")),
+        ids.get(&String::from("div")),
+        ids.get(&String::from("value")),
+    ) {
+        (r_ref, q_ref, div_ref, value_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("r"),
+                String::from("q"),
+                String::from("div"),
+                String::from("value"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (r_addr, q_addr) = if let (Some(r_addr), Some(q_addr), Some(div_ref), Some(value_ref)) = (
+        get_address_from_reference(r_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(q_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(div_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+    ) {
+        (r_addr, q_addr, div_ref, value_ref)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
+    //small_inputs needs to be None, as we cant change it value otherwise
+    match (
+        vm.memory.get(&r_addr),
+        vm.memory.get(&q_addr),
+        vm.memory.get(&div_addr),
+        vm.memory.get(&value_addr),
+    ) {
+        (
+            Ok(Some(maybe_rel_r)),
+            Ok(Some(maybe_rel_q)),
+            Ok(Some(maybe_rel_div)),
+            Ok(Some(maybe_rel_value)),
+        ) => {
+            //Check that the values at the ids address are Int
+            let r = if let &MaybeRelocatable::Int(ref r) = maybe_rel_r {
+                r
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(r_addr.clone()));
+            };
+            let q = if let MaybeRelocatable::Int(ref q) = maybe_rel_q {
+                q
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(q_addr.clone()));
+            };
+            let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
+                div
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
+            };
+            let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                value
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
+            };
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                if name == &String::from("range_check") {
+                    match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                        None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+                        // Main logic (return r and q)
+                        Some(builtin) => {}
+                    }
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
