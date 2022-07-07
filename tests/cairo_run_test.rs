@@ -56,3 +56,9 @@ fn cairo_run_assert_le_felt_hint() {
     cairo_run::cairo_run(Path::new("cairo_programs/assert_le_felt_hint.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_abs_value() {
+    cairo_run::cairo_run(Path::new("cairo_programs/abs_value_array.json"))
+        .expect("Couldn't run program");
+}
