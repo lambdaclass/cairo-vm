@@ -276,3 +276,68 @@ pub fn assert_le_felt(
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
+//Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
+//        both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+//        both_relocatable = (
+//            isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+//            ids.a.segment_index == ids.b.segment_index)
+//        assert both_ints or both_relocatable, \
+//            f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+//        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
+pub fn assert_not_equal(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context),
+    ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that the ids are in memory
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
+            (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
+                if (a - b).mod_floor(&vm.prime) == bigint!(0) {
+                    return Err(VirtualMachineError::AssertNotEqualFail(
+                        maybe_rel_a.clone(),
+                        maybe_rel_b.clone(),
+                    ));
+                };
+                Ok(())
+            }
+            (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
+                if a.segment_index != b.segment_index {
+                    return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
+                };
+                if a.offset == b.offset {
+                    return Err(VirtualMachineError::AssertNotEqualFail(
+                        maybe_rel_a.clone(),
+                        maybe_rel_b.clone(),
+                    ));
+                };
+                Ok(())
+            }
+            _ => Err(VirtualMachineError::DiffTypeComparison(
+                maybe_rel_a.clone(),
+                maybe_rel_b.clone(),
+            )),
+        },
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
