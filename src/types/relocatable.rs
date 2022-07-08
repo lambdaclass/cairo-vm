@@ -151,6 +151,18 @@ impl MaybeRelocatable {
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
+
+    /// Performs integer division and module on a MaybeRelocatable::Int by another
+    /// MaybeRelocatable::Int and returns the quotient and reminder.
+    pub fn divmod(
+        &self,
+        other: &MaybeRelocatable,
+    ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
+        match (self, other) {
+            (&MaybeRelocatable::Int(val), &MaybeRelocatable::Int(div)) => (val / div, val % div),
+            _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
 }
 
 ///Turns a MaybeRelocatable into a BigInt value
