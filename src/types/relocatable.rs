@@ -431,6 +431,22 @@ mod tests {
     }
 
     #[test]
+    fn divmod_working() {
+        let value = &MaybeRelocatable::from(bigint!(10));
+        let div = &MaybeRelocatable::from(bigint!(3));
+        let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
+        assert_eq!(q, MaybeRelocatable::from(bigint!(3)));
+        assert_eq!(r, MaybeRelocatable::from(bigint!(1)));
+    }
+
+    #[test]
+    fn divmod_bad_type() {
+        let value = &MaybeRelocatable::from(bigint!(10));
+        let div = &MaybeRelocatable::from((2, 7));
+        assert_eq!(value.divmod(div), Err(VirtualMachineError::NotImplemented));
+    }
+
+    #[test]
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
