@@ -160,4 +160,48 @@ fn parse_reference_no_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddr
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+
+    #[test]
+    // parse value string of format `[cast(reg + offset1, felt*)]`
+    fn parse_value_with_one_offset() {
+        let value_string: &str = "[cast(fp + (-3), felt*)]";
+        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
+
+        let parsed_value = parse_dereference_with_one_offset(splitted_value).unwrap();
+
+        let value_address = ValueAddress {
+            register: Some(Register::FP),
+            offset1: -3,
+            offset2: 0,
+            immediate: None,
+            dereference: true,
+        };
+
+        assert_eq!(value_address, parsed_value);
+    }
+
+    #[test]
+    fn parse_value_with_two_offsets() {
+        let value_string: &str = "[cast([fp + (-4)] + 1, felt*)]";
+        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
+
+        let parsed_value = parse_dereference_with_two_offsets(splitted_value).unwrap();
+
+        let value_address = ValueAddress {
+            register: Some(Register::FP),
+            offset1: -4,
+            offset2: 1,
+            immediate: None,
+            dereference: true,
+        };
+
+        assert_eq!(value_address, parsed_value);
+    }
+
+    #[test]
+    fn parse_value_with_no_offset() {
+        let _value_string: &str = "[cast(fp, felt*)]";
+    }
+}
