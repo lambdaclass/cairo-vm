@@ -333,33 +333,40 @@ pub fn unsigned_div_rem(
             Ok(Some(maybe_rel_value)),
         ) => {
             //Check that the values at the ids address are Int
-            let r = if let &MaybeRelocatable::Int(ref r) = maybe_rel_r {
-                r
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(r_addr.clone()));
-            };
-            let q = if let MaybeRelocatable::Int(ref q) = maybe_rel_q {
-                q
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(q_addr.clone()));
-            };
+            let mut r = maybe_rel_r;
+            let mut q = maybe_rel_q;
             let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
                 div
             } else {
                 return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
             };
-            let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
-                value
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
-            };
+            let value = maybe_rel_value;
+
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
                 if name == &String::from("range_check") {
                     match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         // Main logic (return r and q)
-                        Some(builtin) => {}
+                        Some(builtin) => {
+                            if div >= 0 || div > vm.prime.clone() / builtin._bound {
+                                return Err(VirtualMachineError::OutOfValidRange(
+                                    div,
+                                    vm.prime / builtin._bound,
+                                ));
+                            }
+
+                            r = value % div;
+                            q = value / div;
+
+                            match (
+                                vm.memory.insert(&r_addr, &MaybeRelocatable::from(r)),
+                                vm.memory.insert(&q_addr, &MaybeRelocatable::from(q)),
+                            ) {
+                                (Ok(_), Ok(_)) => return Ok(()),
+                                _ => return Err(VirtualMachineError::MemoryError(memory_error)),
+                            }
+                        }
                     }
                 }
             }
