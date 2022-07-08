@@ -159,7 +159,10 @@ impl MaybeRelocatable {
         other: &MaybeRelocatable,
     ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(val), &MaybeRelocatable::Int(div)) => (val / div, val % div),
+            (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
+                MaybeRelocatable::from(val.clone() / div.clone()),
+                MaybeRelocatable::from(val % div),
+            )),
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
