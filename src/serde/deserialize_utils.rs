@@ -94,51 +94,8 @@ pub fn parse_reference(value: &String) -> Result<ValueAddress, ()> {
 
     match splitted.len() {
         1 => return parse_reference_no_offsets(splitted),
-        2 => {
-            let register = match splitted[0].split("(").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            let mut offset1_str = splitted[1].split(",").collect::<Vec<_>>()[0].to_string();
-            offset1_str.retain(|c| !r#"()"#.contains(c));
-
-            let offset1: i32 = offset1_str.parse().unwrap();
-
-            return Ok(ValueAddress {
-                register,
-                offset1,
-                offset2: 0,
-                immediate: None,
-                dereference: false,
-            });
-        }
-        3 => {
-            let register = match splitted[0].split("[").collect::<Vec<_>>()[1] {
-                "ap" => Some(Register::AP),
-                "fp" => Some(Register::FP),
-                _ => None,
-            };
-
-            let mut offset1_str = splitted[1].to_string();
-            offset1_str.retain(|c| !r#"()]"#.contains(c));
-
-            let offset1: i32 = offset1_str.parse().unwrap();
-
-            let mut immediate_str = splitted[2].split(",").collect::<Vec<_>>()[0].to_string();
-            immediate_str.retain(|c| !r#"()"#.contains(c));
-
-            let immediate: BigInt = immediate_str.parse().unwrap();
-
-            return Ok(ValueAddress {
-                register,
-                offset1,
-                offset2: 0,
-                immediate: Some(immediate),
-                dereference: false,
-            });
-        }
+        2 => return parse_reference_with_one_offset(splitted),
+        3 => return parse_reference_with_two_offsets(splitted),
         _ => return Err(()),
     }
 }
@@ -155,6 +112,53 @@ fn parse_reference_no_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddr
         offset1: 0,
         offset2: 0,
         immediate: None,
+        dereference: false,
+    })
+}
+
+fn parse_reference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+    let register = match splitted_value_str[0].split("(").collect::<Vec<_>>()[1] {
+        "ap" => Some(Register::AP),
+        "fp" => Some(Register::FP),
+        _ => None,
+    };
+
+    let mut offset1_str = splitted_value_str[1].split(",").collect::<Vec<_>>()[0].to_string();
+    offset1_str.retain(|c| !r#"()"#.contains(c));
+
+    let offset1: i32 = offset1_str.parse().unwrap();
+
+    Ok(ValueAddress {
+        register,
+        offset1,
+        offset2: 0,
+        immediate: None,
+        dereference: false,
+    })
+}
+
+fn parse_reference_with_two_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+    let register = match splitted_value_str[0].split("[").collect::<Vec<_>>()[1] {
+        "ap" => Some(Register::AP),
+        "fp" => Some(Register::FP),
+        _ => None,
+    };
+
+    let mut offset1_str = splitted_value_str[1].to_string();
+    offset1_str.retain(|c| !r#"()]"#.contains(c));
+
+    let offset1: i32 = offset1_str.parse().unwrap();
+
+    let mut immediate_str = splitted_value_str[2].split(",").collect::<Vec<_>>()[0].to_string();
+    immediate_str.retain(|c| !r#"()"#.contains(c));
+
+    let immediate: BigInt = immediate_str.parse().unwrap();
+
+    Ok(ValueAddress {
+        register,
+        offset1,
+        offset2: 0,
+        immediate: Some(immediate),
         dereference: false,
     })
 }
