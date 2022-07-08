@@ -278,10 +278,10 @@ pub fn assert_le_felt(
 
 /// Returns q and r such that:
 ///  0 <= q < rc_bound, 0 <= r < div and value = q * div + r.
-///  
+///
 /// Assumption: 0 < div <= PRIME / rc_bound.
 /// Prover assumption: value / div < rc_bound.
-///  
+///
 /// The value of div is restricted to make sure there is no overflow.
 /// q * div + r < (q + 1) * div <= rc_bound * (PRIME / rc_bound) = PRIME.
 pub fn unsigned_div_rem(
@@ -289,35 +289,37 @@ pub fn unsigned_div_rem(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let (a_ref, b_ref) = if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
-        ids.get(&String::from("r")),
-        ids.get(&String::from("q")),
-        ids.get(&String::from("div")),
-        ids.get(&String::from("value")),
-    ) {
-        (r_ref, q_ref, div_ref, value_ref)
-    } else {
-        return Err(VirtualMachineError::IncorrectIds(
-            vec![
-                String::from("r"),
-                String::from("q"),
-                String::from("div"),
-                String::from("value"),
-            ],
-            ids.into_keys().collect(),
-        ));
-    };
+    let (r_ref, q_ref, div_ref, value_ref) =
+        if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
+            ids.get(&String::from("r")),
+            ids.get(&String::from("q")),
+            ids.get(&String::from("div")),
+            ids.get(&String::from("value")),
+        ) {
+            (r_ref, q_ref, div_ref, value_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("r"),
+                    String::from("q"),
+                    String::from("div"),
+                    String::from("value"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
     //Check that each reference id corresponds to a value in the reference manager
-    let (r_addr, q_addr) = if let (Some(r_addr), Some(q_addr), Some(div_ref), Some(value_ref)) = (
-        get_address_from_reference(r_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(q_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(div_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-    ) {
-        (r_addr, q_addr, div_ref, value_ref)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
+    let (r_addr, q_addr, div_addr, value_addr) =
+        if let (Some(r_addr), Some(q_addr), Some(div_ref), Some(value_ref)) = (
+            get_address_from_reference(r_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(q_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(div_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+        ) {
+            (r_addr, q_addr, div_ref, value_ref)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
     //small_inputs needs to be None, as we cant change it value otherwise
     match (
@@ -327,14 +329,12 @@ pub fn unsigned_div_rem(
         vm.memory.get(&value_addr),
     ) {
         (
-            Ok(Some(maybe_rel_r)),
-            Ok(Some(maybe_rel_q)),
+            Ok(Some(_maybe_rel_r)),
+            Ok(Some(_maybe_rel_q)),
             Ok(Some(maybe_rel_div)),
             Ok(Some(maybe_rel_value)),
         ) => {
             //Check that the values at the ids address are Int
-            let mut r = maybe_rel_r;
-            let mut q = maybe_rel_q;
             let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
                 div
             } else {
@@ -349,23 +349,37 @@ pub fn unsigned_div_rem(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         // Main logic (return r and q)
                         Some(builtin) => {
-                            if div >= 0 || div > vm.prime.clone() / builtin._bound {
+                            println!(
+                                "div: {}, value:{:?}, prime:{:?}, builtin:{:?}",
+                                div,
+                                value,
+                                vm.prime.clone(),
+                                builtin._bound.clone()
+                            );
+                            if div.clone() <= bigint!(0)
+                                || div.clone() > vm.prime.clone() / builtin._bound.clone()
+                            {
                                 return Err(VirtualMachineError::OutOfValidRange(
-                                    div,
-                                    vm.prime / builtin._bound,
+                                    div.clone(),
+                                    vm.prime.clone() / builtin._bound.clone(),
                                 ));
                             }
 
-                            r = value % div;
-                            q = value / div;
+                            let (q, r) = match value.divmod(&MaybeRelocatable::from(div.clone())) {
+                                Ok((q, r)) => (q, r),
+                                Err(e) => return Err(e),
+                            };
 
-                            match (
-                                vm.memory.insert(&r_addr, &MaybeRelocatable::from(r)),
-                                vm.memory.insert(&q_addr, &MaybeRelocatable::from(q)),
-                            ) {
-                                (Ok(_), Ok(_)) => return Ok(()),
-                                _ => return Err(VirtualMachineError::MemoryError(memory_error)),
-                            }
+                            if let Err(memory_error) = vm.memory.insert(&r_addr, &r) {
+                                return Err(VirtualMachineError::MemoryError(memory_error));
+                            };
+
+                            match vm.memory.insert(&q_addr, &q) {
+                                Ok(_) => return Ok(()),
+                                Err(memory_error) => {
+                                    return Err(VirtualMachineError::MemoryError(memory_error))
+                                }
+                            };
                         }
                     }
                 }
