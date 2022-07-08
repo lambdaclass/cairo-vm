@@ -288,7 +288,6 @@ pub fn unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let mut mem = &mut vm.memory;
     //Check that ids contains the reference id for each variable used by the hint
     let (r_ref, q_ref, div_ref, value_ref) =
         if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
@@ -324,14 +323,14 @@ pub fn unsigned_div_rem(
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
     //small_inputs needs to be None, as we cant change it value otherwise
     match (
-        mem.get(&r_addr),
-        mem.get(&q_addr),
-        mem.get(&div_addr),
-        mem.get(&value_addr),
+        vm.memory.get(&r_addr),
+        vm.memory.get(&q_addr),
+        vm.memory.get(&div_addr),
+        vm.memory.get(&value_addr),
     ) {
         (
-            Ok(Some(maybe_rel_r)),
-            Ok(Some(maybe_rel_q)),
+            Ok(Some(mut _maybe_rel_r)),
+            Ok(Some(mut _maybe_rel_q)),
             Ok(Some(maybe_rel_div)),
             Ok(Some(maybe_rel_value)),
         ) => {
@@ -361,17 +360,9 @@ pub fn unsigned_div_rem(
                                 Ok((q, r)) => (q, r),
                                 Err(e) => return Err(e),
                             };
-
-                            if let Err(memory_error) = mem.insert(maybe_rel_r, &r) {
-                                return Err(VirtualMachineError::MemoryError(memory_error));
-                            };
-
-                            match mem.insert(maybe_rel_q, &q) {
-                                Ok(_) => return Ok(()),
-                                Err(memory_error) => {
-                                    return Err(VirtualMachineError::MemoryError(memory_error))
-                                }
-                            };
+                            _maybe_rel_r = &r;
+                            _maybe_rel_q = &q;
+                            return Ok(());
                         }
                     }
                 }
