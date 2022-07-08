@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657307866891,
+  "lastUpdate": 1657309143126,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -11709,6 +11709,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1537,
             "range": "± 146",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d7f0c6f841d2efb157a97c84a23cdc274d7de17d",
+          "message": "Merge pull request #229 from lambdaclass/assert_not_equal-hint\n\nAdd implementation for hint on assert_not_equal (math.cairo)",
+          "timestamp": "2022-07-08T16:34:26-03:00",
+          "tree_id": "984d659769fa4fe15839ed939ec4e312829d01b8",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/d7f0c6f841d2efb157a97c84a23cdc274d7de17d"
+        },
+        "date": 1657309141991,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1474,
+            "range": "± 71",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 1473,
+            "range": "± 67",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 1478,
+            "range": "± 70",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 1480,
+            "range": "± 44",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1474,
+            "range": "± 47",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 1477,
+            "range": "± 56",
             "unit": "ns/iter"
           }
         ]
