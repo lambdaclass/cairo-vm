@@ -523,7 +523,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -4,
+            offset1: -4,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
@@ -560,7 +561,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -4,
+            offset1: -4,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(
@@ -599,7 +601,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -4,
+            offset1: -4,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(
@@ -641,7 +644,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: 10,
+            offset1: 10,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(
@@ -680,7 +684,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -4,
+            offset1: -4,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(
@@ -718,7 +723,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -4,
+            offset1: -4,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(
@@ -749,7 +755,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -4,
+            offset1: -4,
+            offset2: 0,
         }];
         //Execute the hint
         assert_eq!(
