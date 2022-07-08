@@ -39,6 +39,7 @@ pub enum VirtualMachineError {
     FailedToGetIds,
     NonLeFelt(BigInt, BigInt),
     FailedToGetReference(BigInt),
+    ValueOutOfRange(BigInt),
     UnknownHint(String),
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
@@ -113,6 +114,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::FailedToGetReference(reference_id) => {
                 write!(f, "Failed to get reference for id {}", reference_id)
+            },
+            VirtualMachineError::ValueOutOfRange(a) => {
+                write!(f, "Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {:?} is out of range", a)
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
