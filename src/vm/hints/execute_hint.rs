@@ -256,7 +256,8 @@ mod tests {
         //Create references
         vm.references = vec![HintReference {
             register: Register::FP,
-            offset: -1,
+            offset1: -1,
+            offset2: 0,
         }];
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
@@ -884,11 +885,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
@@ -936,11 +939,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
@@ -986,11 +991,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
@@ -1040,11 +1047,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
@@ -1092,11 +1101,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
@@ -1138,11 +1149,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
@@ -1190,11 +1203,13 @@ mod tests {
         vm.references = vec![
             HintReference {
                 register: Register::FP,
-                offset: -2,
+                offset1: -2,
+                offset2: 0,
             },
             HintReference {
                 register: Register::FP,
-                offset: -1,
+                offset1: -1,
+                offset2: 0,
             },
         ];
         //Execute the hint
