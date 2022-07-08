@@ -206,6 +206,19 @@ mod tests {
 
     #[test]
     fn parse_value_with_no_offset() {
-        let _value_string: &str = "[cast(fp, felt*)]";
+        let value_string: &str = "[cast(fp, felt*)]";
+        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
+
+        let parsed_value = parse_dereference_no_offsets(splitted_value).unwrap();
+
+        let value_address = ValueAddress {
+            register: Some(Register::FP),
+            offset1: 0,
+            offset2: 0,
+            immediate: None,
+            dereference: true,
+        };
+
+        assert_eq!(value_address, parsed_value);
     }
 }
