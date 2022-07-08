@@ -180,9 +180,9 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let res = match value.chars().nth(0) {
-            Some('[') => deserialize_utils::parse_dereference(&value.to_string()).unwrap(),
-            Some('c') => deserialize_utils::parse_reference(&value.to_string()).unwrap(),
+        let res = match value.chars().next() {
+            Some('[') => deserialize_utils::parse_dereference(value).unwrap(),
+            Some('c') => deserialize_utils::parse_reference(value).unwrap(),
             _c => return Err("Expected '[' or 'c' as first char").map_err(de::Error::custom),
         };
 

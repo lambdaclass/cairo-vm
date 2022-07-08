@@ -55,10 +55,10 @@ fn compute_addr_from_one_offset(
     {
         return None;
     }
-    return Some(MaybeRelocatable::from((
+    Some(MaybeRelocatable::from((
         relocatable.segment_index,
         (relocatable.offset as i32 + hint_reference.offset1) as usize,
-    )));
+    )))
 }
 
 fn compute_addr_from_two_offsets(
@@ -76,10 +76,10 @@ fn compute_addr_from_two_offsets(
         }
     };
 
-    return Some(MaybeRelocatable::from((
+    Some(MaybeRelocatable::from((
         addr.segment_index,
         (addr.offset as i32 + hint_reference.offset2) as usize,
-    )));
+    )))
 }
 
 ///Implements hint: memory[ap] = segments.add()
