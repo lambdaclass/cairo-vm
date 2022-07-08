@@ -5,6 +5,7 @@ use crate::vm::{
 };
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
@@ -97,8 +98,8 @@ pub fn is_nn(
                     };
                     //Main logic (assert a is not negative and within the expected range)
                     let mut value = bigint!(1);
-                    if a % vm.prime.clone() >= bigint!(0)
-                        && a % vm.prime.clone() < range_check_builtin._bound
+                    if a.mod_floor(&vm.prime) >= bigint!(0)
+                        && a.mod_floor(&vm.prime) < range_check_builtin._bound
                     {
                         value = bigint!(0);
                     }
@@ -160,8 +161,8 @@ pub fn is_nn_out_of_range(
                     };
                     //Main logic (assert a is not negative and within the expected range)
                     let mut value = bigint!(1);
-                    if (-a.clone() - bigint!(1)) % vm.prime.clone() >= bigint!(0)
-                        && (-a.clone() - bigint!(1)) % &vm.prime.clone()
+                    if (-a.clone() - bigint!(1)).mod_floor(&vm.prime) >= bigint!(0)
+                        && (-a.clone() - bigint!(1)).mod_floor(&vm.prime)
                             < range_check_builtin._bound
                     {
                         value = bigint!(0);
@@ -249,7 +250,7 @@ pub fn assert_le_felt(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         Some(builtin) => {
                             //Assert a <= b
-                            if a % vm.prime.clone() > b % vm.prime.clone() {
+                            if a.mod_floor(&vm.prime) > b.mod_floor(&vm.prime) {
                                 return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
                             }
                             //Calculate value of small_inputs
