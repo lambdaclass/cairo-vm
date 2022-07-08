@@ -349,13 +349,6 @@ pub fn unsigned_div_rem(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         // Main logic (return r and q)
                         Some(builtin) => {
-                            println!(
-                                "div: {}, value:{:?}, prime:{:?}, builtin:{:?}",
-                                div,
-                                value,
-                                vm.prime.clone(),
-                                builtin._bound.clone()
-                            );
                             if div.clone() <= bigint!(0)
                                 || div.clone() > vm.prime.clone() / builtin._bound.clone()
                             {
