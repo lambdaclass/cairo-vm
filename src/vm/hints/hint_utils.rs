@@ -330,7 +330,7 @@ pub fn unsigned_div_rem(
     ) {
         (
             Ok(Some(_maybe_rel_r)),
-            Ok(Some(_maybe_rel_q)),
+            Ok(Some(maybe_rel_q)),
             Ok(Some(maybe_rel_div)),
             Ok(Some(maybe_rel_value)),
         ) => {
@@ -358,16 +358,18 @@ pub fn unsigned_div_rem(
                                 ));
                             }
 
-                            let (q, r) = match value.divmod(&MaybeRelocatable::from(div.clone())) {
+                            let (q, _r) = match value.divmod(&MaybeRelocatable::from(div.clone())) {
                                 Ok((q, r)) => (q, r),
                                 Err(e) => return Err(e),
                             };
 
-                            if let Err(memory_error) = vm.memory.insert(&r_addr, &r) {
+                            /*
+                            if let Err(memory_error) = vm.memory.insert(maybe_rel_r, &r) {
                                 return Err(VirtualMachineError::MemoryError(memory_error));
-                            };
+                            };*/
 
-                            match vm.memory.insert(&q_addr, &q) {
+                            let mayb = maybe_rel_q.clone();
+                            match vm.memory.insert(&mayb, &q) {
                                 Ok(_) => return Ok(()),
                                 Err(memory_error) => {
                                     return Err(VirtualMachineError::MemoryError(memory_error))
