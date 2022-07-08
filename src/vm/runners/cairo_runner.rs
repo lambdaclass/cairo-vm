@@ -228,9 +228,6 @@ impl CairoRunner {
     fn get_reference_list(&self) -> Vec<HintReference> {
         let mut references = Vec::<HintReference>::new();
 
-        // let r = &self.program.reference_manager.references[41];
-        // println!("REFERENCIA: {:?}", r);
-
         for reference in self.program.reference_manager.references.iter() {
             if let Some(register) = &reference.value_address.register {
                 references.push(HintReference {
