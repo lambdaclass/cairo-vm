@@ -5,7 +5,7 @@ use crate::vm::{
 };
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, Signed, ToPrimitive};
 use std::collections::HashMap;
 
 ///Computes the memory address indicated by the HintReference
@@ -288,6 +288,7 @@ pub fn unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let mut mem = &mut vm.memory;
     //Check that ids contains the reference id for each variable used by the hint
     let (r_ref, q_ref, div_ref, value_ref) =
         if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
@@ -323,13 +324,13 @@ pub fn unsigned_div_rem(
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
     //small_inputs needs to be None, as we cant change it value otherwise
     match (
-        vm.memory.get(&r_addr),
-        vm.memory.get(&q_addr),
-        vm.memory.get(&div_addr),
-        vm.memory.get(&value_addr),
+        mem.get(&r_addr),
+        mem.get(&q_addr),
+        mem.get(&div_addr),
+        mem.get(&value_addr),
     ) {
         (
-            Ok(Some(_maybe_rel_r)),
+            Ok(Some(maybe_rel_r)),
             Ok(Some(maybe_rel_q)),
             Ok(Some(maybe_rel_div)),
             Ok(Some(maybe_rel_value)),
@@ -349,27 +350,23 @@ pub fn unsigned_div_rem(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         // Main logic (return r and q)
                         Some(builtin) => {
-                            if div.clone() <= bigint!(0)
-                                || div.clone() > vm.prime.clone() / builtin._bound.clone()
-                            {
+                            if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
                                 return Err(VirtualMachineError::OutOfValidRange(
                                     div.clone(),
-                                    vm.prime.clone() / builtin._bound.clone(),
+                                    &vm.prime / &builtin._bound,
                                 ));
                             }
 
-                            let (q, _r) = match value.divmod(&MaybeRelocatable::from(div.clone())) {
+                            let (q, r) = match value.divmod(&MaybeRelocatable::from(div.clone())) {
                                 Ok((q, r)) => (q, r),
                                 Err(e) => return Err(e),
                             };
 
-                            /*
-                            if let Err(memory_error) = vm.memory.insert(maybe_rel_r, &r) {
+                            if let Err(memory_error) = mem.insert(maybe_rel_r, &r) {
                                 return Err(VirtualMachineError::MemoryError(memory_error));
-                            };*/
+                            };
 
-                            let mayb = maybe_rel_q.clone();
-                            match vm.memory.insert(&mayb, &q) {
+                            match mem.insert(maybe_rel_q, &q) {
                                 Ok(_) => return Ok(()),
                                 Err(memory_error) => {
                                     return Err(VirtualMachineError::MemoryError(memory_error))
