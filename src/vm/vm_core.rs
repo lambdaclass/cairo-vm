@@ -94,7 +94,7 @@ impl VirtualMachine {
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
-            Ok(Some(MaybeRelocatable::Int(encoding))) => encoding,
+            Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
@@ -123,7 +123,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap: MaybeRelocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self.run_context.ap.add_mod(res, self.prime.clone())?,
+                Some(res) => self.run_context.ap.add_mod(&res, &self.prime)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.ap.add_usize_mod(1, None),
@@ -163,12 +163,7 @@ impl VirtualMachine {
                     .run_context
                     .pc
                     .add_usize_mod(Instruction::size(instruction), None),
-                false => {
-                    (self
-                        .run_context
-                        .pc
-                        .add_mod(operands.op1.clone(), self.prime.clone()))?
-                }
+                false => (self.run_context.pc.add_mod(&operands.op1, &self.prime))?,
             },
         };
         self.run_context.pc = new_pc;
@@ -324,7 +319,7 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add_mod(op1.clone(), self.prime.clone())?)),
+            Res::Add => Ok(Some(op0.add_mod(op1, &self.prime)?)),
             Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
