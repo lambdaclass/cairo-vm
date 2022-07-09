@@ -32,7 +32,7 @@ for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
     fi
 
     if $memory; then
-        if ! ./memory_comparator.py $path_file.cleopatra.memory $path_file.memory> /dev/null 2>&1; then
+        if ! ./memory_comparator.py $path_file.cleopatra.memory $path_file.memory; then
             echo "Memory differs for $file"
             exit_code=1
             failed_tests=$((failed_tests + 1))
@@ -45,7 +45,7 @@ done
 if test $failed_tests = 0; then
     echo "All $passed_tests tests passed; no discrepancies found"
 else
-        echo "Comparisons: $failed_tests failed, $passed_tests passed, $((failed_tests + passed_tests)) total" 
+    echo "Comparisons: $failed_tests failed, $passed_tests passed, $((failed_tests + passed_tests)) total"
 fi
 
 exit "${exit_code}"
