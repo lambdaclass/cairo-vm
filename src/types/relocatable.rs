@@ -70,8 +70,7 @@ impl MaybeRelocatable {
     pub fn add_usize_mod(&self, other: usize, prime: Option<BigInt>) -> MaybeRelocatable {
         match *self {
             MaybeRelocatable::Int(ref value) => {
-                let mut num = Clone::clone(value);
-                num = other + num;
+                let mut num = value + other;
                 if let Some(num_prime) = prime {
                     num %= num_prime;
                 }
