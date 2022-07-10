@@ -9,7 +9,7 @@ use cleopatra_cairo::{
 fn struct_integration_test() {
     let program = Program::new(Path::new("cairo_programs/struct.json"))
         .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program);
+    let mut cairo_runner = CairoRunner::new(&program, true);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
 
@@ -22,5 +22,5 @@ fn struct_integration_test() {
         fp: 4,
     };
 
-    assert_eq!(cairo_runner.relocated_trace[0], relocated_entry);
+    assert_eq!(cairo_runner.relocated_trace, Some(vec![relocated_entry]));
 }
