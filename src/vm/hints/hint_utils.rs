@@ -103,13 +103,10 @@ pub fn is_nn(
                     {
                         value = bigint!(0);
                     }
-                    return match vm
+                    return vm
                         .memory
                         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                    {
-                        Ok(_) => Ok(()),
-                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
-                    };
+                        .map_err(VirtualMachineError::MemoryError);
                 }
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
@@ -167,13 +164,10 @@ pub fn is_nn_out_of_range(
                     {
                         value = bigint!(0);
                     }
-                    return match vm
+                    return vm
                         .memory
                         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                    {
-                        Ok(_) => Ok(()),
-                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
-                    };
+                        .map_err(VirtualMachineError::MemoryError);
                 }
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
