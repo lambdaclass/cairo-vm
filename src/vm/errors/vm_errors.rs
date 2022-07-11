@@ -40,7 +40,8 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     FailedToGetReference(BigInt),
     UnknownHint(String),
-    SplitFeltNotZero,
+    SplitIntNotZero,
+    SplitIntLimbOutOfRange(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -114,7 +115,8 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
-            VirtualMachineError::SplitFeltNotZero => write!(f,"split_int(): value is out of range"),
+            VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
+            VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
         }
     }
 }

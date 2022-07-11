@@ -5,6 +5,7 @@ use crate::vm::{
 };
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
@@ -309,11 +310,84 @@ pub fn split_int_assert_range(
             };
             //Main logic (assert value == 0)
             if *value != bigint!(0) {
-                return Err(VirtualMachineError::SplitFeltNotZero);
+                return Err(VirtualMachineError::SplitIntNotZero);
             }
             Ok(())
         }
         Ok(None) => Err(VirtualMachineError::MemoryGet(value_addr.clone())),
         Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
     }
+}
+
+//Implements hint: memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
+//        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
+pub fn split_int(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (output_ref, value_ref, base_ref, bound_ref) =
+        if let (Some(value_ref), Some(output_ref), Some(base_ref), Some(bound_ref)) = (
+            ids.get(&String::from("output")),
+            ids.get(&String::from("value")),
+            ids.get(&String::from("base")),
+            ids.get(&String::from("bound")),
+        ) {
+            (output_ref, value_ref, base_ref, bound_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("output"),
+                    String::from("value"),
+                    String::from("base"),
+                    String::from("bound"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (output_addr, value_addr, base_addr, bound_addr) =
+        if let (Some(output_addr), Some(value_addr), Some(base_addr), Some(bound_addr)) = (
+            get_address_from_reference(output_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(base_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(bound_ref, &vm.references, &vm.run_context),
+        ) {
+            (output_addr, value_addr, base_addr, bound_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    //Check that the ids are in memory
+    let (mr_output, mr_value, mr_base, mr_bound) =
+        if let (Ok(Some(mr_output)), Ok(Some(mr_value)), Ok(Some(mr_base)), Ok(Some(mr_bound))) = (
+            vm.memory.get(&output_addr),
+            vm.memory.get(&value_addr),
+            vm.memory.get(&base_addr),
+            vm.memory.get(&bound_addr),
+        ) {
+            (mr_output, mr_value, mr_base, mr_bound)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    //Check that the type of the ids
+    let (output, value, base, bound) = if let (
+        MaybeRelocatable::RelocatableValue(output),
+        MaybeRelocatable::Int(value),
+        MaybeRelocatable::Int(base),
+        MaybeRelocatable::Int(bound),
+    ) = (mr_output, mr_value, mr_base, mr_bound)
+    {
+        (output, value, base, bound)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    let res = (value.mod_floor(&vm.prime)).mod_floor(base);
+    if res > *bound {
+        return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
+    }
+    let output_base = MaybeRelocatable::RelocatableValue(output.to_owned());
+    vm.memory
+        .insert(&output_base, &MaybeRelocatable::Int(res))
+        .map_err(VirtualMachineError::MemoryError)?;
+    Ok(())
 }
