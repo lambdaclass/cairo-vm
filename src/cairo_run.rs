@@ -83,7 +83,7 @@ pub fn write_binary_memory(
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
 
-    for (i, memory_cell) in relocated_memory.enumerate() {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
         match memory_cell {
             None => continue,
             Some(unwrapped_memory_cell) => {
