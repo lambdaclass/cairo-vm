@@ -457,7 +457,7 @@ pub fn split_int(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (output_ref, value_ref, base_ref, bound_ref) =
-        if let (Some(value_ref), Some(output_ref), Some(base_ref), Some(bound_ref)) = (
+        if let (Some(output_ref), Some(value_ref), Some(base_ref), Some(bound_ref)) = (
             ids.get(&String::from("output")),
             ids.get(&String::from("value")),
             ids.get(&String::from("base")),
