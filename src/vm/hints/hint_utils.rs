@@ -407,3 +407,55 @@ pub fn assert_nn(
     }
     Err(VirtualMachineError::NoRangeCheckBuiltin)
 }
+
+//Implements hint: from starkware.python.math_utils import isqrt
+//        value = ids.value % PRIME
+//        assert value < 2 ** 250, f"value={value} is outside of the range [0, 2**250)."
+//        assert 2 ** 250 < PRIME
+//        ids.root = isqrt(value)
+pub fn sqrt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (value_ref, root_ref) = if let (Some(value_ref), Some(root_ref)) = (
+        ids.get(&String::from("value")),
+        ids.get(&String::from("root")),
+    ) {
+        (value_ref, root_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("value"), String::from("root")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (value_addr, root_addr) = if let (Some(value_addr), Some(root_addr)) = (
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(root_ref, &vm.references, &vm.run_context),
+    ) {
+        (value_addr, root_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that the ids are in memory
+    match (vm.memory.get(&value_addr), vm.memory.get(&root_addr)) {
+        (Ok(Some(maybe_rel_value)), Ok(_)) => {
+            let value = if let MaybeRelocatable::Int(value) = maybe_rel_value {
+                value
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_value.clone(),
+                ));
+            };
+            let mod_value = value.mod_floor(&vm.prime);
+            if mod_value > bigint!(2).pow(250) {
+                return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
+            }
+            vm.memory
+                .insert(&root_addr, &MaybeRelocatable::from(isqrt(&mod_value)))
+                .map_err(VirtualMachineError::MemoryError)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}

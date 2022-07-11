@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    add_segment, assert_le_felt, assert_nn, assert_not_equal, is_nn, is_nn_out_of_range,
+    add_segment, assert_le_felt, assert_nn, assert_not_equal, is_nn, is_nn_out_of_range, sqrt,
 };
 use crate::vm::vm_core::VirtualMachine;
 
@@ -30,6 +30,8 @@ pub fn execute_hint(
         ) => assert_not_equal(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
         ) => assert_nn(vm, ids),
+        Ok("from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
+        ) => sqrt(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
