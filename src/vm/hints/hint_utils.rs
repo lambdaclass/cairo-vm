@@ -511,6 +511,7 @@ pub fn split_int(
     } else {
         return Err(VirtualMachineError::FailedToGetIds);
     };
+    //Main Logic
     let res = (value.mod_floor(&vm.prime)).mod_floor(base);
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
@@ -518,6 +519,5 @@ pub fn split_int(
     let output_base = MaybeRelocatable::RelocatableValue(output.to_owned());
     vm.memory
         .insert(&output_base, &MaybeRelocatable::Int(res))
-        .map_err(VirtualMachineError::MemoryError)?;
-    Ok(())
+        .map_err(VirtualMachineError::MemoryError)
 }
