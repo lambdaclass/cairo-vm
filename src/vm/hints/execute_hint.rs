@@ -779,4 +779,71 @@ mod tests {
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
+
+    #[test]
+    fn run_split_int_assertion_invalid() {
+        let hint_code = "assert ids.value == 0, 'split_int(): value is out of range.'".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::SplitFeltNotZero)
+        );
+    }
+
+    #[test]
+    fn run_split_int_assertion_valid() {
+        let hint_code = "assert ids.value == 0, 'split_int(): value is out of range.'".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+    }
 }
