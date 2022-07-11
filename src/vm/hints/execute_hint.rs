@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn, is_nn_out_of_range};
+use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn, is_nn_out_of_range, is_le_felt};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -23,6 +23,7 @@ pub fn execute_hint(
         Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1") => {
             is_nn_out_of_range(vm, ids)
         }
+        Ok("memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1") => is_le_felt(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
