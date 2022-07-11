@@ -3,6 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
@@ -48,13 +49,13 @@ impl MaybeRelocatable {
         match *self {
             MaybeRelocatable::Int(ref value) => {
                 let mut num = Clone::clone(value);
-                num = (other + num) % prime;
+                num = (other + num).mod_floor(&prime);
                 Ok(MaybeRelocatable::Int(num))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
                 assert!(big_offset >= bigint!(0), "Address offsets cant be negative");
-                big_offset %= prime;
+                big_offset = big_offset.mod_floor(&prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
                     None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
@@ -73,7 +74,7 @@ impl MaybeRelocatable {
                 let mut num = Clone::clone(value);
                 num = other + num;
                 if let Some(num_prime) = prime {
-                    num %= num_prime;
+                    num = num.mod_floor(&num_prime);
                 }
                 MaybeRelocatable::Int(num)
             }
@@ -97,13 +98,13 @@ impl MaybeRelocatable {
         match (self, other) {
             (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
                 let num_a = Clone::clone(num_a_ref);
-                Ok(MaybeRelocatable::Int((num_a + num_b) % prime))
+                Ok(MaybeRelocatable::Int((num_a + num_b).mod_floor(&prime)))
             }
             (&MaybeRelocatable::RelocatableValue(_), MaybeRelocatable::RelocatableValue(_)) => {
                 Err(VirtualMachineError::RelocatableAdd)
             }
             (&MaybeRelocatable::RelocatableValue(ref rel), MaybeRelocatable::Int(num)) => {
-                let big_offset: BigInt = (num + rel.offset) % prime;
+                let big_offset: BigInt = (num + rel.offset).mod_floor(&prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
                     None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
@@ -114,7 +115,7 @@ impl MaybeRelocatable {
                 }))
             }
             (&MaybeRelocatable::Int(ref num_ref), MaybeRelocatable::RelocatableValue(rel)) => {
-                let big_offset: BigInt = num_ref + rel.offset % prime;
+                let big_offset: BigInt = (num_ref + rel.offset).mod_floor(&prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
                     None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
