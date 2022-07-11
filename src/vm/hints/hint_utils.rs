@@ -330,7 +330,7 @@ pub fn is_positive(
                     if int_value.abs() > range_check_builtin._bound {
                         return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
                     }
-                    if int_value > bigint!(0) {
+                    if int_value.is_positive() {
                         result = bigint!(1);
                     }
                     return match vm
