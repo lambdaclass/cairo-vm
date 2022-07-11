@@ -333,13 +333,10 @@ pub fn is_positive(
                     if int_value.is_positive() {
                         result = bigint!(1);
                     }
-                    return match vm
+                    return vm
                         .memory
                         .insert(&is_positive_addr, &MaybeRelocatable::from(result))
-                    {
-                        Ok(_) => Ok(()),
-                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
-                    };
+                        .map_err(VirtualMachineError::MemoryError);
                 }
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
