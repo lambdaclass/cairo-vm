@@ -6,7 +6,9 @@ use crate::vm::{
 };
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use num_integer::Integer;
+use num_traits::Signed;
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
 ///Computes the memory address indicated by the HintReference
@@ -98,15 +100,18 @@ pub fn is_nn(
                     };
                     //Main logic (assert a is not negative and within the expected range)
                     let mut value = bigint!(1);
-                    if a % vm.prime.clone() >= bigint!(0)
-                        && a % vm.prime.clone() < range_check_builtin._bound
+                    if a.mod_floor(&vm.prime) >= bigint!(0)
+                        && a.mod_floor(&vm.prime) < range_check_builtin._bound
                     {
                         value = bigint!(0);
                     }
-                    return vm
+                    return match vm
                         .memory
                         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                        .map_err(VirtualMachineError::MemoryError);
+                    {
+                        Ok(_) => Ok(()),
+                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+                    };
                 }
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
@@ -158,16 +163,19 @@ pub fn is_nn_out_of_range(
                     };
                     //Main logic (assert a is not negative and within the expected range)
                     let mut value = bigint!(1);
-                    if (-a.clone() - bigint!(1)) % vm.prime.clone() >= bigint!(0)
-                        && (-a.clone() - bigint!(1)) % &vm.prime.clone()
+                    if (-a.clone() - bigint!(1)).mod_floor(&vm.prime) >= bigint!(0)
+                        && (-a.clone() - bigint!(1)).mod_floor(&vm.prime)
                             < range_check_builtin._bound
                     {
                         value = bigint!(0);
                     }
-                    return vm
+                    return match vm
                         .memory
                         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                        .map_err(VirtualMachineError::MemoryError);
+                    {
+                        Ok(_) => Ok(()),
+                        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+                    };
                 }
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
@@ -244,7 +252,7 @@ pub fn assert_le_felt(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         Some(builtin) => {
                             //Assert a <= b
-                            if a % vm.prime.clone() > b % vm.prime.clone() {
+                            if a.mod_floor(&vm.prime) > b.mod_floor(&vm.prime) {
                                 return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
                             }
                             //Calculate value of small_inputs
@@ -271,6 +279,135 @@ pub fn assert_le_felt(
     }
 }
 
+//Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
+//        both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
+//        both_relocatable = (
+//            isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
+//            ids.a.segment_index == ids.b.segment_index)
+//        assert both_ints or both_relocatable, \
+//            f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
+//        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
+pub fn assert_not_equal(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context),
+    ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that the ids are in memory
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
+            (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
+                if (a - b).mod_floor(&vm.prime) == bigint!(0) {
+                    return Err(VirtualMachineError::AssertNotEqualFail(
+                        maybe_rel_a.clone(),
+                        maybe_rel_b.clone(),
+                    ));
+                };
+                Ok(())
+            }
+            (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
+                if a.segment_index != b.segment_index {
+                    return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
+                };
+                if a.offset == b.offset {
+                    return Err(VirtualMachineError::AssertNotEqualFail(
+                        maybe_rel_a.clone(),
+                        maybe_rel_b.clone(),
+                    ));
+                };
+                Ok(())
+            }
+            _ => Err(VirtualMachineError::DiffTypeComparison(
+                maybe_rel_a.clone(),
+                maybe_rel_b.clone(),
+            )),
+        },
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+//Implements hint:
+// %{
+//     from starkware.cairo.common.math_utils import assert_integer
+//     assert_integer(ids.a)
+//     assert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'
+// %}
+pub fn assert_nn(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for 'a' variable used by the hint
+    let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
+        a_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that 'a' reference id corresponds to a value in the reference manager
+    let a_addr =
+        if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
+            a_addr
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+
+    //Check that the 'a' id is in memory
+    let maybe_rel_a = if let Ok(Some(maybe_rel_a)) = vm.memory.get(&a_addr) {
+        maybe_rel_a
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    //assert_integer(ids.a)
+    let a = if let &MaybeRelocatable::Int(ref a) = maybe_rel_a {
+        a
+    } else {
+        return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()));
+    };
+
+    for (name, builtin) in &vm.builtin_runners {
+        //Check that range_check_builtin is present
+        if name == &String::from("range_check") {
+            let range_check_builtin = if let Some(range_check_builtin) =
+                builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+            {
+                range_check_builtin
+            } else {
+                return Err(VirtualMachineError::NoRangeCheckBuiltin);
+            };
+
+            // assert 0 <= ids.a % PRIME < range_check_builtin.bound
+            if a.mod_floor(&vm.prime).is_positive()
+                && a.mod_floor(&vm.prime) < range_check_builtin._bound
+            {
+                return Ok(());
+            } else {
+                return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
+            }
+        }
+    }
+    Err(VirtualMachineError::NoRangeCheckBuiltin)
+}
 //from starkware.cairo.common.math_utils import is_positive
 //ids.is_positive = 1 if is_positive(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0

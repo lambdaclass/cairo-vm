@@ -62,3 +62,14 @@ fn cairo_abs_value() {
     cairo_run::cairo_run(Path::new("cairo_programs/abs_value_array.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_compare_different_arrays() {
+    cairo_run::cairo_run(Path::new("cairo_programs/compare_different_arrays.json"))
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_assert_nn() {
+    cairo_run::cairo_run(Path::new("cairo_programs/assert_nn.json")).expect("Couldn't run program");
+}
