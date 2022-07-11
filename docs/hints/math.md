@@ -201,7 +201,7 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 ## func unsigned_div_rem{range_check_ptr}(value, div):
 * Status: WIP
-* Assignee: Fede
+* Assignee: Juan
 * Hints:
 ```
     %{
@@ -248,8 +248,8 @@ https://github.com/starkware-libs/cairo-lang/blob/167b28bcd940fd25ea3816204fa882
 
 
 ## func split_int{range_check_ptr}(value, n, base, bound, output : felt*):
-* Status:
-* Assignee: 
+* Status: In Review
+* Assignee: Fede
 * Hints:
 ```
     %{ assert ids.value == 0, 'split_int(): value is out of range.' %}
