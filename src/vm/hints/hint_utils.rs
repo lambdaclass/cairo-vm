@@ -335,8 +335,9 @@ pub fn is_positive(
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
-        (Err(memory_error), _) => Err(VirtualMachineError::MemoryError(memory_error)),
-        (_, Err(memory_error)) => Err(VirtualMachineError::MemoryError(memory_error)),
+        (Err(memory_error), _) | (_, Err(memory_error)) => {
+            Err(VirtualMachineError::MemoryError(memory_error))
+        }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
