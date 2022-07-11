@@ -190,7 +190,7 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         let offset = if let Some((_, offset_str)) = regex_captures!(r"(-?\d+)", value) {
             match i32::from_str(offset_str) {
                 Ok(offset) => offset,
-                Err(e) => return Err(e).map_err(de::Error::custom),
+                Err(_) => -1,
             }
         } else {
             0
