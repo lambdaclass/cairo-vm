@@ -45,7 +45,7 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
     let splitted: Vec<&str> = value.split(" + ").collect();
 
     match splitted.len() {
-        1 => parse_dereference_no_offsets(splitted),
+        1 => parse_dereference_no_offsets(&splitted),
         2 => parse_dereference_with_one_offset(splitted),
         3 => parse_dereference_with_two_offsets(splitted),
         _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
@@ -53,7 +53,7 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
 }
 // parse string values of format `[cast(reg, *felt)]`
 fn parse_dereference_no_offsets(
-    splitted_value_str: Vec<&str>,
+    splitted_value_str: &Vec<&str>,
 ) -> Result<ValueAddress, ReferenceParseError> {
     let str_tmp: Vec<&str> = splitted_value_str[0].split(',').collect();
 
@@ -76,11 +76,7 @@ fn parse_dereference_no_offsets(
 fn parse_dereference_with_one_offset(
     splitted_value_str: Vec<&str>,
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let register = match splitted_value_str[0].split('(').collect::<Vec<&str>>()[1] {
-        "ap" => Some(Register::AP),
-        "fp" => Some(Register::FP),
-        _ => None,
-    };
+    let mut deref = parse_dereference_no_offsets(&splitted_value_str)?;
 
     let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
@@ -93,14 +89,9 @@ fn parse_dereference_with_one_offset(
             _ => return Err(ReferenceParseError::IntError(e)),
         },
     };
+    deref.offset1 = offset1;
 
-    Ok(ValueAddress {
-        register,
-        offset1,
-        offset2: 0,
-        immediate: None,
-        dereference: true,
-    })
+    Ok(deref)
 }
 
 // parse string values of format `[cast([reg + offset1] + offset2, *felt)]`
@@ -290,7 +281,7 @@ mod tests {
         let value_string: &str = "[cast(fp, felt*)]";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
 
-        let parsed_value = parse_dereference_no_offsets(splitted_value).unwrap();
+        let parsed_value = parse_dereference_no_offsets(&splitted_value).unwrap();
 
         let value_address = ValueAddress {
             register: Some(Register::FP),
