@@ -320,7 +320,16 @@ pub fn is_le_felt(
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         Some(builtin) => {
                             let mut value = bigint!(0);
-                            if maybe_rel_a % &vm.prime > maybe_rel_b % &vm.prime {
+                            let a_mod = match maybe_rel_a.mod_floor(&vm.prime) {
+                                Ok(MaybeRelocatable::Int(n)) => n,
+                                Ok(MaybeRelocatable
+                                Err(e) => return Err(e)
+                            };
+                            let b_mod = match maybe_rel_b.mod_floor(&vm.prime) {
+                                Ok(MaybeRelocatable::Int(n)) => n,
+                                Err(e) => return Err(e)
+                            };
+                            if a_mod > b_mod {
                                 value = bigint!(1);
                             }
                             match vm
