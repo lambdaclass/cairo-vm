@@ -417,9 +417,8 @@ impl VirtualMachine {
             ap: self.run_context.ap.clone(),
             fp: self.run_context.fp.clone(),
         });
-        for addr in operands_mem_addresses.iter() {
-            self.accessed_addresses.insert(addr.clone());
-        }
+        self.accessed_addresses
+            .extend(operands_mem_addresses.iter().map(Clone::clone));
         self.accessed_addresses.insert(self.run_context.pc.clone());
 
         self.update_registers(instruction, operands)?;
