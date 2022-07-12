@@ -46,6 +46,7 @@ pub enum VirtualMachineError {
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
     DiffIndexComp(Relocatable, Relocatable),
+    AssertNotZero(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -132,6 +133,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::DiffIndexComp(a, b) => {
                 write!(f, "Failed to compare {:?} and  {:?}, cant compare two relocatable values of different segment indexes", a, b)
+            },
+            VirtualMachineError::AssertNotZero(value, prime) => {
+                write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
             },
         }
     }

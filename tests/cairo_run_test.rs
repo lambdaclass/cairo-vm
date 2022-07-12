@@ -69,6 +69,12 @@ fn cairo_run_assert_nn() {
 }
 
 #[test]
+fn cairo_run_assert_not_zero() {
+    cairo_run::cairo_run(Path::new("cairo_programs/assert_not_zero.json"))
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_split_int() {
     cairo_run::cairo_run(Path::new("cairo_programs/split_int.json")).expect("Couldn't run program");
 }
