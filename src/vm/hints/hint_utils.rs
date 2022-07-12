@@ -6,8 +6,8 @@ use crate::vm::{
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::Signed;
 use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{Signed, Zero};
 use std::collections::HashMap;
 
 ///Computes the memory address indicated by the HintReference
@@ -439,7 +439,7 @@ pub fn split_int_assert_range(
                 return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
             };
             //Main logic (assert value == 0)
-            if *value != bigint!(0) {
+            if !value.is_zero() {
                 return Err(VirtualMachineError::SplitIntNotZero);
             }
             Ok(())
