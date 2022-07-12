@@ -215,7 +215,7 @@ impl VirtualMachine {
                     Res::Add => {
                         if let (Some(dst_addr), Some(op1_addr)) = (dst, op1) {
                             return Ok((
-                                Some((dst_addr.sub(op1_addr, self.prime.clone()))?),
+                                Some((dst_addr.sub(op1_addr, &self.prime))?),
                                 Some(dst_addr.clone()),
                             ));
                         }
@@ -266,7 +266,7 @@ impl VirtualMachine {
                 Res::Add => {
                     if let (Some(dst_addr), Some(op0_addr)) = (dst, op0) {
                         return Ok((
-                            Some((dst_addr.sub(&op0_addr, self.prime.clone()))?),
+                            Some((dst_addr.sub(&op0_addr, &self.prime))?),
                             Some(dst_addr.clone()),
                         ));
                     }

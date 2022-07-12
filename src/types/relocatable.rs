@@ -123,13 +123,13 @@ impl MaybeRelocatable {
     pub fn sub(
         &self,
         other: &MaybeRelocatable,
-        prime: BigInt,
+        prime: &BigInt,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref num_a_ref), &MaybeRelocatable::Int(ref num_b_ref)) => {
                 let num_a = Clone::clone(num_a_ref);
                 let num_b = Clone::clone(num_b_ref);
-                Ok(MaybeRelocatable::Int((num_a - num_b).mod_floor(&prime)))
+                Ok(MaybeRelocatable::Int((num_a - num_b).mod_floor(prime)))
             }
             (
                 MaybeRelocatable::RelocatableValue(rel_a),
@@ -374,7 +374,7 @@ mod tests {
     fn sub_int_from_int() {
         let addr_a = &MaybeRelocatable::from(bigint!(7));
         let addr_b = &MaybeRelocatable::from(bigint!(5));
-        let sub_addr = addr_a.sub(addr_b, bigint!(23));
+        let sub_addr = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(Ok(MaybeRelocatable::from(bigint!(2))), sub_addr);
     }
 
@@ -382,7 +382,7 @@ mod tests {
     fn sub_relocatable_from_relocatable_same_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
-        let sub_addr = addr_a.sub(addr_b, bigint!(23));
+        let sub_addr = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 10))),
             sub_addr
@@ -393,7 +393,7 @@ mod tests {
     fn sub_relocatable_from_relocatable_diff_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((8, 7));
-        let error = addr_a.sub(addr_b, bigint!(23));
+        let error = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(error, Err(VirtualMachineError::DiffIndexSub));
         assert_eq!(
             error.unwrap_err().to_string(),
@@ -405,7 +405,7 @@ mod tests {
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from(bigint!(5));
-        let error = addr_a.sub(addr_b, bigint!(23));
+        let error = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(error, Err(VirtualMachineError::NotImplemented));
         assert_eq!(error.unwrap_err().to_string(), "This is not implemented");
     }
