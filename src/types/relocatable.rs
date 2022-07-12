@@ -3,8 +3,8 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
 use num_integer::Integer;
+use num_traits::{FromPrimitive, ToPrimitive};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct Relocatable {
@@ -157,7 +157,7 @@ impl MaybeRelocatable {
     pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
         match self {
             MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
-            _ => Err(VirtualMachineError::NotImplemented)
+            _ => Err(VirtualMachineError::NotImplemented),
         }
     }
 }
@@ -429,7 +429,10 @@ mod tests {
         let num = MaybeRelocatable::Int(bigint!(7));
         let div = bigint!(5);
         let expected_rem = MaybeRelocatable::Int(bigint!(2));
-        assert_eq!(num.mod_floor(&div).expect("Unexpected mod floor fail"), expected_rem);
+        assert_eq!(
+            num.mod_floor(&div).expect("Unexpected mod floor fail"),
+            expected_rem
+        );
     }
 
     #[test]
