@@ -1,4 +1,4 @@
-use crate::types::relocatable::Relocatable;
+// use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -22,11 +22,15 @@ fn compute_addr_from_reference(
     };
 
     if let MaybeRelocatable::RelocatableValue(relocatable) = register {
-        if hint_reference.offset2 == 0 {
-            return compute_addr_from_one_offset(relocatable, hint_reference);
-        } else {
-            return compute_addr_from_two_offsets(relocatable, hint_reference);
+        if hint_reference.offset1.is_negative()
+            && relocatable.offset < hint_reference.offset1.abs() as usize
+        {
+            return None;
         }
+        return Some(MaybeRelocatable::from((
+            relocatable.segment_index,
+            (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2) as usize,
+        )));
     }
 
     None
@@ -44,42 +48,6 @@ fn get_address_from_reference(
         }
     }
     None
-}
-
-fn compute_addr_from_one_offset(
-    relocatable: Relocatable,
-    hint_reference: &HintReference,
-) -> Option<MaybeRelocatable> {
-    if hint_reference.offset1.is_negative()
-        && relocatable.offset < hint_reference.offset1.abs() as usize
-    {
-        return None;
-    }
-    Some(MaybeRelocatable::from((
-        relocatable.segment_index,
-        (relocatable.offset as i32 + hint_reference.offset1) as usize,
-    )))
-}
-
-fn compute_addr_from_two_offsets(
-    relocatable: Relocatable,
-    hint_reference: &HintReference,
-) -> Option<MaybeRelocatable> {
-    let addr = if hint_reference.offset1.is_negative()
-        && relocatable.offset < hint_reference.offset1.abs() as usize
-    {
-        return None;
-    } else {
-        Relocatable {
-            segment_index: relocatable.segment_index,
-            offset: (relocatable.offset as i32 + hint_reference.offset1) as usize,
-        }
-    };
-
-    Some(MaybeRelocatable::from((
-        addr.segment_index,
-        (addr.offset as i32 + hint_reference.offset2) as usize,
-    )))
 }
 
 ///Implements hint: memory[ap] = segments.add()
