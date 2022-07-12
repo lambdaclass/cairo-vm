@@ -1,9 +1,9 @@
 use crate::serde::deserialize_program::ValueAddress;
 use crate::types::instruction::Register;
 use num_bigint::{BigInt, ParseBigIntError};
+use num_integer::Integer;
 use std::fmt;
 use std::num::{IntErrorKind, ParseIntError};
-use std::ops::Rem;
 
 #[derive(Debug, PartialEq)]
 pub enum ReferenceParseError {
@@ -34,7 +34,7 @@ impl fmt::Display for ReferenceParseError {
 // Checks if the hex string has an odd length.
 // If that is the case, prepends '0' to it.
 pub fn maybe_add_padding(mut hex: String) -> String {
-    if hex.len().rem(2) != 0 {
+    if hex.len().is_odd() {
         hex.insert(0, '0');
         return hex;
     }
