@@ -56,3 +56,31 @@ fn cairo_run_assert_le_felt_hint() {
     cairo_run::cairo_run(Path::new("cairo_programs/assert_le_felt_hint.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_compare_different_arrays() {
+    cairo_run::cairo_run(Path::new("cairo_programs/compare_different_arrays.json"))
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_assert_nn() {
+    cairo_run::cairo_run(Path::new("cairo_programs/assert_nn.json")).expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_assert_not_zero() {
+    cairo_run::cairo_run(Path::new("cairo_programs/assert_not_zero.json"))
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_split_int() {
+    cairo_run::cairo_run(Path::new("cairo_programs/split_int.json")).expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_split_int_big() {
+    cairo_run::cairo_run(Path::new("cairo_programs/split_int_big.json"))
+        .expect("Couldn't run program");
+}
