@@ -48,6 +48,7 @@ pub enum VirtualMachineError {
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
     DiffIndexComp(Relocatable, Relocatable),
     AssertNotZero(BigInt, BigInt),
+    AssertionFail(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -138,6 +139,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            }
+            VirtualMachineError::AssertionFail(error_msg) => {
+                write!(f, "{:?}", error_msg)
             },
         }
     }
