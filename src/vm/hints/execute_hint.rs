@@ -6,7 +6,7 @@ use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     add_segment, assert_le_felt, assert_nn, assert_not_equal, assert_not_zero, is_le_felt, is_nn,
-    is_nn_out_of_range, split_int, split_int_assert_range, is_positive
+    is_nn_out_of_range, is_positive, split_int, split_int_assert_range,
 };
 use crate::vm::vm_core::VirtualMachine;
 
