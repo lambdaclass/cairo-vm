@@ -8,7 +8,7 @@ use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
-use num_traits::{FromPrimitive, One};
+use num_traits::{FromPrimitive, One, Zero};
 use starknet_crypto::{pedersen_hash, FieldElement};
 use std::ops::Shl;
 
@@ -117,9 +117,8 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
             |memory: &Memory,
              address: &MaybeRelocatable|
              -> Result<MaybeRelocatable, MemoryError> {
-                let _2_128 = BigInt::one().shl(128);
                 if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
-                    if bigint!(0) <= num.clone() && num.clone() < _2_128 {
+                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
                         Ok(address.to_owned())
                     } else {
                         Err(MemoryError::NumOutOfBounds)
