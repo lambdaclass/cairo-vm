@@ -9,6 +9,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
+use std::ops::Shl;
 
 ///Computes the memory address indicated by the HintReference
 fn compute_addr_from_reference(
@@ -447,7 +448,7 @@ pub fn sqrt(
                 ));
             };
             let mod_value = value.mod_floor(&vm.prime);
-            if mod_value > bigint!(2).pow(250) {
+            if mod_value > bigint!(1).shl(250) {
                 return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
             }
             vm.memory
