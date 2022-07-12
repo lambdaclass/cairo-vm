@@ -3,6 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
@@ -48,13 +49,13 @@ impl MaybeRelocatable {
         match *self {
             MaybeRelocatable::Int(ref value) => {
                 let mut num = Clone::clone(value);
-                num = (other + num) % prime;
+                num = (other + num).mod_floor(prime);
                 Ok(MaybeRelocatable::Int(num))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
                 assert!(big_offset >= bigint!(0), "Address offsets cant be negative");
-                big_offset %= prime;
+                big_offset = big_offset.mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
                     None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
@@ -72,7 +73,7 @@ impl MaybeRelocatable {
             MaybeRelocatable::Int(ref value) => {
                 let mut num = value + other;
                 if let Some(num_prime) = prime {
-                    num %= num_prime;
+                    num = num.mod_floor(&num_prime);
                 }
                 MaybeRelocatable::Int(num)
             }
@@ -94,8 +95,9 @@ impl MaybeRelocatable {
         prime: &BigInt,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref num_a), &MaybeRelocatable::Int(ref num_b)) => {
-                Ok(MaybeRelocatable::Int((num_a + num_b) % prime))
+            (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
+                let num_a = Clone::clone(num_a_ref);
+                Ok(MaybeRelocatable::Int((num_a + num_b).mod_floor(prime)))
             }
             (&MaybeRelocatable::RelocatableValue(_), &MaybeRelocatable::RelocatableValue(_)) => {
                 Err(VirtualMachineError::RelocatableAdd)
@@ -103,7 +105,7 @@ impl MaybeRelocatable {
             (&MaybeRelocatable::RelocatableValue(ref rel), &MaybeRelocatable::Int(ref num_ref))
             | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) =>
             {
-                let big_offset: BigInt = (num_ref + rel.offset) % prime;
+                let big_offset: BigInt = (num_ref + rel.offset).mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
                     None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
@@ -118,12 +120,14 @@ impl MaybeRelocatable {
     ///Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.
-    pub fn sub(&self, other: &MaybeRelocatable) -> Result<MaybeRelocatable, VirtualMachineError> {
+    pub fn sub(
+        &self,
+        other: &MaybeRelocatable,
+        prime: &BigInt,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref num_a_ref), &MaybeRelocatable::Int(ref num_b_ref)) => {
-                let num_a = Clone::clone(num_a_ref);
-                let num_b = Clone::clone(num_b_ref);
-                Ok(MaybeRelocatable::Int(num_a - num_b))
+            (&MaybeRelocatable::Int(ref num_a), &MaybeRelocatable::Int(ref num_b)) => {
+                Ok(MaybeRelocatable::Int((num_a - num_b).mod_floor(prime)))
             }
             (
                 MaybeRelocatable::RelocatableValue(rel_a),
@@ -368,7 +372,7 @@ mod tests {
     fn sub_int_from_int() {
         let addr_a = &MaybeRelocatable::from(bigint!(7));
         let addr_b = &MaybeRelocatable::from(bigint!(5));
-        let sub_addr = addr_a.sub(addr_b);
+        let sub_addr = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(Ok(MaybeRelocatable::from(bigint!(2))), sub_addr);
     }
 
@@ -376,7 +380,7 @@ mod tests {
     fn sub_relocatable_from_relocatable_same_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
-        let sub_addr = addr_a.sub(addr_b);
+        let sub_addr = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(
             Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 10))),
             sub_addr
@@ -387,7 +391,7 @@ mod tests {
     fn sub_relocatable_from_relocatable_diff_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((8, 7));
-        let error = addr_a.sub(addr_b);
+        let error = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(error, Err(VirtualMachineError::DiffIndexSub));
         assert_eq!(
             error.unwrap_err().to_string(),
@@ -399,7 +403,7 @@ mod tests {
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from(bigint!(5));
-        let error = addr_a.sub(addr_b);
+        let error = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(error, Err(VirtualMachineError::NotImplemented));
         assert_eq!(error.unwrap_err().to_string(), "This is not implemented");
     }
