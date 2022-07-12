@@ -395,11 +395,9 @@ pub fn assert_nn(
             } else {
                 return Err(VirtualMachineError::NoRangeCheckBuiltin);
             };
-
             // assert 0 <= ids.a % PRIME < range_check_builtin.bound
-            if a.mod_floor(&vm.prime).is_positive()
-                && a.mod_floor(&vm.prime) < range_check_builtin._bound
-            {
+            // as prime > 0, a % prime will always be > 0
+            if a.mod_floor(&vm.prime) < range_check_builtin._bound {
                 return Ok(());
             } else {
                 return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
