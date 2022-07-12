@@ -39,12 +39,18 @@ fn compute_addr_from_reference(
 ///Computes the memory address given by the reference id
 fn get_address_from_reference(
     reference_id: &BigInt,
-    references: &Vec<HintReference>,
+    references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
 ) -> Option<MaybeRelocatable> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
-            return compute_addr_from_reference(&references[index], run_context);
+            match references.get(&index) {
+                Some(hint_reference) => {
+                    return compute_addr_from_reference(hint_reference, run_context)
+                }
+                None => return None,
+            }
+            // return compute_addr_from_reference(&references.get(&index), run_context);
         }
     }
     None

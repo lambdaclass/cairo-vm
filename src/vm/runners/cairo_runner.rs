@@ -18,8 +18,6 @@ use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::io;
 
-use crate::types::instruction::Register;
-
 pub struct CairoRunner {
     program: Program,
     pub vm: VirtualMachine,
@@ -225,27 +223,32 @@ impl CairoRunner {
             Ok(_) => Ok(()),
         }
     }
-    fn get_reference_list(&self) -> Vec<HintReference> {
-        let mut references = Vec::<HintReference>::new();
+    fn get_reference_list(&self) -> HashMap<usize, HintReference> {
+        let mut references = HashMap::<usize, HintReference>::new();
 
-        for reference in self.program.reference_manager.references.iter() {
+        for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
             if let Some(register) = &reference.value_address.register {
-                references.push(HintReference {
-                    register: register.clone(),
-                    offset1: reference.value_address.offset1,
-                    offset2: reference.value_address.offset2,
-                })
-            } else {
-                // Dummy HintReference to maintain the same length of vectors Vec<References> and Vec<HintReference>
-                references.push(HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                })
+                references.insert(
+                    i,
+                    HintReference {
+                        register: register.clone(),
+                        offset1: reference.value_address.offset1,
+                        offset2: reference.value_address.offset2,
+                    },
+                );
             }
+            //     } else {
+            //         // Dummy HintReference to maintain the same length of vectors Vec<References> and Vec<HintReference>
+            //         references.push(HintReference {
+            //             register: Register::FP,
+            //             offset1: 0,
+            //             offset2: 0,
+            //         })
+            //     }
         }
         references
     }
+
     fn get_hint_dictionary(&self) -> Result<HashMap<MaybeRelocatable, Vec<HintData>>, RunnerError> {
         let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
         for (hint_index, hints) in self.program.hints.iter() {

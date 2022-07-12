@@ -167,11 +167,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         //Check that ap now contains false (0)
@@ -209,11 +212,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         //Check that ap now contains true (1)
@@ -256,11 +262,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         //Check that ap now contains true (1)
@@ -308,11 +317,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, &hint_code, ids),
@@ -371,11 +383,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -413,11 +428,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -471,23 +489,32 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -3,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Hint would return an error if the assertion fails
@@ -521,11 +548,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -4,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Hint would return an error if the assertion fails
@@ -559,11 +589,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -4,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -599,11 +632,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("incorrect_id"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -4,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -642,11 +678,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: 10,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: 10,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -682,11 +721,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -4,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -721,11 +763,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -4,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -753,11 +798,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -4,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -809,23 +857,32 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -3,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -877,23 +934,32 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -3,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -945,23 +1011,32 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -3,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -1015,23 +1090,32 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
         ids.insert(String::from("small_inputs"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -3,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -1070,11 +1154,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         assert_eq!(
@@ -1112,11 +1199,14 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset1: -1,
-            offset2: 0,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+            },
+        )]);
         //Execute the hint
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         assert_eq!(
@@ -1156,18 +1246,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -1210,18 +1306,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
     }
@@ -1262,18 +1364,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -1318,18 +1426,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -1372,18 +1486,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
     }
@@ -1420,18 +1540,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -1474,18 +1600,24 @@ mod tests {
         ids.insert(String::from("a"), bigint!(0));
         ids.insert(String::from("b"), bigint!(1));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-            },
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
