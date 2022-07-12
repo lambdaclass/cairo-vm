@@ -276,58 +276,58 @@ pub fn assert_le_felt(
     }
 }
 
-//Implements hint:from starkware.cairo.common.math_cmp import is_le_felt 
+//Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let (a_ref, b_ref) =
-        if let (Some(a_ref), Some(b_ref)) = (
-            ids.get(&String::from("a")),
-            ids.get(&String::from("b")),
-        ) {
-            (a_ref, b_ref)
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![
-                    String::from("a"),
-                    String::from("b"),
-                ],
-                ids.into_keys().collect(),
-            ));
-        };
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
     //Check that each reference id corresponds to a value in the reference manager
-    let (a_addr, b_addr) =
-        if let (Some(a_addr), Some(b_addr)) = (
-            get_address_from_reference(a_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(b_ref, &vm.references, &vm.run_context),
-        ) {
-            (a_addr, b_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
-    match (
-        vm.memory.get(&a_addr),
-        vm.memory.get(&b_addr),
+    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context),
     ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
                 if name == &String::from("range_check") {
                     match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
-                        Some(builtin) => {
+                        Some(_builtin) => {
                             let mut value = bigint!(0);
                             let a_mod = match maybe_rel_a.mod_floor(&vm.prime) {
                                 Ok(MaybeRelocatable::Int(n)) => n,
-                                Ok(MaybeRelocatable
-                                Err(e) => return Err(e)
+                                Ok(MaybeRelocatable::RelocatableValue(_)) => {
+                                    return Err(VirtualMachineError::ExpectedInteger(
+                                        a_addr.clone(),
+                                    ))
+                                }
+                                Err(e) => return Err(e),
                             };
                             let b_mod = match maybe_rel_b.mod_floor(&vm.prime) {
                                 Ok(MaybeRelocatable::Int(n)) => n,
-                                Err(e) => return Err(e)
+                                Ok(MaybeRelocatable::RelocatableValue(_)) => {
+                                    return Err(VirtualMachineError::ExpectedInteger(
+                                        b_addr.clone(),
+                                    ))
+                                }
+                                Err(e) => return Err(e),
                             };
                             if a_mod > b_mod {
                                 value = bigint!(1);
