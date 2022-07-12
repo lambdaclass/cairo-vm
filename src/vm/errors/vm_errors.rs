@@ -45,6 +45,8 @@ pub enum VirtualMachineError {
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
     DiffIndexComp(Relocatable, Relocatable),
     ValueOutside250BitRange(BigInt),
+    SqrtNegative(BigInt),
+    FailedToGetExactSqrt(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -131,6 +133,8 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Failed to compare {:?} and  {:?}, cant compare two relocatable values of different segment indexes", a, b)
             },
             VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
+            VirtualMachineError::SqrtNegative(value) => write!(f, "Cant calculate the square root of negative number: {:?})", value),
+            VirtualMachineError::FailedToGetExactSqrt(value) => write!(f, "Failed to calculate the exact square root of: {:?})", value),
         }
     }
 }

@@ -1,7 +1,26 @@
-use crate::bigint;
+use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{abs, FromPrimitive};
+use num_traits::{abs, FromPrimitive, Signed};
+
+///Returns the integer square root of the nonnegative integer n.
+///This is the floor of the exact square root of n.
+///Unlike math.sqrt(), this function doesn't have rounding error issues.
+pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
+    if !n.is_negative() {
+        return Err(VirtualMachineError::SqrtNegative(n.clone()));
+    }
+    let mut x = n.clone();
+    let mut y = (x.clone() + bigint!(1)).mod_floor(&bigint!(2));
+    while y < x.clone() {
+        x = y;
+        y = (x.clone() + n.mod_floor(&x)).mod_floor(&bigint!(2))
+    }
+    if x.pow(2) <= *n && *n < (x.clone() + bigint!(1)).pow(2) {
+        return Err(VirtualMachineError::FailedToGetExactSqrt(n.clone()));
+    };
+    Ok(x)
+}
 
 ///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
 fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {

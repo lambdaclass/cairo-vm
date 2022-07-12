@@ -1,3 +1,4 @@
+use crate::math_utils::isqrt;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -453,7 +454,7 @@ pub fn sqrt(
                 return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
             }
             vm.memory
-                .insert(&root_addr, &MaybeRelocatable::from(isqrt(&mod_value)))
+                .insert(&root_addr, &MaybeRelocatable::from(isqrt(&mod_value)?))
                 .map_err(VirtualMachineError::MemoryError)
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
