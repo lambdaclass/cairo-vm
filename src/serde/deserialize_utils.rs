@@ -61,7 +61,7 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
     match splitted.len() {
         1 => parse_dereference_no_offsets(&splitted),
         2 => parse_dereference_with_one_offset(&splitted),
-        3 => parse_dereference_with_two_offsets(splitted),
+        3 => parse_dereference_with_two_offsets(&splitted),
         _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
     }
 }
@@ -104,9 +104,9 @@ fn parse_dereference_with_one_offset(
 
 // parse string values of format `[cast([reg + offset1] + offset2, *felt)]`
 fn parse_dereference_with_two_offsets(
-    splitted_value_str: Vec<&str>,
+    splitted_value_str: &[&str],
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let mut deref = parse_dereference_with_one_offset(&splitted_value_str)?;
+    let mut deref = parse_dereference_with_one_offset(splitted_value_str)?;
 
     let mut offset2_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
     offset2_str.retain(|c| !r#"()"#.contains(c));
@@ -130,7 +130,7 @@ pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError>
     match splitted.len() {
         1 => parse_reference_no_offsets(&splitted),
         2 => parse_reference_with_one_offset(&splitted),
-        3 => parse_reference_with_two_offsets(splitted),
+        3 => parse_reference_with_two_offsets(&splitted),
         _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
     }
 }
@@ -171,9 +171,9 @@ fn parse_reference_with_one_offset(
 }
 
 fn parse_reference_with_two_offsets(
-    splitted_value_str: Vec<&str>,
+    splitted_value_str: &[&str],
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let mut refe = parse_reference_with_one_offset(&splitted_value_str)?;
+    let mut refe = parse_reference_with_one_offset(splitted_value_str)?;
 
     let mut immediate_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
     immediate_str.retain(|c| !r#"()"#.contains(c));
@@ -217,7 +217,7 @@ mod tests {
         let value_string: &str = "[cast([fp + (-4)] + 1, felt*)]";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
 
-        let parsed_value = parse_dereference_with_two_offsets(splitted_value).unwrap();
+        let parsed_value = parse_dereference_with_two_offsets(&splitted_value).unwrap();
 
         let value_address = ValueAddress {
             register: Some(Register::FP),
@@ -271,7 +271,7 @@ mod tests {
         let value_string: &str = "cast([fp + (-4)] + 1, felt*)";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
 
-        let parsed_value = parse_reference_with_two_offsets(splitted_value).unwrap();
+        let parsed_value = parse_reference_with_two_offsets(&splitted_value).unwrap();
 
         let value_address = ValueAddress {
             register: Some(Register::FP),

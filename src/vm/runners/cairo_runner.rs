@@ -237,14 +237,6 @@ impl CairoRunner {
                     },
                 );
             }
-            //     } else {
-            //         // Dummy HintReference to maintain the same length of vectors Vec<References> and Vec<HintReference>
-            //         references.push(HintReference {
-            //             register: Register::FP,
-            //             offset1: 0,
-            //             offset2: 0,
-            //         })
-            //     }
         }
         references
     }

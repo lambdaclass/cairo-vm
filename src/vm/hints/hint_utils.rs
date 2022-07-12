@@ -50,7 +50,6 @@ fn get_address_from_reference(
                 }
                 None => return None,
             }
-            // return compute_addr_from_reference(&references.get(&index), run_context);
         }
     }
     None
