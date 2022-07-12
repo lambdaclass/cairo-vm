@@ -3,6 +3,7 @@ use crate::{
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
@@ -47,9 +48,7 @@ impl MaybeRelocatable {
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
             MaybeRelocatable::Int(ref value) => {
-                let mut num = Clone::clone(value);
-                num = (other + num) % prime;
-                Ok(MaybeRelocatable::Int(num))
+                Ok(MaybeRelocatable::Int((value + other).mod_floor(prime)))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
