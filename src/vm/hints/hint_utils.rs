@@ -1,3 +1,4 @@
+use crate::math_utils::as_int;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -161,13 +162,13 @@ pub fn is_nn_out_of_range(
                         return Err(VirtualMachineError::NoRangeCheckBuiltin);
                     };
                     //Main logic (assert a is not negative and within the expected range)
-                    let mut value = bigint!(1);
-                    if (-a.clone() - bigint!(1)).mod_floor(&vm.prime) >= bigint!(0)
-                        && (-a.clone() - bigint!(1)).mod_floor(&vm.prime)
-                            < range_check_builtin._bound
+                    let value = if (-a.clone() - 1usize).mod_floor(&vm.prime)
+                        < range_check_builtin._bound
                     {
-                        value = bigint!(0);
-                    }
+                        bigint!(0)
+                    } else {
+                        bigint!(1)
+                    };
                     return match vm
                         .memory
                         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
@@ -255,10 +256,11 @@ pub fn assert_le_felt(
                                 return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
                             }
                             //Calculate value of small_inputs
-                            let mut value = bigint!(0);
-                            if *a < builtin._bound && (a - b) < builtin._bound {
-                                value = bigint!(1);
-                            }
+                            let value = if *a < builtin._bound && (a - b) < builtin._bound {
+                                bigint!(1)
+                            } else {
+                                bigint!(0)
+                            };
                             match vm
                                 .memory
                                 .insert(&small_inputs_addr, &MaybeRelocatable::from(value))
@@ -389,7 +391,7 @@ pub fn assert_not_equal(
     match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b).mod_floor(&vm.prime) == bigint!(0) {
+                if (a - b).is_multiple_of(&vm.prime) {
                     return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),
@@ -469,11 +471,9 @@ pub fn assert_nn(
             } else {
                 return Err(VirtualMachineError::NoRangeCheckBuiltin);
             };
-
             // assert 0 <= ids.a % PRIME < range_check_builtin.bound
-            if a.mod_floor(&vm.prime).is_positive()
-                && a.mod_floor(&vm.prime) < range_check_builtin._bound
-            {
+            // as prime > 0, a % prime will always be > 0
+            if a.mod_floor(&vm.prime) < range_check_builtin._bound {
                 return Ok(());
             } else {
                 return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
@@ -642,4 +642,76 @@ pub fn split_int(
     vm.memory
         .insert(&output_base, &MaybeRelocatable::Int(res))
         .map_err(VirtualMachineError::MemoryError)
+}
+
+//from starkware.cairo.common.math_utils import is_positive
+//ids.is_positive = 1 if is_positive(
+//    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
+pub fn is_positive(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (value_ref, is_positive_ref) = if let (Some(value_ref), Some(is_positive_ref)) = (
+        ids.get(&String::from("value")),
+        ids.get(&String::from("is_positive")),
+    ) {
+        (value_ref, is_positive_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("value"), String::from("is_positive")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (value_addr, is_positive_addr) = if let (Some(value_addr), Some(is_positive_addr)) = (
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context),
+    ) {
+        (value_addr, is_positive_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that the ids are in memory
+    match (vm.memory.get(&value_addr), vm.memory.get(&is_positive_addr)) {
+        (Ok(Some(maybe_rel_value)), Ok(_)) => {
+            //Check that the value at the ids address is an Int
+            let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                value
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
+            };
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                if name == &String::from("range_check") {
+                    let range_check_builtin = if let Some(range_check_builtin) =
+                        builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                    {
+                        range_check_builtin
+                    } else {
+                        return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                    };
+                    //Main logic (assert a is positive)
+                    let int_value = as_int(value, &vm.prime);
+                    if int_value.abs() > range_check_builtin._bound {
+                        return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
+                    }
+                    let result = if int_value.is_positive() {
+                        bigint!(1)
+                    } else {
+                        bigint!(0)
+                    };
+                    return vm
+                        .memory
+                        .insert(&is_positive_addr, &MaybeRelocatable::from(result))
+                        .map_err(VirtualMachineError::MemoryError);
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        }
+        (Err(memory_error), _) | (_, Err(memory_error)) => {
+            Err(VirtualMachineError::MemoryError(memory_error))
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
 }

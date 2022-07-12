@@ -1,10 +1,7 @@
-use crate::{
-    bigint,
-    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-};
+use crate::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, Signed, ToPrimitive};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct Relocatable {
@@ -48,13 +45,14 @@ impl MaybeRelocatable {
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
             MaybeRelocatable::Int(ref value) => {
-                let mut num = Clone::clone(value);
-                num = (other + num).mod_floor(prime);
-                Ok(MaybeRelocatable::Int(num))
+                Ok(MaybeRelocatable::Int((value + other).mod_floor(prime)))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
-                assert!(big_offset >= bigint!(0), "Address offsets cant be negative");
+                assert!(
+                    !big_offset.is_negative(),
+                    "Address offsets cant be negative"
+                );
                 big_offset = big_offset.mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
