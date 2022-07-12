@@ -20,29 +20,33 @@ fn compute_addr_from_reference(
         Register::FP => run_context.fp.clone(),
         Register::AP => run_context.ap.clone(),
     };
+
     if let MaybeRelocatable::RelocatableValue(relocatable) = register {
-        if hint_reference.offset.is_negative()
-            && relocatable.offset < hint_reference.offset.abs() as usize
+        if hint_reference.offset1.is_negative()
+            && relocatable.offset < hint_reference.offset1.abs() as usize
         {
             return None;
         }
         return Some(MaybeRelocatable::from((
             relocatable.segment_index,
-            (relocatable.offset as i32 + hint_reference.offset) as usize,
+            (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2) as usize,
         )));
     }
+
     None
 }
 
 ///Computes the memory address given by the reference id
 fn get_address_from_reference(
     reference_id: &BigInt,
-    references: &Vec<HintReference>,
+    references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
 ) -> Option<MaybeRelocatable> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
-            return compute_addr_from_reference(&references[index], run_context);
+            if let Some(hint_reference) = references.get(&index) {
+                return compute_addr_from_reference(hint_reference, run_context);
+            }
         }
     }
     None
@@ -79,6 +83,7 @@ pub fn is_nn(
         } else {
             return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
         };
+
     //Check that the ids are in memory
     match vm.memory.get(&a_addr) {
         Ok(Some(maybe_rel_a)) => {
