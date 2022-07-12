@@ -10,7 +10,7 @@ use num_traits::{abs, FromPrimitive, Signed};
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
 pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
     //n.shr(1) = n.div_floor(2)
-    if !n.is_positive() {
+    if n.is_negative() {
         return Err(VirtualMachineError::SqrtNegative(n.clone()));
     }
     let mut x = n.clone();
@@ -458,7 +458,7 @@ mod tests {
     #[test]
     fn calculate_isqrt_zero() {
         let n = bigint!(0);
-        assert_eq!(isqrt(&n), Err(VirtualMachineError::SqrtNegative(n)));
+        assert_eq!(isqrt(&n), Ok(bigint!(0)));
     }
 
     #[test]
