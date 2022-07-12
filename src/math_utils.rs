@@ -1,3 +1,5 @@
+use std::ops::Shr;
+
 use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -7,14 +9,15 @@ use num_traits::{abs, FromPrimitive, Signed};
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
 pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
+    //n.shr(1) = n.div_floor(2)
     if !n.is_positive() {
         return Err(VirtualMachineError::SqrtNegative(n.clone()));
     }
     let mut x = n.clone();
-    let mut y = (x.clone() + bigint!(1)).div_floor(&bigint!(2));
+    let mut y = (x.clone() + bigint!(1)).shr(1_i32);
     while y < x.clone() {
         x = y;
-        y = (x.clone() + n.div_floor(&x)).div_floor(&bigint!(2))
+        y = (x.clone() + n.div_floor(&x)).shr(1_i32);
     }
     if !(x.pow(2) <= *n && *n < (x.clone() + bigint!(1)).pow(2)) {
         return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
