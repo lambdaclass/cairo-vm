@@ -41,7 +41,7 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-fn parse_register(splitted_value_str: &Vec<&str>) -> Option<Register> {
+fn parse_register(splitted_value_str: &[&str]) -> Option<Register> {
     let str_tmp: Vec<&str> = splitted_value_str[0].split(',').collect();
 
     let mut raw_reg_str = str_tmp[0].to_string();
@@ -49,9 +49,9 @@ fn parse_register(splitted_value_str: &Vec<&str>) -> Option<Register> {
     raw_reg_str.retain(|c| !r#"["#.contains(c));
 
     match raw_reg_str.split('(').collect::<Vec<_>>()[1] {
-        "ap" => return Some(Register::AP),
-        "fp" => return Some(Register::FP),
-        _ => return None,
+        "ap" => Some(Register::AP),
+        "fp" => Some(Register::FP),
+        _ => None,
     }
 }
 
@@ -67,7 +67,7 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
 }
 // parse string values of format `[cast(reg, *felt)]`
 fn parse_dereference_no_offsets(
-    splitted_value_str: &Vec<&str>,
+    splitted_value_str: &[&str],
 ) -> Result<ValueAddress, ReferenceParseError> {
     let register = parse_register(splitted_value_str);
 
@@ -82,9 +82,9 @@ fn parse_dereference_no_offsets(
 
 // parse string values of format `[cast(reg + offset1, *felt)]`
 fn parse_dereference_with_one_offset(
-    splitted_value_str: &Vec<&str>,
+    splitted_value_str: &[&str],
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let mut deref = parse_dereference_no_offsets(&splitted_value_str)?;
+    let mut deref = parse_dereference_no_offsets(splitted_value_str)?;
 
     let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
@@ -136,9 +136,9 @@ pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError>
 }
 
 fn parse_reference_no_offsets(
-    splitted_value_str: &Vec<&str>,
+    splitted_value_str: &[&str],
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let register = parse_register(&splitted_value_str);
+    let register = parse_register(splitted_value_str);
 
     Ok(ValueAddress {
         register,
@@ -150,9 +150,9 @@ fn parse_reference_no_offsets(
 }
 
 fn parse_reference_with_one_offset(
-    splitted_value_str: &Vec<&str>,
+    splitted_value_str: &[&str],
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let mut refe = parse_reference_no_offsets(&splitted_value_str)?;
+    let mut refe = parse_reference_no_offsets(splitted_value_str)?;
 
     let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
