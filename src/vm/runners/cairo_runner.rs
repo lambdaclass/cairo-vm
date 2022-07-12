@@ -236,7 +236,7 @@ impl CairoRunner {
                     offset2: reference.value_address.offset2,
                 })
             } else {
-                // just a dummy HintReference to maintian the same lenght of vectors Vec<References> and Vec<HintReference>
+                // Dummy HintReference to maintain the same length of vectors Vec<References> and Vec<HintReference>
                 references.push(HintReference {
                     register: Register::FP,
                     offset1: 0,
