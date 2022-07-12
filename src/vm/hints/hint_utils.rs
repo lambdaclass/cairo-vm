@@ -397,7 +397,7 @@ pub fn assert_nn(
             };
 
             // assert 0 <= ids.a % PRIME < range_check_builtin.bound
-            if a.mod_floor(&vm.prime).is_positive()
+            if !a.mod_floor(&vm.prime).is_negative()
                 && a.mod_floor(&vm.prime) < range_check_builtin._bound
             {
                 return Ok(());
