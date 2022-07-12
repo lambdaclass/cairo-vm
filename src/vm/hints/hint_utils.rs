@@ -438,7 +438,7 @@ pub fn assert_not_zero(
         Ok(Some(maybe_rel_value)) => {
             //Check that the value at the ids address is an Int
             if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
-                if value % &vm.prime == bigint!(0) {
+                if value.is_multiple_of(&vm.prime) {
                     Err(VirtualMachineError::AssertNotZero(
                         value.clone(),
                         vm.prime.clone(),
