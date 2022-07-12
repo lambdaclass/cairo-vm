@@ -7,7 +7,7 @@ use num_traits::{abs, FromPrimitive, Signed};
 ///This is the floor of the exact square root of n.
 ///Unlike math.sqrt(), this function doesn't have rounding error issues.
 pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
-    if !n.is_negative() {
+    if !n.is_positive() {
         return Err(VirtualMachineError::SqrtNegative(n.clone()));
     }
     let mut x = n.clone();
@@ -430,5 +430,11 @@ mod tests {
             ),
             ec_add(point_a, point_b, &prime)
         );
+    }
+
+    #[test]
+    fn calculate_isqrt_a(){
+        let n = bigint!(81);
+        assert_eq!(isqrt(&n), Ok(bigint!(9)));
     }
 }
