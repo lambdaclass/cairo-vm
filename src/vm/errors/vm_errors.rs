@@ -41,6 +41,7 @@ pub enum VirtualMachineError {
     FailedToGetReference(BigInt),
     ValueOutOfRange(BigInt),
     UnknownHint(String),
+    ValueOutsideValidRange(BigInt),
     SplitIntNotZero,
     SplitIntLimbOutOfRange(BigInt),
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
@@ -123,6 +124,7 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::ValueOutsideValidRange(value) => write!(f, "Value: {:?} is outside valid range", value),
             VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
             VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
             VirtualMachineError::DiffTypeComparison(a, b) => {
