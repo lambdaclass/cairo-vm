@@ -41,6 +41,20 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
+fn parse_register(splitted_value_str: &Vec<&str>) -> Option<Register> {
+    let str_tmp: Vec<&str> = splitted_value_str[0].split(',').collect();
+
+    let mut raw_reg_str = str_tmp[0].to_string();
+
+    raw_reg_str.retain(|c| !r#"["#.contains(c));
+
+    match raw_reg_str.split('(').collect::<Vec<_>>()[1] {
+        "ap" => return Some(Register::AP),
+        "fp" => return Some(Register::FP),
+        _ => return None,
+    }
+}
+
 pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseError> {
     let splitted: Vec<&str> = value.split(" + ").collect();
 
@@ -55,17 +69,7 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
 fn parse_dereference_no_offsets(
     splitted_value_str: &Vec<&str>,
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let str_tmp: Vec<&str> = splitted_value_str[0].split(',').collect();
-
-    let mut raw_reg_str = str_tmp[0].to_string();
-
-    raw_reg_str.retain(|c| !r#"["#.contains(c));
-
-    let register = match raw_reg_str.split('(').collect::<Vec<_>>()[1] {
-        "ap" => Some(Register::AP),
-        "fp" => Some(Register::FP),
-        _ => None,
-    };
+    let register = parse_register(splitted_value_str);
 
     Ok(ValueAddress {
         register,
@@ -124,21 +128,17 @@ pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError>
     let splitted: Vec<_> = value.split(" + ").collect();
 
     match splitted.len() {
-        1 => parse_reference_no_offsets(splitted),
-        2 => parse_reference_with_one_offset(splitted),
+        1 => parse_reference_no_offsets(&splitted),
+        2 => parse_reference_with_one_offset(&splitted),
         3 => parse_reference_with_two_offsets(splitted),
         _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
     }
 }
 
 fn parse_reference_no_offsets(
-    splitted_value_str: Vec<&str>,
+    splitted_value_str: &Vec<&str>,
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let register = match splitted_value_str[0].split(',').collect::<Vec<_>>()[0] {
-        "cast(ap" => Some(Register::AP),
-        "cast(fp" => Some(Register::FP),
-        _ => None,
-    };
+    let register = parse_register(&splitted_value_str);
 
     Ok(ValueAddress {
         register,
@@ -150,45 +150,11 @@ fn parse_reference_no_offsets(
 }
 
 fn parse_reference_with_one_offset(
-    splitted_value_str: Vec<&str>,
+    splitted_value_str: &Vec<&str>,
 ) -> Result<ValueAddress, ReferenceParseError> {
-    let register = match splitted_value_str[0].split('(').collect::<Vec<_>>()[1] {
-        "ap" => Some(Register::AP),
-        "fp" => Some(Register::FP),
-        _ => None,
-    };
+    let mut refe = parse_reference_no_offsets(&splitted_value_str)?;
 
     let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
-    offset1_str.retain(|c| !r#"()"#.contains(c));
-
-    let offset1: i32 = match offset1_str.parse() {
-        Ok(offset1) => offset1,
-        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
-        Err(e) => match e.kind() {
-            IntErrorKind::PosOverflow => 0,
-            _ => return Err(ReferenceParseError::IntError(e)),
-        },
-    };
-
-    Ok(ValueAddress {
-        register,
-        offset1,
-        offset2: 0,
-        immediate: None,
-        dereference: false,
-    })
-}
-
-fn parse_reference_with_two_offsets(
-    splitted_value_str: Vec<&str>,
-) -> Result<ValueAddress, ReferenceParseError> {
-    let register = match splitted_value_str[0].split('[').collect::<Vec<_>>()[1] {
-        "ap" => Some(Register::AP),
-        "fp" => Some(Register::FP),
-        _ => None,
-    };
-
-    let mut offset1_str = splitted_value_str[1].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
 
     let offset1: i32 = match offset1_str.parse() {
@@ -199,6 +165,15 @@ fn parse_reference_with_two_offsets(
             _ => return Err(ReferenceParseError::IntError(e)),
         },
     };
+    refe.offset1 = offset1;
+
+    Ok(refe)
+}
+
+fn parse_reference_with_two_offsets(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
+    let mut refe = parse_reference_with_one_offset(&splitted_value_str)?;
 
     let mut immediate_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
     immediate_str.retain(|c| !r#"()"#.contains(c));
@@ -208,13 +183,9 @@ fn parse_reference_with_two_offsets(
         Err(e) => return Err(ReferenceParseError::BigIntError(e)),
     };
 
-    Ok(ValueAddress {
-        register,
-        offset1,
-        offset2: 0,
-        immediate: Some(immediate),
-        dereference: false,
-    })
+    refe.immediate = Some(immediate);
+
+    Ok(refe)
 }
 
 #[cfg(test)]
@@ -282,7 +253,7 @@ mod tests {
         let value_string: &str = "cast(fp + (-3), felt*)";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
 
-        let parsed_value = parse_reference_with_one_offset(splitted_value).unwrap();
+        let parsed_value = parse_reference_with_one_offset(&splitted_value).unwrap();
 
         let value_address = ValueAddress {
             register: Some(Register::FP),
@@ -318,7 +289,7 @@ mod tests {
         let value_string: &str = "cast(fp, felt*)";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
 
-        let parsed_value = parse_reference_no_offsets(splitted_value).unwrap();
+        let parsed_value = parse_reference_no_offsets(&splitted_value).unwrap();
 
         let value_address = ValueAddress {
             register: Some(Register::FP),
