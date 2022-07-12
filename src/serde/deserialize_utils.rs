@@ -1,7 +1,35 @@
 use crate::serde::deserialize_program::ValueAddress;
 use crate::types::instruction::Register;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, ParseBigIntError};
+use std::fmt;
+use std::num::{IntErrorKind, ParseIntError};
 use std::ops::Rem;
+
+#[derive(Debug, PartialEq)]
+pub enum ReferenceParseError {
+    IntError(ParseIntError),
+    BigIntError(ParseBigIntError),
+    InvalidStringError(String),
+}
+
+impl fmt::Display for ReferenceParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ReferenceParseError::IntError(error) => {
+                write!(f, "Int parsing error: ")?;
+                error.fmt(f)
+            }
+            ReferenceParseError::BigIntError(error) => {
+                write!(f, "BigInt parsing error: ")?;
+                error.fmt(f)
+            }
+            ReferenceParseError::InvalidStringError(error) => {
+                write!(f, "Invalid reference string error: ")?;
+                error.fmt(f)
+            }
+        }
+    }
+}
 
 // Checks if the hex string has an odd length.
 // If that is the case, prepends '0' to it.
@@ -13,18 +41,20 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-pub fn parse_dereference(value: &str) -> Result<ValueAddress, ()> {
+pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseError> {
     let splitted: Vec<&str> = value.split(" + ").collect();
 
     match splitted.len() {
         1 => parse_dereference_no_offsets(splitted),
         2 => parse_dereference_with_one_offset(splitted),
         3 => parse_dereference_with_two_offsets(splitted),
-        _ => Err(()),
+        _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
     }
 }
-
-fn parse_dereference_no_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+// parse string values of format `[cast(reg, *felt)]`
+fn parse_dereference_no_offsets(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
     let str_tmp: Vec<&str> = splitted_value_str[0].split(',').collect();
 
     let register = match str_tmp[0].split('(').collect::<Vec<_>>()[1] {
@@ -42,7 +72,10 @@ fn parse_dereference_no_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAd
     })
 }
 
-fn parse_dereference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+// parse string values of format `[cast(reg + offset1, *felt)]`
+fn parse_dereference_with_one_offset(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
     let register = match splitted_value_str[0].split('(').collect::<Vec<&str>>()[1] {
         "ap" => Some(Register::AP),
         "fp" => Some(Register::FP),
@@ -52,7 +85,14 @@ fn parse_dereference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<Va
     let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
 
-    let offset1: i32 = offset1_str.parse().unwrap();
+    let offset1: i32 = match offset1_str.parse() {
+        Ok(offset1) => offset1,
+        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
+        Err(e) => match e.kind() {
+            IntErrorKind::PosOverflow => 0,
+            _ => return Err(ReferenceParseError::IntError(e)),
+        },
+    };
 
     Ok(ValueAddress {
         register,
@@ -63,7 +103,10 @@ fn parse_dereference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<Va
     })
 }
 
-fn parse_dereference_with_two_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+// parse string values of format `[cast([reg + offset1] + offset2, *felt)]`
+fn parse_dereference_with_two_offsets(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
     let register = match splitted_value_str[0].split('[').collect::<Vec<&str>>()[2] {
         "ap" => Some(Register::AP),
         "fp" => Some(Register::FP),
@@ -73,12 +116,26 @@ fn parse_dereference_with_two_offsets(splitted_value_str: Vec<&str>) -> Result<V
     let mut offset1_str = splitted_value_str[1].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
 
-    let offset1: i32 = offset1_str.parse().unwrap();
+    let offset1: i32 = match offset1_str.parse() {
+        Ok(offset1) => offset1,
+        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
+        Err(e) => match e.kind() {
+            IntErrorKind::PosOverflow => 0,
+            _ => return Err(ReferenceParseError::IntError(e)),
+        },
+    };
 
     let mut offset2_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
     offset2_str.retain(|c| !r#"()"#.contains(c));
 
-    let offset2: i32 = offset2_str.parse().unwrap();
+    let offset2: i32 = match offset2_str.parse() {
+        Ok(offset2) => offset2,
+        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
+        Err(e) => match e.kind() {
+            IntErrorKind::PosOverflow => 0,
+            _ => return Err(ReferenceParseError::IntError(e)),
+        },
+    };
 
     Ok(ValueAddress {
         register,
@@ -89,18 +146,20 @@ fn parse_dereference_with_two_offsets(splitted_value_str: Vec<&str>) -> Result<V
     })
 }
 
-pub fn parse_reference(value: &str) -> Result<ValueAddress, ()> {
+pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError> {
     let splitted: Vec<_> = value.split(" + ").collect();
 
     match splitted.len() {
         1 => parse_reference_no_offsets(splitted),
         2 => parse_reference_with_one_offset(splitted),
         3 => parse_reference_with_two_offsets(splitted),
-        _ => Err(()),
+        _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
     }
 }
 
-fn parse_reference_no_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+fn parse_reference_no_offsets(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
     let register = match splitted_value_str[0].split(',').collect::<Vec<_>>()[0] {
         "cast(ap" => Some(Register::AP),
         "cast(fp" => Some(Register::FP),
@@ -116,7 +175,9 @@ fn parse_reference_no_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddr
     })
 }
 
-fn parse_reference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+fn parse_reference_with_one_offset(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
     let register = match splitted_value_str[0].split('(').collect::<Vec<_>>()[1] {
         "ap" => Some(Register::AP),
         "fp" => Some(Register::FP),
@@ -126,7 +187,14 @@ fn parse_reference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<Valu
     let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
     offset1_str.retain(|c| !r#"()"#.contains(c));
 
-    let offset1: i32 = offset1_str.parse().unwrap();
+    let offset1: i32 = match offset1_str.parse() {
+        Ok(offset1) => offset1,
+        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
+        Err(e) => match e.kind() {
+            IntErrorKind::PosOverflow => 0,
+            _ => return Err(ReferenceParseError::IntError(e)),
+        },
+    };
 
     Ok(ValueAddress {
         register,
@@ -137,7 +205,9 @@ fn parse_reference_with_one_offset(splitted_value_str: Vec<&str>) -> Result<Valu
     })
 }
 
-fn parse_reference_with_two_offsets(splitted_value_str: Vec<&str>) -> Result<ValueAddress, ()> {
+fn parse_reference_with_two_offsets(
+    splitted_value_str: Vec<&str>,
+) -> Result<ValueAddress, ReferenceParseError> {
     let register = match splitted_value_str[0].split('[').collect::<Vec<_>>()[1] {
         "ap" => Some(Register::AP),
         "fp" => Some(Register::FP),
@@ -147,12 +217,22 @@ fn parse_reference_with_two_offsets(splitted_value_str: Vec<&str>) -> Result<Val
     let mut offset1_str = splitted_value_str[1].to_string();
     offset1_str.retain(|c| !r#"()]"#.contains(c));
 
-    let offset1: i32 = offset1_str.parse().unwrap();
+    let offset1: i32 = match offset1_str.parse() {
+        Ok(offset1) => offset1,
+        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
+        Err(e) => match e.kind() {
+            IntErrorKind::PosOverflow => 0,
+            _ => return Err(ReferenceParseError::IntError(e)),
+        },
+    };
 
     let mut immediate_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
     immediate_str.retain(|c| !r#"()"#.contains(c));
 
-    let immediate: BigInt = immediate_str.parse().unwrap();
+    let immediate: BigInt = match immediate_str.parse() {
+        Ok(immediate) => immediate,
+        Err(e) => return Err(ReferenceParseError::BigIntError(e)),
+    };
 
     Ok(ValueAddress {
         register,
@@ -170,7 +250,6 @@ mod tests {
     use num_traits::FromPrimitive;
 
     #[test]
-    // parse value string of format `[cast(reg + offset1, felt*)]`
     fn parse_dereference_with_one_offset_test() {
         let value_string: &str = "[cast(fp + (-3), felt*)]";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
@@ -225,7 +304,6 @@ mod tests {
     }
 
     #[test]
-    // parse value string of format `[cast(reg + offset1, felt*)]`
     fn parse_reference_with_one_offset_test() {
         let value_string: &str = "cast(fp + (-3), felt*)";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();

@@ -1,13 +1,11 @@
+use crate::serde::deserialize_utils;
 use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
-// use lazy_regex::regex_captures;
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
-// use std::str::FromStr;
-use crate::serde::deserialize_utils;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -181,8 +179,15 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
         E: de::Error,
     {
         let res = match value.chars().next() {
-            Some('[') => deserialize_utils::parse_dereference(value).unwrap(),
-            Some('c') => deserialize_utils::parse_reference(value).unwrap(),
+            Some('[') => match deserialize_utils::parse_dereference(value) {
+                Ok(res) => res,
+                Err(e) => return Err(e).map_err(de::Error::custom),
+            },
+            Some('c') => match deserialize_utils::parse_reference(value) {
+                Ok(res) => res,
+                Err(e) => return Err(e).map_err(de::Error::custom),
+            },
+
             _c => return Err("Expected '[' or 'c' as first char").map_err(de::Error::custom),
         };
 
