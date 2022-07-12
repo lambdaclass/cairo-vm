@@ -17,7 +17,7 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
         y = (x.clone() + n.div_floor(&x)).div_floor(&bigint!(2))
     }
     if !(x.pow(2) <= *n && *n < (x.clone() + bigint!(1)).pow(2)) {
-        return Err(VirtualMachineError::FailedToGetExactSqrt(n.clone()));
+        return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
 }
@@ -436,5 +436,31 @@ mod tests {
     fn calculate_isqrt_a() {
         let n = bigint!(81);
         assert_eq!(isqrt(&n), Ok(bigint!(9)));
+    }
+
+    #[test]
+    fn calculate_isqrt_b() {
+        let n = bigint_str!(b"4573659632505831259480");
+        assert_eq!(isqrt(&(n.pow(2))), Ok(n));
+    }
+
+    #[test]
+    fn calculate_isqrt_c() {
+        let n = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
+        assert_eq!(isqrt(&(n.pow(2))), Ok(n));
+    }
+
+    #[test]
+    fn calculate_isqrt_zero() {
+        let n = bigint!(0);
+        assert_eq!(isqrt(&n), Err(VirtualMachineError::SqrtNegative(n)));
+    }
+
+    #[test]
+    fn calculate_isqrt_negative() {
+        let n = bigint!(-1);
+        assert_eq!(isqrt(&n), Err(VirtualMachineError::SqrtNegative(n)));
     }
 }
