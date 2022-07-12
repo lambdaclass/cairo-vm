@@ -11,12 +11,12 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
         return Err(VirtualMachineError::SqrtNegative(n.clone()));
     }
     let mut x = n.clone();
-    let mut y = (x.clone() + bigint!(1)).mod_floor(&bigint!(2));
+    let mut y = (x.clone() + bigint!(1)).div_floor(&bigint!(2));
     while y < x.clone() {
         x = y;
-        y = (x.clone() + n.mod_floor(&x)).mod_floor(&bigint!(2))
+        y = (x.clone() + n.div_floor(&x)).div_floor(&bigint!(2))
     }
-    if x.pow(2) <= *n && *n < (x.clone() + bigint!(1)).pow(2) {
+    if !(x.pow(2) <= *n && *n < (x.clone() + bigint!(1)).pow(2)) {
         return Err(VirtualMachineError::FailedToGetExactSqrt(n.clone()));
     };
     Ok(x)
@@ -433,7 +433,7 @@ mod tests {
     }
 
     #[test]
-    fn calculate_isqrt_a(){
+    fn calculate_isqrt_a() {
         let n = bigint!(81);
         assert_eq!(isqrt(&n), Ok(bigint!(9)));
     }
