@@ -44,11 +44,8 @@ fn get_address_from_reference(
 ) -> Option<MaybeRelocatable> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
-            match references.get(&index) {
-                Some(hint_reference) => {
-                    return compute_addr_from_reference(hint_reference, run_context)
-                }
-                None => return None,
+            if let Some(hint_reference) = references.get(&index) {
+                return compute_addr_from_reference(hint_reference, run_context);
             }
         }
     }
