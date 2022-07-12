@@ -7,7 +7,6 @@ use crate::vm::{
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::Signed;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
@@ -397,9 +396,7 @@ pub fn assert_nn(
             };
 
             // assert 0 <= ids.a % PRIME < range_check_builtin.bound
-            if !a.mod_floor(&vm.prime).is_negative()
-                && a.mod_floor(&vm.prime) < range_check_builtin._bound
-            {
+            if a.mod_floor(&vm.prime) < range_check_builtin._bound {
                 return Ok(());
             } else {
                 return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
