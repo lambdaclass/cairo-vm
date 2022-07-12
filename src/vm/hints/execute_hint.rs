@@ -505,6 +505,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         //Insert ids into memory
         //ids.a
@@ -523,8 +524,8 @@ mod tests {
             .expect("Unexpected memroy insert fail");
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(1));
-        ids.insert(String::from("b"), bigint!(2));
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
         //Create references
         vm.references = vec![
             HintReference {
