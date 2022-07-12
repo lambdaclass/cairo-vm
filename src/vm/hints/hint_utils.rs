@@ -407,3 +407,49 @@ pub fn assert_nn(
     }
     Err(VirtualMachineError::NoRangeCheckBuiltin)
 }
+
+//Implements hint:from starkware.cairo.common.math.cairo
+// %{
+// from starkware.cairo.common.math_utils import assert_integer
+// assert_integer(ids.value)
+// assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'
+// %}
+pub fn assert_not_zero(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    let value_ref = if let Some(value_ref) = ids.get(&String::from("value")) {
+        value_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("value")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let value_addr = if let Some(value_addr) =
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context)
+    {
+        value_addr
+    } else {
+        return Err(VirtualMachineError::FailedToGetReference(value_ref.clone()));
+    };
+    match vm.memory.get(&value_addr) {
+        Ok(Some(maybe_rel_value)) => {
+            //Check that the value at the ids address is an Int
+            if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                if value.is_multiple_of(&vm.prime) {
+                    Err(VirtualMachineError::AssertNotZero(
+                        value.clone(),
+                        vm.prime.clone(),
+                    ))
+                } else {
+                    Ok(())
+                }
+            } else {
+                Err(VirtualMachineError::ExpectedInteger(value_addr.clone()))
+            }
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
