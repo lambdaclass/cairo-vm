@@ -4,7 +4,9 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{add_segment, assert_le_felt, is_nn, is_nn_out_of_range, is_le_felt};
+use crate::vm::hints::hint_utils::{
+    add_segment, assert_le_felt, is_le_felt, is_nn, is_nn_out_of_range,
+};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
