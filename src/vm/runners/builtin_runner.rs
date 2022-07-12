@@ -8,8 +8,9 @@ use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, One, Zero};
 use starknet_crypto::{pedersen_hash, FieldElement};
+use std::ops::Shl;
 
 pub struct RangeCheckBuiltinRunner {
     included: bool,
@@ -75,7 +76,7 @@ pub trait BuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(included: bool, ratio: BigInt, n_parts: u32) -> RangeCheckBuiltinRunner {
-        let inner_rc_bound = bigint!(2_i32.pow(16));
+        let inner_rc_bound = bigint!(1i32 << 16);
         RangeCheckBuiltinRunner {
             included,
             _ratio: ratio,
@@ -117,7 +118,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
              address: &MaybeRelocatable|
              -> Result<MaybeRelocatable, MemoryError> {
                 if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
-                    if bigint!(0) <= num.clone() && num.clone() < bigint!(2).pow(128) {
+                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
                         Ok(address.to_owned())
                     } else {
                         Err(MemoryError::NumOutOfBounds)
@@ -342,15 +343,16 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
                 Ok(Some(MaybeRelocatable::Int(num_y))),
             ) = (memory.get(&x_addr), memory.get(&y_addr))
             {
+                let _2_pow_bits = bigint!(1).shl(self.total_n_bits);
                 assert!(
-                    num_x < &bigint!(2).pow(self.total_n_bits),
+                    num_x < &_2_pow_bits,
                     "Expected integer at address {:?} to be smaller than 2^{}, Got {}",
                     x_addr,
                     self.total_n_bits,
                     num_x
                 );
                 assert!(
-                    num_y < &bigint!(2).pow(self.total_n_bits),
+                    num_y < &_2_pow_bits,
                     "Expected integer at address {:?} to be smaller than 2^{}, Got {}",
                     y_addr,
                     self.total_n_bits,
