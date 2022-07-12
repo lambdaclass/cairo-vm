@@ -162,9 +162,8 @@ pub fn is_nn_out_of_range(
                         return Err(VirtualMachineError::NoRangeCheckBuiltin);
                     };
                     //Main logic (assert a is not negative and within the expected range)
-                    let value = if (-a.clone() - bigint!(1)).mod_floor(&vm.prime) >= bigint!(0)
-                        && (-a.clone() - bigint!(1)).mod_floor(&vm.prime)
-                            < range_check_builtin._bound
+                    let value = if (-a.clone() - 1usize).mod_floor(&vm.prime)
+                        < range_check_builtin._bound
                     {
                         bigint!(0)
                     } else {

@@ -1,3 +1,5 @@
+use std::ops::Shr;
+
 use crate::bigint;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -5,7 +7,8 @@ use num_traits::{abs, FromPrimitive};
 
 /// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
 pub fn as_int(val: &BigInt, prime: &BigInt) -> BigInt {
-    if val < &prime.div_floor(&bigint!(2)) {
+    //n.shr(1) = n.div_floor(2)
+    if *val < prime.shr(1) {
         val.clone()
     } else {
         val - prime
