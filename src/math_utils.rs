@@ -15,7 +15,7 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
     }
     let mut x = n.clone();
     let mut y = (x.clone() + bigint!(1)).shr(1_i32);
-    while y < x.clone() {
+    while y < x {
         x = y;
         y = (x.clone() + n.div_floor(&x)).shr(1_i32);
     }
