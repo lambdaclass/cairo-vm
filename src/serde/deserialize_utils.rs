@@ -222,6 +222,25 @@ mod tests {
     }
 
     #[test]
+    fn parse_dereference_with_one_offset_and_inner_dereference_test() {
+        let value_string: &str = "[cast([fp + (-3)], felt*)]";
+        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
+
+        let parsed_value = parse_dereference_with_one_offset(&splitted_value).unwrap();
+
+        let value_address = ValueAddress {
+            register: Some(Register::FP),
+            offset1: -3,
+            offset2: 0,
+            immediate: None,
+            dereference: true,
+            inner_dereference: true,
+        };
+
+        assert_eq!(value_address, parsed_value);
+    }
+
+    #[test]
     fn parse_dereference_with_two_offsets_test() {
         let value_string: &str = "[cast([fp + (-4)] + 1, felt*)]";
         let splitted_value: Vec<&str> = value_string.split(" + ").collect();
