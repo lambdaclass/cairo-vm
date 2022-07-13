@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657750527693,
+  "lastUpdate": 1657751139490,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -16917,6 +16917,62 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1520,
             "range": "± 139",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "e36c57643d060b3735b525bcf8a3e064cba1dee9",
+          "message": "[HINTS] Add implementation for hint on split_felt (math.cairo) ",
+          "timestamp": "2022-07-08T00:43:46Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/251/commits/e36c57643d060b3735b525bcf8a3e064cba1dee9"
+        },
+        "date": 1657751138365,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1678,
+            "range": "± 85",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 1685,
+            "range": "± 94",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 1698,
+            "range": "± 108",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 1680,
+            "range": "± 74",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1685,
+            "range": "± 256",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 1682,
+            "range": "± 88",
             "unit": "ns/iter"
           }
         ]
