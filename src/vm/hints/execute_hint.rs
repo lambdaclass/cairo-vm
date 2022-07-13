@@ -524,7 +524,7 @@ mod tests {
                 &MaybeRelocatable::from((0, 1)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
-            .expect("Unexpected memroy insert fail");
+            .expect("Unexpected memory insert fail");
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("a"), bigint!(0));
