@@ -17,6 +17,7 @@ use std::ops::Shr;
 fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
+    vm: &VirtualMachine,
 ) -> Option<MaybeRelocatable> {
     let register = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
@@ -29,10 +30,29 @@ fn compute_addr_from_reference(
         {
             return None;
         }
-        return Some(MaybeRelocatable::from((
-            relocatable.segment_index,
-            (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2) as usize,
-        )));
+        if !hint_reference.inner_dereference {
+            return Some(MaybeRelocatable::from((
+                relocatable.segment_index,
+                (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2)
+                    as usize,
+            )));
+        } else {
+            let addr = MaybeRelocatable::from((
+                relocatable.segment_index,
+                (relocatable.offset as i32 + hint_reference.offset1) as usize,
+            ));
+
+            match vm.memory.get(&addr) {
+                Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
+                    return Some(MaybeRelocatable::from((
+                        dereferenced_addr.segment_index,
+                        (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
+                    )))
+                }
+
+                _none_or_error => return None,
+            }
+        }
     }
 
     None
@@ -43,11 +63,12 @@ fn get_address_from_reference(
     reference_id: &BigInt,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
+    vm: &VirtualMachine,
 ) -> Option<MaybeRelocatable> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
             if let Some(hint_reference) = references.get(&index) {
-                return compute_addr_from_reference(hint_reference, run_context);
+                return compute_addr_from_reference(hint_reference, run_context, vm);
             }
         }
     }
@@ -79,12 +100,13 @@ pub fn is_nn(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let a_addr =
-        if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
-            a_addr
-        } else {
-            return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
-        };
+    let a_addr = if let Some(a_addr) =
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
+    {
+        a_addr
+    } else {
+        return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
+    };
 
     //Check that the ids are in memory
     match vm.memory.get(&a_addr) {
@@ -143,12 +165,13 @@ pub fn is_nn_out_of_range(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let a_addr =
-        if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
-            a_addr
-        } else {
-            return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
-        };
+    let a_addr = if let Some(a_addr) =
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
+    {
+        a_addr
+    } else {
+        return Err(VirtualMachineError::FailedToGetReference(a_ref.clone()));
+    };
     //Check that the ids are in memory
     match vm.memory.get(&a_addr) {
         Ok(Some(maybe_rel_a)) => {
@@ -225,9 +248,9 @@ pub fn assert_le_felt(
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr, small_inputs_addr) =
         if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
-            get_address_from_reference(a_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(b_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context, vm),
         ) {
             (a_addr, b_addr, small_inputs_addr)
         } else {
@@ -306,8 +329,8 @@ pub fn is_le_felt(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
     ) {
         (a_addr, b_addr)
     } else {
@@ -379,8 +402,8 @@ pub fn assert_not_equal(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
     ) {
         (a_addr, b_addr)
     } else {
@@ -439,12 +462,13 @@ pub fn assert_nn(
         ));
     };
     //Check that 'a' reference id corresponds to a value in the reference manager
-    let a_addr =
-        if let Some(a_addr) = get_address_from_reference(a_ref, &vm.references, &vm.run_context) {
-            a_addr
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
+    let a_addr = if let Some(a_addr) =
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
+    {
+        a_addr
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
 
     //Check that the 'a' id is in memory
     let maybe_rel_a = if let Ok(Some(maybe_rel_a)) = vm.memory.get(&a_addr) {
@@ -502,7 +526,7 @@ pub fn assert_not_zero(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context)
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
     {
         value_addr
     } else {
@@ -544,7 +568,7 @@ pub fn split_int_assert_range(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context)
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
     {
         value_addr
     } else {
@@ -599,10 +623,10 @@ pub fn split_int(
     //Check that each reference id corresponds to a value in the reference manager
     let (output_addr, value_addr, base_addr, bound_addr) =
         if let (Some(output_addr), Some(value_addr), Some(base_addr), Some(bound_addr)) = (
-            get_address_from_reference(output_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(base_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(bound_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(output_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(base_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(bound_ref, &vm.references, &vm.run_context, vm),
         ) {
             (output_addr, value_addr, base_addr, bound_addr)
         } else {
@@ -664,8 +688,8 @@ pub fn is_positive(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (value_addr, is_positive_addr) = if let (Some(value_addr), Some(is_positive_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context, vm),
     ) {
         (value_addr, is_positive_addr)
     } else {
@@ -738,8 +762,8 @@ pub fn sqrt(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (value_addr, root_addr) = if let (Some(value_addr), Some(root_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(root_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(root_ref, &vm.references, &vm.run_context, vm),
     ) {
         (value_addr, root_addr)
     } else {

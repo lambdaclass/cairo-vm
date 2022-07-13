@@ -67,6 +67,7 @@ pub struct ValueAddress {
     pub offset2: i32,
     pub immediate: Option<BigInt>,
     pub dereference: bool,
+    pub inner_dereference: bool,
 }
 
 struct BigIntVisitor;
@@ -422,6 +423,7 @@ mod tests {
                         offset2: 0,
                         immediate: None,
                         dereference: true,
+                        inner_dereference: false,
                     },
                 },
                 Reference {
@@ -436,6 +438,7 @@ mod tests {
                         offset2: 0,
                         immediate: None,
                         dereference: true,
+                        inner_dereference: false,
                     },
                 },
                 Reference {
@@ -450,6 +453,7 @@ mod tests {
                         offset2: 0,
                         immediate: Some(bigint!(2)),
                         dereference: false,
+                        inner_dereference: false,
                     },
                 },
                 Reference {
@@ -464,6 +468,7 @@ mod tests {
                         offset2: 0,
                         immediate: None,
                         dereference: true,
+                        inner_dereference: false,
                     },
                 },
             ],
