@@ -708,9 +708,9 @@ pub fn split_felt(
     //Check that each reference id corresponds to a value in the reference manager
     let (high_addr, low_addr, value_addr) =
         if let (Some(high_addr), Some(low_addr), Some(value_addr)) = (
-            get_address_from_reference(high_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(low_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(high_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(low_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm),
         ) {
             (high_addr, low_addr, value_addr)
         } else {
