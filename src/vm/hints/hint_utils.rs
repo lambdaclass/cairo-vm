@@ -881,8 +881,7 @@ pub fn unsigned_div_rem(
                             .map_err(VirtualMachineError::MemoryError),
                     ) {
                         (Ok(_), Ok(_)) => Ok(()),
-                        (Err(e), _) => Err(e),
-                        (_, Err(e)) => Err(e),
+                        (Err(e), _) | (_, Err(e)) => Err(e),
                     };
                 }
             }
