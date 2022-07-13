@@ -541,7 +541,7 @@ mod tests {
             },
         ];
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert!(execute_hint(&mut vm, hint_code, ids).is_ok());
     }
 
     #[test]
