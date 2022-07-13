@@ -37,6 +37,11 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
         .map_err(VirtualMachineError::MemoryError)
 }
 
+/* Implements hint:
+   dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)
+   dict_tracker.current_ptr += ids.DictAccess.SIZE
+   ids.value = dict_tracker.data[ids.key]
+*/
 pub fn dict_read(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
@@ -96,7 +101,7 @@ pub fn dict_read(
                 return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
             };
             tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-            let value = if let Some(value) = tracker.data.get(&key) {
+            let value = if let Some(value) = tracker.data.get(key) {
                 value
             } else {
                 return Err(VirtualMachineError::NoValueForKey(key.clone()));
@@ -116,8 +121,10 @@ mod tests {
     use num_bigint::{BigInt, Sign};
     use num_traits::FromPrimitive;
 
+    use crate::types::instruction::Register;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::HintReference;
     use crate::{bigint, relocatable};
     use crate::{
         types::relocatable::MaybeRelocatable,
@@ -177,6 +184,74 @@ mod tests {
                     MaybeRelocatable::from((1, 0))
                 )
             ))
+        );
+    }
+
+    #[test]
+    fn run_dict_read_valid() {
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Initialize dictionary
+        let mut dictionary = HashMap::<BigInt, BigInt>::new();
+        dictionary.insert(bigint!(5), bigint!(12));
+        //Create tracker
+        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        tracker.data = dictionary;
+        //Create manager
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(1, tracker);
+        vm.dict_manager = Some(dict_manager);
+        //Insert ids into memory
+        //ids.key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+        //ids.value
+        //ids.dict_ptr
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("key"), bigint!(0));
+        ids.insert(String::from("value"), bigint!(1));
+        ids.insert(String::from("dict_ptr"), bigint!(2));
+        //Create references
+        vm.references = vec![
+            HintReference {
+                register: Register::FP,
+                offset: -3,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -2,
+            },
+            HintReference {
+                register: Register::FP,
+                offset: -1,
+            },
+        ];
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Check that value variable (at address (0,1)) contains the proper value
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(12))))
         );
     }
 }
