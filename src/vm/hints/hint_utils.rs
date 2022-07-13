@@ -777,7 +777,7 @@ assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
     f'div={hex(ids.div)} is out of the valid range.'
 ids.q, ids.r = divmod(ids.value, ids.div)
 */
-pub fn divmod(
+pub fn unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
@@ -829,12 +829,12 @@ pub fn divmod(
 
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
-                if name == &String::from("range_check")
-                    && builtin
-                        .as_any()
-                        .downcast_ref::<RangeCheckBuiltinRunner>()
-                        .is_some()
-                {
+                let builtin = match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                    Some(b) => b,
+                    None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+                };
+
+                if name == &String::from("range_check") {
                     // Main logic
                     if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
                         return Err(VirtualMachineError::OutOfValidRange(
