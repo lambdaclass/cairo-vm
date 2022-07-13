@@ -234,6 +234,7 @@ impl CairoRunner {
                         register: register.clone(),
                         offset1: reference.value_address.offset1,
                         offset2: reference.value_address.offset2,
+                        inner_dereference: reference.value_address.inner_dereference,
                     },
                 );
             }
