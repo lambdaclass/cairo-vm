@@ -795,18 +795,18 @@ pub fn split_felt(
 
             // ids.low = ids.value & ((1 << 128) - 1)
             // ids.high = ids.value >> 128
-            let low: BigInt = value.clone() & (bigint!(1).shl(128_u8)) - bigint!(1);
+            let low: BigInt = (value.clone() & (bigint!(1).shl(128_u8))) - bigint!(1);
             let high: BigInt = value.shr(128_u8);
             match (
                 vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
                 vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
             ) {
-                (Ok(_), Ok(_)) => return Ok(()),
-                (Err(error), _) => return Err(VirtualMachineError::MemoryError(error)),
-                (_, Err(error)) => return Err(VirtualMachineError::MemoryError(error)),
+                (Ok(_), Ok(_)) => Ok(()),
+                (Err(error), _) => Err(VirtualMachineError::MemoryError(error)),
+                (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
             }
         }
-        _ => return Err(VirtualMachineError::FailedToGetIds),
+        _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
 //Implements hint: from starkware.python.math_utils import isqrt
