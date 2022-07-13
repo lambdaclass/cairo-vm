@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::context::run_context::RunContext;
@@ -36,7 +37,7 @@ pub struct VirtualMachine {
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     pub segments: MemorySegmentManager,
-    //exec_scopes: Vec<HashMap<..., ...>>,
+    pub exec_scopes: ExecutionScopes,
     //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     pub references: HashMap<usize, HintReference>,
@@ -87,6 +88,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            exec_scopes: ExecutionScopes::new(),
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
