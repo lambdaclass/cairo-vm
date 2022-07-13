@@ -419,10 +419,7 @@ mod tests {
         let num = MaybeRelocatable::Int(bigint!(7));
         let div = bigint!(5);
         let expected_rem = MaybeRelocatable::Int(bigint!(2));
-        assert_eq!(
-            num.mod_floor(&div).expect("Unexpected mod floor fail"),
-            expected_rem
-        );
+        assert_eq!(num.mod_floor(&div), Ok(expected_rem));
     }
 
     #[test]
