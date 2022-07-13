@@ -75,6 +75,11 @@ fn cairo_run_assert_nn() {
 }
 
 #[test]
+fn cairo_run_sqrt() {
+    cairo_run::cairo_run(Path::new("cairo_programs/sqrt.json")).expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_assert_not_zero() {
     cairo_run::cairo_run(Path::new("cairo_programs/assert_not_zero.json"))
         .expect("Couldn't run program");
