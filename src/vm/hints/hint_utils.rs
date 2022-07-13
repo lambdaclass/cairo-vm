@@ -315,34 +315,37 @@ pub fn is_le_felt(
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
-                if name == &String::from("range_check") {
-                    if let Some(_) = builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
-                        let mut value = bigint!(0);
-                        let a_mod = match maybe_rel_a.mod_floor(&vm.prime) {
-                            Ok(MaybeRelocatable::Int(n)) => n,
-                            Ok(MaybeRelocatable::RelocatableValue(_)) => {
-                                return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
-                            }
-                            Err(e) => return Err(e),
-                        };
-                        let b_mod = match maybe_rel_b.mod_floor(&vm.prime) {
-                            Ok(MaybeRelocatable::Int(n)) => n,
-                            Ok(MaybeRelocatable::RelocatableValue(_)) => {
-                                return Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
-                            }
-                            Err(e) => return Err(e),
-                        };
-                        if a_mod > b_mod {
-                            value = bigint!(1);
+                if name == &String::from("range_check")
+                    && builtin
+                        .as_any()
+                        .downcast_ref::<RangeCheckBuiltinRunner>()
+                        .is_some()
+                {
+                    let mut value = bigint!(0);
+                    let a_mod = match maybe_rel_a.mod_floor(&vm.prime) {
+                        Ok(MaybeRelocatable::Int(n)) => n,
+                        Ok(MaybeRelocatable::RelocatableValue(_)) => {
+                            return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
                         }
-                        match vm
-                            .memory
-                            .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                        {
-                            Ok(_) => return Ok(()),
-                            Err(memory_error) => {
-                                return Err(VirtualMachineError::MemoryError(memory_error))
-                            }
+                        Err(e) => return Err(e),
+                    };
+                    let b_mod = match maybe_rel_b.mod_floor(&vm.prime) {
+                        Ok(MaybeRelocatable::Int(n)) => n,
+                        Ok(MaybeRelocatable::RelocatableValue(_)) => {
+                            return Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
+                        }
+                        Err(e) => return Err(e),
+                    };
+                    if a_mod > b_mod {
+                        value = bigint!(1);
+                    }
+                    match vm
+                        .memory
+                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+                    {
+                        Ok(_) => return Ok(()),
+                        Err(memory_error) => {
+                            return Err(VirtualMachineError::MemoryError(memory_error))
                         }
                     }
                 }

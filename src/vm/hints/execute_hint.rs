@@ -62,6 +62,7 @@ mod tests {
     use num_traits::FromPrimitive;
 
     use super::*;
+
     #[test]
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()".as_bytes();
@@ -764,14 +765,12 @@ mod tests {
             ),
         ]);
 
-        //Execute the hint
-        assert_eq!(
+        // Since the ids are a map, the order might not always match and so the error returned
+        // sometimes might be different
+        assert!(matches!(
             execute_hint(&mut vm, &hint_code, ids),
-            Err(VirtualMachineError::IncorrectIds(
-                vec!["a".to_string(), "b".to_string()],
-                vec!["a".to_string(), "c".to_string()]
-            ))
-        );
+            Err(VirtualMachineError::IncorrectIds(_, _))
+        ));
     }
 
     #[test]
