@@ -41,19 +41,18 @@ fn compute_addr_from_reference(
                 relocatable.segment_index,
                 (relocatable.offset as i32 + hint_reference.offset1) as usize,
             ));
-            if let MaybeRelocatable::RelocatableValue(dereferenced_addr) =
-                vm.memory.get(&addr).unwrap()?
-            {
-                return Some(MaybeRelocatable::from((
-                    dereferenced_addr.segment_index,
-                    (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
-                )));
+
+            match vm.memory.get(&addr) {
+                Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
+                    return Some(MaybeRelocatable::from((
+                        dereferenced_addr.segment_index,
+                        (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
+                    )))
+                }
+
+                _none_or_error => return None,
             }
         }
-        // return Some(MaybeRelocatable::from((
-        //     relocatable.segment_index,
-        //     (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2) as usize,
-        // )));
     }
 
     None
