@@ -47,6 +47,7 @@ pub enum VirtualMachineError {
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
     DiffIndexComp(Relocatable, Relocatable),
     AssertNotZero(BigInt, BigInt),
+    CantCreateDictionaryOnTakenSegment(usize),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -136,6 +137,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            },
+            VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
+                write!(f, "Error: Tried to create a dictionary on segment: {:?} when this segment already corresponds to a dictionary", index)
             },
         }
     }
