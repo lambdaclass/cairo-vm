@@ -100,7 +100,7 @@ fn parse_dereference_with_one_offset(
     };
     deref.offset1 = offset1;
 
-    if splitted_value_str.contains(&"([") {
+    if splitted_value_str[0].contains(&"([") {
         deref.inner_dereference = true;
         return Ok(deref);
     }
