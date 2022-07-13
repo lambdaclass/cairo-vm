@@ -828,10 +828,10 @@ pub fn unsigned_div_rem(
     //Check that each reference id corresponds to a value in the reference manager
     let (r_addr, q_addr, div_addr, value_addr) =
         if let (Some(r_addr), Some(q_addr), Some(div_addr), Some(value_addr)) = (
-            get_address_from_reference(r_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(q_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(div_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(q_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(div_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
         ) {
             (r_addr, q_addr, div_addr, value_addr)
         } else {
