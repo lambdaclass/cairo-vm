@@ -52,11 +52,66 @@ impl DictManager {
     }
 }
 
+impl Default for DictManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DictTracker {
     pub fn new_empty(base: &Relocatable) -> Self {
         DictTracker {
             data: HashMap::new(),
             current_ptr: base.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::relocatable;
+
+    use super::*;
+
+    #[test]
+    fn create_dict_manager() {
+        let dict_manager = DictManager::new();
+        assert_eq!(dict_manager.trackers, HashMap::new());
+    }
+
+    #[test]
+    fn create_dict_tracker_empty() {
+        let dict_tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        assert_eq!(dict_tracker.data, HashMap::new());
+        assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
+    }
+
+    #[test]
+    fn dict_manager_new_dict_empty() {
+        let mut dict_manager = DictManager::new();
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let base = dict_manager.new_dict(&mut segments, &mut memory);
+        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert!(dict_manager.trackers.contains_key(&0));
+        assert_eq!(
+            dict_manager.trackers.get(&0),
+            Some(&DictTracker::new_empty(&relocatable!(0, 0)))
+        );
+        assert_eq!(segments.num_segments, 1);
+    }
+
+    #[test]
+    fn dict_manager_new_dict_empty_same_segment() {
+        let mut dict_manager = DictManager::new();
+        dict_manager
+            .trackers
+            .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        assert_eq!(
+            dict_manager.new_dict(&mut segments, &mut memory),
+            Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
+        );
     }
 }
