@@ -2947,7 +2947,7 @@ mod tests {
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"189509265092725080168209675610990602697"
+                b"340282366920938463463374607431768211455"
             ))))
         );
         assert_eq!(
@@ -3201,7 +3201,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
                     MaybeRelocatable::from(bigint!(99)),
-                    MaybeRelocatable::from(bigint_str!(b"189509265092725080168209675610990602697"))
+                    MaybeRelocatable::from(bigint_str!(b"340282366920938463463374607431768211455"))
                 )
             ))
         );
