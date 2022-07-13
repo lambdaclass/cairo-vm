@@ -10,18 +10,20 @@ use crate::{
     },
 };
 
+#[derive(PartialEq, Debug)]
 ///Manages dictionaries in a Cairo program.
 ///Uses the segment index to associate the corresponding python dict with the Cairo dict.
 pub struct DictManager {
-    trackers: HashMap<usize, DictTracker>,
+    pub trackers: HashMap<usize, DictTracker>,
 }
 
+#[derive(PartialEq, Debug)]
 ///Tracks the python dict associated with a Cairo dict.
-struct DictTracker {
+pub struct DictTracker {
     //Dictionary.
-    data: HashMap<BigInt, BigInt>,
+    pub data: HashMap<BigInt, BigInt>,
     //Pointer to the first unused position in the dict segment.
-    current_ptr: Relocatable,
+    pub current_ptr: Relocatable,
 }
 
 impl DictManager {
@@ -51,7 +53,7 @@ impl DictManager {
 }
 
 impl DictTracker {
-    fn new_empty(base: &Relocatable) -> Self {
+    pub fn new_empty(base: &Relocatable) -> Self {
         DictTracker {
             data: HashMap::new(),
             current_ptr: base.clone(),
