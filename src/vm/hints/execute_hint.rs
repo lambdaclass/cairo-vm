@@ -2943,7 +2943,7 @@ mod tests {
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
 
-        //Check that the hint inserts ok the values in memory
+        //Check hint memory inserts
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint_str!(
