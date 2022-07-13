@@ -1,6 +1,7 @@
 %builtins range_check
 
 from starkware.cairo.common.math import assert_le
+from starkware.cairo.common.math import split_felt
 
 func split_felt_manual_implemetation{range_check_ptr}(value) -> (high : felt, low : felt):
     # Note: the following code works because PRIME - 1 is divisible by 2**128.
@@ -31,8 +32,11 @@ func split_felt_manual_implemetation{range_check_ptr}(value) -> (high : felt, lo
 end
 
 func main{range_check_ptr: felt}():
-    let (x, y) = split_felt_manual_implemetation(5784800237655953878877368326340059594760)
+    let (m, n) = split_felt_manual_implemetation(5784800237655953878877368326340059594760)
+    assert m = 17
+    assert n = 8
+    let (x, y) = split_felt(5784800237655953878877368326340059594760)
     assert x = 17
     assert y = 8
     return ()
-end  
+end
