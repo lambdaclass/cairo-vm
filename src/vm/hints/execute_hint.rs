@@ -517,7 +517,7 @@ mod tests {
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
-            .expect("Unexpected memroy insert fail");
+            .expect("Unexpected memory insert fail");
         //ids.b
         vm.memory
             .insert(
