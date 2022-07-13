@@ -93,7 +93,8 @@ fn cairo_run_assert_nn() {
 
 #[test]
 fn cairo_run_sqrt() {
-    cairo_run::cairo_run(Path::new("cairo_programs/sqrt.json")).expect("Couldn't run program");
+    cairo_run::cairo_run(Path::new("cairo_programs/sqrt.json"), false)
+        .expect("Couldn't run program");
 }
 
 #[test]
@@ -122,7 +123,7 @@ fn cairo_run_split_felt() {
 
 #[test]
 fn cairo_run_is_le_felt() {
-    cairo_run::cairo_run(Path::new("cairo_programs/math_cmp_is_le_felt.json"))
+    cairo_run::cairo_run(Path::new("cairo_programs/math_cmp_is_le_felt.json"), false)
         .expect("Couldn't run program");
 }
 
