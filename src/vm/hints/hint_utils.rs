@@ -7,8 +7,8 @@ use crate::vm::{
 };
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use num_integer::Integer;
+use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 use std::ops::Shr;
 
@@ -782,30 +782,44 @@ pub fn divmod(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let (r_ref, q_ref, div_ref, value_ref) = if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) =
-        (ids.get(&String::from("r")), ids.get(&String::from("q")), ids.get(&String::from("div")), ids.get(&String::from("value")))
-    {
-        (r_ref, q_ref, div_ref, value_ref)
-    } else {
-        return Err(VirtualMachineError::IncorrectIds(
-            vec![String::from("r"), String::from("q"), String::from("div"), String::from("value")],
-            ids.into_keys().collect(),
-        ));
-    };
+    let (r_ref, q_ref, div_ref, value_ref) =
+        if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
+            ids.get(&String::from("r")),
+            ids.get(&String::from("q")),
+            ids.get(&String::from("div")),
+            ids.get(&String::from("value")),
+        ) {
+            (r_ref, q_ref, div_ref, value_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("r"),
+                    String::from("q"),
+                    String::from("div"),
+                    String::from("value"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
     //Check that each reference id corresponds to a value in the reference manager
-    let (r_addr, q_addr, div_addr, value_addr) = if let (Some(r_addr), Some(q_addr), Some(div_addr), Some(value_addr)) = (
-        get_address_from_reference(r_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(q_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(div_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+    let (r_addr, q_addr, div_addr, value_addr) =
+        if let (Some(r_addr), Some(q_addr), Some(div_addr), Some(value_addr)) = (
+            get_address_from_reference(r_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(q_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(div_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+        ) {
+            (r_addr, q_addr, div_addr, value_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    match (
+        vm.memory.get(&r_addr),
+        vm.memory.get(&q_addr),
+        vm.memory.get(&div_addr),
+        vm.memory.get(&value_addr),
     ) {
-        (r_addr, q_addr, div_addr, value_addr)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
-    match (vm.memory.get(&r_addr), vm.memory.get(&q_addr), vm.memory.get(&div_addr), vm.memory.get(&value_addr)) {
         (Ok(_), Ok(_), Ok(Some(maybe_rel_div)), Ok(Some(maybe_rel_value))) => {
-
             let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
                 div
             } else {
@@ -834,7 +848,14 @@ pub fn divmod(
                         Err(e) => return Err(e),
                     };
 
-                    return match (vm.memory.insert(&r_addr, &r).map_err(VirtualMachineError::MemoryError), vm.memory.insert(&q_addr, &q).map_err(VirtualMachineError::MemoryError)) {
+                    return match (
+                        vm.memory
+                            .insert(&r_addr, &r)
+                            .map_err(VirtualMachineError::MemoryError),
+                        vm.memory
+                            .insert(&q_addr, &q)
+                            .map_err(VirtualMachineError::MemoryError),
+                    ) {
                         (Ok(_), Ok(_)) => Ok(()),
                         (Err(e), _) => Err(e),
                         (_, Err(e)) => Err(e),
