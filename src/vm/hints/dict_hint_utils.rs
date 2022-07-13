@@ -34,9 +34,11 @@ mod tests {
     use std::collections::HashMap;
 
     use num_bigint::{BigInt, Sign};
+    use num_traits::FromPrimitive;
 
-    use crate::relocatable;
     use crate::types::relocatable::Relocatable;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::{bigint, relocatable};
     use crate::{
         types::relocatable::MaybeRelocatable,
         vm::hints::{dict_manager::DictTracker, execute_hint::execute_hint},
@@ -67,6 +69,34 @@ mod tests {
         assert_eq!(
             vm.dict_manager.unwrap().trackers.get(&0),
             Some(&DictTracker::new_empty(&relocatable!(0, 0)))
+        );
+    }
+
+    #[test]
+    fn run_dict_new_ap_is_taken() {
+        let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            //ap value is (0,0)
+            Vec::new(),
+        );
+        vm.segments.add(&mut vm.memory, None);
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //ids and references are not needed for this test
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from(bigint!(1)),
+                    MaybeRelocatable::from((1, 0))
+                )
+            ))
         );
     }
 }
