@@ -456,8 +456,8 @@ mod tests {
     #[test]
     fn mod_floor_bad_type() {
         let value = &MaybeRelocatable::from((2, 7));
-        let div = bigint!(5);
-        assert_eq!(value.divmod(div), Err(VirtualMachineError::NotImplemented));
+        let div = MaybeRelocatable::Int(bigint!(5));
+        assert_eq!(value.divmod(&div), Err(VirtualMachineError::NotImplemented));
     }
 
     #[test]
