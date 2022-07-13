@@ -93,7 +93,7 @@ impl VirtualMachine {
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: None,
-            trace: trace,
+            trace,
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
