@@ -101,7 +101,7 @@ pub fn is_nn(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
     {
         a_addr
     } else {
@@ -166,7 +166,7 @@ pub fn is_nn_out_of_range(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
     {
         a_addr
     } else {
@@ -248,9 +248,9 @@ pub fn assert_le_felt(
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr, small_inputs_addr) =
         if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
-            get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(b_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context, vm),
         ) {
             (a_addr, b_addr, small_inputs_addr)
         } else {
@@ -329,8 +329,8 @@ pub fn is_le_felt(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context, &vm),
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
     ) {
         (a_addr, b_addr)
     } else {
@@ -463,7 +463,7 @@ pub fn assert_nn(
     };
     //Check that 'a' reference id corresponds to a value in the reference manager
     let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
     {
         a_addr
     } else {
@@ -526,7 +526,7 @@ pub fn assert_not_zero(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
     {
         value_addr
     } else {
@@ -568,7 +568,7 @@ pub fn split_int_assert_range(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
     {
         value_addr
     } else {
@@ -623,10 +623,10 @@ pub fn split_int(
     //Check that each reference id corresponds to a value in the reference manager
     let (output_addr, value_addr, base_addr, bound_addr) =
         if let (Some(output_addr), Some(value_addr), Some(base_addr), Some(bound_addr)) = (
-            get_address_from_reference(output_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(base_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(bound_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(output_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(base_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(bound_ref, &vm.references, &vm.run_context, vm),
         ) {
             (output_addr, value_addr, base_addr, bound_addr)
         } else {
@@ -688,8 +688,8 @@ pub fn is_positive(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (value_addr, is_positive_addr) = if let (Some(value_addr), Some(is_positive_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm),
-        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context, &vm),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context, vm),
     ) {
         (value_addr, is_positive_addr)
     } else {
