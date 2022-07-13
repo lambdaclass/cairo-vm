@@ -310,7 +310,9 @@ pub fn is_le_felt(
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
-                if name == &String::from("range_check") {
+                if name != &String::from("range_check") {
+                    continue;
+                }
                     match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
                         None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
                         Some(_builtin) => {
