@@ -1,4 +1,5 @@
 use crate::math_utils::as_int;
+use crate::math_utils::isqrt;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -100,7 +101,7 @@ pub fn is_nn(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
     {
         a_addr
     } else {
@@ -165,7 +166,7 @@ pub fn is_nn_out_of_range(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
     {
         a_addr
     } else {
@@ -247,9 +248,9 @@ pub fn assert_le_felt(
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr, small_inputs_addr) =
         if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
-            get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(b_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context, vm),
         ) {
             (a_addr, b_addr, small_inputs_addr)
         } else {
@@ -309,6 +310,73 @@ pub fn assert_le_felt(
     }
 }
 
+//Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
+//    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
+pub fn is_le_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+    ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                if name == &String::from("range_check")
+                    && builtin
+                        .as_any()
+                        .downcast_ref::<RangeCheckBuiltinRunner>()
+                        .is_some()
+                {
+                    let mut value = bigint!(0);
+                    let a_mod = match maybe_rel_a.mod_floor(&vm.prime) {
+                        Ok(MaybeRelocatable::Int(n)) => n,
+                        Ok(MaybeRelocatable::RelocatableValue(_)) => {
+                            return Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
+                        }
+                        Err(e) => return Err(e),
+                    };
+                    let b_mod = match maybe_rel_b.mod_floor(&vm.prime) {
+                        Ok(MaybeRelocatable::Int(n)) => n,
+                        Ok(MaybeRelocatable::RelocatableValue(_)) => {
+                            return Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
+                        }
+                        Err(e) => return Err(e),
+                    };
+                    if a_mod > b_mod {
+                        value = bigint!(1);
+                    }
+
+                    return vm
+                        .memory
+                        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+                        .map_err(VirtualMachineError::MemoryError);
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
 //Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
 //        both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
 //        both_relocatable = (
@@ -334,8 +402,8 @@ pub fn assert_not_equal(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context, &vm),
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
     ) {
         (a_addr, b_addr)
     } else {
@@ -395,7 +463,7 @@ pub fn assert_nn(
     };
     //Check that 'a' reference id corresponds to a value in the reference manager
     let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
     {
         a_addr
     } else {
@@ -458,7 +526,7 @@ pub fn assert_not_zero(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
     {
         value_addr
     } else {
@@ -500,7 +568,7 @@ pub fn split_int_assert_range(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm)
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
     {
         value_addr
     } else {
@@ -555,10 +623,10 @@ pub fn split_int(
     //Check that each reference id corresponds to a value in the reference manager
     let (output_addr, value_addr, base_addr, bound_addr) =
         if let (Some(output_addr), Some(value_addr), Some(base_addr), Some(bound_addr)) = (
-            get_address_from_reference(output_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(base_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(bound_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(output_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(base_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(bound_ref, &vm.references, &vm.run_context, vm),
         ) {
             (output_addr, value_addr, base_addr, bound_addr)
         } else {
@@ -620,8 +688,8 @@ pub fn is_positive(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (value_addr, is_positive_addr) = if let (Some(value_addr), Some(is_positive_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm),
-        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context, &vm),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context, vm),
     ) {
         (value_addr, is_positive_addr)
     } else {
@@ -705,9 +773,9 @@ pub fn split_felt(
     // Get the addresses of the variables used in the hints
     let (high_addr, low_addr, value_addr) =
         if let (Some(high_addr), Some(low_addr), Some(value_addr)) = (
-            get_address_from_reference(high_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(low_ref, &vm.references, &vm.run_context, &vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, &vm),
+            get_address_from_reference(high_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(low_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
         ) {
             (high_addr, low_addr, value_addr)
         } else {
@@ -739,5 +807,57 @@ pub fn split_felt(
             }
         }
         _ => return Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+//Implements hint: from starkware.python.math_utils import isqrt
+//        value = ids.value % PRIME
+//        assert value < 2 ** 250, f"value={value} is outside of the range [0, 2**250)."
+//        assert 2 ** 250 < PRIME
+//        ids.root = isqrt(value)
+pub fn sqrt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (value_ref, root_ref) = if let (Some(value_ref), Some(root_ref)) = (
+        ids.get(&String::from("value")),
+        ids.get(&String::from("root")),
+    ) {
+        (value_ref, root_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("value"), String::from("root")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (value_addr, root_addr) = if let (Some(value_addr), Some(root_addr)) = (
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(root_ref, &vm.references, &vm.run_context, vm),
+    ) {
+        (value_addr, root_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that the ids are in memory
+    match (vm.memory.get(&value_addr), vm.memory.get(&root_addr)) {
+        (Ok(Some(maybe_rel_value)), Ok(_)) => {
+            let value = if let MaybeRelocatable::Int(value) = maybe_rel_value {
+                value
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_value.clone(),
+                ));
+            };
+            let mod_value = value.mod_floor(&vm.prime);
+            //This is equal to mod_value > bigint!(2).pow(250)
+            if (&mod_value).shr(250_i32).is_positive() {
+                return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
+            }
+            vm.memory
+                .insert(&root_addr, &MaybeRelocatable::from(isqrt(&mod_value)?))
+                .map_err(VirtualMachineError::MemoryError)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }

@@ -5,8 +5,8 @@ use num_bigint::BigInt;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    add_segment, assert_le_felt, assert_nn, assert_not_equal, assert_not_zero, is_nn,
-    is_nn_out_of_range, is_positive, split_felt, split_int, split_int_assert_range,
+    add_segment, assert_le_felt, assert_nn, assert_not_equal, assert_not_zero, is_le_felt, is_nn,
+    is_nn_out_of_range, is_positive, split_felt, split_int, split_int_assert_range, sqrt,
 };
 use crate::vm::vm_core::VirtualMachine;
 
@@ -26,8 +26,10 @@ pub fn execute_hint(
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => is_nn(vm, ids),
-        Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1"
-        ) => is_nn_out_of_range(vm, ids),
+        Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1") => {
+            is_nn_out_of_range(vm, ids)
+        }
+        Ok("memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1") => is_le_felt(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
         ) => assert_le_felt(vm, ids),
         Ok("from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0"
@@ -40,6 +42,8 @@ pub fn execute_hint(
         ) => assert_not_equal(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
         ) => assert_nn(vm, ids),
+        Ok("from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
+        ) => sqrt(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"
         ) => assert_not_zero(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
@@ -63,6 +67,7 @@ mod tests {
     use num_traits::FromPrimitive;
 
     use super::*;
+
     #[test]
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()".as_bytes();
@@ -540,6 +545,254 @@ mod tests {
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Hint would return an error if the assertion fails
+    }
+
+    #[test]
+    fn is_le_felt_hint_true() {
+        let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids into memory
+        //ids.a
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .expect("Unexpected memory insert fail");
+        //ids.b
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memory insert fail");
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert!(execute_hint(&mut vm, hint_code, ids).is_ok());
+    }
+
+    #[test]
+    fn run_is_le_felt_hint_no_range_check_builtin() {
+        let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .expect("Unexpected memroy insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memroy insert fail");
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, &hint_code, ids),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn run_is_le_felt_hint_inconsistent_memory() {
+        let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = MaybeRelocatable::from((0, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .expect("Unexpected memroy insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memroy insert fail");
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::Int(bigint!(1)),
+                    MaybeRelocatable::Int(bigint!(0))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn run_is_le_felt_hint_incorrect_ids() {
+        let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .expect("Unexpected memroy insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memroy insert fail");
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("c"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+
+        // Since the ids are a map, the order might not always match and so the error returned
+        // sometimes might be different
+        assert!(matches!(
+            execute_hint(&mut vm, &hint_code, ids),
+            Err(VirtualMachineError::IncorrectIds(_, _))
+        ));
     }
 
     #[test]
@@ -2439,6 +2692,179 @@ mod tests {
                     MaybeRelocatable::from((0, 1)),
                     MaybeRelocatable::from(bigint!(4)),
                     MaybeRelocatable::from(bigint!(1))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn run_sqrt_valid() {
+        let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids.value into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(81)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        ids.insert(String::from("root"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Check that root (0,1) has the square root of 81
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(9))))
+        );
+    }
+
+    #[test]
+    fn run_sqrt_invalid_negative_number() {
+        let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids.value into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(-81)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        ids.insert(String::from("root"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ValueOutside250BitRange(bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_sqrt_invalid_mismatched_root() {
+        let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Insert ids.value into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(81)),
+            )
+            .unwrap();
+        //Insert ids.root into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(7)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        ids.insert(String::from("root"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from(bigint!(7)),
+                    MaybeRelocatable::from(bigint!(9))
                 )
             ))
         );
