@@ -1,7 +1,15 @@
-use crate::vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine};
+use std::collections::HashMap;
 
-use super::dict_manager::DictManager;
+use num_bigint::BigInt;
 
+use crate::{
+    types::relocatable::MaybeRelocatable,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+};
+
+use super::{dict_manager::DictManager, hint_utils::get_address_from_reference};
+
+const DICT_ACCESS_SIZE: usize = 3;
 /*Implements hint:
 
    if '__dict_manager' not in globals():
@@ -27,6 +35,78 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     vm.memory
         .insert(&vm.run_context.ap, &base)
         .map_err(VirtualMachineError::MemoryError)
+}
+
+pub fn dict_read(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    if vm.dict_manager.is_none() {
+        return Err(VirtualMachineError::NoDictManager);
+    }
+    //Check that ids contains the reference id for each variable used by the hint
+    let (key_ref, value_ref, dict_ptr_ref) =
+        if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
+            ids.get(&String::from("key")),
+            ids.get(&String::from("value")),
+            ids.get(&String::from("dict_ptr")),
+        ) {
+            (key_ref, value_ref, dict_ptr_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("key"),
+                    String::from("value"),
+                    String::from("dict_ptr"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (key_addr, value_addr, dict_ptr_addr) =
+        if let (Some(key_addr), Some(value_addr), Some(dict_ptr_addr)) = (
+            get_address_from_reference(key_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context),
+        ) {
+            (key_addr, value_addr, dict_ptr_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    //Check that these addresses point to the data types needed
+    match (
+        vm.memory.get(&key_addr),
+        vm.memory.get(&value_addr),
+        vm.memory.get(&dict_ptr_addr),
+    ) {
+        (
+            Ok(Some(MaybeRelocatable::Int(key))),
+            Ok(_),
+            Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
+        ) => {
+            let tracker = if let Some(tracker) = vm
+                .dict_manager
+                .as_mut()
+                .unwrap()
+                .trackers
+                .get_mut(&dict_ptr.segment_index)
+            {
+                tracker
+            } else {
+                return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
+            };
+            tracker.current_ptr.offset += DICT_ACCESS_SIZE;
+            let value = if let Some(value) = tracker.data.get(&key) {
+                value
+            } else {
+                return Err(VirtualMachineError::NoValueForKey(key.clone()));
+            };
+            vm.memory
+                .insert(&value_addr, &MaybeRelocatable::from(value.clone()))
+                .map_err(VirtualMachineError::MemoryError)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
 }
 
 #[cfg(test)]

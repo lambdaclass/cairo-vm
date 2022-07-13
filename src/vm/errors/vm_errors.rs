@@ -48,6 +48,9 @@ pub enum VirtualMachineError {
     DiffIndexComp(Relocatable, Relocatable),
     AssertNotZero(BigInt, BigInt),
     CantCreateDictionaryOnTakenSegment(usize),
+    NoDictManager,
+    NoDictTracker(usize),
+    NoValueForKey(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -140,6 +143,15 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
                 write!(f, "Error: Tried to create a dictionary on segment: {:?} when this segment already corresponds to a dictionary", index)
+            },
+            VirtualMachineError::NoDictManager => {
+                write!(f, "Dict Error: No dict manager found")
+            },
+            VirtualMachineError::NoDictTracker(index) => {
+                write!(f, "Dict Error: No dict tracker found for segment {:?}", index)
+            },
+            VirtualMachineError::NoValueForKey(key) => {
+                write!(f, "Dict Error: No value found for key: {:?}", key)
             },
         }
     }

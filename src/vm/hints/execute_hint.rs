@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::dict_hint_utils::dict_new;
+use crate::vm::hints::dict_hint_utils::{dict_new, dict_read};
 use crate::vm::hints::hint_utils::{
     add_segment, assert_le_felt, assert_nn, assert_not_equal, assert_not_zero, is_nn,
     is_nn_out_of_range, split_int, split_int_assert_range,
@@ -40,6 +40,8 @@ pub fn execute_hint(
         ) => assert_not_zero(vm, ids),
         Ok("if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict"
         ) => dict_new(vm),
+        Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
+        ) => dict_read(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
