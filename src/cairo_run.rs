@@ -83,9 +83,7 @@ pub fn write_binary_memory(
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
 
-    // filters None's from the relocated memory
-    let filtered_memory_iter = relocated_memory.iter().filter(|x| !x.is_none());
-    for (i, memory_cell) in filtered_memory_iter.enumerate() {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
         match memory_cell {
             None => continue,
             Some(unwrapped_memory_cell) => {
@@ -103,7 +101,7 @@ pub fn write_binary_memory(
 // encodes a given memory cell.
 fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell: &BigInt) {
     // append memory address to bytes vector using a 8 bytes representation
-    let mut addr_bytes = (addr as u64 + 1).to_le_bytes().to_vec();
+    let mut addr_bytes = (addr as u64).to_le_bytes().to_vec();
     memory_bytes.append(&mut addr_bytes);
 
     // append memory value at address using a 32 bytes representation

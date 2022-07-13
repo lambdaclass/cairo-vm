@@ -2,7 +2,7 @@ use crate::vm::errors::memory_errors::MemoryError;
 use num_bigint::BigInt;
 use std::fmt;
 
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 
 #[derive(Debug, PartialEq)]
@@ -40,7 +40,18 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     OutOfValidRange(BigInt, BigInt),
     FailedToGetReference(BigInt),
+    ValueOutOfRange(BigInt),
     UnknownHint(String),
+    ValueOutsideValidRange(BigInt),
+    SplitIntNotZero,
+    SplitIntLimbOutOfRange(BigInt),
+    DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
+    AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
+    DiffIndexComp(Relocatable, Relocatable),
+    ValueOutside250BitRange(BigInt),
+    SqrtNegative(BigInt),
+    FailedToGetSqrt(BigInt),
+    AssertNotZero(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -115,8 +126,29 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FailedToGetReference(reference_id) => {
                 write!(f, "Failed to get reference for id {}", reference_id)
             },
+            VirtualMachineError::ValueOutOfRange(a) => {
+                write!(f, "Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {:?} is out of range", a)
+            },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::ValueOutsideValidRange(value) => write!(f, "Value: {:?} is outside valid range", value),
+            VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
+            VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
+            VirtualMachineError::DiffTypeComparison(a, b) => {
+                write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to an integer value", a, b)
+            },
+            VirtualMachineError::AssertNotEqualFail(a, b) => {
+                write!(f, "assert_not_equal failed: {:?} =  {:?}", a, b)
+            },
+            VirtualMachineError::DiffIndexComp(a, b) => {
+                write!(f, "Failed to compare {:?} and  {:?}, cant compare two relocatable values of different segment indexes", a, b)
+            },
+            VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
+            VirtualMachineError::SqrtNegative(value) => write!(f, "Can't calculate the square root of negative number: {:?})", value),
+            VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
+            VirtualMachineError::AssertNotZero(value, prime) => {
+                write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            },
         }
     }
 }
