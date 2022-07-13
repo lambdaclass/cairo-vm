@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::dict_hint_utils::{dict_new, dict_read};
+use crate::vm::hints::dict_hint_utils::{dict_new, dict_read, dict_write};
 use crate::vm::hints::hint_utils::{
     add_segment, assert_le_felt, assert_nn, assert_not_equal, assert_not_zero, is_nn,
     is_nn_out_of_range, split_int, split_int_assert_range,
@@ -42,6 +42,8 @@ pub fn execute_hint(
         ) => dict_new(vm),
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
         ) => dict_read(vm, ids),
+        Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
+        ) => dict_write(vm, ids),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

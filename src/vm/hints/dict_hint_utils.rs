@@ -114,6 +114,100 @@ pub fn dict_read(
     }
 }
 
+/* Implements hint:
+    dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)
+    dict_tracker.current_ptr += ids.DictAccess.SIZE
+    ids.dict_ptr.prev_value = dict_tracker.data[ids.key]
+    dict_tracker.data[ids.key] = ids.new_value
+*/
+pub fn dict_write(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    if vm.dict_manager.is_none() {
+        return Err(VirtualMachineError::NoDictManager);
+    }
+    //Check that ids contains the reference id for each variable used by the hint
+    let (key_ref, value_ref, dict_ptr_ref) =
+        if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
+            ids.get(&String::from("key")),
+            ids.get(&String::from("value")),
+            ids.get(&String::from("dict_ptr")),
+        ) {
+            (key_ref, value_ref, dict_ptr_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("key"),
+                    String::from("value"),
+                    String::from("dict_ptr"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (key_addr, value_addr, dict_ptr_addr) =
+        if let (Some(key_addr), Some(value_addr), Some(dict_ptr_addr)) = (
+            get_address_from_reference(key_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context),
+        ) {
+            (key_addr, value_addr, dict_ptr_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    //Check that these addresses point to the data types needed
+    let (key, new_value, dict_ptr) = if let (
+        Ok(Some(MaybeRelocatable::Int(ref key))),
+        Ok(Some(MaybeRelocatable::Int(new_value))),
+        Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
+    ) = (
+        vm.memory.get(&key_addr),
+        vm.memory.get(&value_addr),
+        vm.memory.get(&dict_ptr_addr),
+    ) {
+        (key, new_value, dict_ptr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Auxiliary copy values
+    let key_copy = key.clone();
+    let value_copy = new_value.clone();
+
+    //Get tracker for dictionary
+    let tracker = if let Some(tracker) = vm
+        .dict_manager
+        .as_mut()
+        .unwrap()
+        .trackers
+        .get_mut(&dict_ptr.segment_index)
+    {
+        tracker
+    } else {
+        return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
+    };
+
+    tracker.current_ptr.offset += DICT_ACCESS_SIZE;
+
+    //Get previous value
+    let prev_value = if let Some(value) = tracker.data.get(key) {
+        value
+    } else {
+        return Err(VirtualMachineError::NoValueForKey(key.clone()));
+    };
+    //Insert previous value into dict_ptr.prev_value
+    //Addres for dict_ptr.prev_value should be dict_ptr* + 1
+    vm.memory
+        .insert(
+            &dict_ptr_addr.add_usize_mod(1, None),
+            &MaybeRelocatable::from(prev_value.clone()),
+        )
+        .map_err(VirtualMachineError::MemoryError)?;
+    //Insert new value into tracker
+    tracker.data.insert(key_copy, value_copy);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
