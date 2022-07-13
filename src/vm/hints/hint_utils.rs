@@ -339,15 +339,11 @@ pub fn is_le_felt(
                     if a_mod > b_mod {
                         value = bigint!(1);
                     }
-                    match vm
+
+                    return vm
                         .memory
                         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-                    {
-                        Ok(_) => return Ok(()),
-                        Err(memory_error) => {
-                            return Err(VirtualMachineError::MemoryError(memory_error))
-                        }
-                    }
+                        .map_err(VirtualMachineError::MemoryError);
                 }
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
