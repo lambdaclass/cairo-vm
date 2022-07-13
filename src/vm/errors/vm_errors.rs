@@ -41,12 +41,16 @@ pub enum VirtualMachineError {
     FailedToGetReference(BigInt),
     ValueOutOfRange(BigInt),
     UnknownHint(String),
+    ValueOutsideValidRange(BigInt),
+    SplitIntNotZero,
+    SplitIntLimbOutOfRange(BigInt),
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
     DiffIndexComp(Relocatable, Relocatable),
     ValueOutside250BitRange(BigInt),
     SqrtNegative(BigInt),
     FailedToGetSqrt(BigInt),
+    AssertNotZero(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -123,6 +127,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
+            VirtualMachineError::ValueOutsideValidRange(value) => write!(f, "Value: {:?} is outside valid range", value),
+            VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
+            VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
             VirtualMachineError::DiffTypeComparison(a, b) => {
                 write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to an integer value", a, b)
             },
@@ -135,6 +142,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
             VirtualMachineError::SqrtNegative(value) => write!(f, "Can't calculate the square root of negative number: {:?})", value),
             VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
+            VirtualMachineError::AssertNotZero(value, prime) => {
+                write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            },
         }
     }
 }
