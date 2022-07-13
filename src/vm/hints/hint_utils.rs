@@ -684,9 +684,9 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    println!("ids{:?}", ids);
     let max_high: BigInt = (vm.prime.clone() - 1_i8) / bigint!(2).pow(128);
     let max_low: BigInt = bigint!(0);
+
     //Check that ids contains the reference id for 'a' variable used by the hint
     let (high_ref, low_ref, value_ref) = if let (Some(high_ref), Some(low_ref), Some(value_ref)) = (
         ids.get(&String::from("high")),
@@ -705,14 +705,7 @@ pub fn split_felt(
         ));
     };
 
-    println!(
-        "high_ref, low_ref, value_ref {:?}",
-        (high_ref, low_ref, value_ref)
-    );
-    println!("vm.references {:?}", vm.references);
-
     //Check that each reference id corresponds to a value in the reference manager
-
     let (high_addr, low_addr, value_addr) =
         if let (Some(high_addr), Some(low_addr), Some(value_addr)) = (
             get_address_from_reference(high_ref, &vm.references, &vm.run_context),
@@ -724,31 +717,11 @@ pub fn split_felt(
             return Err(VirtualMachineError::FailedToGetIds);
         };
 
-    println!(
-        "high_address, low_address, value_address {:?}",
-        (high_addr.clone(), low_addr.clone(), value_addr.clone())
-    );
-
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
     //small_inputs needs to be None, as we cant change it value otherwise
-    match (
-        vm.memory.get(&high_addr),
-        vm.memory.get(&low_addr),
-        vm.memory.get(&value_addr),
-    ) {
-        (Ok(Some(maybe_rel_high)), Ok(Some(maybe_rel_low)), Ok(Some(maybe_rel_value))) => {
-            //Check that the values at the ids address are Int
-            let high = if let MaybeRelocatable::Int(ref high) = maybe_rel_high {
-                high
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(high_addr.clone()));
-            };
-            let low = if let MaybeRelocatable::Int(ref low) = maybe_rel_low {
-                low
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(low_addr.clone()));
-            };
-
+    match vm.memory.get(&value_addr) {
+        Ok(Some(maybe_rel_value)) => {
+            //assert_integer(ids.value)
             let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
                 value
             } else {
@@ -757,34 +730,32 @@ pub fn split_felt(
 
             //Main logic
             //assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128
-            if !(max_high < bigint!(2_i32.pow(128)) && max_low < bigint!(2).pow(128)) {
+            if !(max_high < bigint!(2).pow(128) && max_low < bigint!(2).pow(128)) {
                 return Err(VirtualMachineError::AssertionFail(
                     "ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128".to_string(),
                 ));
             }
             //assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW
-            if !(vm.prime.clone() - bigint!(1) == max_high * bigint!(2).pow(128) + max_low) {
+            if !(vm.prime.clone() - bigint!(1) == max_high * (bigint!(2).pow(128)) + max_low) {
                 let error_msg: String =
                     "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW".to_string(); //format!("PRIME - 1 == {:?} * 2**128 + {:?}", max_high.clone(), max_low.clone());
                 return Err(VirtualMachineError::AssertionFail(error_msg));
             }
 
             //ids.low = ids.value & ((1 << 128) - 1)
-            if !(low.clone() == value.clone() & (bigint!(1).shl(128_u8)) - bigint!(1)) {
-                return Err(VirtualMachineError::AssertionFail(
-                    "ids.low = ids.value & ((1 << 128) - 1)".to_string(),
-                ));
-            }
+            let low: BigInt = value.clone() & (bigint!(1).shl(128_u8)) - bigint!(1);
+            let high: BigInt = value.shr(128_u8);
 
-            //ids.high = ids.value >> 128
-            if !(high == &value.shr(128_u8)) {
-                return Err(VirtualMachineError::AssertionFail(
-                    "ids.high = ids.value >> 128".to_string(),
-                ));
+            match (
+                vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
+                vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
+            ) {
+                (Ok(_), Ok(_)) => return Ok(()),
+                (Err(error), Ok(())) => return Err(VirtualMachineError::MemoryError(error)),
+                (Ok(()), Err(error)) => return Err(VirtualMachineError::MemoryError(error)),
+                (Err(error), _) => return Err(VirtualMachineError::MemoryError(error)),
             }
-
-            return Ok(());
         }
-        _ => Err(VirtualMachineError::FailedToGetIds),
+        _ => return Err(VirtualMachineError::FailedToGetIds),
     }
 }
