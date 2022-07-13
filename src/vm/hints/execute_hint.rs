@@ -588,6 +588,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -596,6 +597,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);
@@ -642,6 +644,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -650,6 +653,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);
@@ -702,6 +706,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -710,6 +715,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);
@@ -765,6 +771,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -773,6 +780,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);
@@ -2719,6 +2727,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -2727,6 +2736,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);
@@ -2771,6 +2781,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -2779,6 +2790,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);
@@ -2830,6 +2842,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
             (
@@ -2838,6 +2851,7 @@ mod tests {
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
+                    inner_dereference: false,
                 },
             ),
         ]);

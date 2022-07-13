@@ -402,8 +402,8 @@ pub fn assert_not_equal(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
     ) {
         (a_addr, b_addr)
     } else {
@@ -762,8 +762,8 @@ pub fn sqrt(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let (value_addr, root_addr) = if let (Some(value_addr), Some(root_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-        get_address_from_reference(root_ref, &vm.references, &vm.run_context),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(root_ref, &vm.references, &vm.run_context, vm),
     ) {
         (value_addr, root_addr)
     } else {
