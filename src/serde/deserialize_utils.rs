@@ -77,6 +77,7 @@ fn parse_dereference_no_offsets(
         offset2: 0,
         immediate: None,
         dereference: true,
+        inner_dereference: false,
     })
 }
 
@@ -99,6 +100,11 @@ fn parse_dereference_with_one_offset(
     };
     deref.offset1 = offset1;
 
+    if splitted_value_str.contains(&"([") {
+        deref.inner_dereference = true;
+        return Ok(deref);
+    }
+
     Ok(deref)
 }
 
@@ -120,6 +126,7 @@ fn parse_dereference_with_two_offsets(
         },
     };
     deref.offset2 = offset2;
+    deref.inner_dereference = true;
 
     Ok(deref)
 }
@@ -146,6 +153,7 @@ fn parse_reference_no_offsets(
         offset2: 0,
         immediate: None,
         dereference: false,
+        inner_dereference: false,
     })
 }
 
@@ -207,6 +215,7 @@ mod tests {
             offset2: 0,
             immediate: None,
             dereference: true,
+            inner_dereference: false,
         };
 
         assert_eq!(value_address, parsed_value);
@@ -225,6 +234,7 @@ mod tests {
             offset2: 1,
             immediate: None,
             dereference: true,
+            inner_dereference: true,
         };
 
         assert_eq!(value_address, parsed_value);
@@ -243,6 +253,7 @@ mod tests {
             offset2: 0,
             immediate: None,
             dereference: true,
+            inner_dereference: false,
         };
 
         assert_eq!(value_address, parsed_value);
@@ -261,6 +272,7 @@ mod tests {
             offset2: 0,
             immediate: None,
             dereference: false,
+            inner_dereference: false,
         };
 
         assert_eq!(value_address, parsed_value);
@@ -279,6 +291,7 @@ mod tests {
             offset2: 0,
             immediate: Some(bigint!(1)),
             dereference: false,
+            inner_dereference: false,
         };
 
         assert_eq!(value_address, parsed_value);
@@ -297,6 +310,7 @@ mod tests {
             offset2: 0,
             immediate: None,
             dereference: false,
+            inner_dereference: false,
         };
 
         assert_eq!(value_address, parsed_value);
