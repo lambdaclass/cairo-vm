@@ -39,7 +39,7 @@ pub struct VirtualMachine {
     //exec_scopes: Vec<HashMap<..., ...>>,
     //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
-    pub references: Vec<HintReference>,
+    pub references: HashMap<usize, HintReference>,
     //hint_locals: HashMap<..., ...>,
     //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -79,7 +79,7 @@ impl VirtualMachine {
             prime,
             builtin_runners,
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
-            references: Vec::<HintReference>::new(),
+            references: HashMap::<usize, HintReference>::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
@@ -417,9 +417,8 @@ impl VirtualMachine {
             ap: self.run_context.ap.clone(),
             fp: self.run_context.fp.clone(),
         });
-        for addr in operands_mem_addresses.iter() {
-            self.accessed_addresses.insert(addr.clone());
-        }
+        self.accessed_addresses
+            .extend(operands_mem_addresses.iter().map(Clone::clone));
         self.accessed_addresses.insert(self.run_context.pc.clone());
 
         self.update_registers(instruction, operands)?;
@@ -2368,7 +2367,7 @@ mod tests {
             _program_base: None,
             builtin_runners: Vec::new(),
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
-            references: Vec::<HintReference>::new(),
+            references: HashMap::<usize, HintReference>::new(),
             memory: Memory::new(),
             accessed_addresses: HashSet::<MaybeRelocatable>::new(),
             trace: Vec::<TraceEntry>::new(),
