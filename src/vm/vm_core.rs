@@ -5,6 +5,7 @@ use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::dict_manager::DictManager;
 use crate::vm::hints::execute_hint::execute_hint;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
@@ -36,24 +37,15 @@ pub struct VirtualMachine {
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     pub segments: MemorySegmentManager,
-    //exec_scopes: Vec<HashMap<..., ...>>,
-    //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     pub references: Vec<HintReference>,
-    //hint_locals: HashMap<..., ...>,
-    //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
-    //static_locals: Option<HashMap<..., ...>>,
-    //intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
-    //debug_file_contents: HashMap<String, String>,
-    //error_message_attributes: Vec<VmAttributeScope>,
-    //program: ProgramBase,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
-    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     accessed_addresses: HashSet<MaybeRelocatable>,
     pub trace: Vec<TraceEntry>,
     current_step: usize,
     skip_instruction_execution: bool,
+    pub dict_manager: Option<DictManager>,
 }
 
 impl HintData {
@@ -87,6 +79,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            dict_manager: None,
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
@@ -2375,6 +2368,7 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            dict_manager: None,
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);
