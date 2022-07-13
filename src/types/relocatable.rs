@@ -142,6 +142,14 @@ impl MaybeRelocatable {
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
+
+    /// Performs mod floor for a MaybeRelocatable::Int with BigInt
+    pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
+        match self {
+            MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
+            _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
 }
 
 ///Turns a MaybeRelocatable into a BigInt value
@@ -404,6 +412,14 @@ mod tests {
         let error = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(error, Err(VirtualMachineError::NotImplemented));
         assert_eq!(error.unwrap_err().to_string(), "This is not implemented");
+    }
+
+    #[test]
+    fn mod_floor_int() {
+        let num = MaybeRelocatable::Int(bigint!(7));
+        let div = bigint!(5);
+        let expected_rem = MaybeRelocatable::Int(bigint!(2));
+        assert_eq!(num.mod_floor(&div), Ok(expected_rem));
     }
 
     #[test]
