@@ -1065,32 +1065,26 @@ pub fn assert_lt_felt(
         return Err(VirtualMachineError::FailedToGetIds);
     };
 
-    //get ids from memory
-    let (maybe_rel_a, maybe_rel_b) = if let (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) =
-        (vm.memory.get(&a_addr), vm.memory.get(&b_addr))
-    {
-        (maybe_rel_a, maybe_rel_b)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(MaybeRelocatable::Int(ref a))), Ok(Some(MaybeRelocatable::Int(ref b)))) => {
+            // main logic
+            // assert_integer(ids.a)
+            // assert_integer(ids.b)
+            // assert (ids.a % PRIME) < (ids.b % PRIME), \
+            //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+            if a.mod_floor(&vm.prime) < b.mod_floor(&vm.prime) {
+                Ok(())
+            } else {
+                Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()))
+            }
+        }
+        (Ok(Some(MaybeRelocatable::RelocatableValue(_))), _) => {
+            Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
+        }
+        (_, Ok(Some(MaybeRelocatable::RelocatableValue(_)))) => {
+            Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
+        }
 
-    //main logic
-    // assert_integer(ids.a)
-    let a = if let MaybeRelocatable::Int(ref a) = maybe_rel_a {
-        a
-    } else {
-        return Err(VirtualMachineError::ExpectedInteger(maybe_rel_a.clone()));
-    };
-    // assert_integer(ids.b)
-    let b = if let MaybeRelocatable::Int(ref b) = maybe_rel_b {
-        b
-    } else {
-        return Err(VirtualMachineError::ExpectedInteger(maybe_rel_b.clone()));
-    };
-    //     assert (ids.a % PRIME) < (ids.b % PRIME), \
-    //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-    if a.mod_floor(&vm.prime) < b.mod_floor(&vm.prime) {
-        return Ok(());
+        _ => Err(VirtualMachineError::FailedToGetIds),
     }
-    Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()))
 }
