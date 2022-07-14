@@ -58,6 +58,8 @@ pub fn execute_hint(
 }
 #[cfg(test)]
 mod tests {
+    use std::ops::Shl;
+
     use crate::bigint_str;
     use crate::math_utils::as_int;
     use crate::relocatable;
@@ -3382,7 +3384,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(2).pow(251)),
+                &MaybeRelocatable::from(bigint!(1).shl(251)),
             )
             .unwrap();
         //Create ids
@@ -3424,7 +3426,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::ValueOutside250BitRange(
-                bigint!(2).pow(251)
+                bigint!(1).shl(251)
             ))
         );
     }
