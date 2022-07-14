@@ -5,8 +5,8 @@ use num_bigint::BigInt;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    add_segment, assert_250_bit, assert_le_felt, assert_lt_felt, assert_nn, assert_not_equal, assert_not_zero,
-    is_le_felt, is_nn, is_nn_out_of_range, is_positive, split_felt, split_int,
+    add_segment, assert_250_bit, assert_le_felt, assert_lt_felt, assert_nn, assert_not_equal,
+    assert_not_zero, is_le_felt, is_nn, is_nn_out_of_range, is_positive, split_felt, split_int,
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
 use crate::vm::vm_core::VirtualMachine;
@@ -3945,6 +3945,493 @@ mod tests {
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
+        );
+    }
+
+    #[test]
+    fn run_assert_lt_felt_ok() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        //Insert ids.b into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+    }
+
+    #[test]
+    fn run_assert_lt_felt_assert_fails() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+
+        //Insert ids.b into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::AssertLtFelt(bigint!(3), bigint!(2)))
+        );
+    }
+
+    #[test]
+    fn run_assert_lt_felt_incorrect_ids() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        //Insert ids.b into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create Incorrects ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::IncorrectIds(
+                vec![String::from("a"), String::from("b"),],
+                vec![String::from("a"),],
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_lt_felt_incorrect_references() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        //Insert ids.b into memory
+        // vm.memory
+        //     .insert(
+        //         &MaybeRelocatable::from((1, 2)),
+        //         &MaybeRelocatable::from(bigint!(2)),
+        //     )
+        //     .unwrap();
+
+        //Create incorrects ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create incorrect references
+        vm.references = HashMap::from([
+            // Incorrect reference
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn run_assert_lt_felt_a_is_not_integer() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        //Insert ids.b into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 1))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_lt_felt_b_is_not_integer() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        //Insert ids.b into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 2))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_assert_lt_felt_ok_failed_to_get_ids() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        //Initialize memory segements
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        //Skip insert ids.b into memory
+        // vm.memory
+        //     .insert(
+        //         &MaybeRelocatable::from((1, 2)),
+        //         &MaybeRelocatable::from(bigint!(2)),
+        //     )
+        //     .unwrap();
+
+        //Create incorrects ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("b"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::FailedToGetIds)
         );
     }
 }
