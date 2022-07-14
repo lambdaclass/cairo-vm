@@ -785,15 +785,9 @@ pub fn split_felt(
 
     //Check that the 'value' variable is in memory
     match vm.memory.get(&value_addr) {
-        Ok(Some(maybe_rel_value)) => {
+        Ok(Some(MaybeRelocatable::Int(ref value))) => {
             //Main logic
-            //assert_integer(ids.value)
-            let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
-                value
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
-            };
-
+            //assert_integer(ids.value) (done by match)
             // ids.low = ids.value & ((1 << 128) - 1)
             // ids.high = ids.value >> 128
             let low: BigInt = value.clone() & ((bigint!(1).shl(128_u8)) - bigint!(1));
@@ -803,13 +797,16 @@ pub fn split_felt(
                 vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
             ) {
                 (Ok(_), Ok(_)) => Ok(()),
-                (Err(error), _) => Err(VirtualMachineError::MemoryError(error)),
-                (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
+                (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
             }
+        }
+        Ok(Some(MaybeRelocatable::RelocatableValue(ref _value))) => {
+            Err(VirtualMachineError::ExpectedInteger(value_addr.clone()))
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
 //Implements hint: from starkware.python.math_utils import isqrt
 //        value = ids.value % PRIME
 //        assert value < 2 ** 250, f"value={value} is outside of the range [0, 2**250)."
