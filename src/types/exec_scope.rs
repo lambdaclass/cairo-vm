@@ -36,15 +36,15 @@ impl ExecutionScopes {
         self.exec_scopes.last_mut()
     }
 
-    pub fn assign_or_update_variable(&mut self, var_name: String, var_value: PyValueType) {
+    pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
         if let Some(local_variables) = self.get_local_variables() {
-            local_variables.insert(var_name, var_value);
+            local_variables.insert(var_name.to_string(), var_value);
         }
     }
 
-    pub fn delete_variable(&mut self, var_name: String) {
+    pub fn delete_variable(&mut self, var_name: &str) {
         if let Some(local_variables) = self.get_local_variables() {
-            local_variables.remove(&var_name);
+            local_variables.remove(&var_name.to_string());
         }
     }
 }
@@ -97,7 +97,12 @@ mod tests {
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
-        let mut scopes = ExecutionScopes::new();
+        let mut scopes = ExecutionScopes {
+            exec_scopes: vec![HashMap::from([(
+                String::from("a"),
+                PyValueType::BigInt(bigint!(1)),
+            )])],
+        };
 
         assert_eq!(scopes.get_local_variables().unwrap(), &HashMap::new());
 
@@ -138,12 +143,11 @@ mod tests {
 
     #[test]
     fn assign_local_variable_test() {
-        let var_name = String::from("a");
         let var_value = PyValueType::BigInt(bigint!(2));
 
         let mut scopes = ExecutionScopes::new();
 
-        scopes.assign_or_update_variable(var_name, var_value);
+        scopes.assign_or_update_variable("a", var_value);
 
         assert_eq!(
             scopes.get_local_variables().unwrap().get("a").unwrap(),
@@ -162,7 +166,7 @@ mod tests {
             exec_scopes: vec![scope],
         };
 
-        scopes.assign_or_update_variable(String::from("a"), PyValueType::BigInt(bigint!(3)));
+        scopes.assign_or_update_variable("a", PyValueType::BigInt(bigint!(3)));
 
         assert_eq!(
             scopes.get_local_variables().unwrap().get("a").unwrap(),
@@ -186,7 +190,7 @@ mod tests {
             .unwrap()
             .contains_key(&String::from("a")));
 
-        scopes.delete_variable(String::from("a"));
+        scopes.delete_variable("a");
 
         assert!(!scopes
             .get_local_variables()
