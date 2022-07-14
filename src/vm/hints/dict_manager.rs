@@ -85,6 +85,26 @@ impl DictManager {
             .insert(base.segment_index, DictTracker::new_empty(&base));
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
+
+    //Creates a new Cairo default dictionary
+    pub fn new_default_dict(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+        default_value: &BigInt,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        let base = segments.add(memory, None);
+        if self.trackers.contains_key(&base.segment_index) {
+            return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
+                base.segment_index,
+            ));
+        }
+        self.trackers.insert(
+            base.segment_index,
+            DictTracker::new_default_dict(&base, default_value),
+        );
+        Ok(MaybeRelocatable::RelocatableValue(base))
+    }
 }
 
 impl Default for DictManager {
@@ -114,9 +134,9 @@ impl DictTracker {
 
 #[cfg(test)]
 mod tests {
-    use crate::relocatable;
-
     use super::*;
+    use crate::{bigint, relocatable};
+    use num_traits::FromPrimitive;
 
     #[test]
     fn create_dict_manager() {
@@ -130,6 +150,19 @@ mod tests {
         assert_eq!(
             dict_tracker.data,
             Dictionary::SimpleDictionary(HashMap::new())
+        );
+        assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
+    }
+
+    #[test]
+    fn create_dict_tracker_default() {
+        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(5));
+        assert_eq!(
+            dict_tracker.data,
+            Dictionary::DefaultDictionary {
+                dict: HashMap::new(),
+                default_value: bigint!(5)
+            }
         );
         assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
     }
@@ -150,11 +183,44 @@ mod tests {
     }
 
     #[test]
+    fn dict_manager_new_dict_default() {
+        let mut dict_manager = DictManager::new();
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let base = dict_manager.new_default_dict(&mut segments, &mut memory, &bigint!(5));
+        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert!(dict_manager.trackers.contains_key(&0));
+        assert_eq!(
+            dict_manager.trackers.get(&0),
+            Some(&DictTracker::new_default_dict(
+                &relocatable!(0, 0),
+                &bigint!(5)
+            ))
+        );
+        assert_eq!(segments.num_segments, 1);
+    }
+
+    #[test]
     fn dict_manager_new_dict_empty_same_segment() {
         let mut dict_manager = DictManager::new();
         dict_manager
             .trackers
             .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        assert_eq!(
+            dict_manager.new_dict(&mut segments, &mut memory),
+            Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
+        );
+    }
+
+    #[test]
+    fn dict_manager_new_default_dict_empty_same_segment() {
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(
+            0,
+            DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6)),
+        );
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         assert_eq!(
