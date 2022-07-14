@@ -8,8 +8,7 @@ use crate::vm::{
 use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive};
-use num_traits::{Signed, Zero};
+use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
@@ -620,7 +619,8 @@ pub fn split_int(
                 ids.into_keys().collect(),
             ));
         };
-    //Check that each reference id corresponds to a value in the reference manager
+    //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
+    //small_inputs needs to be None, as we cant change it value otherwise
     let (output_addr, value_addr, base_addr, bound_addr) =
         if let (Some(output_addr), Some(value_addr), Some(base_addr), Some(bound_addr)) = (
             get_address_from_reference(output_ref, &vm.references, &vm.run_context, vm),
@@ -857,6 +857,105 @@ pub fn sqrt(
             vm.memory
                 .insert(&root_addr, &MaybeRelocatable::from(isqrt(&mod_value)?))
                 .map_err(VirtualMachineError::MemoryError)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+/*
+Implements hint:
+
+from starkware.cairo.common.math_utils import assert_integer
+assert_integer(ids.div)
+assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
+    f'div={hex(ids.div)} is out of the valid range.'
+ids.q, ids.r = divmod(ids.value, ids.div)
+*/
+pub fn unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (r_ref, q_ref, div_ref, value_ref) =
+        if let (Some(r_ref), Some(q_ref), Some(div_ref), Some(value_ref)) = (
+            ids.get(&String::from("r")),
+            ids.get(&String::from("q")),
+            ids.get(&String::from("div")),
+            ids.get(&String::from("value")),
+        ) {
+            (r_ref, q_ref, div_ref, value_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("r"),
+                    String::from("q"),
+                    String::from("div"),
+                    String::from("value"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (r_addr, q_addr, div_addr, value_addr) =
+        if let (Some(r_addr), Some(q_addr), Some(div_addr), Some(value_addr)) = (
+            get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(q_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(div_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        ) {
+            (r_addr, q_addr, div_addr, value_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    match (
+        vm.memory.get(&r_addr),
+        vm.memory.get(&q_addr),
+        vm.memory.get(&div_addr),
+        vm.memory.get(&value_addr),
+    ) {
+        (Ok(_), Ok(_), Ok(Some(maybe_rel_div)), Ok(Some(maybe_rel_value))) => {
+            let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
+                div
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
+            };
+            let value = maybe_rel_value;
+
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                let builtin = match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                    Some(b) => b,
+                    None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+                };
+
+                if name == &String::from("range_check") {
+                    // Main logic
+                    if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
+                        return Err(VirtualMachineError::OutOfValidRange(
+                            div.clone(),
+                            &vm.prime / &builtin._bound,
+                        ));
+                    }
+
+                    let (q, r) = match value.divmod(&MaybeRelocatable::from(div.clone())) {
+                        Ok((q, r)) => (q, r),
+                        Err(e) => return Err(e),
+                    };
+
+                    return match (
+                        vm.memory
+                            .insert(&r_addr, &r)
+                            .map_err(VirtualMachineError::MemoryError),
+                        vm.memory
+                            .insert(&q_addr, &q)
+                            .map_err(VirtualMachineError::MemoryError),
+                    ) {
+                        (Ok(_), Ok(_)) => Ok(()),
+                        (Err(e), _) | (_, Err(e)) => Err(e),
+                    };
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
