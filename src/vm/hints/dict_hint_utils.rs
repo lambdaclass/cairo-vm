@@ -37,6 +37,63 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
         .map_err(VirtualMachineError::MemoryError)
 }
 
+/*Implements hint:
+
+   if '__dict_manager' not in globals():
+            from starkware.cairo.common.dict import DictManager
+            __dict_manager = DictManager()
+
+        memory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)
+
+For now, the functionality to create a dictionary from a previously defined initial_dict (using a hint)
+is not available, an empty dict is created always
+*/
+pub fn default_dict_new(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    if vm.dict_manager.is_none() {
+        vm.dict_manager = Some(DictManager::new());
+    }
+    //Check that ids contains the reference id for each variable used by the hint
+    let default_value_ref = if let Some(default_value_ref) = ids.get(&String::from("default_value"))
+    {
+        default_value_ref
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("default_value")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let default_value_addr = if let Some(default_value_addr) =
+        get_address_from_reference(default_value_ref, &vm.references, &vm.run_context)
+    {
+        default_value_addr
+    } else {
+        return Err(VirtualMachineError::FailedToGetReference(
+            default_value_ref.clone(),
+        ));
+    };
+    //Check that ids.default_value is an Int value
+    let default_value = if let Ok(Some(&MaybeRelocatable::Int(ref default_value))) =
+        vm.memory.get(&default_value_addr)
+    {
+        default_value.clone()
+    } else {
+        return Err(VirtualMachineError::ExpectedInteger(default_value_addr));
+    };
+    //This unwrap will never fail as dict_manager is checked for None value beforehand
+    let base = vm.dict_manager.as_mut().unwrap().new_default_dict(
+        &mut vm.segments,
+        &mut vm.memory,
+        &default_value,
+    )?;
+    vm.memory
+        .insert(&vm.run_context.ap, &base)
+        .map_err(VirtualMachineError::MemoryError)
+}
+
 /* Implements hint:
    dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)
    dict_tracker.current_ptr += ids.DictAccess.SIZE
