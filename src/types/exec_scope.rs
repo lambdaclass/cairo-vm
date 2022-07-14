@@ -206,4 +206,11 @@ mod tests {
             .unwrap()
             .contains_key(&String::from("a")));
     }
+
+    #[test]
+    fn exit_main_scope_gives_error_test() {
+        let mut scopes = ExecutionScopes::new();
+
+        assert!(scopes.exit_scope().is_err());
+    }
 }
