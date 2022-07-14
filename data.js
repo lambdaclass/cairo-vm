@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657835341538,
+  "lastUpdate": 1657840605864,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -1131,6 +1131,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1562,
             "range": "± 120",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "499be4b1524595ce704efa531c3dfe860db0e2a3",
+          "message": "Merge pull request #278 from lambdaclass/assert-lt-felt-hint\n\n[HINTS] Add implementation for hint on assert_lt_felt (math.cairo)",
+          "timestamp": "2022-07-14T20:11:28-03:00",
+          "tree_id": "3afdf3323a616e2847b902bd2a8e7576cd01140b",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/499be4b1524595ce704efa531c3dfe860db0e2a3"
+        },
+        "date": 1657840604667,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1792,
+            "range": "± 88",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 1718,
+            "range": "± 110",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 1781,
+            "range": "± 127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 1757,
+            "range": "± 92",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1737,
+            "range": "± 117",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 1715,
+            "range": "± 97",
             "unit": "ns/iter"
           }
         ]
