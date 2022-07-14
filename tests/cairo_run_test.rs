@@ -84,3 +84,8 @@ fn cairo_run_split_int_big() {
     cairo_run::cairo_run(Path::new("cairo_programs/split_int_big.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_dict() {
+    cairo_run::cairo_run(Path::new("cairo_programs/dict.json")).expect("Couldn't run program");
+}

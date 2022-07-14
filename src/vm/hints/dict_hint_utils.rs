@@ -188,7 +188,7 @@ pub fn dict_write(
     let (key_ref, value_ref, dict_ptr_ref) =
         if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
             ids.get(&String::from("key")),
-            ids.get(&String::from("value")),
+            ids.get(&String::from("new_value")),
             ids.get(&String::from("dict_ptr")),
         ) {
             (key_ref, value_ref, dict_ptr_ref)
@@ -196,7 +196,7 @@ pub fn dict_write(
             return Err(VirtualMachineError::IncorrectIds(
                 vec![
                     String::from("key"),
-                    String::from("value"),
+                    String::from("new_value"),
                     String::from("dict_ptr"),
                 ],
                 ids.into_keys().collect(),
@@ -254,9 +254,10 @@ pub fn dict_write(
     };
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1
+    //Use tracker.current_ptr as dict_ptr will point to the previous entry (which we wont overwrite)
     vm.memory
         .insert(
-            &dict_ptr_addr.add_usize_mod(1, None),
+            &MaybeRelocatable::RelocatableValue(tracker.current_ptr.clone()).add_usize_mod(1, None),
             &MaybeRelocatable::from(prev_value.clone()),
         )
         .map_err(VirtualMachineError::MemoryError)?;
@@ -600,7 +601,7 @@ mod tests {
 
     #[test]
     fn run_default_dict_new_valid() {
-        let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
@@ -649,7 +650,7 @@ mod tests {
 
     #[test]
     fn run_default_dict_new_no_default_value() {
-        let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
