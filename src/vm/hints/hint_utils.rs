@@ -792,6 +792,144 @@ pub fn sqrt(
     }
 }
 
+pub fn signed_div_rem(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (r_ref, baised_q_ref, div_ref, value_ref, bound_ref) = if let (
+        Some(r_ref),
+        Some(baised_q_ref),
+        Some(div_ref),
+        Some(value_ref),
+        Some(bound_ref),
+    ) = (
+        ids.get(&String::from("r")),
+        ids.get(&String::from("baised_q")),
+        ids.get(&String::from("div")),
+        ids.get(&String::from("value")),
+        ids.get(&String::from("bound")),
+    ) {
+        (r_ref, baised_q_ref, div_ref, value_ref, bound_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("r"),
+                String::from("baised_q"),
+                String::from("div"),
+                String::from("value"),
+                String::from("bound"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (r_addr, baised_q_addr, div_addr, value_addr, bound_addr) = if let (
+        Some(r_addr),
+        Some(baised_q_addr),
+        Some(div_addr),
+        Some(value_addr),
+        Some(bound_addr),
+    ) = (
+        get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(baised_q_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(div_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(bound_ref, &vm.references, &vm.run_context, vm),
+    ) {
+        (r_addr, baised_q_addr, div_addr, value_addr, bound_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    match (
+        vm.memory.get(&r_addr),
+        vm.memory.get(&baised_q_addr),
+        vm.memory.get(&div_addr),
+        vm.memory.get(&value_addr),
+        vm.memory.get(&bound_addr),
+    ) {
+        (
+            Ok(_),
+            Ok(_),
+            Ok(Some(maybe_rel_div)),
+            Ok(Some(maybe_rel_value)),
+            Ok(Some(maybe_rel_bound)),
+        ) => {
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                let builtin = match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                    Some(b) => b,
+                    None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+                };
+
+                if name == &String::from("range_check") {
+                    // Main logic
+                    let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
+                        div
+                    } else {
+                        return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
+                    };
+
+                    if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
+                        return Err(VirtualMachineError::OutOfValidRange(
+                            div.clone(),
+                            &vm.prime / &builtin._bound,
+                        ));
+                    }
+
+                    let bound = if let MaybeRelocatable::Int(ref bound) = maybe_rel_bound {
+                        bound
+                    } else {
+                        return Err(VirtualMachineError::ExpectedInteger(bound_addr.clone()));
+                    };
+
+                    // Divide by 2
+                    if bound > &(&builtin._bound).shr(1_i32) {
+                        return Err(VirtualMachineError::OutOfValidRange(
+                            bound.clone(),
+                            (&builtin._bound).shr(1_i32),
+                        ));
+                    }
+
+                    let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                        value
+                    } else {
+                        return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
+                    };
+
+                    let int_value = &as_int(&value, &vm.prime);
+
+                    let q = &(int_value / div);
+                    let r = MaybeRelocatable::Int(int_value.mod_floor(&div));
+
+                    if &(-bound) > q && q >= &bound {
+                        return Err(VirtualMachineError::OutOfValidRange(
+                            q.clone(),
+                            bound.clone(),
+                        ));
+                    }
+
+                    let baised_q = MaybeRelocatable::Int(q + bound);
+
+                    return match (
+                        vm.memory
+                            .insert(&r_addr, &r)
+                            .map_err(VirtualMachineError::MemoryError),
+                        vm.memory
+                            .insert(&baised_q_addr, &baised_q)
+                            .map_err(VirtualMachineError::MemoryError),
+                    ) {
+                        (Ok(_), Ok(_)) => Ok(()),
+                        (Err(e), _) | (_, Err(e)) => Err(e),
+                    };
+                }
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
 /*
 Implements hint:
 
