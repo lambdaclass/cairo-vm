@@ -10,7 +10,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
-use std::ops::Shr;
+use std::ops::{Neg, Shr};
 
 ///Computes the memory address indicated by the HintReference
 fn compute_addr_from_reference(
@@ -797,25 +797,35 @@ pub fn signed_div_rem(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let (r_ref, baised_q_ref, div_ref, value_ref, bound_ref) = if let (
+    let (r_ref, biased_q_ref, range_check_ptr_ref, div_ref, value_ref, bound_ref) = if let (
         Some(r_ref),
-        Some(baised_q_ref),
+        Some(biased_q_ref),
+        Some(range_check_ptr_ref),
         Some(div_ref),
         Some(value_ref),
         Some(bound_ref),
     ) = (
         ids.get(&String::from("r")),
-        ids.get(&String::from("baised_q")),
+        ids.get(&String::from("biased_q")),
+        ids.get(&String::from("range_check_ptr")),
         ids.get(&String::from("div")),
         ids.get(&String::from("value")),
         ids.get(&String::from("bound")),
     ) {
-        (r_ref, baised_q_ref, div_ref, value_ref, bound_ref)
+        (
+            r_ref,
+            biased_q_ref,
+            range_check_ptr_ref,
+            div_ref,
+            value_ref,
+            bound_ref,
+        )
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![
                 String::from("r"),
-                String::from("baised_q"),
+                String::from("biased_q"),
+                String::from("range_check_ptr"),
                 String::from("div"),
                 String::from("value"),
                 String::from("bound"),
@@ -824,31 +834,42 @@ pub fn signed_div_rem(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let (r_addr, baised_q_addr, div_addr, value_addr, bound_addr) = if let (
+    let (r_addr, biased_q_addr, range_check_ptr_addr, div_addr, value_addr, bound_addr) = if let (
         Some(r_addr),
-        Some(baised_q_addr),
+        Some(biased_q_addr),
+        Some(range_check_ptr_addr),
         Some(div_addr),
         Some(value_addr),
         Some(bound_addr),
     ) = (
         get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(baised_q_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(biased_q_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(range_check_ptr_ref, &vm.references, &vm.run_context, vm),
         get_address_from_reference(div_ref, &vm.references, &vm.run_context, vm),
         get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
         get_address_from_reference(bound_ref, &vm.references, &vm.run_context, vm),
     ) {
-        (r_addr, baised_q_addr, div_addr, value_addr, bound_addr)
+        (
+            r_addr,
+            biased_q_addr,
+            range_check_ptr_addr,
+            div_addr,
+            value_addr,
+            bound_addr,
+        )
     } else {
         return Err(VirtualMachineError::FailedToGetIds);
     };
     match (
         vm.memory.get(&r_addr),
-        vm.memory.get(&baised_q_addr),
+        vm.memory.get(&biased_q_addr),
+        vm.memory.get(&range_check_ptr_addr),
         vm.memory.get(&div_addr),
         vm.memory.get(&value_addr),
         vm.memory.get(&bound_addr),
     ) {
         (
+            Ok(_),
             Ok(_),
             Ok(_),
             Ok(Some(maybe_rel_div)),
@@ -902,21 +923,21 @@ pub fn signed_div_rem(
                     let q = &(int_value / div);
                     let r = MaybeRelocatable::Int(int_value.mod_floor(&div));
 
-                    if &(-bound) > q && q >= &bound {
+                    if &bound.neg() > q && q >= &bound {
                         return Err(VirtualMachineError::OutOfValidRange(
                             q.clone(),
                             bound.clone(),
                         ));
                     }
 
-                    let baised_q = MaybeRelocatable::Int(q + bound);
+                    let biased_q = MaybeRelocatable::Int(q + bound);
 
                     return match (
                         vm.memory
                             .insert(&r_addr, &r)
                             .map_err(VirtualMachineError::MemoryError),
                         vm.memory
-                            .insert(&baised_q_addr, &baised_q)
+                            .insert(&biased_q_addr, &biased_q)
                             .map_err(VirtualMachineError::MemoryError),
                     ) {
                         (Ok(_), Ok(_)) => Ok(()),
