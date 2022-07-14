@@ -228,4 +228,23 @@ mod tests {
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
+
+    #[test]
+    fn dictionary_get_insert_simple() {
+        let mut dictionary = Dictionary::SimpleDictionary(HashMap::new());
+        dictionary.insert(&bigint!(1), &bigint!(2));
+        assert_eq!(dictionary.get(&bigint!(1)), Some(&bigint!(2)));
+        assert_eq!(dictionary.get(&bigint!(2)), None);
+    }
+
+    #[test]
+    fn dictionary_get_insert_default() {
+        let mut dictionary = Dictionary::DefaultDictionary {
+            dict: HashMap::new(),
+            default_value: bigint!(7),
+        };
+        dictionary.insert(&bigint!(1), &bigint!(2));
+        assert_eq!(dictionary.get(&bigint!(1)), Some(&bigint!(2)));
+        assert_eq!(dictionary.get(&bigint!(2)), Some(&bigint!(7)));
+    }
 }
