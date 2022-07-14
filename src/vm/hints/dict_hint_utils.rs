@@ -597,4 +597,79 @@ mod tests {
             Err(VirtualMachineError::NoDictManager)
         );
     }
+
+    #[test]
+    fn run_default_dict_new_valid() {
+        let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            //ap value is (0,0)
+            Vec::new(),
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 1));
+        //insert ids.default_value into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(17)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("default_value"), bigint!(0));
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        //third new segment is added for the dictionary
+        assert_eq!(vm.segments.num_segments, 3);
+        //new segment base (2,0) is inserted into ap (0,0)
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::from((2, 0))))
+        );
+        //Check there is a dict_manager
+        assert_ne!(vm.dict_manager, None);
+        //Check the dict manager has a tracker for segment 2,
+        //and that tracker contains the ptr (2,0) and an empty dict
+        assert_eq!(
+            vm.dict_manager.unwrap().trackers.get(&2),
+            Some(&DictTracker::new_default_dict(
+                &relocatable!(2, 0),
+                &bigint!(17)
+            ))
+        );
+    }
+
+    #[test]
+    fn run_default_dict_new_no_default_value() {
+        let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            //ap value is (0,0)
+            Vec::new(),
+        );
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("default_value"), bigint!(0));
+        //Create references
+        vm.references = vec![HintReference {
+            register: Register::FP,
+            offset: -1,
+        }];
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
+    }
 }
