@@ -3861,4 +3861,83 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn run_split_felt_value_is_not_integer() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
+        .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+
+        //Insert insert RelocatableValue in ids.value memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("value"), bigint!(0));
+        ids.insert(String::from("low"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: true,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 1,
+                    inner_dereference: true,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 3))
+            ))
+        );
+    }
 }
