@@ -99,14 +99,20 @@ mod tests {
 
         let mut scopes = ExecutionScopes {
             exec_scopes: vec![HashMap::from([(
-                String::from("a"),
+                String::from("b"),
                 PyValueType::BigInt(bigint!(1)),
             )])],
         };
 
-        assert_eq!(scopes.get_local_variables().unwrap(), &HashMap::new());
+        assert_eq!(
+            scopes.get_local_variables().unwrap(),
+            &HashMap::from([(String::from("b"), PyValueType::BigInt(bigint!(1)))])
+        );
 
         scopes.enter_scope(new_scope);
+
+        // check that variable `b` can't be accessed now
+        assert!(scopes.get_local_variables().unwrap().get("b").is_none());
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
