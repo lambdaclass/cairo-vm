@@ -1029,3 +1029,62 @@ pub fn unsigned_div_rem(
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.math_utils import assert_integer
+    assert_integer(ids.a)
+    assert_integer(ids.b)
+    assert (ids.a % PRIME) < (ids.b % PRIME), \
+        f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+%}
+*/
+pub fn assert_lt_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+    ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(MaybeRelocatable::Int(ref a))), Ok(Some(MaybeRelocatable::Int(ref b)))) => {
+            // main logic
+            // assert_integer(ids.a)
+            // assert_integer(ids.b)
+            // assert (ids.a % PRIME) < (ids.b % PRIME), \
+            //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+            if a.mod_floor(&vm.prime) < b.mod_floor(&vm.prime) {
+                Ok(())
+            } else {
+                Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()))
+            }
+        }
+        (Ok(Some(MaybeRelocatable::RelocatableValue(_))), _) => {
+            Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
+        }
+        (_, Ok(Some(MaybeRelocatable::RelocatableValue(_)))) => {
+            Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
+        }
+
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}

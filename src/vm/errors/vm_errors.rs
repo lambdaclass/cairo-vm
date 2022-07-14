@@ -52,6 +52,7 @@ pub enum VirtualMachineError {
     SqrtNegative(BigInt),
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
+    AssertLtFelt(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -148,6 +149,10 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            },
+            VirtualMachineError::AssertLtFelt(a, b) => {
+                write!(f, "Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", a, b)
+
             },
         }
     }
