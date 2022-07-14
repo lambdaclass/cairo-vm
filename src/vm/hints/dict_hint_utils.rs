@@ -204,7 +204,7 @@ pub fn dict_write(
         )
         .map_err(VirtualMachineError::MemoryError)?;
     //Insert new value into tracker
-    tracker.data.insert(key_copy, value_copy);
+    tracker.data.insert(&key_copy, &value_copy);
     Ok(())
 }
 
@@ -218,6 +218,7 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::dict_manager::Dictionary;
     use crate::vm::hints::execute_hint::HintReference;
     use crate::{bigint, relocatable};
     use crate::{
@@ -295,8 +296,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Initialize dictionary
-        let mut dictionary = HashMap::<BigInt, BigInt>::new();
-        dictionary.insert(bigint!(5), bigint!(12));
+        let mut dictionary = Dictionary::SimpleDictionary(HashMap::<BigInt, BigInt>::new());
+        dictionary.insert(&bigint!(5), &bigint!(12));
         //Create tracker
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
         tracker.data = dictionary;
@@ -378,7 +379,7 @@ mod tests {
         dictionary.insert(bigint!(5), bigint!(12));
         //Create tracker
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
-        tracker.data = dictionary;
+        tracker.data = Dictionary::SimpleDictionary(dictionary);
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);

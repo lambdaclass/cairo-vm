@@ -21,9 +21,44 @@ pub struct DictManager {
 ///Tracks the python dict associated with a Cairo dict.
 pub struct DictTracker {
     //Dictionary.
-    pub data: HashMap<BigInt, BigInt>,
+    pub data: Dictionary,
     //Pointer to the first unused position in the dict segment.
     pub current_ptr: Relocatable,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Dictionary {
+    SimpleDictionary(HashMap<BigInt, BigInt>),
+    DefaultDictionary {
+        dict: HashMap<BigInt, BigInt>,
+        default_value: BigInt,
+    },
+}
+
+impl Dictionary {
+    pub fn get(&mut self, key: &BigInt) -> Option<&BigInt> {
+        match self {
+            Self::SimpleDictionary(dict) => dict.get(key),
+            Self::DefaultDictionary {
+                dict,
+                default_value,
+            } => Some(
+                dict.entry(key.clone())
+                    .or_insert_with(|| default_value.clone()),
+            ),
+        }
+    }
+
+    pub fn insert(&mut self, key: &BigInt, value: &BigInt) {
+        let dict = match self {
+            Self::SimpleDictionary(dict) => dict,
+            Self::DefaultDictionary {
+                dict,
+                default_value: _,
+            } => dict,
+        };
+        dict.insert(key.clone(), value.clone());
+    }
 }
 
 impl DictManager {
@@ -61,7 +96,17 @@ impl Default for DictManager {
 impl DictTracker {
     pub fn new_empty(base: &Relocatable) -> Self {
         DictTracker {
-            data: HashMap::new(),
+            data: Dictionary::SimpleDictionary(HashMap::new()),
+            current_ptr: base.clone(),
+        }
+    }
+
+    pub fn new_default_dict(base: &Relocatable, default_value: &BigInt) -> Self {
+        DictTracker {
+            data: Dictionary::DefaultDictionary {
+                dict: HashMap::new(),
+                default_value: default_value.clone(),
+            },
             current_ptr: base.clone(),
         }
     }
@@ -82,7 +127,10 @@ mod tests {
     #[test]
     fn create_dict_tracker_empty() {
         let dict_tracker = DictTracker::new_empty(&relocatable!(1, 0));
-        assert_eq!(dict_tracker.data, HashMap::new());
+        assert_eq!(
+            dict_tracker.data,
+            Dictionary::SimpleDictionary(HashMap::new())
+        );
         assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
     }
 
