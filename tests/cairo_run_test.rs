@@ -121,3 +121,9 @@ fn cairo_run_unsigned_div_rem() {
     cairo_run::cairo_run(Path::new("cairo_programs/unsigned_div_rem.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_assert_lt_felt() {
+    cairo_run::cairo_run(Path::new("cairo_programs/assert_lt_felt.json"))
+        .expect("Couldn't run program");
+}
