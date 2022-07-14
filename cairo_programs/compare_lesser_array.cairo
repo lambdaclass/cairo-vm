@@ -26,7 +26,7 @@ end
 	
 func main{range_check_ptr: felt}():
     alloc_locals
-    tempvar array_length = 100
+    tempvar array_length = 10
     let (array_a : felt*) = alloc()
     let (array_b : felt*) = alloc()
     fill_array(array_a, 5, 2, array_length, 0)

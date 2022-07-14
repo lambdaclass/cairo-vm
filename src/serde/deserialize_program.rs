@@ -1,13 +1,12 @@
+use crate::serde::deserialize_utils;
 use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
-use lazy_regex::regex_captures;
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
-use std::str::FromStr;
-use std::{collections::HashMap, fmt, fs::File, io::BufReader, ops::Rem, path::Path};
+use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
@@ -64,7 +63,11 @@ pub struct Reference {
 #[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct ValueAddress {
     pub register: Option<Register>,
-    pub offset: i32,
+    pub offset1: i32,
+    pub offset2: i32,
+    pub immediate: Option<BigInt>,
+    pub dereference: bool,
+    pub inner_dereference: bool,
 }
 
 struct BigIntVisitor;
@@ -83,7 +86,7 @@ impl<'de> de::Visitor<'de> for BigIntVisitor {
         // Strip the '0x' prefix from the encoded hex string
         if let Some(no_prefix_hex) = value.strip_prefix("0x") {
             // Add padding if necessary
-            let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+            let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
             let decoded_result: Result<Vec<u8>, hex::FromHexError> = hex::decode(&no_prefix_hex);
 
             match decoded_result {
@@ -114,7 +117,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
         while let Some(value) = seq.next_element::<String>()? {
             if let Some(no_prefix_hex) = value.strip_prefix("0x") {
                 // Add padding if necessary
-                let no_prefix_hex = maybe_add_padding(no_prefix_hex.to_string());
+                let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
                 let decoded_result: Result<Vec<u8>, hex::FromHexError> =
                     hex::decode(&no_prefix_hex);
 
@@ -176,27 +179,13 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let register = if let Some((_, register)) = regex_captures!(r"([af]p)", value) {
-            match register {
-                "fp" => Some(Register::FP),
-                "ap" => Some(Register::AP),
-                _ => {
-                    unreachable!();
-                }
-            }
-        } else {
-            None
-        };
-        let offset = if let Some((_, offset_str)) = regex_captures!(r"(-?\d+)", value) {
-            match i32::from_str(offset_str) {
-                Ok(offset) => offset,
-                Err(e) => return Err(e).map_err(de::Error::custom),
-            }
-        } else {
-            0
+        let res = match value.chars().next() {
+            Some('[') => deserialize_utils::parse_dereference(value).map_err(de::Error::custom)?,
+            Some('c') => deserialize_utils::parse_reference(value).map_err(de::Error::custom)?,
+            _c => return Err("Expected '[' or 'c' as first char").map_err(de::Error::custom),
         };
 
-        Ok(ValueAddress { offset, register })
+        Ok(res)
     }
 }
 
@@ -220,16 +209,6 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<ValueAddress, D::Error> {
     d.deserialize_str(ValueAddressVisitor)
-}
-
-// Checks if the hex string has an odd length.
-// If that is the case, prepends '0' to it.
-fn maybe_add_padding(mut hex: String) -> String {
-    if hex.len().rem(2) != 0 {
-        hex.insert(0, '0');
-        return hex;
-    }
-    hex
 }
 
 pub fn deserialize_program_json(path: &Path) -> Result<ProgramJson, ProgramError> {
@@ -356,6 +335,22 @@ mod tests {
                             },
                             "pc": 0,
                             "value": "[cast(fp + (-3), felt*)]"
+                        },
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "cast([fp + (-3)] + 2, felt)"
+                        },
+                        {
+                            "ap_tracking_data": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "pc": 0,
+                            "value": "[cast(fp, felt*)]"
                         }
                     ]
                 }
@@ -424,7 +419,11 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         register: Some(Register::FP),
-                        offset: -4,
+                        offset1: -4,
+                        offset2: 0,
+                        immediate: None,
+                        dereference: true,
+                        inner_dereference: false,
                     },
                 },
                 Reference {
@@ -435,7 +434,41 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         register: Some(Register::FP),
-                        offset: -3,
+                        offset1: -3,
+                        offset2: 0,
+                        immediate: None,
+                        dereference: true,
+                        inner_dereference: false,
+                    },
+                },
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value_address: ValueAddress {
+                        register: Some(Register::FP),
+                        offset1: -3,
+                        offset2: 0,
+                        immediate: Some(bigint!(2)),
+                        dereference: false,
+                        inner_dereference: false,
+                    },
+                },
+                Reference {
+                    ap_tracking_data: ApTracking {
+                        group: 0,
+                        offset: 0,
+                    },
+                    pc: Some(0),
+                    value_address: ValueAddress {
+                        register: Some(Register::FP),
+                        offset1: 0,
+                        offset2: 0,
+                        immediate: None,
+                        dereference: true,
+                        inner_dereference: false,
                     },
                 },
             ],
