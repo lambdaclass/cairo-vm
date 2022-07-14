@@ -2891,20 +2891,6 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
-        //ids.high
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-        //ids.low
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(0));
@@ -2943,6 +2929,15 @@ mod tests {
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Hint would return an error if the assertion fails
+        //Check ids.high and ids.low values
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+        );
     }
 
     #[test]
@@ -2964,20 +2959,6 @@ mod tests {
             .insert(
                 &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(bigint!(2).pow(251)),
-            )
-            .unwrap();
-        //ids.high
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-        //ids.low
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //Create ids

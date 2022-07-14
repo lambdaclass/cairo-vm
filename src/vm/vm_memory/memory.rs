@@ -28,7 +28,6 @@ impl Memory {
         key: &MaybeRelocatable,
         val: &MaybeRelocatable,
     ) -> Result<(), MemoryError> {
-        println!("I WANT TO INSERT: {:?} into {:?}", val, key);
         if let MaybeRelocatable::RelocatableValue(relocatable) = key {
             let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
             //Check that the memory segment exists
