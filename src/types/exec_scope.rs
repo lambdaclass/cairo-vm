@@ -4,11 +4,11 @@ use std::collections::HashMap;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct ExecutionScopes {
-    exec_scopes: Vec<HashMap<String, PythonDictValueType>>,
+    exec_scopes: Vec<HashMap<String, PyValueType>>,
 }
 
 #[derive(Eq, Hash, PartialEq, Debug)]
-pub enum PythonDictValueType {
+pub enum PyValueType {
     BigInt(BigInt),
 }
 
@@ -19,7 +19,7 @@ impl ExecutionScopes {
         }
     }
 
-    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, PythonDictValueType>) {
+    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, PyValueType>) {
         self.exec_scopes.push(new_scope_locals);
     }
 
@@ -32,11 +32,11 @@ impl ExecutionScopes {
         Ok(())
     }
 
-    pub fn get_local_variables(&mut self) -> Option<&mut HashMap<String, PythonDictValueType>> {
+    pub fn get_local_variables(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
         self.exec_scopes.last_mut()
     }
 
-    pub fn assign_or_update_variable(&mut self, var_name: String, var_value: PythonDictValueType) {
+    pub fn assign_or_update_variable(&mut self, var_name: String, var_value: PyValueType) {
         if let Some(local_variables) = self.get_local_variables() {
             local_variables.insert(var_name, var_value);
         }
@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn get_local_variables_test() {
         let var_name = String::from("a");
-        let var_value = PythonDictValueType::BigInt(bigint!(2));
+        let var_value = PyValueType::BigInt(bigint!(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -86,14 +86,14 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("a"), PythonDictValueType::BigInt(bigint!(2)))])
+            &HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(2)))])
         );
     }
 
     #[test]
     fn enter_new_scope_test() {
         let var_name = String::from("a");
-        let var_value = PythonDictValueType::BigInt(bigint!(2));
+        let var_value = PyValueType::BigInt(bigint!(2));
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
@@ -105,14 +105,14 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("a"), PythonDictValueType::BigInt(bigint!(2)))])
+            &HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(2)))])
         );
     }
 
     #[test]
     fn exit_scope_test() {
         let var_name = String::from("a");
-        let var_value = PythonDictValueType::BigInt(bigint!(2));
+        let var_value = PyValueType::BigInt(bigint!(2));
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
@@ -124,7 +124,7 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("a"), PythonDictValueType::BigInt(bigint!(2)))])
+            &HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(2)))])
         );
 
         // exit the current scope
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn assign_local_variable_test() {
         let var_name = String::from("a");
-        let var_value = PythonDictValueType::BigInt(bigint!(2));
+        let var_value = PyValueType::BigInt(bigint!(2));
 
         let mut scopes = ExecutionScopes::new();
 
@@ -147,14 +147,14 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap().get("a").unwrap(),
-            &PythonDictValueType::BigInt(bigint!(2))
+            &PyValueType::BigInt(bigint!(2))
         );
     }
 
     #[test]
     fn re_assign_local_variable_test() {
         let var_name = String::from("a");
-        let var_value = PythonDictValueType::BigInt(bigint!(2));
+        let var_value = PyValueType::BigInt(bigint!(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -162,19 +162,18 @@ mod tests {
             exec_scopes: vec![scope],
         };
 
-        scopes
-            .assign_or_update_variable(String::from("a"), PythonDictValueType::BigInt(bigint!(3)));
+        scopes.assign_or_update_variable(String::from("a"), PyValueType::BigInt(bigint!(3)));
 
         assert_eq!(
             scopes.get_local_variables().unwrap().get("a").unwrap(),
-            &PythonDictValueType::BigInt(bigint!(3))
+            &PyValueType::BigInt(bigint!(3))
         );
     }
 
     #[test]
     fn delete_local_variable_test() {
         let var_name = String::from("a");
-        let var_value = PythonDictValueType::BigInt(bigint!(2));
+        let var_value = PyValueType::BigInt(bigint!(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
