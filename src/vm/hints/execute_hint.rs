@@ -3460,6 +3460,7 @@ mod tests {
             )
             .unwrap();
 
+        //Insert ids.low pointer into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 4)),
@@ -3546,6 +3547,7 @@ mod tests {
             )
             .unwrap();
 
+        //Insert ids.low pointer into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 4)),
@@ -3627,6 +3629,7 @@ mod tests {
             )
             .unwrap();
 
+        //Insert ids.low pointer into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 4)),
@@ -3705,6 +3708,7 @@ mod tests {
             )
             .unwrap();
 
+        //Insert ids.low pointer into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 4)),
@@ -3797,6 +3801,7 @@ mod tests {
             )
             .unwrap();
 
+        //Insert ids.low pointer into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 4)),
@@ -3889,6 +3894,7 @@ mod tests {
             )
             .unwrap();
 
+        //Insert ids.low pointer into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 4)),
