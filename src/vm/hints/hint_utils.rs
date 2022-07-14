@@ -835,36 +835,32 @@ pub fn assert_250_bit(
         } else {
             return Err(VirtualMachineError::FailedToGetIds);
         };
-    //Check that the ids are in memory
-    match (
-        vm.memory.get(&value_addr),
-        vm.memory.get(&high_addr),
-        vm.memory.get(&low_addr),
-    ) {
-        (Ok(Some(maybe_rel_value)), Ok(Some(maybe_rel_high)), Ok(Some(maybe_rel_low))) => {
-            //Check that the values at the ids address are Int
+    //Check that the ids.value is in memory
+    match vm.memory.get(&value_addr) {
+        Ok(Some(maybe_rel_value)) => {
+            //Check that ids.value is an Int value
             let value = if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
                 value
             } else {
                 return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
             };
-            let high = if let MaybeRelocatable::Int(ref high) = maybe_rel_high {
-                high
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(high_addr.clone()));
-            };
-            let low = if let MaybeRelocatable::Int(ref low) = maybe_rel_low {
-                low
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(low_addr.clone()));
-            };
             //Main logic
             let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
-            if int_value > upper_bound || (high.clone(), low.clone()) != int_value.div_rem(&shift) {
+            if int_value > upper_bound {
                 return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
             }
+
+            //Insert values into ids.high and ids.low
+            let (high, low) = int_value.div_rem(&shift);
+            vm.memory
+                .insert(&high_addr, &MaybeRelocatable::from(high))
+                .map_err(VirtualMachineError::MemoryError)?;
+            vm.memory
+                .insert(&low_addr, &MaybeRelocatable::from(low))
+                .map_err(VirtualMachineError::MemoryError)?;
             Ok(())
         }
-        _ => Err(VirtualMachineError::FailedToGetIds),
+        Ok(None) => Err(VirtualMachineError::MemoryGet(value_addr)),
+        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
     }
 }
