@@ -150,6 +150,21 @@ impl MaybeRelocatable {
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
+
+    /// Performs integer division and module on a MaybeRelocatable::Int by another
+    /// MaybeRelocatable::Int and returns the quotient and reminder.
+    pub fn divmod(
+        &self,
+        other: &MaybeRelocatable,
+    ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
+        match (self, other) {
+            (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
+                MaybeRelocatable::from(val / div),
+                MaybeRelocatable::from(val.mod_floor(div)),
+            )),
+            _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
 }
 
 ///Turns a MaybeRelocatable into a BigInt value
@@ -415,11 +430,34 @@ mod tests {
     }
 
     #[test]
+    fn divmod_working() {
+        let value = &MaybeRelocatable::from(bigint!(10));
+        let div = &MaybeRelocatable::from(bigint!(3));
+        let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
+        assert_eq!(q, MaybeRelocatable::from(bigint!(3)));
+        assert_eq!(r, MaybeRelocatable::from(bigint!(1)));
+    }
+
+    #[test]
+    fn divmod_bad_type() {
+        let value = &MaybeRelocatable::from(bigint!(10));
+        let div = &MaybeRelocatable::from((2, 7));
+        assert_eq!(value.divmod(div), Err(VirtualMachineError::NotImplemented));
+    }
+
+    #[test]
     fn mod_floor_int() {
         let num = MaybeRelocatable::Int(bigint!(7));
         let div = bigint!(5);
         let expected_rem = MaybeRelocatable::Int(bigint!(2));
         assert_eq!(num.mod_floor(&div), Ok(expected_rem));
+    }
+
+    #[test]
+    fn mod_floor_bad_type() {
+        let value = &MaybeRelocatable::from((2, 7));
+        let div = MaybeRelocatable::Int(bigint!(5));
+        assert_eq!(value.divmod(&div), Err(VirtualMachineError::NotImplemented));
     }
 
     #[test]
