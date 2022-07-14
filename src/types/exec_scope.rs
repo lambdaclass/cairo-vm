@@ -143,6 +143,9 @@ mod tests {
 
         assert!(exit_scope_result.is_ok());
 
+        // assert that variable `a` is no longer available
+        assert!(scopes.get_local_variables().unwrap().get("a").is_none());
+
         // assert that we recovered the older scope
         assert_eq!(scopes.get_local_variables().unwrap(), &HashMap::new());
     }
