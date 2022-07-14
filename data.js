@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1657825716867,
+  "lastUpdate": 1657826227800,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -619,6 +619,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 1639,
             "range": "± 105",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0431d67997edfadc0ce80f4d23739c80f723877f",
+          "message": "Merge pull request #231 from lambdaclass/assert_250_bit-hint\n\n[HINTS] Add implementation for hint on assert_250_bit (math.cairo)",
+          "timestamp": "2022-07-14T16:11:36-03:00",
+          "tree_id": "241e54eeec2ecb286953139f04c81770bc195c7e",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/0431d67997edfadc0ce80f4d23739c80f723877f"
+        },
+        "date": 1657826224656,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1791,
+            "range": "± 107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 1817,
+            "range": "± 98",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 1824,
+            "range": "± 169",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 1846,
+            "range": "± 143",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1850,
+            "range": "± 203",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 1840,
+            "range": "± 89",
             "unit": "ns/iter"
           }
         ]
