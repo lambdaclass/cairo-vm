@@ -11,8 +11,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
-use std::ops::Shl;
-use std::ops::Shr;
+use std::ops::{Shl, Shr};
 
 ///Computes the memory address indicated by the HintReference
 fn compute_addr_from_reference(
@@ -736,6 +735,73 @@ pub fn is_positive(
         }
         (Err(memory_error), _) | (_, Err(memory_error)) => {
             Err(VirtualMachineError::MemoryError(memory_error))
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+//Implements hint:
+// %{
+//     from starkware.cairo.common.math_utils import assert_integer
+//     assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128
+//     assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW
+//     assert_integer(ids.value)
+//     ids.low = ids.value & ((1 << 128) - 1)
+//     ids.high = ids.value >> 128
+// %}
+pub fn split_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for the variables used by the hint
+    let (high_ref, low_ref, value_ref) = if let (Some(high_ref), Some(low_ref), Some(value_ref)) = (
+        ids.get(&String::from("high")),
+        ids.get(&String::from("low")),
+        ids.get(&String::from("value")),
+    ) {
+        (high_ref, low_ref, value_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("high"),
+                String::from("low"),
+                String::from("value"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+
+    // Get the addresses of the variables used in the hints
+    let (high_addr, low_addr, value_addr) =
+        if let (Some(high_addr), Some(low_addr), Some(value_addr)) = (
+            get_address_from_reference(high_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(low_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        ) {
+            (high_addr, low_addr, value_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+
+    //Check that the 'value' variable is in memory
+    match vm.memory.get(&value_addr) {
+        Ok(Some(MaybeRelocatable::Int(ref value))) => {
+            //Main logic
+            //assert_integer(ids.value) (done by match)
+            // ids.low = ids.value & ((1 << 128) - 1)
+            // ids.high = ids.value >> 128
+            let low: BigInt = value.clone() & ((bigint!(1).shl(128_u8)) - bigint!(1));
+            let high: BigInt = value.shr(128_u8);
+            match (
+                vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
+                vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
+            ) {
+                (Ok(_), Ok(_)) => Ok(()),
+                (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
+            }
+        }
+        Ok(Some(MaybeRelocatable::RelocatableValue(ref _value))) => {
+            Err(VirtualMachineError::ExpectedInteger(value_addr.clone()))
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
