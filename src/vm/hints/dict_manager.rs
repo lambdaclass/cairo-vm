@@ -132,10 +132,10 @@ impl DictTracker {
     ) -> Self {
         DictTracker {
             data: Dictionary::DefaultDictionary {
-                dict: if initial_dict.is_none() {
-                    HashMap::new()
+                dict: if let Some(dict) = initial_dict {
+                    dict
                 } else {
-                    initial_dict.unwrap()
+                    HashMap::new()
                 },
                 default_value: default_value.clone(),
             },

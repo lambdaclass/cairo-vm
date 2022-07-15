@@ -14,10 +14,10 @@ const DICT_ACCESS_SIZE: usize = 3;
 fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(py_value) = variables.get(&String::from("initial_dict")) {
-            if let PyValueType::Dictionary(py_initial_dict) = py_value {
-                initial_dict = Some(py_initial_dict.clone());
-            }
+        if let Some(PyValueType::Dictionary(py_initial_dict)) =
+            variables.get(&String::from("initial_dict"))
+        {
+            initial_dict = Some(py_initial_dict.clone());
         }
     }
     initial_dict
