@@ -878,72 +878,77 @@ pub fn signed_div_rem(
         ) => {
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
-                let builtin = match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
-                    Some(b) => b,
-                    None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
-                };
-
                 if name == &String::from("range_check") {
-                    // Main logic
-                    let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
-                        div
-                    } else {
-                        return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
-                    };
+                    match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                        Some(builtin) => {
+                            // Main logic
+                            let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
+                                div
+                            } else {
+                                return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
+                            };
 
-                    if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
-                        return Err(VirtualMachineError::OutOfValidRange(
-                            div.clone(),
-                            &vm.prime / &builtin._bound,
-                        ));
+                            if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
+                                return Err(VirtualMachineError::OutOfValidRange(
+                                    div.clone(),
+                                    &vm.prime / &builtin._bound,
+                                ));
+                            }
+
+                            let bound = if let MaybeRelocatable::Int(ref bound) = maybe_rel_bound {
+                                bound
+                            } else {
+                                return Err(VirtualMachineError::ExpectedInteger(
+                                    bound_addr.clone(),
+                                ));
+                            };
+
+                            // Divide by 2
+                            if bound > &(&builtin._bound).shr(1_i32) {
+                                return Err(VirtualMachineError::OutOfValidRange(
+                                    bound.clone(),
+                                    (&builtin._bound).shr(1_i32),
+                                ));
+                            }
+
+                            let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                                value
+                            } else {
+                                return Err(VirtualMachineError::ExpectedInteger(
+                                    value_addr.clone(),
+                                ));
+                            };
+
+                            let int_value = &as_int(&value, &vm.prime);
+
+                            let (q, r) = int_value.div_mod_floor(&div);
+
+                            if &bound.neg() > &q || &q >= &bound {
+                                return Err(VirtualMachineError::OutOfValidRange(
+                                    q.clone(),
+                                    bound.clone(),
+                                ));
+                            }
+
+                            let biased_q = MaybeRelocatable::Int(q + bound);
+
+                            return match (
+                                vm.memory
+                                    .insert(&r_addr, &MaybeRelocatable::Int(r))
+                                    .map_err(VirtualMachineError::MemoryError),
+                                vm.memory
+                                    .insert(&biased_q_addr, &biased_q)
+                                    .map_err(VirtualMachineError::MemoryError),
+                            ) {
+                                (Ok(_), Ok(_)) => Ok(()),
+                                (Err(e), _) | (_, Err(e)) => Err(e),
+                            };
+                        }
+                        None => {
+                            return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                        }
                     }
-
-                    let bound = if let MaybeRelocatable::Int(ref bound) = maybe_rel_bound {
-                        bound
-                    } else {
-                        return Err(VirtualMachineError::ExpectedInteger(bound_addr.clone()));
-                    };
-
-                    // Divide by 2
-                    if bound > &(&builtin._bound).shr(1_i32) {
-                        return Err(VirtualMachineError::OutOfValidRange(
-                            bound.clone(),
-                            (&builtin._bound).shr(1_i32),
-                        ));
-                    }
-
-                    let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
-                        value
-                    } else {
-                        return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
-                    };
-
-                    let int_value = &as_int(&value, &vm.prime);
-
-                    let q = &(int_value / div);
-                    let r = MaybeRelocatable::Int(int_value.mod_floor(&div));
-
-                    if &bound.neg() > q && q >= &bound {
-                        return Err(VirtualMachineError::OutOfValidRange(
-                            q.clone(),
-                            bound.clone(),
-                        ));
-                    }
-
-                    let biased_q = MaybeRelocatable::Int(q + bound);
-
-                    return match (
-                        vm.memory
-                            .insert(&r_addr, &r)
-                            .map_err(VirtualMachineError::MemoryError),
-                        vm.memory
-                            .insert(&biased_q_addr, &biased_q)
-                            .map_err(VirtualMachineError::MemoryError),
-                    ) {
-                        (Ok(_), Ok(_)) => Ok(()),
-                        (Err(e), _) | (_, Err(e)) => Err(e),
-                    };
-                }
+                };
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
