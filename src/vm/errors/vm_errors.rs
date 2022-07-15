@@ -5,6 +5,8 @@ use std::fmt;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 
+use super::exec_scope_errors::ExecScopeError;
+
 #[derive(Debug, PartialEq)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
@@ -52,6 +54,7 @@ pub enum VirtualMachineError {
     SqrtNegative(BigInt),
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
+    MainScopeError(ExecScopeError),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -148,6 +151,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
+            },
+            VirtualMachineError::MainScopeError(error) => {
+                write!(f, "Got scope error {}", error)
             },
         }
     }

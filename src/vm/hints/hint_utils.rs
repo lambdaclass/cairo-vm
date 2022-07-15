@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
+use crate::types::exec_scope::PyValueType;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -961,5 +962,51 @@ pub fn unsigned_div_rem(
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+
+    //  Implements hint:
+    //  %{ vm_exit_scope() %}
+    pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+        match vm.exec_scopes.exit_scope() {
+            Ok(_) => Ok(()),
+            Err(e) => Err(VirtualMachineError::MainScopeError(e)),
+        }
+    }
+
+    //  Implements hint:
+    //  %{ vm_enter_scope({'n': ids.len}) %}
+    pub fn memcpy_enter_scope(
+        vm: &mut VirtualMachine,
+        ids: HashMap<String, BigInt>,
+    ) -> Result<(), VirtualMachineError> {
+        let len_ref = if let Some(len_ref) = ids.get(&String::from("len")) {
+            len_ref
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+        let len_addr = if let Some(len_addr) =
+            get_address_from_reference(len_ref, &vm.references, &vm.run_context, vm)
+        {
+            len_addr
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+
+        match vm.memory.get(&len_addr) {
+            Ok(Some(maybe_rel_len)) => {
+                let len = if let MaybeRelocatable::Int(len) = maybe_rel_len {
+                    len
+                } else {
+                    return Err(VirtualMachineError::ExpectedInteger(len_addr.clone()));
+                };
+                vm.exec_scopes.enter_scope(HashMap::from([(
+                    String::from("len"),
+                    PyValueType::BigInt(len.clone()),
+                )]));
+
+                Ok(())
+            }
+            _ => return Err(VirtualMachineError::FailedToGetIds),
+        }
     }
 }
