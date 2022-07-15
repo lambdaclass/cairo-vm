@@ -57,6 +57,7 @@ pub enum VirtualMachineError {
     NoDictTracker(usize),
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
+    NoInitialDict,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -167,7 +168,9 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Dict Error: No value found for key: {:?}", key)},
             VirtualMachineError::AssertLtFelt(a, b) => {
                 write!(f, "Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", a, b)
-
+            },
+            VirtualMachineError::NoInitialDict => {
+                write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
             },
         }
     }

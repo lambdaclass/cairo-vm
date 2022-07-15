@@ -74,6 +74,7 @@ impl DictManager {
         &mut self,
         segments: &mut MemorySegmentManager,
         memory: &mut Memory,
+        initial_dict: HashMap<BigInt, BigInt>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base = segments.add(memory, None);
         if self.trackers.contains_key(&base.segment_index) {
@@ -81,8 +82,10 @@ impl DictManager {
                 base.segment_index,
             ));
         }
-        self.trackers
-            .insert(base.segment_index, DictTracker::new_empty(&base));
+        self.trackers.insert(
+            base.segment_index,
+            DictTracker::new_with_initial(&base, initial_dict),
+        );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
 
@@ -130,6 +133,13 @@ impl DictTracker {
             current_ptr: base.clone(),
         }
     }
+
+    pub fn new_with_initial(base: &Relocatable, initial_dict: HashMap<BigInt, BigInt>) -> Self {
+        DictTracker {
+            data: Dictionary::SimpleDictionary(initial_dict),
+            current_ptr: base.clone(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -172,7 +182,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let base = dict_manager.new_dict(&mut segments, &mut memory);
+        let base = dict_manager.new_dict(&mut segments, &mut memory, HashMap::new());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -209,7 +219,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         assert_eq!(
-            dict_manager.new_dict(&mut segments, &mut memory),
+            dict_manager.new_dict(&mut segments, &mut memory, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
@@ -224,7 +234,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         assert_eq!(
-            dict_manager.new_dict(&mut segments, &mut memory),
+            dict_manager.new_dict(&mut segments, &mut memory, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }

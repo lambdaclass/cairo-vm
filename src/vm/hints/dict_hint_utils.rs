@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::{
-    types::relocatable::MaybeRelocatable,
+    types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
@@ -11,6 +11,17 @@ use super::{dict_manager::DictManager, hint_utils::get_address_from_reference};
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 const DICT_ACCESS_SIZE: usize = 3;
 
+fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
+    let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(py_value) = variables.get(&String::from("initial_dict")) {
+            if let PyValueType::Dictionary(py_initial_dict) = py_value {
+                initial_dict = Some(py_initial_dict.clone());
+            }
+        }
+    }
+    initial_dict
+}
 /*Implements hint:
 
    if '__dict_manager' not in globals():
@@ -27,12 +38,20 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     if vm.dict_manager.is_none() {
         vm.dict_manager = Some(DictManager::new());
     }
+
+    //Get initial dictionary from scope (defined by an earlier hint)
+    let initial_dict = if let Some(initial_dict) = get_initial_dict(vm) {
+        initial_dict
+    } else {
+        return Err(VirtualMachineError::NoInitialDict);
+    };
+
     //This unwrap will never fail as dict_manager is checked for None value beforehand
-    let base = vm
-        .dict_manager
-        .as_mut()
-        .unwrap()
-        .new_dict(&mut vm.segments, &mut vm.memory)?;
+    let base = vm.dict_manager.as_mut().unwrap().new_dict(
+        &mut vm.segments,
+        &mut vm.memory,
+        initial_dict,
+    )?;
     vm.memory
         .insert(&vm.run_context.ap, &base)
         .map_err(VirtualMachineError::MemoryError)
