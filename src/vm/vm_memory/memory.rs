@@ -114,7 +114,11 @@ impl Memory {
         Ok(())
     }
 
-    pub fn get_range(&self, addr: &MaybeRelocatable, size: usize) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+    pub fn get_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
