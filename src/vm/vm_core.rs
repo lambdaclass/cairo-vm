@@ -2082,7 +2082,6 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new());
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.accessed_addresses = Some(HashSet::new());
         vm.memory.data.push(Vec::new());

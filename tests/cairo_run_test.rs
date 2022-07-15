@@ -64,9 +64,10 @@ fn cairo_run_assert_le_felt_hint() {
 
 #[test]
 fn cairo_run_assert_250_bit_element_array() {
-    cairo_run::cairo_run(Path::new(
-        "cairo_programs/assert_250_bit_element_array.json",
-    ))
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/assert_250_bit_element_array.json"),
+        false,
+    )
     .expect("Couldn't run program");
 }
 
@@ -117,7 +118,7 @@ fn cairo_run_split_int_big() {
 
 #[test]
 fn cairo_run_split_felt() {
-    cairo_run::cairo_run(Path::new("cairo_programs/split_felt.json"))
+    cairo_run::cairo_run(Path::new("cairo_programs/split_felt.json"), false)
         .expect("Couldn't run program");
 }
 
@@ -129,12 +130,12 @@ fn cairo_run_is_le_felt() {
 
 #[test]
 fn cairo_run_unsigned_div_rem() {
-    cairo_run::cairo_run(Path::new("cairo_programs/unsigned_div_rem.json"))
+    cairo_run::cairo_run(Path::new("cairo_programs/unsigned_div_rem.json"), false)
         .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_assert_lt_felt() {
-    cairo_run::cairo_run(Path::new("cairo_programs/assert_lt_felt.json"))
+    cairo_run::cairo_run(Path::new("cairo_programs/assert_lt_felt.json"), false)
         .expect("Couldn't run program");
 }
