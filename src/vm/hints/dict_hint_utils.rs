@@ -8,8 +8,9 @@ use crate::{
 };
 
 use super::{dict_manager::DictManager, hint_utils::get_address_from_reference};
-
+//DictAccess struct has three memebers, so the size of DictAccess* is 3
 const DICT_ACCESS_SIZE: usize = 3;
+
 /*Implements hint:
 
    if '__dict_manager' not in globals():
