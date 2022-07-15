@@ -33,6 +33,7 @@ pub struct HintData {
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
 }
+
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,

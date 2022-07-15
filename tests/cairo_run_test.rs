@@ -132,3 +132,19 @@ fn cairo_run_assert_lt_felt() {
     cairo_run::cairo_run(Path::new("cairo_programs/assert_lt_felt.json"))
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_dict_write_bad() {
+    assert!(cairo_run::cairo_run(Path::new(
+        "cairo_programs/bad_cairo_programs/bad_dict_new.json"
+    ))
+    .is_err());
+    let err = cairo_run::cairo_run(Path::new(
+        "cairo_programs/bad_cairo_programs/bad_dict_new.json",
+    ))
+    .err();
+    assert_eq!(
+        err.unwrap().to_string(),
+        "VM failure: Dict Error: Tried to create a dict whithout an initial dict"
+    );
+}
