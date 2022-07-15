@@ -68,7 +68,7 @@ pub fn default_dict_new(
     };
     //Check that each reference id corresponds to a value in the reference manager
     let default_value_addr = if let Some(default_value_addr) =
-        get_address_from_reference(default_value_ref, &vm.references, &vm.run_context)
+        get_address_from_reference(default_value_ref, &vm.references, &vm.run_context, vm)
     {
         default_value_addr
     } else {
@@ -128,9 +128,9 @@ pub fn dict_read(
     //Check that each reference id corresponds to a value in the reference manager
     let (key_addr, value_addr, dict_ptr_addr) =
         if let (Some(key_addr), Some(value_addr), Some(dict_ptr_addr)) = (
-            get_address_from_reference(key_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context, vm),
         ) {
             (key_addr, value_addr, dict_ptr_addr)
         } else {
@@ -206,9 +206,9 @@ pub fn dict_write(
     //Check that each reference id corresponds to a value in the reference manager
     let (key_addr, value_addr, dict_ptr_addr) =
         if let (Some(key_addr), Some(value_addr), Some(dict_ptr_addr)) = (
-            get_address_from_reference(key_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context),
-            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context),
+            get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context, vm),
         ) {
             (key_addr, value_addr, dict_ptr_addr)
         } else {
@@ -389,20 +389,35 @@ mod tests {
         ids.insert(String::from("value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Check that value variable (at address (0,1)) contains the proper value
@@ -468,20 +483,35 @@ mod tests {
         ids.insert(String::from("value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -526,20 +556,35 @@ mod tests {
         ids.insert(String::from("value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -582,20 +627,35 @@ mod tests {
         ids.insert(String::from("value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
@@ -627,10 +687,15 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("default_value"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset: -1,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
         execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 3);
@@ -666,10 +731,15 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("default_value"), bigint!(0));
         //Create references
-        vm.references = vec![HintReference {
-            register: Register::FP,
-            offset: -1,
-        }];
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::ExpectedInteger(
@@ -730,20 +800,35 @@ mod tests {
         ids.insert(String::from("new_value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -830,20 +915,35 @@ mod tests {
         ids.insert(String::from("new_value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -930,20 +1030,35 @@ mod tests {
         ids.insert(String::from("new_value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1028,20 +1143,35 @@ mod tests {
         ids.insert(String::from("new_value"), bigint!(1));
         ids.insert(String::from("dict_ptr"), bigint!(2));
         //Create references
-        vm.references = vec![
-            HintReference {
-                register: Register::FP,
-                offset: -3,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -2,
-            },
-            HintReference {
-                register: Register::FP,
-                offset: -1,
-            },
-        ];
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),

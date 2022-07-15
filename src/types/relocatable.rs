@@ -1,10 +1,7 @@
-use crate::{
-    bigint,
-    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-};
+use crate::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, Signed, ToPrimitive};
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub struct Relocatable {
@@ -48,13 +45,14 @@ impl MaybeRelocatable {
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
             MaybeRelocatable::Int(ref value) => {
-                let mut num = Clone::clone(value);
-                num = (other + num).mod_floor(prime);
-                Ok(MaybeRelocatable::Int(num))
+                Ok(MaybeRelocatable::Int((value + other).mod_floor(prime)))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
-                assert!(big_offset >= bigint!(0), "Address offsets cant be negative");
+                assert!(
+                    !big_offset.is_negative(),
+                    "Address offsets cant be negative"
+                );
                 big_offset = big_offset.mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
@@ -141,6 +139,29 @@ impl MaybeRelocatable {
                 }
                 Err(VirtualMachineError::DiffIndexSub)
             }
+            _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
+
+    /// Performs mod floor for a MaybeRelocatable::Int with BigInt
+    pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
+        match self {
+            MaybeRelocatable::Int(value) => Ok(MaybeRelocatable::Int(value.mod_floor(other))),
+            _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
+
+    /// Performs integer division and module on a MaybeRelocatable::Int by another
+    /// MaybeRelocatable::Int and returns the quotient and reminder.
+    pub fn divmod(
+        &self,
+        other: &MaybeRelocatable,
+    ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
+        match (self, other) {
+            (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
+                MaybeRelocatable::from(val / div),
+                MaybeRelocatable::from(val.mod_floor(div)),
+            )),
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
@@ -406,6 +427,37 @@ mod tests {
         let error = addr_a.sub(addr_b, &bigint!(23));
         assert_eq!(error, Err(VirtualMachineError::NotImplemented));
         assert_eq!(error.unwrap_err().to_string(), "This is not implemented");
+    }
+
+    #[test]
+    fn divmod_working() {
+        let value = &MaybeRelocatable::from(bigint!(10));
+        let div = &MaybeRelocatable::from(bigint!(3));
+        let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
+        assert_eq!(q, MaybeRelocatable::from(bigint!(3)));
+        assert_eq!(r, MaybeRelocatable::from(bigint!(1)));
+    }
+
+    #[test]
+    fn divmod_bad_type() {
+        let value = &MaybeRelocatable::from(bigint!(10));
+        let div = &MaybeRelocatable::from((2, 7));
+        assert_eq!(value.divmod(div), Err(VirtualMachineError::NotImplemented));
+    }
+
+    #[test]
+    fn mod_floor_int() {
+        let num = MaybeRelocatable::Int(bigint!(7));
+        let div = bigint!(5);
+        let expected_rem = MaybeRelocatable::Int(bigint!(2));
+        assert_eq!(num.mod_floor(&div), Ok(expected_rem));
+    }
+
+    #[test]
+    fn mod_floor_bad_type() {
+        let value = &MaybeRelocatable::from((2, 7));
+        let div = MaybeRelocatable::Int(bigint!(5));
+        assert_eq!(value.divmod(&div), Err(VirtualMachineError::NotImplemented));
     }
 
     #[test]
