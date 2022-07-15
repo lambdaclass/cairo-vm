@@ -1,16 +1,17 @@
+use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
-    runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
+    hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
+    vm_core::VirtualMachine,
 };
-use crate::{bigint, vm::hints::execute_hint::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
-use std::ops::{Neg, Shr};
+use std::ops::{Neg, Shl, Shr};
 
 ///Computes the memory address indicated by the HintReference
 fn compute_addr_from_reference(
@@ -739,6 +740,73 @@ pub fn is_positive(
     }
 }
 
+//Implements hint:
+// %{
+//     from starkware.cairo.common.math_utils import assert_integer
+//     assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128
+//     assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW
+//     assert_integer(ids.value)
+//     ids.low = ids.value & ((1 << 128) - 1)
+//     ids.high = ids.value >> 128
+// %}
+pub fn split_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for the variables used by the hint
+    let (high_ref, low_ref, value_ref) = if let (Some(high_ref), Some(low_ref), Some(value_ref)) = (
+        ids.get(&String::from("high")),
+        ids.get(&String::from("low")),
+        ids.get(&String::from("value")),
+    ) {
+        (high_ref, low_ref, value_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("high"),
+                String::from("low"),
+                String::from("value"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+
+    // Get the addresses of the variables used in the hints
+    let (high_addr, low_addr, value_addr) =
+        if let (Some(high_addr), Some(low_addr), Some(value_addr)) = (
+            get_address_from_reference(high_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(low_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+        ) {
+            (high_addr, low_addr, value_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+
+    //Check that the 'value' variable is in memory
+    match vm.memory.get(&value_addr) {
+        Ok(Some(MaybeRelocatable::Int(ref value))) => {
+            //Main logic
+            //assert_integer(ids.value) (done by match)
+            // ids.low = ids.value & ((1 << 128) - 1)
+            // ids.high = ids.value >> 128
+            let low: BigInt = value.clone() & ((bigint!(1).shl(128_u8)) - bigint!(1));
+            let high: BigInt = value.shr(128_u8);
+            match (
+                vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
+                vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
+            ) {
+                (Ok(_), Ok(_)) => Ok(()),
+                (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
+            }
+        }
+        Ok(Some(MaybeRelocatable::RelocatableValue(ref _value))) => {
+            Err(VirtualMachineError::ExpectedInteger(value_addr.clone()))
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
 //Implements hint: from starkware.python.math_utils import isqrt
 //        value = ids.value % PRIME
 //        assert value < 2 ** 250, f"value={value} is outside of the range [0, 2**250)."
@@ -1048,6 +1116,136 @@ pub fn unsigned_div_rem(
             }
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+//Implements hint: from starkware.cairo.common.math_utils import as_int
+//        # Correctness check.
+//        value = as_int(ids.value, PRIME) % PRIME
+//        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
+//        # Calculation for the assertion.
+//        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
+pub fn assert_250_bit(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Declare constant values
+    let upper_bound = bigint!(1).shl(250_i32);
+    let shift = bigint!(1).shl(128_i32);
+    //Check that ids contains the reference id for each variable used by the hint
+    let (value_ref, high_ref, low_ref) = if let (Some(value_ref), Some(high_ref), Some(low_ref)) = (
+        ids.get(&String::from("value")),
+        ids.get(&String::from("high")),
+        ids.get(&String::from("low")),
+    ) {
+        (value_ref, high_ref, low_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("value"),
+                String::from("high"),
+                String::from("low"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (value_addr, high_addr, low_addr) =
+        if let (Some(value_addr), Some(high_addr), Some(low_addr)) = (
+            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(high_ref, &vm.references, &vm.run_context, vm),
+            get_address_from_reference(low_ref, &vm.references, &vm.run_context, vm),
+        ) {
+            (value_addr, high_addr, low_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    //Check that the ids.value is in memory
+    match vm.memory.get(&value_addr) {
+        Ok(Some(maybe_rel_value)) => {
+            //Check that ids.value is an Int value
+            let value = if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                value
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
+            };
+            //Main logic
+            let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
+            if int_value > upper_bound {
+                return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
+            }
+
+            //Insert values into ids.high and ids.low
+            let (high, low) = int_value.div_rem(&shift);
+            vm.memory
+                .insert(&high_addr, &MaybeRelocatable::from(high))
+                .map_err(VirtualMachineError::MemoryError)?;
+            vm.memory
+                .insert(&low_addr, &MaybeRelocatable::from(low))
+                .map_err(VirtualMachineError::MemoryError)?;
+            Ok(())
+        }
+        Ok(None) => Err(VirtualMachineError::MemoryGet(value_addr)),
+        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+    }
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.math_utils import assert_integer
+    assert_integer(ids.a)
+    assert_integer(ids.b)
+    assert (ids.a % PRIME) < (ids.b % PRIME), \
+        f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+%}
+*/
+pub fn assert_lt_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+    ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(MaybeRelocatable::Int(ref a))), Ok(Some(MaybeRelocatable::Int(ref b)))) => {
+            // main logic
+            // assert_integer(ids.a)
+            // assert_integer(ids.b)
+            // assert (ids.a % PRIME) < (ids.b % PRIME), \
+            //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+            if a.mod_floor(&vm.prime) < b.mod_floor(&vm.prime) {
+                Ok(())
+            } else {
+                Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()))
+            }
+        }
+        (Ok(Some(MaybeRelocatable::RelocatableValue(_))), _) => {
+            Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
+        }
+        (_, Ok(Some(MaybeRelocatable::RelocatableValue(_)))) => {
+            Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
+        }
+
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
