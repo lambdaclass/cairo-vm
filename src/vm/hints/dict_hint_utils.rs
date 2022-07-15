@@ -320,6 +320,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
+            false,
         );
         //Store initial dict in scope
         vm.exec_scopes
@@ -350,6 +351,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
+            false,
         );
         //ids and references are not needed for this test
         assert_eq!(
@@ -365,6 +367,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
+            false,
         );
         vm.segments.add(&mut vm.memory, None);
         vm.exec_scopes
@@ -395,6 +398,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -489,6 +493,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -569,6 +574,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -643,6 +649,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -714,6 +721,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -769,6 +777,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
+            false,
         );
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
@@ -800,6 +809,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -913,6 +923,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1028,6 +1039,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1143,6 +1155,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
