@@ -294,6 +294,103 @@ pub fn dict_write(
     Ok(())
 }
 
+/* Implements hint:
+    # Verify dict pointer and prev value.
+        dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)
+        current_value = dict_tracker.data[ids.key]
+        assert current_value == ids.prev_value, \
+            f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'
+
+        # Update value.
+        dict_tracker.data[ids.key] = ids.new_value
+        dict_tracker.current_ptr += ids.DictAccess.SIZE
+*/
+pub fn dict_update(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    if vm.dict_manager.is_none() {
+        return Err(VirtualMachineError::NoDictManager);
+    }
+    //Check that ids contains the reference id for each variable used by the hint
+    let (key_ref, prev_value_ref, new_value_ref, dict_ptr_ref) =
+        if let (Some(key_ref), Some(prev_value_ref), Some(new_value_ref), Some(dict_ptr_ref)) = (
+            ids.get(&String::from("key")),
+            ids.get(&String::from("prev_value")),
+            ids.get(&String::from("new_value")),
+            ids.get(&String::from("dict_ptr")),
+        ) {
+            (key_ref, prev_value_ref, new_value_ref, dict_ptr_ref)
+        } else {
+            return Err(VirtualMachineError::IncorrectIds(
+                vec![
+                    String::from("key"),
+                    String::from("prev_value"),
+                    String::from("new_value"),
+                    String::from("dict_ptr"),
+                ],
+                ids.into_keys().collect(),
+            ));
+        };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (key_addr, prev_value_addr, new_value_addr, dict_ptr_addr) = if let (
+        Some(key_addr),
+        Some(prev_value_addr),
+        Some(new_value_addr),
+        Some(dict_ptr_addr),
+    ) = (
+        get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(prev_value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(new_value_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context, vm),
+    ) {
+        (key_addr, prev_value_addr, new_value_addr, dict_ptr_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    //Check that these addresses point to the data types needed
+    let (key, prev_value, new_value, dict_ptr) = if let (
+        Ok(Some(MaybeRelocatable::Int(ref key))),
+        Ok(Some(MaybeRelocatable::Int(prev_value))),
+        Ok(Some(MaybeRelocatable::Int(new_value))),
+        Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
+    ) = (
+        vm.memory.get(&key_addr),
+        vm.memory.get(&prev_value_addr),
+        vm.memory.get(&new_value_addr),
+        vm.memory.get(&dict_ptr_addr),
+    ) {
+        (key, prev_value, new_value, dict_ptr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    //Get tracker for dictionary
+    let tracker = if let Some(tracker) = vm
+        .dict_manager
+        .as_mut()
+        .unwrap()
+        .trackers
+        .get_mut(&dict_ptr.segment_index)
+    {
+        tracker
+    } else {
+        return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
+    };
+    //Check that prev_value is equal to the current value at the given key
+    let current_value = tracker.data.get(key);
+    if current_value != Some(prev_value) {
+        return Err(VirtualMachineError::WrongPrevValue(
+            prev_value.clone(),
+            current_value.cloned(),
+        ));
+    }
+    //Update Value
+    tracker.data.insert(key, new_value);
+    tracker.current_ptr.offset += DICT_ACCESS_SIZE;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
