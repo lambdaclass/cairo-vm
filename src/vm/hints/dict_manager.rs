@@ -241,6 +241,32 @@ mod tests {
     }
 
     #[test]
+    fn dict_manager_new_default_dict_with_initial_dict() {
+        let mut dict_manager = DictManager::new();
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let mut initial_dict = HashMap::<BigInt, BigInt>::new();
+        initial_dict.insert(bigint!(5), bigint!(5));
+        let base = dict_manager.new_default_dict(
+            &mut segments,
+            &mut memory,
+            &bigint!(7),
+            Some(initial_dict.clone()),
+        );
+        assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
+        assert!(dict_manager.trackers.contains_key(&0));
+        assert_eq!(
+            dict_manager.trackers.get(&0),
+            Some(&DictTracker::new_default_dict(
+                &relocatable!(0, 0),
+                &bigint!(7),
+                Some(initial_dict)
+            ))
+        );
+        assert_eq!(segments.num_segments, 1);
+    }
+
+    #[test]
     fn dict_manager_new_dict_empty_same_segment() {
         let mut dict_manager = DictManager::new();
         dict_manager

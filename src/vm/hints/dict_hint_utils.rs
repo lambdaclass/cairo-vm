@@ -33,7 +33,7 @@ fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> 
        del initial_dict
 
 For now, the functionality to create a dictionary from a previously defined initial_dict (using a hint)
-is not available, an empty dict is created always
+is not available
 */
 pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     if vm.dict_manager.is_none() {
