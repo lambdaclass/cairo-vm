@@ -118,7 +118,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(memory.get(addr + i));
+            values.push(self.get(&addr.add_usize_mod(i, None))?);
         }
 
         Ok(values)
