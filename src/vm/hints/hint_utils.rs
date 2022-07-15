@@ -919,15 +919,12 @@ pub fn signed_div_rem(
                                 ));
                             };
 
-                            let int_value = &as_int(&value, &vm.prime);
+                            let int_value = &as_int(value, &vm.prime);
 
-                            let (q, r) = int_value.div_mod_floor(&div);
+                            let (q, r) = int_value.div_mod_floor(div);
 
-                            if &bound.neg() > &q || &q >= &bound {
-                                return Err(VirtualMachineError::OutOfValidRange(
-                                    q.clone(),
-                                    bound.clone(),
-                                ));
+                            if bound.neg() > q || &q >= bound {
+                                return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
                             }
 
                             let biased_q = MaybeRelocatable::Int(q + bound);
