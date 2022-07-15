@@ -22,6 +22,7 @@ fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> 
     }
     initial_dict
 }
+
 /*Implements hint:
 
    if '__dict_manager' not in globals():
@@ -309,13 +310,16 @@ mod tests {
 
     use super::*;
     #[test]
-    fn run_dict_new() {
+    fn run_dict_new_with_initial_dict_empty() {
         let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
         );
+        //Store initial dict in scope
+        vm.exec_scopes
+            .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         //ids and references are not needed for this test
         execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
         //first new segment is added for the dictionary
@@ -336,6 +340,21 @@ mod tests {
     }
 
     #[test]
+    fn run_dict_new_with_no_initial_dict() {
+        let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            //ap value is (0,0)
+            Vec::new(),
+        );
+        //ids and references are not needed for this test
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new()),
+            Err(VirtualMachineError::NoInitialDict)
+        );
+    }
+
+    #[test]
     fn run_dict_new_ap_is_taken() {
         let hint_code = "if '__dict_manager' not in globals():\nfrom starkware.cairo.common.dict import DictManager\n__dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
         let mut vm = VirtualMachine::new(
@@ -344,6 +363,8 @@ mod tests {
             Vec::new(),
         );
         vm.segments.add(&mut vm.memory, None);
+        vm.exec_scopes
+            .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
