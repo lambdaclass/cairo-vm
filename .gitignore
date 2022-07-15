@@ -1,3 +1,9 @@
 **/target
 **/.DS_Store
-/flamegraph.svg
+**/*.svg
+**/*.json
+!cairo_programs/manually_compiled/*.json
+**/*.trace
+**/*.memory
+**/*.swp
+bench/results

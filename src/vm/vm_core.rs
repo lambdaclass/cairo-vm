@@ -13,7 +13,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::hints::execute_hint::HintReference;
 
@@ -24,6 +24,8 @@ pub struct Operands {
     op0: MaybeRelocatable,
     op1: MaybeRelocatable,
 }
+#[derive(PartialEq, Debug)]
+struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
 
 #[derive(Clone, Debug)]
 
@@ -52,7 +54,7 @@ pub struct VirtualMachine {
     pub memory: Memory,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     //Some(accessed_addresses) == proof mode enabled
-    accessed_addresses: Option<HashSet<MaybeRelocatable>>,
+    accessed_addresses: Option<Vec<MaybeRelocatable>>,
     //None if trace is not enabled, Some otherwise
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
@@ -433,8 +435,15 @@ impl VirtualMachine {
         }
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
-            accessed_addresses.extend(operands_mem_addresses.iter().map(Clone::clone));
-            accessed_addresses.insert(self.run_context.pc.clone());
+            let op_addrs =
+                operands_mem_addresses.ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
+            let addresses = &[
+                op_addrs.0,
+                op_addrs.1,
+                op_addrs.2,
+                self.run_context.pc.clone(),
+            ];
+            accessed_addresses.extend_from_slice(addresses);
         }
 
         self.update_registers(instruction, operands)?;
@@ -469,12 +478,13 @@ impl VirtualMachine {
         self.run_instruction(instruction)?;
         Ok(())
     }
+
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
     /// value.
     fn compute_operands(
         &mut self,
         instruction: &Instruction,
-    ) -> Result<(Operands, Vec<MaybeRelocatable>), VirtualMachineError> {
+    ) -> Result<(Operands, Option<OperandsAddresses>), VirtualMachineError> {
         let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
 
         let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
@@ -587,9 +597,9 @@ impl VirtualMachine {
         match (dst, op0, op1) {
             (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => {
                 let accessed_addresses = if self.accessed_addresses.is_some() {
-                    vec![dst_addr, op0_addr, op1_addr]
+                    Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
                 } else {
-                    vec![]
+                    None
                 };
                 Ok((
                     Operands {
@@ -659,6 +669,7 @@ mod tests {
     use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
+    use std::collections::HashSet;
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
@@ -2083,7 +2094,7 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((0, 0));
         let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
@@ -2102,8 +2113,11 @@ mod tests {
             op1: op1_addr_value.clone(),
         };
 
-        let expected_addresses: Vec<MaybeRelocatable> =
-            vec![dst_addr.clone(), op0_addr.clone(), op1_addr.clone()];
+        let expected_addresses = Some(OperandsAddresses(
+            dst_addr.clone(),
+            op0_addr.clone(),
+            op1_addr.clone(),
+        ));
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
@@ -2126,7 +2140,7 @@ mod tests {
             opcode: Opcode::NOp,
         };
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((0, 0));
         let dst_addr_value = MaybeRelocatable::from(bigint!(6));
@@ -2145,8 +2159,11 @@ mod tests {
             op1: op1_addr_value.clone(),
         };
 
-        let expected_addresses: Vec<MaybeRelocatable> =
-            vec![dst_addr.clone(), op0_addr.clone(), op1_addr.clone()];
+        let expected_addresses = Some(OperandsAddresses(
+            dst_addr.clone(),
+            op0_addr.clone(),
+            op1_addr.clone(),
+        ));
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
@@ -2181,7 +2198,7 @@ mod tests {
         ];
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
@@ -2191,7 +2208,11 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint64!(0x4)),
         };
 
-        let expected_addresses: Vec<MaybeRelocatable> = vec![MaybeRelocatable::from((0, 1)); 3];
+        let expected_addresses = Some(OperandsAddresses(
+            MaybeRelocatable::from((0, 1)),
+            MaybeRelocatable::from((0, 1)),
+            MaybeRelocatable::from((0, 1)),
+        ));
 
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
 
@@ -2395,7 +2416,7 @@ mod tests {
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
             references: HashMap::<usize, HintReference>::new(),
             memory: Memory::new(),
-            accessed_addresses: Some(HashSet::<MaybeRelocatable>::new()),
+            accessed_addresses: Some(Vec::<MaybeRelocatable>::new()),
             trace: Some(Vec::<TraceEntry>::new()),
             current_step: 1,
             skip_instruction_execution: false,
@@ -2437,7 +2458,7 @@ mod tests {
             Vec::new(),
             true,
         );
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         for _ in 0..4 {
             vm.memory.data.push(Vec::new());
         }
@@ -2518,7 +2539,7 @@ mod tests {
             Vec::new(),
             true,
         );
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         for _ in 0..4 {
             vm.memory.data.push(Vec::new());
         }
@@ -2650,7 +2671,11 @@ mod tests {
         //Check accessed_addresses
         //Order will differ from python vm execution, (due to python version using set's update() method)
         //We will instead check that all elements are contained and not duplicated
-        let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
+        let accessed_addresses = vm
+            .accessed_addresses
+            .unwrap()
+            .into_iter()
+            .collect::<HashSet<MaybeRelocatable>>();
         assert_eq!(accessed_addresses.len(), 14);
         //Check each element individually
         assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 1))));
@@ -2870,7 +2895,7 @@ mod tests {
         let mut builtin = HashBuiltinRunner::new(true, 8);
         builtin.base = Some(relocatable!(3, 0));
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.run_context.ap = MaybeRelocatable::from((1, 13));
@@ -2993,11 +3018,11 @@ mod tests {
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             )),
         };
-        let expected_operands_mem_addresses = vec![
+        let expected_operands_mem_addresses = Some(OperandsAddresses(
             MaybeRelocatable::from((1, 13)),
             MaybeRelocatable::from((1, 7)),
             MaybeRelocatable::from((3, 2)),
-        ];
+        ));
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
             vm.compute_operands(&instruction)
@@ -3067,7 +3092,7 @@ mod tests {
         let mut builtin = BitwiseBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(2, 0));
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
@@ -3144,11 +3169,11 @@ mod tests {
             op0: MaybeRelocatable::from((2, 0)),
             op1: MaybeRelocatable::from(bigint!(8)),
         };
-        let expected_operands_mem_addresses = vec![
+        let expected_operands_mem_addresses = Some(OperandsAddresses(
             MaybeRelocatable::from((1, 9)),
             MaybeRelocatable::from((1, 3)),
             MaybeRelocatable::from((2, 2)),
-        ];
+        ));
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
             vm.compute_operands(&instruction)
