@@ -83,6 +83,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
             Vec::new(),
+            false,
         );
         //ids and references are not needed for this test
         execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
@@ -101,6 +102,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Add 3 segments to the memory
         for _ in 0..3 {
@@ -124,6 +126,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Add 3 segments to the memory
         for _ in 0..3 {
@@ -156,6 +159,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         assert_eq!(
             execute_hint(&mut vm, hint_code, HashMap::new()),
@@ -175,6 +179,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -221,6 +226,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -269,6 +275,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -314,6 +321,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         assert_eq!(
             execute_hint(&mut vm, &hint_code, HashMap::new()),
@@ -328,6 +336,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -372,6 +381,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -401,6 +411,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -441,6 +452,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -487,6 +499,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -564,6 +577,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -621,6 +635,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -684,6 +699,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -748,6 +764,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -813,6 +830,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -855,6 +873,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -899,6 +918,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -946,6 +966,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -990,6 +1011,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1033,6 +1055,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![],
+            false,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1077,6 +1100,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1113,6 +1137,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1193,6 +1218,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1273,6 +1299,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1355,6 +1382,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1438,6 +1466,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1484,6 +1513,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1525,6 +1555,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1587,6 +1618,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1643,6 +1675,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1711,6 +1744,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1773,6 +1807,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1829,6 +1864,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1891,6 +1927,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1953,6 +1990,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -1990,6 +2028,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2030,6 +2069,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2073,6 +2113,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2113,6 +2154,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2156,6 +2198,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         vm.references = HashMap::from([(
             0,
@@ -2196,6 +2239,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2236,6 +2280,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2273,6 +2318,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -2368,6 +2414,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -2467,6 +2514,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2526,6 +2574,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2585,6 +2634,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2647,6 +2697,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2712,6 +2763,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2766,6 +2818,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2820,6 +2873,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2887,6 +2941,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -2973,6 +3028,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3054,6 +3110,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3135,6 +3192,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3228,6 +3286,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3309,6 +3368,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3421,6 +3481,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3533,6 +3594,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3640,6 +3702,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3747,6 +3810,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3866,6 +3930,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3970,6 +4035,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -4040,6 +4106,7 @@ mod tests {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
+            false,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -4051,7 +4118,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(1).shl(251)),
+                &MaybeRelocatable::from(bigint!(1).shl(251i32)),
             )
             .unwrap();
         //Create ids
@@ -4093,7 +4160,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
             Err(VirtualMachineError::ValueOutside250BitRange(
-                bigint!(1).shl(251)
+                bigint!(1).shl(251i32)
             ))
         );
     }
@@ -4109,6 +4176,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4196,6 +4264,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4278,6 +4347,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4357,6 +4427,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4450,6 +4521,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4543,6 +4615,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4623,6 +4696,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -4689,6 +4763,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -4758,6 +4833,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -4829,6 +4905,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -4899,6 +4976,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -4970,6 +5048,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5041,6 +5120,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
         //Initialize memory segements
         for _ in 0..3 {

@@ -9,7 +9,7 @@ use cleopatra_cairo::{
 fn pedersen_integration_test() {
     let program = Program::new(Path::new("cairo_programs/pedersen_test.json"))
         .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program);
+    let mut cairo_runner = CairoRunner::new(&program, true);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
     assert!(cairo_runner.initialize_vm() == Ok(()), "Execution failed");
@@ -88,5 +88,8 @@ fn pedersen_integration_test() {
             fp: 25,
         },
     ];
-    assert_eq!(cairo_runner.relocated_trace, python_vm_relocated_trace);
+    assert_eq!(
+        cairo_runner.relocated_trace,
+        Some(python_vm_relocated_trace)
+    );
 }
