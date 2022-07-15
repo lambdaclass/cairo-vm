@@ -9,7 +9,7 @@ use cleopatra_cairo::{
 fn bitwise_integration_test() {
     let program = Program::new(Path::new("cairo_programs/bitwise_builtin_test.json"))
         .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program);
+    let mut cairo_runner = CairoRunner::new(&program, true);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
 
@@ -250,6 +250,6 @@ fn bitwise_integration_test() {
         },
     ];
     for (i, entry) in python_vm_relocated_trace.iter().enumerate() {
-        assert_eq!(&cairo_runner.relocated_trace[i], entry);
+        assert_eq!(&cairo_runner.relocated_trace.as_ref().unwrap()[i], entry);
     }
 }
