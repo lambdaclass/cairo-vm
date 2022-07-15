@@ -244,8 +244,12 @@ pub fn dict_write(
         return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
     };
 
+    //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
+    //dict_ptr.prev_value will be equal to dict_ptr + 1
+    let dict_ptr_prev_value =
+        MaybeRelocatable::RelocatableValue(dict_ptr.clone()).add_usize_mod(1, None);
+    //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-
     //Get previous value
     let prev_value = if let Some(value) = tracker.data.get(key) {
         value
@@ -253,11 +257,10 @@ pub fn dict_write(
         return Err(VirtualMachineError::NoValueForKey(key.clone()));
     };
     //Insert previous value into dict_ptr.prev_value
-    //Addres for dict_ptr.prev_value should be dict_ptr* + 1
-    //Use tracker.current_ptr as dict_ptr will point to the previous entry (which we wont overwrite)
+    //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm.memory
         .insert(
-            &MaybeRelocatable::RelocatableValue(tracker.current_ptr.clone()).add_usize_mod(1, None),
+            &dict_ptr_prev_value,
             &MaybeRelocatable::from(prev_value.clone()),
         )
         .map_err(VirtualMachineError::MemoryError)?;
