@@ -77,6 +77,25 @@ fn get_address_from_reference(
     None
 }
 
+fn get_address_from_var_name(
+    var_name: &str,
+    ids: HashMap<String, BigInt>,
+    vm: &VirtualMachine,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    let var_ref = if let Some(var_ref) = ids.get(&String::from(var_name)) {
+        var_ref
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    if let Some(var_addr) = get_address_from_reference(var_ref, &vm.references, &vm.run_context, vm)
+    {
+        return Ok(var_addr);
+    }
+
+    Err(VirtualMachineError::FailedToGetIds)
+}
+
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let new_segment_base =
@@ -963,50 +982,99 @@ pub fn unsigned_div_rem(
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
+}
 
-    //  Implements hint:
-    //  %{ vm_exit_scope() %}
-    pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-        match vm.exec_scopes.exit_scope() {
-            Ok(_) => Ok(()),
-            Err(e) => Err(VirtualMachineError::MainScopeError(e)),
-        }
+//  Implements hint:
+//  %{ vm_exit_scope() %}
+pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    match vm.exec_scopes.exit_scope() {
+        Ok(_) => Ok(()),
+        Err(e) => Err(VirtualMachineError::MainScopeError(e)),
     }
+}
 
-    //  Implements hint:
-    //  %{ vm_enter_scope({'n': ids.len}) %}
-    pub fn memcpy_enter_scope(
-        vm: &mut VirtualMachine,
-        ids: HashMap<String, BigInt>,
-    ) -> Result<(), VirtualMachineError> {
-        let len_ref = if let Some(len_ref) = ids.get(&String::from("len")) {
-            len_ref
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
-        let len_addr = if let Some(len_addr) =
-            get_address_from_reference(len_ref, &vm.references, &vm.run_context, vm)
-        {
-            len_addr
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
+//  Implements hint:
+//  %{ vm_enter_scope({'n': ids.len}) %}
+pub fn memcpy_enter_scope(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    let len_addr = get_address_from_var_name("len", ids, vm)?;
 
-        match vm.memory.get(&len_addr) {
-            Ok(Some(maybe_rel_len)) => {
-                let len = if let MaybeRelocatable::Int(len) = maybe_rel_len {
-                    len
-                } else {
-                    return Err(VirtualMachineError::ExpectedInteger(len_addr.clone()));
-                };
-                vm.exec_scopes.enter_scope(HashMap::from([(
-                    String::from("len"),
-                    PyValueType::BigInt(len.clone()),
-                )]));
+    match vm.memory.get(&len_addr) {
+        Ok(Some(maybe_rel_len)) => {
+            let len = if let MaybeRelocatable::Int(len) = maybe_rel_len {
+                len
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(len_addr.clone()));
+            };
+            vm.exec_scopes.enter_scope(HashMap::from([(
+                String::from("n"),
+                PyValueType::BigInt(len.clone()),
+            )]));
 
-                Ok(())
-            }
-            _ => return Err(VirtualMachineError::FailedToGetIds),
+            Ok(())
         }
+        _ => return Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+// Implements hint:
+// %{
+//     n -= 1
+//     ids.continue_copying = 1 if n > 0 else 0
+// %}
+pub fn memcpy_continue_copying(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    let continue_copying_addr = get_address_from_var_name("continue_copying", ids, vm)?;
+
+    let mut n = match vm.exec_scopes.get_local_variables() {
+        Some(variables) => match variables.get("n") {
+            Some(PyValueType::BigInt(n)) => n.clone(),
+            None => {
+                return Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                    "n",
+                )))
+            }
+        },
+        None => return Err(VirtualMachineError::ScopeError),
+    };
+
+    vm.exec_scopes
+        .assign_or_update_variable("n", PyValueType::BigInt(n - 1_i32));
+
+    n = match vm.exec_scopes.get_local_variables() {
+        Some(variables) => match variables.get("n") {
+            Some(PyValueType::BigInt(n)) => n.clone(),
+            None => {
+                return Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                    "n",
+                )))
+            }
+        },
+        None => return Err(VirtualMachineError::ScopeError),
+    };
+
+    if n > bigint!(0) {
+        println!("Entre 1");
+        println!("CONTINUE COPYING ADDR: {:?}", continue_copying_addr);
+        let mem_val = vm.memory.get(&continue_copying_addr).unwrap();
+        println!("MEM VALUE: {:?}", mem_val);
+        vm.memory
+            .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
+            .map_err(|e| VirtualMachineError::MemoryError(e))
+    } else {
+        println!("Entre 2");
+        println!("CONTINUE COPYING ADDR: {:?}", continue_copying_addr);
+        let mem_val = vm.memory.get(&continue_copying_addr).unwrap();
+        println!("MEM VALUE: {:?}", mem_val);
+
+        println!("MEMORIA: {:?}", &vm.memory.data[1]);
+
+        vm.memory
+            .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(0)))
+            .map_err(|e| VirtualMachineError::MemoryError(e))
     }
 }

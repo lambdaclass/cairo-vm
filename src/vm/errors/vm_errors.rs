@@ -55,6 +55,8 @@ pub enum VirtualMachineError {
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
     MainScopeError(ExecScopeError),
+    ScopeError,
+    VariableNotInScopeError(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -155,6 +157,10 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::MainScopeError(error) => {
                 write!(f, "Got scope error {}", error)
             },
+            VirtualMachineError::VariableNotInScopeError(var_name) => {
+                write!(f, "Variable {} not in local scope", var_name)
+            },
+            VirtualMachineError::ScopeError => write!(f, "Failed to get scope variables"),
         }
     }
 }
