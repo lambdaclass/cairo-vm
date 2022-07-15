@@ -15,5 +15,11 @@ func main():
     assert val3 = 34
     let (local val4 : felt) = dict_read{dict_ptr=my_dict}(key=11)
     assert val4 = 17
+    dict_write{dict_ptr=my_dict}(key=11, new_value=35)
+    let (local val5 : felt) = dict_read{dict_ptr=my_dict}(key=11)
+    assert val5 = 35
+    dict_write{dict_ptr=my_dict}(key=12, new_value=35)
+    let (local val6 : felt) = dict_read{dict_ptr=my_dict}(key=11)
+    assert val6 = 35
     return()
 end
