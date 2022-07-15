@@ -104,11 +104,15 @@ pub fn default_dict_new(
     } else {
         return Err(VirtualMachineError::ExpectedInteger(default_value_addr));
     };
+
+    //Get initial dictionary from scope (defined by an earlier hint) if available
+    let initial_dict = get_initial_dict(vm);
     //This unwrap will never fail as dict_manager is checked for None value beforehand
     let base = vm.dict_manager.as_mut().unwrap().new_default_dict(
         &mut vm.segments,
         &mut vm.memory,
         &default_value,
+        initial_dict,
     )?;
     vm.memory
         .insert(&vm.run_context.ap, &base)
@@ -752,7 +756,8 @@ mod tests {
             vm.dict_manager.unwrap().trackers.get(&2),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(2, 0),
-                &bigint!(17)
+                &bigint!(17),
+                None
             ))
         );
     }
@@ -803,7 +808,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
         //current_ptr = dict_ptr = (1, 0)
-        let tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2));
+        let tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2), None);
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -916,7 +921,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
         //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2));
+        let mut tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2), None);
         //Add key-value pair (5, 10)
         tracker.data.insert(&bigint!(5), &bigint!(10));
         //Create manager

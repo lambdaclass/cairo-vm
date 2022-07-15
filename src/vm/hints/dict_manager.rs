@@ -95,6 +95,7 @@ impl DictManager {
         segments: &mut MemorySegmentManager,
         memory: &mut Memory,
         default_value: &BigInt,
+        initial_dict: Option<HashMap<BigInt, BigInt>>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base = segments.add(memory, None);
         if self.trackers.contains_key(&base.segment_index) {
@@ -104,7 +105,7 @@ impl DictManager {
         }
         self.trackers.insert(
             base.segment_index,
-            DictTracker::new_default_dict(&base, default_value),
+            DictTracker::new_default_dict(&base, default_value, initial_dict),
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
@@ -124,10 +125,18 @@ impl DictTracker {
         }
     }
 
-    pub fn new_default_dict(base: &Relocatable, default_value: &BigInt) -> Self {
+    pub fn new_default_dict(
+        base: &Relocatable,
+        default_value: &BigInt,
+        initial_dict: Option<HashMap<BigInt, BigInt>>,
+    ) -> Self {
         DictTracker {
             data: Dictionary::DefaultDictionary {
-                dict: HashMap::new(),
+                dict: if initial_dict.is_none() {
+                    HashMap::new()
+                } else {
+                    initial_dict.unwrap()
+                },
                 default_value: default_value.clone(),
             },
             current_ptr: base.clone(),
@@ -166,7 +175,7 @@ mod tests {
 
     #[test]
     fn create_dict_tracker_default() {
-        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(5));
+        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(5), None);
         assert_eq!(
             dict_tracker.data,
             Dictionary::DefaultDictionary {
@@ -197,14 +206,15 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let base = dict_manager.new_default_dict(&mut segments, &mut memory, &bigint!(5));
+        let base = dict_manager.new_default_dict(&mut segments, &mut memory, &bigint!(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(5)
+                &bigint!(5),
+                None
             ))
         );
         assert_eq!(segments.num_segments, 1);
@@ -249,7 +259,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
             0,
-            DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6)),
+            DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6), None),
         );
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
