@@ -453,7 +453,7 @@ impl VirtualMachine {
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
-        match instruction_ref.clone().to_i64() {
+        match instruction_ref.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
                     let decoded_instruction =
