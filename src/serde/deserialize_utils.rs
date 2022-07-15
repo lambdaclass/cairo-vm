@@ -62,7 +62,14 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
         1 => parse_dereference_no_offsets(&splitted),
         2 => parse_dereference_with_one_offset(&splitted),
         3 => parse_dereference_with_two_offsets(&splitted),
-        _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
+        _ => Ok(ValueAddress {
+            register: Some(Register::FP),
+            offset1: 0,
+            offset2: 0,
+            immediate: None,
+            dereference: true,
+            inner_dereference: false,
+        }),
     }
 }
 // parse string values of format `[cast(reg, *felt)]`
@@ -138,7 +145,14 @@ pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError>
         1 => parse_reference_no_offsets(&splitted),
         2 => parse_reference_with_one_offset(&splitted),
         3 => parse_reference_with_two_offsets(&splitted),
-        _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
+        _ => Ok(ValueAddress {
+            register: Some(Register::FP),
+            offset1: 0,
+            offset2: 0,
+            immediate: None,
+            dereference: true,
+            inner_dereference: false,
+        }),
     }
 }
 
