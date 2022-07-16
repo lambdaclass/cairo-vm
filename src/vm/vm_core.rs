@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -427,11 +428,17 @@ impl VirtualMachine {
         self.opcode_assertions(&instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
-            trace.push(TraceEntry {
-                pc: self.run_context.pc.clone(),
-                ap: self.run_context.ap.clone(),
-                fp: self.run_context.fp.clone(),
-            });
+            if let (RelocatableValue(ref pc), RelocatableValue(ref ap), RelocatableValue(ref fp)) = (
+                &self.run_context.pc,
+                &self.run_context.ap,
+                &self.run_context.fp,
+            ) {
+                trace.push(TraceEntry {
+                    pc: pc.clone(),
+                    ap: ap.clone(),
+                    fp: fp.clone(),
+                });
+            }
         }
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
@@ -2488,9 +2495,18 @@ mod tests {
         assert_eq!(
             trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 0)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 2))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 0
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                }
             }
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
@@ -2631,41 +2647,86 @@ mod tests {
         assert_eq!(
             trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 3)),
-                ap: MaybeRelocatable::from((1, 2)),
-                fp: MaybeRelocatable::from((1, 2)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 3
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
             }
         );
         assert_eq!(
             trace[1],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 5)),
-                ap: MaybeRelocatable::from((1, 3)),
-                fp: MaybeRelocatable::from((1, 2)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 5
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 3
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
             }
         );
         assert_eq!(
             trace[2],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 0)),
-                ap: MaybeRelocatable::from((1, 5)),
-                fp: MaybeRelocatable::from((1, 5)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 0
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                },
             }
         );
         assert_eq!(
             trace[3],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 2)),
-                ap: MaybeRelocatable::from((1, 6)),
-                fp: MaybeRelocatable::from((1, 5)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                },
             }
         );
         assert_eq!(
             trace[4],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 7)),
-                ap: MaybeRelocatable::from((1, 6)),
-                fp: MaybeRelocatable::from((1, 2)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 7
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
             }
         );
         //Check accessed_addresses
@@ -3601,49 +3662,103 @@ mod tests {
         assert_eq!(
             trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 3)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 2))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 3
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                }
             }
         );
         assert_eq!(
             trace[1],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 0)),
-                fp: MaybeRelocatable::from((1, 4)),
-                ap: MaybeRelocatable::from((1, 4))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 0
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                }
             }
         );
         assert_eq!(
             trace[2],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 2)),
-                fp: MaybeRelocatable::from((1, 4)),
-                ap: MaybeRelocatable::from((1, 5))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 2
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                }
             }
         );
         assert_eq!(
             trace[3],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 5)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 5))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 5
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                }
             }
         );
         assert_eq!(
             trace[4],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 7)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 6))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 7
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                }
             }
         );
         assert_eq!(
             trace[5],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 8)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 6))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 8
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                }
             }
         );
 
