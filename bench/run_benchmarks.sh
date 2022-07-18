@@ -9,23 +9,18 @@ for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
     echo "Running $file benchmark"
     echo "\n*** $file.cairo times ***" >> results
 
-    pyenv global 3.7.12
+    export PATH="$(pyenv root)/shims:$PATH"
 
-    cairo_time=$( (time cairo-run --layout all --program $tests_path/$file.json) 2>&1 &)
-    echo "\nOriginal Cairo VM $file.cairo:" >> results
-    echo "$cairo_time" >> results
+    echo "\nOriginal Cairo VM:"
+    pyenv local 3.7.12
+    hyperfine "cairo-run --layout all --program $tests_path/$file.json"
 
-    pyenv global pypy3.7-7.3.9
+    echo "\nPyPy Cairo VM:"
+    pyenv local pypy3.7-7.3.9
+    hyperfine "cairo-run --layout all --program $tests_path/$file.json"
 
-    cairo_pypy_time=$( (time cairo-run --layout all --program $tests_path/$file.json) 2>&1 &)
-    echo "\nPyPy Cairo VM $file.cairo:" >> results
-    echo "$cairo_pypy_time" >> results
-
-    pyenv global 3.7.12
-
-    cleo_time=$( (time ../target/release/cleopatra-run $tests_path/$file.json) 2>&1 &)
-    echo "\nRust Cleopatra VM $file.cairo:" >> results
-    echo "$cleo_time" >> results
+    echo "\nRust Cleopatra VM:"
+    hyperfine "../target/release/cleopatra-run $tests_path/$file.json"
 done
 
 cat results
