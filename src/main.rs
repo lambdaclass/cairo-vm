@@ -3,6 +3,7 @@ use clap::{Parser, ValueHint};
 use cleopatra_cairo::cairo_run;
 use cleopatra_cairo::vm::errors::cairo_run_errors::CairoRunError;
 use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
+use cleopatra_cairo::vm::errors::trace_errors::TraceError;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -21,13 +22,18 @@ struct Args {
 
 fn main() -> Result<(), CairoRunError> {
     let args = Args::parse();
-    let mut cairo_runner = match cairo_run::cairo_run(&args.filename) {
+    let trace_enabled = args.trace_file.is_some();
+    let mut cairo_runner = match cairo_run::cairo_run(&args.filename, trace_enabled) {
         Ok(runner) => runner,
         Err(error) => return Err(error),
     };
 
     if let Some(trace_path) = args.trace_file {
-        match cairo_run::write_binary_trace(&cairo_runner.relocated_trace, &trace_path) {
+        let relocated_trace = cairo_runner
+            .relocated_trace
+            .as_ref()
+            .ok_or(CairoRunError::Trace(TraceError::TraceNotEnabled))?;
+        match cairo_run::write_binary_trace(relocated_trace, &trace_path) {
             Ok(()) => (),
             Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
         }

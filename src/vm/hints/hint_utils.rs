@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
@@ -12,32 +13,65 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
-use std::ops::Shl;
-use std::ops::Shr;
+use std::ops::{Neg, Shl, Shr};
+
+fn apply_ap_tracking_correction(
+    ap: MaybeRelocatable,
+    ref_ap_tracking: Option<&ApTracking>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    if let (Some(ref_tracking_data), Some(hint_tracking_data)) = (ref_ap_tracking, hint_ap_tracking)
+    {
+        // check that both groups are the same
+        if ref_tracking_data.group != hint_tracking_data.group {
+            return Err(VirtualMachineError::InvalidTrackingGroup(
+                ref_tracking_data.group,
+                hint_tracking_data.group,
+            ));
+        }
+        if let MaybeRelocatable::RelocatableValue(relocatable) = ap {
+            let ap_diff = hint_tracking_data.offset - ref_tracking_data.offset;
+
+            Ok(MaybeRelocatable::from((
+                relocatable.segment_index,
+                relocatable.offset - ap_diff,
+            )))
+        } else {
+            Err(VirtualMachineError::InvalidApValue(ap))
+        }
+    } else {
+        Err(VirtualMachineError::NoneApTrackingData)
+    }
+}
 
 ///Computes the memory address indicated by the HintReference
 fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
     vm: &VirtualMachine,
-) -> Option<MaybeRelocatable> {
-    let register = match hint_reference.register {
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
+    let base_addr = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
-        Register::AP => run_context.ap.clone(),
+        Register::AP => apply_ap_tracking_correction(
+            run_context.ap.clone(),
+            hint_reference.ap_tracking_data.as_ref(),
+            hint_ap_tracking,
+        )?,
     };
 
-    if let MaybeRelocatable::RelocatableValue(relocatable) = register {
+    if let MaybeRelocatable::RelocatableValue(relocatable) = base_addr {
         if hint_reference.offset1.is_negative()
             && relocatable.offset < hint_reference.offset1.abs() as usize
         {
-            return None;
+            return Ok(None);
         }
         if !hint_reference.inner_dereference {
-            return Some(MaybeRelocatable::from((
+            return Ok(Some(MaybeRelocatable::from((
                 relocatable.segment_index,
                 (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2)
                     as usize,
-            )));
+            ))));
         } else {
             let addr = MaybeRelocatable::from((
                 relocatable.segment_index,
@@ -46,18 +80,18 @@ fn compute_addr_from_reference(
 
             match vm.memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
-                    return Some(MaybeRelocatable::from((
+                    return Ok(Some(MaybeRelocatable::from((
                         dereferenced_addr.segment_index,
                         (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
-                    )))
+                    ))))
                 }
 
-                _none_or_error => return None,
+                _none_or_error => return Ok(None),
             }
         }
     }
 
-    None
+    Ok(None)
 }
 
 ///Computes the memory address given by the reference id
@@ -66,21 +100,28 @@ fn get_address_from_reference(
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
     vm: &VirtualMachine,
-) -> Option<MaybeRelocatable> {
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
             if let Some(hint_reference) = references.get(&index) {
-                return compute_addr_from_reference(hint_reference, run_context, vm);
+                return compute_addr_from_reference(
+                    hint_reference,
+                    run_context,
+                    vm,
+                    hint_ap_tracking,
+                );
             }
         }
     }
-    None
+    Ok(None)
 }
 
 fn get_address_from_var_name(
     var_name: &str,
     ids: HashMap<String, BigInt>,
     vm: &VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
     let var_ref = if let Some(var_ref) = ids.get(&String::from(var_name)) {
         var_ref
@@ -88,8 +129,13 @@ fn get_address_from_var_name(
         return Err(VirtualMachineError::FailedToGetIds);
     };
 
-    if let Some(var_addr) = get_address_from_reference(var_ref, &vm.references, &vm.run_context, vm)
-    {
+    if let Ok(Some(var_addr)) = get_address_from_reference(
+        var_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        hint_ap_tracking,
+    ) {
         return Ok(var_addr);
     }
 
@@ -110,6 +156,7 @@ pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 pub fn is_nn(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
@@ -121,8 +168,8 @@ pub fn is_nn(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
+    let a_addr = if let Ok(Some(a_addr)) =
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking)
     {
         a_addr
     } else {
@@ -175,6 +222,7 @@ pub fn is_nn(
 pub fn is_nn_out_of_range(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
@@ -186,8 +234,8 @@ pub fn is_nn_out_of_range(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
+    let a_addr = if let Ok(Some(a_addr)) =
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking)
     {
         a_addr
     } else {
@@ -247,6 +295,7 @@ pub fn is_nn_out_of_range(
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (a_ref, b_ref, small_inputs_ref) =
@@ -267,16 +316,25 @@ pub fn assert_le_felt(
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
-    let (a_addr, b_addr, small_inputs_addr) =
-        if let (Some(a_addr), Some(b_addr), Some(small_inputs_addr)) = (
-            get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(small_inputs_ref, &vm.references, &vm.run_context, vm),
-        ) {
-            (a_addr, b_addr, small_inputs_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
+    let (a_addr, b_addr, small_inputs_addr) = if let (
+        Ok(Some(a_addr)),
+        Ok(Some(b_addr)),
+        Ok(Some(small_inputs_addr)),
+    ) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(
+            small_inputs_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+    ) {
+        (a_addr, b_addr, small_inputs_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
     //small_inputs needs to be None, as we cant change it value otherwise
     match (
@@ -336,6 +394,7 @@ pub fn assert_le_felt(
 pub fn is_le_felt(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
@@ -349,9 +408,9 @@ pub fn is_le_felt(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+    let (a_addr, b_addr) = if let (Ok(Some(a_addr)), Ok(Some(b_addr))) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
     ) {
         (a_addr, b_addr)
     } else {
@@ -409,6 +468,7 @@ pub fn is_le_felt(
 pub fn assert_not_equal(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
@@ -422,9 +482,9 @@ pub fn assert_not_equal(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let (a_addr, b_addr) = if let (Some(a_addr), Some(b_addr)) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm),
+    let (a_addr, b_addr) = if let (Ok(Some(a_addr)), Ok(Some(b_addr))) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
     ) {
         (a_addr, b_addr)
     } else {
@@ -472,6 +532,7 @@ pub fn assert_not_equal(
 pub fn assert_nn(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for 'a' variable used by the hint
     let a_ref = if let Some(a_ref) = ids.get(&String::from("a")) {
@@ -483,8 +544,8 @@ pub fn assert_nn(
         ));
     };
     //Check that 'a' reference id corresponds to a value in the reference manager
-    let a_addr = if let Some(a_addr) =
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm)
+    let a_addr = if let Ok(Some(a_addr)) =
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking)
     {
         a_addr
     } else {
@@ -536,6 +597,7 @@ pub fn assert_nn(
 pub fn assert_not_zero(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value_ref = if let Some(value_ref) = ids.get(&String::from("value")) {
         value_ref
@@ -546,9 +608,13 @@ pub fn assert_not_zero(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
-    {
+    let value_addr = if let Ok(Some(value_addr)) = get_address_from_reference(
+        value_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        hint_ap_tracking,
+    ) {
         value_addr
     } else {
         return Err(VirtualMachineError::FailedToGetReference(value_ref.clone()));
@@ -577,6 +643,7 @@ pub fn assert_not_zero(
 pub fn split_int_assert_range(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let value_ref = if let Some(value_ref) = ids.get(&String::from("value")) {
@@ -588,9 +655,13 @@ pub fn split_int_assert_range(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let value_addr = if let Some(value_addr) =
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm)
-    {
+    let value_addr = if let Ok(Some(value_addr)) = get_address_from_reference(
+        value_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        hint_ap_tracking,
+    ) {
         value_addr
     } else {
         return Err(VirtualMachineError::FailedToGetReference(value_ref.clone()));
@@ -620,6 +691,7 @@ pub fn split_int_assert_range(
 pub fn split_int(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (output_ref, value_ref, base_ref, bound_ref) =
@@ -643,17 +715,45 @@ pub fn split_int(
         };
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
     //small_inputs needs to be None, as we cant change it value otherwise
-    let (output_addr, value_addr, base_addr, bound_addr) =
-        if let (Some(output_addr), Some(value_addr), Some(base_addr), Some(bound_addr)) = (
-            get_address_from_reference(output_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(base_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(bound_ref, &vm.references, &vm.run_context, vm),
-        ) {
-            (output_addr, value_addr, base_addr, bound_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
+    let (output_addr, value_addr, base_addr, bound_addr) = if let (
+        Ok(Some(output_addr)),
+        Ok(Some(value_addr)),
+        Ok(Some(base_addr)),
+        Ok(Some(bound_addr)),
+    ) = (
+        get_address_from_reference(
+            output_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            base_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            bound_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+    ) {
+        (output_addr, value_addr, base_addr, bound_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
     //Check that the ids are in memory
     let (mr_output, mr_value, mr_base, mr_bound) =
         if let (Ok(Some(mr_output)), Ok(Some(mr_value)), Ok(Some(mr_base)), Ok(Some(mr_bound))) = (
@@ -695,6 +795,7 @@ pub fn split_int(
 pub fn is_positive(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (value_ref, is_positive_ref) = if let (Some(value_ref), Some(is_positive_ref)) = (
@@ -709,9 +810,21 @@ pub fn is_positive(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let (value_addr, is_positive_addr) = if let (Some(value_addr), Some(is_positive_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(is_positive_ref, &vm.references, &vm.run_context, vm),
+    let (value_addr, is_positive_addr) = if let (Ok(Some(value_addr)), Ok(Some(is_positive_addr))) = (
+        get_address_from_reference(
+            value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            is_positive_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
     ) {
         (value_addr, is_positive_addr)
     } else {
@@ -761,6 +874,92 @@ pub fn is_positive(
     }
 }
 
+//Implements hint:
+// %{
+//     from starkware.cairo.common.math_utils import assert_integer
+//     assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128
+//     assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW
+//     assert_integer(ids.value)
+//     ids.low = ids.value & ((1 << 128) - 1)
+//     ids.high = ids.value >> 128
+// %}
+pub fn split_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for the variables used by the hint
+    let (high_ref, low_ref, value_ref) = if let (Some(high_ref), Some(low_ref), Some(value_ref)) = (
+        ids.get(&String::from("high")),
+        ids.get(&String::from("low")),
+        ids.get(&String::from("value")),
+    ) {
+        (high_ref, low_ref, value_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("high"),
+                String::from("low"),
+                String::from("value"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+
+    // Get the addresses of the variables used in the hints
+    let (high_addr, low_addr, value_addr) =
+        if let (Ok(Some(high_addr)), Ok(Some(low_addr)), Ok(Some(value_addr))) = (
+            get_address_from_reference(
+                high_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                low_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                value_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+        ) {
+            (high_addr, low_addr, value_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+
+    //Check that the 'value' variable is in memory
+    match vm.memory.get(&value_addr) {
+        Ok(Some(MaybeRelocatable::Int(ref value))) => {
+            //Main logic
+            //assert_integer(ids.value) (done by match)
+            // ids.low = ids.value & ((1 << 128) - 1)
+            // ids.high = ids.value >> 128
+            let low: BigInt = value.clone() & ((bigint!(1).shl(128_u8)) - bigint!(1));
+            let high: BigInt = value.shr(128_u8);
+            match (
+                vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
+                vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
+            ) {
+                (Ok(_), Ok(_)) => Ok(()),
+                (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
+            }
+        }
+        Ok(Some(MaybeRelocatable::RelocatableValue(ref _value))) => {
+            Err(VirtualMachineError::ExpectedInteger(value_addr.clone()))
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
 //Implements hint: from starkware.python.math_utils import isqrt
 //        value = ids.value % PRIME
 //        assert value < 2 ** 250, f"value={value} is outside of the range [0, 2**250)."
@@ -769,6 +968,7 @@ pub fn is_positive(
 pub fn sqrt(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (value_ref, root_ref) = if let (Some(value_ref), Some(root_ref)) = (
@@ -783,9 +983,21 @@ pub fn sqrt(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let (value_addr, root_addr) = if let (Some(value_addr), Some(root_addr)) = (
-        get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(root_ref, &vm.references, &vm.run_context, vm),
+    let (value_addr, root_addr) = if let (Ok(Some(value_addr)), Ok(Some(root_addr))) = (
+        get_address_from_reference(
+            value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            root_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
     ) {
         (value_addr, root_addr)
     } else {
@@ -814,74 +1026,195 @@ pub fn sqrt(
     }
 }
 
-//Implements hint: from starkware.cairo.common.math_utils import as_int
-//        # Correctness check.
-//        value = as_int(ids.value, PRIME) % PRIME
-//        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
-//        # Calculation for the assertion.
-//        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
-pub fn assert_250_bit(
+pub fn signed_div_rem(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Declare constant values
-    let upper_bound = bigint!(1).shl(250_i32);
-    let shift = bigint!(1).shl(128_i32);
     //Check that ids contains the reference id for each variable used by the hint
-    let (value_ref, high_ref, low_ref) = if let (Some(value_ref), Some(high_ref), Some(low_ref)) = (
+    let (r_ref, biased_q_ref, range_check_ptr_ref, div_ref, value_ref, bound_ref) = if let (
+        Some(r_ref),
+        Some(biased_q_ref),
+        Some(range_check_ptr_ref),
+        Some(div_ref),
+        Some(value_ref),
+        Some(bound_ref),
+    ) = (
+        ids.get(&String::from("r")),
+        ids.get(&String::from("biased_q")),
+        ids.get(&String::from("range_check_ptr")),
+        ids.get(&String::from("div")),
         ids.get(&String::from("value")),
-        ids.get(&String::from("high")),
-        ids.get(&String::from("low")),
+        ids.get(&String::from("bound")),
     ) {
-        (value_ref, high_ref, low_ref)
+        (
+            r_ref,
+            biased_q_ref,
+            range_check_ptr_ref,
+            div_ref,
+            value_ref,
+            bound_ref,
+        )
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![
+                String::from("r"),
+                String::from("biased_q"),
+                String::from("range_check_ptr"),
+                String::from("div"),
                 String::from("value"),
-                String::from("high"),
-                String::from("low"),
+                String::from("bound"),
             ],
             ids.into_keys().collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let (value_addr, high_addr, low_addr) =
-        if let (Some(value_addr), Some(high_addr), Some(low_addr)) = (
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(high_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(low_ref, &vm.references, &vm.run_context, vm),
-        ) {
-            (value_addr, high_addr, low_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
-    //Check that the ids.value is in memory
-    match vm.memory.get(&value_addr) {
-        Ok(Some(maybe_rel_value)) => {
-            //Check that ids.value is an Int value
-            let value = if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
-                value
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
-            };
-            //Main logic
-            let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
-            if int_value > upper_bound {
-                return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
-            }
+    let (r_addr, biased_q_addr, range_check_ptr_addr, div_addr, value_addr, bound_addr) = if let (
+        Ok(Some(r_addr)),
+        Ok(Some(biased_q_addr)),
+        Ok(Some(range_check_ptr_addr)),
+        Ok(Some(div_addr)),
+        Ok(Some(value_addr)),
+        Ok(Some(bound_addr)),
+    ) = (
+        get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(
+            biased_q_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            range_check_ptr_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            div_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            bound_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+    ) {
+        (
+            r_addr,
+            biased_q_addr,
+            range_check_ptr_addr,
+            div_addr,
+            value_addr,
+            bound_addr,
+        )
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+    match (
+        vm.memory.get(&r_addr),
+        vm.memory.get(&biased_q_addr),
+        vm.memory.get(&range_check_ptr_addr),
+        vm.memory.get(&div_addr),
+        vm.memory.get(&value_addr),
+        vm.memory.get(&bound_addr),
+    ) {
+        (
+            Ok(_),
+            Ok(_),
+            Ok(_),
+            Ok(Some(maybe_rel_div)),
+            Ok(Some(maybe_rel_value)),
+            Ok(Some(maybe_rel_bound)),
+        ) => {
+            for (name, builtin) in &vm.builtin_runners {
+                //Check that range_check_builtin is present
+                if name == &String::from("range_check") {
+                    match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
+                        Some(builtin) => {
+                            // Main logic
+                            let div = if let MaybeRelocatable::Int(ref div) = maybe_rel_div {
+                                div
+                            } else {
+                                return Err(VirtualMachineError::ExpectedInteger(div_addr.clone()));
+                            };
 
-            //Insert values into ids.high and ids.low
-            let (high, low) = int_value.div_rem(&shift);
-            vm.memory
-                .insert(&high_addr, &MaybeRelocatable::from(high))
-                .map_err(VirtualMachineError::MemoryError)?;
-            vm.memory
-                .insert(&low_addr, &MaybeRelocatable::from(low))
-                .map_err(VirtualMachineError::MemoryError)?;
-            Ok(())
+                            if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
+                                return Err(VirtualMachineError::OutOfValidRange(
+                                    div.clone(),
+                                    &vm.prime / &builtin._bound,
+                                ));
+                            }
+
+                            let bound = if let MaybeRelocatable::Int(ref bound) = maybe_rel_bound {
+                                bound
+                            } else {
+                                return Err(VirtualMachineError::ExpectedInteger(
+                                    bound_addr.clone(),
+                                ));
+                            };
+
+                            // Divide by 2
+                            if bound > &(&builtin._bound).shr(1_i32) {
+                                return Err(VirtualMachineError::OutOfValidRange(
+                                    bound.clone(),
+                                    (&builtin._bound).shr(1_i32),
+                                ));
+                            }
+
+                            let value = if let MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                                value
+                            } else {
+                                return Err(VirtualMachineError::ExpectedInteger(
+                                    value_addr.clone(),
+                                ));
+                            };
+
+                            let int_value = &as_int(value, &vm.prime);
+
+                            let (q, r) = int_value.div_mod_floor(div);
+
+                            if bound.neg() > q || &q >= bound {
+                                return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
+                            }
+
+                            let biased_q = MaybeRelocatable::Int(q + bound);
+
+                            return match (
+                                vm.memory
+                                    .insert(&r_addr, &MaybeRelocatable::Int(r))
+                                    .map_err(VirtualMachineError::MemoryError),
+                                vm.memory
+                                    .insert(&biased_q_addr, &biased_q)
+                                    .map_err(VirtualMachineError::MemoryError),
+                            ) {
+                                (Ok(_), Ok(_)) => Ok(()),
+                                (Err(e), _) | (_, Err(e)) => Err(e),
+                            };
+                        }
+                        None => {
+                            return Err(VirtualMachineError::NoRangeCheckBuiltin);
+                        }
+                    }
+                };
+            }
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
-        Ok(None) => Err(VirtualMachineError::MemoryGet(value_addr)),
-        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+        _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
 
@@ -897,6 +1230,7 @@ ids.q, ids.r = divmod(ids.value, ids.div)
 pub fn unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (r_ref, q_ref, div_ref, value_ref) =
@@ -919,17 +1253,33 @@ pub fn unsigned_div_rem(
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
-    let (r_addr, q_addr, div_addr, value_addr) =
-        if let (Some(r_addr), Some(q_addr), Some(div_addr), Some(value_addr)) = (
-            get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(q_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(div_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-        ) {
-            (r_addr, q_addr, div_addr, value_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
+    let (r_addr, q_addr, div_addr, value_addr) = if let (
+        Ok(Some(r_addr)),
+        Ok(Some(q_addr)),
+        Ok(Some(div_addr)),
+        Ok(Some(value_addr)),
+    ) = (
+        get_address_from_reference(r_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(q_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(
+            div_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+    ) {
+        (r_addr, q_addr, div_addr, value_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
     match (
         vm.memory.get(&r_addr),
         vm.memory.get(&q_addr),
@@ -998,8 +1348,9 @@ pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 pub fn memcpy_enter_scope(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len_addr = get_address_from_var_name("len", ids, vm)?;
+    let len_addr = get_address_from_var_name("len", ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&len_addr) {
         Ok(Some(maybe_rel_len)) => {
@@ -1027,8 +1378,10 @@ pub fn memcpy_enter_scope(
 pub fn memcpy_continue_copying(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let continue_copying_addr = get_address_from_var_name("continue_copying", ids, vm)?;
+    let continue_copying_addr =
+        get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
 
     let mut n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
@@ -1057,24 +1410,163 @@ pub fn memcpy_continue_copying(
         None => return Err(VirtualMachineError::ScopeError),
     };
 
-    if n > bigint!(0) {
-        println!("Entre 1");
-        println!("CONTINUE COPYING ADDR: {:?}", continue_copying_addr);
-        let mem_val = vm.memory.get(&continue_copying_addr).unwrap();
-        println!("MEM VALUE: {:?}", mem_val);
+    if n.is_positive() {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
             .map_err(|e| VirtualMachineError::MemoryError(e))
     } else {
-        println!("Entre 2");
-        println!("CONTINUE COPYING ADDR: {:?}", continue_copying_addr);
-        let mem_val = vm.memory.get(&continue_copying_addr).unwrap();
-        println!("MEM VALUE: {:?}", mem_val);
-
-        println!("MEMORIA: {:?}", &vm.memory.data[1]);
-
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(0)))
             .map_err(|e| VirtualMachineError::MemoryError(e))
+    }
+}
+
+//Implements hint: from starkware.cairo.common.math_utils import as_int
+//        # Correctness check.
+//        value = as_int(ids.value, PRIME) % PRIME
+//        assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'
+//        # Calculation for the assertion.
+//        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
+pub fn assert_250_bit(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //Declare constant values
+    let upper_bound = bigint!(1).shl(250_i32);
+    let shift = bigint!(1).shl(128_i32);
+    //Check that ids contains the reference id for each variable used by the hint
+    let (value_ref, high_ref, low_ref) = if let (Some(value_ref), Some(high_ref), Some(low_ref)) = (
+        ids.get(&String::from("value")),
+        ids.get(&String::from("high")),
+        ids.get(&String::from("low")),
+    ) {
+        (value_ref, high_ref, low_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![
+                String::from("value"),
+                String::from("high"),
+                String::from("low"),
+            ],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (value_addr, high_addr, low_addr) =
+        if let (Ok(Some(value_addr)), Ok(Some(high_addr)), Ok(Some(low_addr))) = (
+            get_address_from_reference(
+                value_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                high_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                low_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+        ) {
+            (value_addr, high_addr, low_addr)
+        } else {
+            return Err(VirtualMachineError::FailedToGetIds);
+        };
+    //Check that the ids.value is in memory
+    match vm.memory.get(&value_addr) {
+        Ok(Some(maybe_rel_value)) => {
+            //Check that ids.value is an Int value
+            let value = if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
+                value
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
+            };
+            //Main logic
+            let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
+            if int_value > upper_bound {
+                return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
+            }
+
+            //Insert values into ids.high and ids.low
+            let (high, low) = int_value.div_rem(&shift);
+            vm.memory
+                .insert(&high_addr, &MaybeRelocatable::from(high))
+                .map_err(VirtualMachineError::MemoryError)?;
+            vm.memory
+                .insert(&low_addr, &MaybeRelocatable::from(low))
+                .map_err(VirtualMachineError::MemoryError)?;
+            Ok(())
+        }
+        Ok(None) => Err(VirtualMachineError::MemoryGet(value_addr)),
+        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+    }
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.math_utils import assert_integer
+    assert_integer(ids.a)
+    assert_integer(ids.b)
+    assert (ids.a % PRIME) < (ids.b % PRIME), \
+        f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+%}
+*/
+pub fn assert_lt_felt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //Check that ids contains the reference id for each variable used by the hint
+    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
+        (ids.get(&String::from("a")), ids.get(&String::from("b")))
+    {
+        (a_ref, b_ref)
+    } else {
+        return Err(VirtualMachineError::IncorrectIds(
+            vec![String::from("a"), String::from("b")],
+            ids.into_keys().collect(),
+        ));
+    };
+    //Check that each reference id corresponds to a value in the reference manager
+    let (a_addr, b_addr) = if let (Ok(Some(a_addr)), Ok(Some(b_addr))) = (
+        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+    ) {
+        (a_addr, b_addr)
+    } else {
+        return Err(VirtualMachineError::FailedToGetIds);
+    };
+
+    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
+        (Ok(Some(MaybeRelocatable::Int(ref a))), Ok(Some(MaybeRelocatable::Int(ref b)))) => {
+            // main logic
+            // assert_integer(ids.a)
+            // assert_integer(ids.b)
+            // assert (ids.a % PRIME) < (ids.b % PRIME), \
+            //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+            if a.mod_floor(&vm.prime) < b.mod_floor(&vm.prime) {
+                Ok(())
+            } else {
+                Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()))
+            }
+        }
+        (Ok(Some(MaybeRelocatable::RelocatableValue(_))), _) => {
+            Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
+        }
+        (_, Ok(Some(MaybeRelocatable::RelocatableValue(_)))) => {
+            Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
+        }
+
+        _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }

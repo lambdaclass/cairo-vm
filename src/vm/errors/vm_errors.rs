@@ -57,6 +57,10 @@ pub enum VirtualMachineError {
     MainScopeError(ExecScopeError),
     ScopeError,
     VariableNotInScopeError(String),
+    AssertLtFelt(BigInt, BigInt),
+    NoneApTrackingData,
+    InvalidTrackingGroup(usize, usize),
+    InvalidApValue(MaybeRelocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -161,6 +165,19 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Variable {} not in local scope", var_name)
             },
             VirtualMachineError::ScopeError => write!(f, "Failed to get scope variables"),
+            VirtualMachineError::AssertLtFelt(a, b) => {
+                write!(f, "Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", a, b)
+
+            },
+            VirtualMachineError::NoneApTrackingData => {
+                write!(f, "AP tracking data is None; could not apply correction to address")
+            },
+            VirtualMachineError::InvalidTrackingGroup(group1, group2) => {
+                write!(f, "Tracking groups should be the same, got {} and {}", group1, group2)
+            },
+            VirtualMachineError::InvalidApValue(addr) => {
+                write!(f, "Expected relocatable for ap, got {:?}", addr)
+            },
         }
     }
 }
