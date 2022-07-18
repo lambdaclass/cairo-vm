@@ -25,7 +25,7 @@ pub enum VirtualMachineError {
     InvalidRes(i64),
     InvalidOpcode(i64),
     RelocatableAdd,
-    OffsetExeeded(BigInt),
+    OffsetExceeded(BigInt),
     NotImplemented,
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
@@ -53,6 +53,10 @@ pub enum VirtualMachineError {
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
     AssertLtFelt(BigInt, BigInt),
+    FindElemKeyNotFound(MaybeRelocatable),
+    FindElemMaxSize(BigInt, BigInt),
+    InvalidIndex(BigInt, MaybeRelocatable, MaybeRelocatable),
+    FindElemNoFoundKey,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -91,7 +95,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::RelocatableAdd => {
                 write!(f, "Cannot add two relocatable values")
             }
-            VirtualMachineError::OffsetExeeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
+            VirtualMachineError::OffsetExceeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
             VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
             VirtualMachineError::PureValue => Ok(()),
             VirtualMachineError::DiffIndexSub => write!(
@@ -152,8 +156,11 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::AssertLtFelt(a, b) => {
                 write!(f, "Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", a, b)
-
             },
+            VirtualMachineError::FindElemKeyNotFound(key) => write!(f, "Key {:?}, was not found", key),
+            VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
+            VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
+            VirtualMachineError::FindElemNoFoundKey => write!(f, "Found Key is None"),
         }
     }
 }
