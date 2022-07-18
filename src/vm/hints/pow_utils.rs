@@ -61,10 +61,7 @@ pub fn pow(
                 .map_err(VirtualMachineError::MemoryError)?;
             Ok(())
         }
-        Ok(Some(MaybeRelocatable::RelocatableValue(_))) => {
-            Err(VirtualMachineError::ExpectedInteger(prev_locs_exp_addr))
-        }
-        Ok(None) => Err(VirtualMachineError::MemoryGet(prev_locs_exp_addr)),
+        Ok(_) => Err(VirtualMachineError::ExpectedInteger(prev_locs_exp_addr)),
         Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
     }
 }
