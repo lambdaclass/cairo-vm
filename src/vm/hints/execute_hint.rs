@@ -25,7 +25,7 @@ pub fn execute_hint(
     vm: &mut VirtualMachine,
     hint_code: &[u8],
     ids: HashMap<String, BigInt>,
-    _ap_tracking: &ApTracking,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
@@ -39,7 +39,7 @@ pub fn execute_hint(
         Ok("from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)",
         ) => assert_250_bit(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0"
-        ) => is_positive(vm, ids, None),
+        ) => is_positive(vm, ids, Some(ap_tracking)),
         Ok("assert ids.value == 0, 'split_int(): value is out of range.'"
         ) => split_int_assert_range(vm, ids, None),
         Ok("memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'"

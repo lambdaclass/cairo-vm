@@ -50,6 +50,12 @@ impl ApTracking {
     }
 }
 
+impl Default for ApTracking {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Identifier {
     pub pc: Option<usize>,
