@@ -59,6 +59,7 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
+    pub find_element_index: Option<usize>,
 }
 
 impl HintData {
@@ -100,6 +101,7 @@ impl VirtualMachine {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             exec_scopes: ExecutionScopes::new(),
+            find_element_index: None,
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
