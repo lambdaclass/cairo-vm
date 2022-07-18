@@ -29,7 +29,7 @@ fn apply_ap_tracking_correction(
             ));
         }
         if let MaybeRelocatable::RelocatableValue(relocatable) = ap {
-            let ap_diff = hint_tracking_data.group - ref_tracking_data.group;
+            let ap_diff = hint_tracking_data.offset - ref_tracking_data.offset;
 
             Ok(MaybeRelocatable::from((
                 relocatable.segment_index,
