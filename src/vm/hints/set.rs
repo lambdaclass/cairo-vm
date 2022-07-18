@@ -222,3 +222,40 @@ pub fn set_add(
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::hints::hint_utils::execute_hint;
+
+    #[test]
+    fn set_add_successful() {
+        let hint_code = "assert ids.elm_size > 0\n        assert ids.set_ptr <= ids.set_end_ptr\n        elm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\n        for i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n            if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n                ids.index = i // ids.elm_size\n                ids.is_elm_in_set = 1\n                break\n        else:\n            ids.is_elm_in_set = 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+        );
+
+        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("is_elm_in_set"), bigint!(0));
+        ids.insert(String::from("index"), bigint!(1));
+        ids.insert(String::from("set_ptr"), bigint!(2));
+        ids.insert(String::from("elm_size"), bigint!(3));
+        ids.insert(String::from("elm_ptr"), bigint!(4));
+        ids.insert(String::from("set_end_ptr"), bigint!(5));
+    }
+}
