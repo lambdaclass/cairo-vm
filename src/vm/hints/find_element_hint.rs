@@ -102,11 +102,14 @@ pub fn find_element(
                             .map_err(VirtualMachineError::MemoryError)?
                             .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
 
-                        let found_key = vm
-                            .memory
-                            .get(&array_start.add_int_mod(&(elm_size * &find_element_index_value), &vm.prime)?)
-                            .map_err(VirtualMachineError::MemoryError)?
-                            .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+                        let found_key =
+                            vm.memory
+                                .get(&array_start.add_int_mod(
+                                    &(elm_size * &find_element_index_value),
+                                    &vm.prime,
+                                )?)
+                                .map_err(VirtualMachineError::MemoryError)?
+                                .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
 
                         if found_key != maybe_rel_key {
                             return Err(VirtualMachineError::InvalidIndex(
