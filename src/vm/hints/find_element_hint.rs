@@ -96,14 +96,17 @@ pub fn find_element(
 
                     if let Some(find_element_index_value) = vm.find_element_index.clone() {
                         vm.find_element_index = None;
-                        let found_key = match vm.memory.get(&array_ptr_addr.add_int_mod(
-                            &(elm_size * find_element_index_value.clone()),
-                            &vm.prime,
-                        )?) {
-                            Ok(Some(found_key)) => found_key,
-                            Ok(None) => return Err(VirtualMachineError::FindElemNoFoundKey),
-                            Err(e) => return Err(VirtualMachineError::MemoryError(e)),
-                        };
+                        let array_start = vm
+                            .memory
+                            .get(&array_ptr_addr)
+                            .map_err(VirtualMachineError::MemoryError)?
+                            .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
+                        let found_key = vm
+                            .memory
+                            .get(&array_start.add_int_mod(&(elm_size * &find_element_index_value), &vm.prime)?)
+                            .map_err(VirtualMachineError::MemoryError)?
+                            .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
 
                         if found_key != maybe_rel_key {
                             return Err(VirtualMachineError::InvalidIndex(
