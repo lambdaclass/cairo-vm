@@ -107,7 +107,7 @@ pub fn find_element(
 
                         if found_key != maybe_rel_key {
                             return Err(VirtualMachineError::InvalidIndex(
-                                find_element_index_value.clone(),
+                                find_element_index_value,
                                 maybe_rel_key.clone(),
                                 found_key.clone(),
                             ));
@@ -117,7 +117,7 @@ pub fn find_element(
                             .memory
                             .insert(
                                 &index_addr,
-                                &MaybeRelocatable::Int(find_element_index_value.clone()),
+                                &MaybeRelocatable::Int(find_element_index_value),
                             )
                             .map_err(VirtualMachineError::MemoryError);
                     } else {
@@ -134,7 +134,7 @@ pub fn find_element(
                         }
 
                         if let Some(find_element_max_size) = &vm.find_element_max_size {
-                            if n_elms > &find_element_max_size {
+                            if n_elms > find_element_max_size {
                                 return Err(VirtualMachineError::FindElemMaxSize(
                                     find_element_max_size.clone(),
                                     n_elms.clone(),
@@ -149,14 +149,19 @@ pub fn find_element(
                         };
 
                         for i in 0..n_elms_iter {
-                            return match vm.memory.get(
+                            match vm.memory.get(
                                 &array_ptr_addr.add_int_mod(&(elm_size * bigint!(i)), &vm.prime)?,
                             ) {
-                                Ok(_) => vm
-                                    .memory
-                                    .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
-                                    .map_err(VirtualMachineError::MemoryError),
-                                Err(e) => Err(VirtualMachineError::MemoryError(e)),
+                                Ok(Some(iter_key)) => {
+                                    if iter_key == maybe_rel_key {
+                                        return vm
+                                            .memory
+                                            .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
+                                            .map_err(VirtualMachineError::MemoryError);
+                                    }
+                                }
+                                Ok(None) => return Err(VirtualMachineError::FindElemNoFoundKey),
+                                Err(e) => return Err(VirtualMachineError::MemoryError(e)),
                             };
                         }
 
@@ -167,7 +172,7 @@ pub fn find_element(
                 }
             }
 
-            return Err(VirtualMachineError::NoRangeCheckBuiltin);
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
