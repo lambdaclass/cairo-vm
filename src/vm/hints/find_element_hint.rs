@@ -148,21 +148,27 @@ pub fn find_element(
                             return Err(VirtualMachineError::OffsetExceeded(n_elms.clone()));
                         };
 
+                        let array_start = vm
+                            .memory
+                            .get(&array_ptr_addr)
+                            .map_err(VirtualMachineError::MemoryError)?
+                            .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
                         for i in 0..n_elms_iter {
-                            match vm.memory.get(
-                                &array_ptr_addr.add_int_mod(&(elm_size * bigint!(i)), &vm.prime)?,
-                            ) {
-                                Ok(Some(iter_key)) => {
-                                    if iter_key == maybe_rel_key {
-                                        return vm
-                                            .memory
-                                            .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
-                                            .map_err(VirtualMachineError::MemoryError);
-                                    }
-                                }
-                                Ok(None) => return Err(VirtualMachineError::FindElemNoFoundKey),
-                                Err(e) => return Err(VirtualMachineError::MemoryError(e)),
-                            };
+                            let iter_addr =
+                                &array_start.add_int_mod(&(elm_size * bigint!(i)), &vm.prime)?;
+                            let iter_key = vm
+                                .memory
+                                .get(iter_addr)
+                                .map_err(VirtualMachineError::MemoryError)?
+                                .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
+                            if iter_key == maybe_rel_key {
+                                return vm
+                                    .memory
+                                    .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
+                                    .map_err(VirtualMachineError::MemoryError);
+                            }
                         }
 
                         return Err(VirtualMachineError::FindElemKeyNotFound(
