@@ -4,7 +4,7 @@ use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
 use std::fs::File;
-use std::io::{self, Error, ErrorKind, Write};
+use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
 pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoRunError> {
@@ -41,7 +41,8 @@ pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoR
 }
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
-    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
+    let mut buffer = BufWriter::new(io::stdout());
+    if let Err(error) = cairo_runner.write_output(&mut buffer) {
         return Err(CairoRunError::Runner(error));
     }
     Ok(())
@@ -53,7 +54,8 @@ pub fn write_binary_trace(
     relocated_trace: &[RelocatedTraceEntry],
     trace_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(trace_file)?;
+    let file = File::create(trace_file)?;
+    let mut buffer = BufWriter::new(file);
 
     for (i, entry) in relocated_trace.iter().enumerate() {
         if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
@@ -78,7 +80,8 @@ pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(memory_file)?;
+    let file = File::create(memory_file)?;
+    let mut buffer = BufWriter::new(file);
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
