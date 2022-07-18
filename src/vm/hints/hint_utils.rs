@@ -44,7 +44,7 @@ fn apply_ap_tracking_correction(
 }
 
 ///Computes the memory address indicated by the HintReference
-fn compute_addr_from_reference(
+pub fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
     vm: &VirtualMachine,
@@ -94,7 +94,7 @@ fn compute_addr_from_reference(
 }
 
 ///Computes the memory address given by the reference id
-fn get_address_from_reference(
+pub fn get_address_from_reference(
     reference_id: &BigInt,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
