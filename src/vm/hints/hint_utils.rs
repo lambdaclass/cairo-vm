@@ -1383,6 +1383,7 @@ pub fn memcpy_continue_copying(
     let continue_copying_addr =
         get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
 
+    // get `n` variable from vm scope
     let mut n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
             Some(PyValueType::BigInt(n)) => n.clone(),
@@ -1395,9 +1396,11 @@ pub fn memcpy_continue_copying(
         None => return Err(VirtualMachineError::ScopeError),
     };
 
+    // reassign `n` with `n - 1`
     vm.exec_scopes
         .assign_or_update_variable("n", PyValueType::BigInt(n - 1_i32));
 
+    // get new value of `n`
     n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
             Some(PyValueType::BigInt(n)) => n.clone(),
@@ -1410,6 +1413,8 @@ pub fn memcpy_continue_copying(
         None => return Err(VirtualMachineError::ScopeError),
     };
 
+    // if it is positive, insert 1 in the address of `continue_copying`
+    // else, insert 0
     if n.is_positive() {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
