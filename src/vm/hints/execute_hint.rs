@@ -10,6 +10,7 @@ use crate::vm::hints::hint_utils::{
     assert_not_zero, is_le_felt, is_nn, is_nn_out_of_range, is_positive, signed_div_rem,
     split_felt, split_int, split_int_assert_range, sqrt, unsigned_div_rem,
 };
+use crate::vm::hints::squash_dict::squash_dict_inner_first_iteration;
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -58,6 +59,8 @@ pub fn execute_hint(
         ) => dict_write(vm, ids),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
         ) => default_dict_new(vm, ids),
+        Ok("current_access_indices = sorted(access_indices[key])[::-1]\n    current_access_index = current_access_indices.pop()\n    memory[ids.range_check_ptr] = current_access_index"
+        ) => squash_dict_inner_first_iteration(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)") => unsigned_div_rem(vm, ids),
