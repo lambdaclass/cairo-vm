@@ -10,8 +10,9 @@ use crate::vm::hints::dict_hint_utils::{
 };
 use crate::vm::hints::hint_utils::{
     add_segment, assert_250_bit, assert_le_felt, assert_lt_felt, assert_nn, assert_not_equal,
-    assert_not_zero, is_le_felt, is_nn, is_nn_out_of_range, is_positive, signed_div_rem,
-    split_felt, split_int, split_int_assert_range, sqrt, unsigned_div_rem,
+    assert_not_zero, exit_scope, is_le_felt, is_nn, is_nn_out_of_range, is_positive,
+    memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
+    split_int_assert_range, sqrt, unsigned_div_rem,
 };
 use crate::vm::hints::pow_utils::pow;
 use crate::vm::vm_core::VirtualMachine;
@@ -56,6 +57,9 @@ pub fn execute_hint(
         ) => sqrt(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"
         ) => assert_not_zero(vm, ids, None),
+        Ok("vm_exit_scope()") => exit_scope(vm),
+        Ok("vm_enter_scope({'n': ids.len})") => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
+        Ok("n -= 1\nids.continue_copying = 1 if n > 0 else 0") => memcpy_continue_copying(vm, ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)") => unsigned_div_rem(vm, ids, None),
@@ -85,9 +89,10 @@ mod tests {
     use crate::bigint_str;
     use crate::math_utils::as_int;
     use crate::relocatable;
+    use crate::types::exec_scope::PyValueType;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
-    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
     use num_traits::FromPrimitive;
@@ -5413,6 +5418,290 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn memcpy_enter_scope_valid() {
+        let hint_code = "vm_enter_scope({'n': ids.len})".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+
+        // insert ids.len into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("len"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+    }
+
+    #[test]
+    fn memcpy_enter_scope_invalid() {
+        let hint_code = "vm_enter_scope({'n': ids.len})".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+
+        // insert ids.len into memory
+        // we insert a relocatable value in the address of ids.len so that it raises an error.
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((0, 0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("len"), bigint!(0));
+
+        // create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 1))
+            ))
+        );
+    }
+
+    #[test]
+    fn memcpy_continue_copying_valid() {
+        let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+
+        // initialize vm scope with variable `n`
+        vm.exec_scopes
+            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+
+        // initialize ids.continue_copying
+        // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("continue_copying"), bigint!(0));
+
+        // create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+    }
+
+    #[test]
+    fn memcpy_continue_copying_variable_not_in_scope_error() {
+        let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+
+        // we don't initialize `n` now:
+        /*  vm.exec_scopes
+        .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));  */
+
+        // initialize ids.continue_copying
+        // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("continue_copying"), bigint!(0));
+
+        // create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "n".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn memcpy_continue_copying_insert_error() {
+        let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+
+        // initialize with variable `n`
+        vm.exec_scopes
+            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+
+        // initialize ids.continue_copying
+        // a value is written in the address so the hint cant insert value there
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("continue_copying"), bigint!(0));
+
+        // create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from(bigint!(5)),
+                    MaybeRelocatable::from(bigint!(0))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn exit_scope_valid() {
+        let hint_code = "vm_exit_scope()".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // create new vm scope with dummy variable
+        vm.exec_scopes.enter_scope(HashMap::from([(
+            String::from("a"),
+            PyValueType::BigInt(bigint!(1)),
+        )]));
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        assert!(execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()).is_ok());
+    }
+
+    #[test]
+    fn exit_scope_invalid() {
+        let hint_code = "vm_exit_scope()".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // new vm scope is not created so that the hint raises an error:
+        //vm.exec_scopes.enter_scope(HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(1)))]));
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
+            Err(VirtualMachineError::MainScopeError(
+                ExecScopeError::ExitMainScopeError
+            ))
         );
     }
 }

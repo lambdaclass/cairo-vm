@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct ExecutionScopes {
-    exec_scopes: Vec<HashMap<String, PyValueType>>,
+    pub data: Vec<HashMap<String, PyValueType>>,
 }
 
 #[derive(Eq, PartialEq, Debug)]
@@ -16,25 +16,25 @@ pub enum PyValueType {
 impl ExecutionScopes {
     pub fn new() -> ExecutionScopes {
         ExecutionScopes {
-            exec_scopes: vec![HashMap::new()],
+            data: vec![HashMap::new()],
         }
     }
 
     pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, PyValueType>) {
-        self.exec_scopes.push(new_scope_locals);
+        self.data.push(new_scope_locals);
     }
 
     pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
-        if self.exec_scopes.len() == 1 {
+        if self.data.len() == 1 {
             return Err(ExecScopeError::ExitMainScopeError);
         }
-        self.exec_scopes.pop();
+        self.data.pop();
 
         Ok(())
     }
 
     pub fn get_local_variables(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
-        self.exec_scopes.last_mut()
+        self.data.last_mut()
     }
 
     pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
@@ -69,7 +69,7 @@ mod tests {
         assert_eq!(
             scopes,
             ExecutionScopes {
-                exec_scopes: vec![HashMap::new()]
+                data: vec![HashMap::new()]
             }
         );
     }
@@ -81,9 +81,7 @@ mod tests {
 
         let scope = HashMap::from([(var_name, var_value)]);
 
-        let mut scopes = ExecutionScopes {
-            exec_scopes: vec![scope],
-        };
+        let mut scopes = ExecutionScopes { data: vec![scope] };
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
@@ -99,7 +97,7 @@ mod tests {
         let new_scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes {
-            exec_scopes: vec![HashMap::from([(
+            data: vec![HashMap::from([(
                 String::from("b"),
                 PyValueType::BigInt(bigint!(1)),
             )])],
@@ -172,9 +170,7 @@ mod tests {
 
         let scope = HashMap::from([(var_name, var_value)]);
 
-        let mut scopes = ExecutionScopes {
-            exec_scopes: vec![scope],
-        };
+        let mut scopes = ExecutionScopes { data: vec![scope] };
 
         scopes.assign_or_update_variable("a", PyValueType::BigInt(bigint!(3)));
 
@@ -191,9 +187,7 @@ mod tests {
 
         let scope = HashMap::from([(var_name, var_value)]);
 
-        let mut scopes = ExecutionScopes {
-            exec_scopes: vec![scope],
-        };
+        let mut scopes = ExecutionScopes { data: vec![scope] };
 
         assert!(scopes
             .get_local_variables()

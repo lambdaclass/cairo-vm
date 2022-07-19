@@ -5,6 +5,8 @@ use std::fmt;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 
+use super::exec_scope_errors::ExecScopeError;
+
 #[derive(Debug, PartialEq)]
 pub enum VirtualMachineError {
     InvalidInstructionEncoding,
@@ -52,6 +54,9 @@ pub enum VirtualMachineError {
     SqrtNegative(BigInt),
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
+    MainScopeError(ExecScopeError),
+    ScopeError,
+    VariableNotInScopeError(String),
     CantCreateDictionaryOnTakenSegment(usize),
     NoDictTracker(usize),
     NoValueForKey(BigInt),
@@ -158,6 +163,13 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
             },
+            VirtualMachineError::MainScopeError(error) => {
+                write!(f, "Got scope error {}", error)
+            },
+            VirtualMachineError::VariableNotInScopeError(var_name) => {
+                write!(f, "Variable {} not in local scope", var_name)
+            },
+            VirtualMachineError::ScopeError => write!(f, "Failed to get scope variables"),
             VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
                 write!(f, "DictManagerError: Tried to create tracker for a dictionary on segment: {:?} when there is already a tracker for a dictionary on this segment", index)
             },

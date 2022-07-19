@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
@@ -120,6 +121,26 @@ pub fn get_address_from_reference(
         }
     }
     Ok(None)
+}
+
+fn get_address_from_var_name(
+    var_name: &str,
+    ids: HashMap<String, BigInt>,
+    vm: &VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    let var_ref = ids
+        .get(&String::from(var_name))
+        .ok_or(VirtualMachineError::FailedToGetIds)?;
+    get_address_from_reference(
+        var_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        hint_ap_tracking,
+    )
+    .map_err(|_| VirtualMachineError::FailedToGetIds)?
+    .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
 ///Implements hint: memory[ap] = segments.add()
@@ -1313,6 +1334,89 @@ pub fn unsigned_div_rem(
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
+}
+
+//  Implements hint:
+//  %{ vm_exit_scope() %}
+pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    vm.exec_scopes
+        .exit_scope()
+        .map_err(VirtualMachineError::MainScopeError)
+}
+
+//  Implements hint:
+//  %{ vm_enter_scope({'n': ids.len}) %}
+pub fn memcpy_enter_scope(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let len_addr = get_address_from_var_name("len", ids, vm, hint_ap_tracking)?;
+
+    match vm.memory.get(&len_addr) {
+        Ok(Some(maybe_rel_len)) => {
+            let len = if let MaybeRelocatable::Int(len) = maybe_rel_len {
+                len
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(len_addr.clone()));
+            };
+            vm.exec_scopes.enter_scope(HashMap::from([(
+                String::from("n"),
+                PyValueType::BigInt(len.clone()),
+            )]));
+
+            Ok(())
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+// Implements hint:
+// %{
+//     n -= 1
+//     ids.continue_copying = 1 if n > 0 else 0
+// %}
+pub fn memcpy_continue_copying(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let continue_copying_addr =
+        get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
+
+    // get `n` variable from vm scope
+    let n = match vm.exec_scopes.get_local_variables() {
+        Some(variables) => match variables.get("n") {
+            Some(PyValueType::BigInt(n)) => n,
+            _ => {
+                return Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                    "n",
+                )))
+            }
+        },
+        None => return Err(VirtualMachineError::ScopeError),
+    };
+
+    // this variable will hold the value of `n - 1`
+    let new_n = n - 1_i32;
+
+    // if it is positive, insert 1 in the address of `continue_copying`
+    // else, insert 0
+    if new_n.is_positive() {
+        vm.memory
+            .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
+            .map_err(VirtualMachineError::MemoryError)?;
+    } else {
+        vm.memory
+            .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(0)))
+            .map_err(VirtualMachineError::MemoryError)?;
+    }
+
+    // we reassign `n` at the end so that the borrow checker doesn't complain
+    vm.exec_scopes
+        .assign_or_update_variable("n", PyValueType::BigInt(new_n));
+
+    Ok(())
 }
 
 //Implements hint: from starkware.cairo.common.math_utils import as_int

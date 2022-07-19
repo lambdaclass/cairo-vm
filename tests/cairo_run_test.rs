@@ -147,6 +147,12 @@ fn cairo_run_assert_lt_felt() {
 }
 
 #[test]
+fn cairo_run_memcpy() {
+    cairo_run::cairo_run(Path::new("cairo_programs/memcpy_test.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_pow() {
     cairo_run::cairo_run(Path::new("cairo_programs/pow.json"), false)
         .expect("Couldn't run program");
