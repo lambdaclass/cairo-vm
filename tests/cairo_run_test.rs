@@ -169,3 +169,21 @@ fn cairo_run_dict_write_bad() {
         "VM failure: Dict Error: Tried to create a dict whithout an initial dict"
     );
 }
+
+#[test]
+fn cairo_run_dict_update_bad() {
+    assert!(cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+        false
+    )
+    .is_err());
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+        false,
+    )
+    .err();
+    assert_eq!(
+        err.unwrap().to_string(),
+        "VM failure: Dict Error: Got the wrong value for dict_update, expected: 3, got: Some(5)"
+    );
+}

@@ -60,7 +60,7 @@ pub fn execute_hint(
         ) => dict_write(vm, ids),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
         ) => default_dict_new(vm, ids),
-        Ok("# Verify dict pointer and prev value.\n    dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\n    current_value = dict_tracker.data[ids.key]\n    assert current_value == ids.prev_value, \\n        f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n    # Update value.\n    dict_tracker.data[ids.key] = ids.new_value\n    dict_tracker.current_ptr += ids.DictAccess.SIZE"
+        Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
         ) => dict_update(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids),
