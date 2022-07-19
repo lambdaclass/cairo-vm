@@ -117,12 +117,6 @@ fn cairo_run_split_int_big() {
 }
 
 #[test]
-fn cairo_run_dict() {
-    cairo_run::cairo_run(Path::new("cairo_programs/dict.json"), false)
-        .expect("Couldn't run program");
-}
-
-#[test]
 fn cairo_run_split_felt() {
     cairo_run::cairo_run(Path::new("cairo_programs/split_felt.json"), false)
         .expect("Couldn't run program");
@@ -149,6 +143,18 @@ fn cairo_run_signed_div_rem() {
 #[test]
 fn cairo_run_assert_lt_felt() {
     cairo_run::cairo_run(Path::new("cairo_programs/assert_lt_felt.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_dict() {
+    cairo_run::cairo_run(Path::new("cairo_programs/dict.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_dict_update() {
+    cairo_run::cairo_run(Path::new("cairo_programs/dict_update.json"), false)
         .expect("Couldn't run program");
 }
 
