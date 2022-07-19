@@ -32,6 +32,16 @@ fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt> {
     val
 }
 
+fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
+    let mut val: Option<Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get(name) {
+            val = Some(py_val.clone());
+        }
+    }
+    val
+}
+
 /*Implements hint:
     current_access_indices = sorted(access_indices[key])[::-1]
     current_access_index = current_access_indices.pop()
@@ -98,9 +108,10 @@ pub fn squash_dict_inner_skip_loop(
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indeces is in scope
-    let current_access_indices = get_access_indices(vm).ok_or_else(|| {
-        VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
-    })?;
+    let current_access_indices =
+        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
+            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
+        })?;
     //Check that ids contains the reference id for each variable used by the hint
     let should_skip_loop_ref = ids.get(&String::from("should_skip_loop")).ok_or_else(|| {
         VirtualMachineError::IncorrectIds(
@@ -140,6 +151,8 @@ mod tests {
     use super::*;
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\n    current_access_index = current_access_indices.pop()\n    memory[ids.range_check_ptr] = current_access_index";
+    const SQUASH_DICT_INNER_SKIP_LOOP: &str =
+        "ids.should_skip_loop = 0 if current_access_indices else 1";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
@@ -294,6 +307,92 @@ mod tests {
             Err(VirtualMachineError::NoLocalVariable(String::from(
                 "access_indices"
             )))
+        );
+    }
+
+    #[test]
+    fn should_skip_loop_valid_empty_current_access_indices() {
+        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP.as_bytes();
+        //Prepare scope variables
+        let current_access_indices = vec![];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..1 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes.assign_or_update_variable(
+            "current_access_indices",
+            PyValueType::List(current_access_indices),
+        );
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("should_skip_loop"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Check the value of ids.should_skip_loop
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+    }
+
+    #[test]
+    fn should_skip_loop_valid_non_empty_current_access_indices() {
+        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP.as_bytes();
+        //Prepare scope variables
+        let current_access_indices = vec![bigint!(4), bigint!(7)];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..1 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes.assign_or_update_variable(
+            "current_access_indices",
+            PyValueType::List(current_access_indices),
+        );
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("should_skip_loop"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Check the value of ids.should_skip_loop
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
 }
