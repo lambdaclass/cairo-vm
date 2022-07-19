@@ -100,7 +100,7 @@ fn compute_addr_from_reference(
 }
 
 ///Computes the memory address given by the reference id
-fn get_address_from_reference(
+pub fn get_address_from_reference(
     reference_id: &BigInt,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,

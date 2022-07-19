@@ -7,9 +7,10 @@ pub struct ExecutionScopes {
     exec_scopes: Vec<HashMap<String, PyValueType>>,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum PyValueType {
     BigInt(BigInt),
+    Dictionary(HashMap<BigInt, BigInt>),
 }
 
 impl ExecutionScopes {
