@@ -5,7 +5,7 @@ use crate::vm::{
     runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 
 pub fn find_element(
@@ -90,7 +90,7 @@ pub fn find_element(
                         ));
                     };
 
-                    if !elm_size.is_positive() {
+                    if elm_size.is_negative() || elm_size.is_zero() {
                         return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
                     }
 
@@ -192,58 +192,256 @@ pub fn find_element(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::hints::execute_hint::execute_hint;
+    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use num_bigint::Sign;
+    use crate::types::instruction::Register;
+    use crate::vm::runners::builtin_runner::OutputBuiltinRunner;
 
-    fn init_vm() -> VirtualMachine {
-        VirtualMachine::new(
+    const FIND_ELEMENT_HINT: &[u8] = "array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\nkey = ids.key\n\nif '__find_element_index' in globals():\n    ids.index = __find_element_index\n    found_key = memory[array_ptr + elm_size * __find_element_index]\n    assert found_key == key, \\\n        f'Invalid index found in __find_element_index. index: {__find_element_index}, ' \\\n        f'expected key {key}, found key: {found_key}.'\n    # Delete __find_element_index to make sure it's not used for the next calls.\n    del __find_element_index\nelse:\n    n_elms = ids.n_elms\n    assert isinstance(n_elms, int) and n_elms >= 0, \\\n        f'Invalid value for n_elms. Got: {n_elms}.'\n    if '__find_element_max_size' in globals():\n        assert n_elms <= __find_element_max_size, \\\n            f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n            f'Got: n_elms={n_elms}.'\n\n    for i in range(n_elms):\n        if memory[array_ptr + elm_size * i] == key:\n            ids.index = i\n            break\n    else:\n        raise ValueError(f'Key {key} was not found.')".as_bytes();
+
+    fn init_vm_ids() -> (VirtualMachine, HashMap<String, BigInt>) {
+        let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+        );
+
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        /* array_ptr = (1,0) -> [Struct{1, 2}, Struct{3, 4}]
+           elm_size = 2
+           n_elms = 2
+           index = None. Should become 1
+           key = 3
+         */
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .expect("Unexpected memory insert fail");
+
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                }
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                }
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                }
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                }
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                }
+            )
+        ]);
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        for (i, s) in ["array_ptr", "elm_size", "n_elms", "index", "key"].iter().enumerate() {
+            ids.insert(s.to_string(), bigint!(i as i32));
+        }
+
+        (vm, ids)
+    }
+
+    #[test]
+    fn element_found_by_search() {
+        let (mut vm, ids) = init_vm_ids();
+        
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
 
     #[test]
-    fn element_found_by_search() {}
+    fn element_found_by_global() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.find_element_index = Some(bigint!(1));
 
-    #[test]
-    fn element_found_by_global() {}
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Ok(()));
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
+        )
+    }
 
     #[test] 
-    fn element_not_found_search() {}
+    fn element_not_found_search() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][4] = Some(MaybeRelocatable::from(bigint!(7)));
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::FindElemKeyNotFound(MaybeRelocatable::Int(bigint!(7)))));
+    }
 
     #[test] 
-    fn element_not_found_global() {}
+    fn element_not_found_global() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.find_element_index = Some(bigint!(2));
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::FindElemNoFoundKey));
+    }
 
     #[test]
-    fn find_elm_incorrect_ids() {}
+    fn find_elm_incorrect_ids() {
+        let (mut vm, mut ids) = init_vm_ids();
+        ids.remove(&"array_ptr".to_string());
+
+        assert!(matches!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::IncorrectIds(_, _))));
+    }
 
     #[test]
-    fn find_elm_failed_ids_get_addres() {}
+    fn find_elm_failed_ids_get_addres() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.references.insert(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -7,
+                offset2: 0,
+                inner_dereference: false,
+            }
+        );
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::FailedToGetIds));
+    }
 
     #[test]
-    fn find_elm_failed_ids_get_from_mem() {}
+    fn find_elm_failed_ids_get_from_mem() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][2] = None;
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::FailedToGetIds));
+    }
 
     #[test]
-    fn find_elm_builtin_is_none() {}
+    fn find_elm_builtin_is_none() {
+        let (mut vm, ids) = init_vm_ids();
+        _ = vm.builtin_runners.pop();
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::NoRangeCheckBuiltin));
+    }
 
     #[test]
-    fn find_elm_range_check_not_present() {}
+    fn find_elm_range_check_not_present() {
+        let (mut vm, ids) = init_vm_ids();
+        _ = vm.builtin_runners.pop();
+        vm.builtin_runners.push(
+            (
+                "output".to_string(),
+                Box::new(OutputBuiltinRunner::new(true)),
+            ));
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::NoRangeCheckBuiltin));
+    }
 
     #[test]
-    fn find_elm_not_int_elm_size() {}
+    fn find_elm_not_int_elm_size() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][2] = Some(MaybeRelocatable::from((7, 8)));
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::ExpectedInteger(MaybeRelocatable::from((7, 8)))));
+    }
 
     #[test]
-    fn find_elm_positive_elm_size() {}
+    fn find_elm_not_positive_elm_size() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][2] = Some(MaybeRelocatable::from(bigint!(0)));
+
+        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Err(VirtualMachineError::ValueOutOfRange(bigint!(-1))));
+    }
 
     #[test]
     fn find_elm_not_int_n_elms() {}
 
     #[test]
-    fn find_elm_not_negative_n_elms() {}
+    fn find_elm_negative_n_elms() {}
 
     #[test]
     fn find_elm_n_elms_gt_max_size() {}
