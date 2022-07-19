@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -15,7 +16,7 @@ use std::collections::HashMap;
 use std::ops::{Neg, Shl, Shr};
 
 fn apply_ap_tracking_correction(
-    ap: MaybeRelocatable,
+    ap: &Relocatable,
     ref_ap_tracking: Option<&ApTracking>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -28,16 +29,12 @@ fn apply_ap_tracking_correction(
                 hint_tracking_data.group,
             ));
         }
-        if let MaybeRelocatable::RelocatableValue(relocatable) = ap {
-            let ap_diff = hint_tracking_data.offset - ref_tracking_data.offset;
+        let ap_diff = hint_tracking_data.offset - ref_tracking_data.offset;
 
-            Ok(MaybeRelocatable::from((
-                relocatable.segment_index,
-                relocatable.offset - ap_diff,
-            )))
-        } else {
-            Err(VirtualMachineError::InvalidApValue(ap))
-        }
+        Ok(MaybeRelocatable::from((
+            ap.segment_index,
+            ap.offset - ap_diff,
+        )))
     } else {
         Err(VirtualMachineError::NoneApTrackingData)
     }
@@ -52,11 +49,16 @@ fn compute_addr_from_reference(
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
-        Register::AP => apply_ap_tracking_correction(
-            run_context.ap.clone(),
-            hint_reference.ap_tracking_data.as_ref(),
-            hint_ap_tracking,
-        )?,
+        Register::AP => {
+            if let MaybeRelocatable::RelocatableValue(relocatable) = &run_context.ap {
+                apply_ap_tracking_correction(
+                    &relocatable,
+                    hint_reference.ap_tracking_data.as_ref(),
+                    hint_ap_tracking,
+                )?;
+            }
+            return Err(VirtualMachineError::InvalidApValue(run_context.ap.clone()));
+        }
     };
 
     if let MaybeRelocatable::RelocatableValue(relocatable) = base_addr {
