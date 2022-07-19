@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::types::instruction::Register;
 use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::{is_subsequence, to_field_element};
@@ -235,6 +236,12 @@ impl CairoRunner {
                         offset1: reference.value_address.offset1,
                         offset2: reference.value_address.offset2,
                         inner_dereference: reference.value_address.inner_dereference,
+                        // only store `ap` tracking data if the reference is referred to it
+                        ap_tracking_data: if register == &Register::FP {
+                            None
+                        } else {
+                            Some(reference.ap_tracking_data.clone())
+                        },
                     },
                 );
             }
@@ -254,6 +261,7 @@ impl CairoRunner {
                     hint_list.push(HintData::new(
                         hint_data.code.clone(),
                         hint_data.flow_tracking_data.reference_ids.clone(),
+                        hint_data.flow_tracking_data.ap_tracking.clone(),
                     ));
                 } else {
                     //Insert the first hint at a given pc
@@ -264,6 +272,7 @@ impl CairoRunner {
                             CairoRunner::remove_path_from_reference_ids(
                                 &hint_data.flow_tracking_data.reference_ids,
                             )?,
+                            hint_data.flow_tracking_data.ap_tracking.clone(),
                         )],
                     );
                 }

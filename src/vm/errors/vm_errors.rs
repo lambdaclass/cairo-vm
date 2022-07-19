@@ -56,6 +56,9 @@ pub enum VirtualMachineError {
     NoDictTracker(usize),
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
+    NoneApTrackingData,
+    InvalidTrackingGroup(usize, usize),
+    InvalidApValue(MaybeRelocatable),
     NoInitialDict,
     WrongPrevValue(BigInt, Option<BigInt>, BigInt),
 }
@@ -171,6 +174,15 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::WrongPrevValue(prev, current, key) => {
                 write!(f, "Dict Error: Got the wrong value for dict_update, expected value: {:?}, got: {:?} for key: {:?}", prev, current, key)
+            },
+            VirtualMachineError::NoneApTrackingData => {
+                write!(f, "AP tracking data is None; could not apply correction to address")
+            },
+            VirtualMachineError::InvalidTrackingGroup(group1, group2) => {
+                write!(f, "Tracking groups should be the same, got {} and {}", group1, group2)
+            },
+            VirtualMachineError::InvalidApValue(addr) => {
+                write!(f, "Expected relocatable for ap, got {:?}", addr)
             },
         }
     }

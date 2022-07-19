@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::{
+    serde::deserialize_program::ApTracking,
     types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
@@ -58,6 +59,7 @@ is not available, an empty dict is created always
 pub fn default_dict_new(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value_ref = if let Some(default_value_ref) = ids.get(&String::from("default_value"))
@@ -70,9 +72,13 @@ pub fn default_dict_new(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let default_value_addr = if let Some(default_value_addr) =
-        get_address_from_reference(default_value_ref, &vm.references, &vm.run_context, vm)
-    {
+    let default_value_addr = if let Ok(Some(default_value_addr)) = get_address_from_reference(
+        default_value_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        hint_ap_tracking,
+    ) {
         default_value_addr
     } else {
         return Err(VirtualMachineError::FailedToGetReference(
@@ -110,6 +116,7 @@ pub fn default_dict_new(
 pub fn dict_read(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (key_ref, value_ref, dict_ptr_ref) =
@@ -131,10 +138,28 @@ pub fn dict_read(
         };
     //Check that each reference id corresponds to a value in the reference manager
     let (key_addr, value_addr, dict_ptr_addr) =
-        if let (Some(key_addr), Some(value_addr), Some(dict_ptr_addr)) = (
-            get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context, vm),
+        if let (Ok(Some(key_addr)), Ok(Some(value_addr)), Ok(Some(dict_ptr_addr))) = (
+            get_address_from_reference(
+                key_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                value_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                dict_ptr_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
         ) {
             (key_addr, value_addr, dict_ptr_addr)
         } else {
@@ -180,6 +205,7 @@ pub fn dict_read(
 pub fn dict_write(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (key_ref, value_ref, dict_ptr_ref) =
@@ -201,10 +227,28 @@ pub fn dict_write(
         };
     //Check that each reference id corresponds to a value in the reference manager
     let (key_addr, value_addr, dict_ptr_addr) =
-        if let (Some(key_addr), Some(value_addr), Some(dict_ptr_addr)) = (
-            get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(value_ref, &vm.references, &vm.run_context, vm),
-            get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context, vm),
+        if let (Ok(Some(key_addr)), Ok(Some(value_addr)), Ok(Some(dict_ptr_addr))) = (
+            get_address_from_reference(
+                key_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                value_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
+            get_address_from_reference(
+                dict_ptr_ref,
+                &vm.references,
+                &vm.run_context,
+                vm,
+                hint_ap_tracking,
+            ),
         ) {
             (key_addr, value_addr, dict_ptr_addr)
         } else {
@@ -274,6 +318,7 @@ pub fn dict_write(
 pub fn dict_update(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (key_ref, prev_value_ref, new_value_ref, dict_ptr_ref) =
@@ -297,15 +342,39 @@ pub fn dict_update(
         };
     //Check that each reference id corresponds to a value in the reference manager
     let (key_addr, prev_value_addr, new_value_addr, dict_ptr_addr) = if let (
-        Some(key_addr),
-        Some(prev_value_addr),
-        Some(new_value_addr),
-        Some(dict_ptr_addr),
+        Ok(Some(key_addr)),
+        Ok(Some(prev_value_addr)),
+        Ok(Some(new_value_addr)),
+        Ok(Some(dict_ptr_addr)),
     ) = (
-        get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(prev_value_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(new_value_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(dict_ptr_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(
+            key_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            prev_value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            new_value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            dict_ptr_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
     ) {
         (key_addr, prev_value_addr, new_value_addr, dict_ptr_addr)
     } else {
@@ -381,7 +450,8 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new())
+            .expect("Error while executing hint");
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 1);
         //new segment base (0,0) is inserted into ap (0,0)
@@ -408,7 +478,7 @@ mod tests {
         );
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new()),
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
@@ -433,7 +503,7 @@ mod tests {
             .unwrap();
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new()),
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -498,6 +568,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -507,6 +578,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -516,11 +588,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that value variable (at address (0,1)) contains the proper value
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 1))),
@@ -587,6 +663,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -596,6 +673,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -605,12 +683,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
@@ -661,6 +740,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -670,6 +750,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -679,12 +760,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -721,9 +803,11 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 3);
         //new segment base (2,0) is inserted into ap (0,0)
@@ -765,10 +849,11 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -836,6 +921,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -845,6 +931,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -854,11 +941,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             vm.dict_manager
@@ -944,6 +1035,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -953,6 +1045,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -962,11 +1055,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             vm.dict_manager
@@ -1052,6 +1149,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1061,6 +1159,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1070,11 +1169,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             vm.dict_manager
@@ -1158,6 +1261,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1167,6 +1271,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1176,12 +1281,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -1258,6 +1364,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1267,6 +1374,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1276,6 +1384,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1285,11 +1394,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             vm.dict_manager
@@ -1379,6 +1492,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1388,6 +1502,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1397,6 +1512,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1406,11 +1522,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             vm.dict_manager
@@ -1500,6 +1620,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1509,6 +1630,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1518,6 +1640,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1527,12 +1650,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 Some(bigint!(10)),
@@ -1613,6 +1737,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1622,6 +1747,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1631,6 +1757,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1640,12 +1767,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 None,
@@ -1727,6 +1855,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1736,6 +1865,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1745,6 +1875,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1754,11 +1885,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             vm.dict_manager
@@ -1849,6 +1984,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1858,6 +1994,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1867,6 +2004,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1876,11 +2014,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             vm.dict_manager
@@ -1971,6 +2113,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1980,6 +2123,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1989,6 +2133,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1998,12 +2143,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 Some(bigint!(10)),
@@ -2085,6 +2231,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2094,6 +2241,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2103,6 +2251,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2112,12 +2261,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 Some(bigint!(17)),
@@ -2197,6 +2347,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2206,6 +2357,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2215,6 +2367,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2224,11 +2377,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             vm.dict_manager

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use num_bigint::BigInt;
 
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::dict_hint_utils::{
@@ -20,56 +21,55 @@ pub struct HintReference {
     pub offset1: i32,
     pub offset2: i32,
     pub inner_dereference: bool,
+    pub ap_tracking_data: Option<ApTracking>,
 }
 
 pub fn execute_hint(
     vm: &mut VirtualMachine,
     hint_code: &[u8],
     ids: HashMap<String, BigInt>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
-        Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => is_nn(vm, ids),
+        Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => is_nn(vm, ids, None),
         Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1") => {
-            is_nn_out_of_range(vm, ids)
+            is_nn_out_of_range(vm, ids, None)
         }
-        Ok("memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1") => is_le_felt(vm, ids),
+        Ok("memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1") => is_le_felt(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
-        ) => assert_le_felt(vm, ids),
+        ) => assert_le_felt(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)",
-        ) => assert_250_bit(vm, ids),
+        ) => assert_250_bit(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0"
-        ) => is_positive(vm, ids),
+        ) => is_positive(vm, ids, Some(ap_tracking)),
         Ok("assert ids.value == 0, 'split_int(): value is out of range.'"
-        ) => split_int_assert_range(vm, ids),
+        ) => split_int_assert_range(vm, ids, None),
         Ok("memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'"
-        ) => split_int(vm, ids),
+        ) => split_int(vm, ids, None),
         Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
-        ) => assert_not_equal(vm, ids),
+        ) => assert_not_equal(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
-        ) => assert_nn(vm, ids),
+        ) => assert_nn(vm, ids, None),
         Ok("from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
-        ) => sqrt(vm, ids),
+        ) => sqrt(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"
-        ) => assert_not_zero(vm, ids),
+        ) => assert_not_zero(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
+        ) => split_felt(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)") => unsigned_div_rem(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound") => signed_div_rem(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'") => assert_lt_felt(vm, ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict"
         ) => dict_new(vm),
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-        ) => dict_read(vm, ids),
+        ) => dict_read(vm, ids, None),
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-        ) => dict_write(vm, ids),
+        ) => dict_write(vm, ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
-        ) => default_dict_new(vm, ids),
+        ) => default_dict_new(vm, ids, None),
         Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-        ) => dict_update(vm, ids),
-        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
-        ) => split_felt(vm, ids),
-        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)"
-        ) => unsigned_div_rem(vm, ids),
-        Ok("from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound"
-        ) => signed_div_rem(vm, ids),
-        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
-        ) => assert_lt_felt(vm, ids),
+        ) => dict_update(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
@@ -102,7 +102,8 @@ mod tests {
             false,
         );
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new())
+            .expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 1);
         //new segment base (0,0) is inserted into ap (0,0)
@@ -126,7 +127,8 @@ mod tests {
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, HashMap::new()).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new())
+            .expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
         //new segment base (3,0) is inserted into ap (2,6)
@@ -158,7 +160,7 @@ mod tests {
             .unwrap();
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new()),
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 6)),
@@ -177,8 +179,9 @@ mod tests {
             Vec::new(),
             false,
         );
+
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new()),
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::UnknownHint(
                 String::from_utf8(hint_code.to_vec()).unwrap()
             ))
@@ -221,10 +224,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         //Check that ap now contains false (0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -268,10 +273,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -320,10 +327,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -340,7 +349,7 @@ mod tests {
             false,
         );
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, HashMap::new()),
+            execute_hint(&mut vm, &hint_code, HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::InvalidHintEncoding(vm.run_context.pc))
         );
     }
@@ -378,11 +387,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -409,7 +419,7 @@ mod tests {
         ids.insert(String::from("b"), bigint!(0));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a")],
                 vec![String::from("b")]
@@ -447,11 +457,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryGet(MaybeRelocatable::from((
                 0, 0
             ))))
@@ -494,11 +505,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -558,6 +570,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -567,6 +580,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -576,11 +590,15 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
     }
 
@@ -629,6 +647,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -638,11 +657,12 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, ids).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
     #[test]
@@ -686,6 +706,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -695,13 +716,14 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -749,6 +771,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -758,12 +781,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -815,6 +839,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -824,6 +849,7 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
@@ -831,7 +857,7 @@ mod tests {
         // Since the ids are a map, the order might not always match and so the error returned
         // sometimes might be different
         assert!(matches!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ));
     }
@@ -872,10 +898,14 @@ mod tests {
                 offset1: -4,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
     }
 
@@ -915,11 +945,12 @@ mod tests {
                 offset1: -4,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -960,11 +991,12 @@ mod tests {
                 offset1: -4,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a")],
                 vec![String::from("incorrect_id")],
@@ -1008,11 +1040,12 @@ mod tests {
                 offset1: 10,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1053,11 +1086,12 @@ mod tests {
                 offset1: -4,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1097,11 +1131,12 @@ mod tests {
                 offset1: -4,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -1134,11 +1169,12 @@ mod tests {
                 offset1: -4,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1196,6 +1232,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1205,6 +1242,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1214,12 +1252,13 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
@@ -1277,6 +1316,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1286,6 +1326,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1295,12 +1336,13 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1358,6 +1400,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1367,6 +1410,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1376,12 +1420,13 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1441,6 +1486,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1450,6 +1496,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1459,12 +1506,13 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -1508,10 +1556,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
@@ -1555,10 +1605,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
@@ -1605,6 +1657,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1614,12 +1667,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(1)),
                 MaybeRelocatable::from(bigint!(1))
@@ -1668,6 +1722,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1677,11 +1732,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -1729,6 +1788,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1738,12 +1798,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(-1)),
                 MaybeRelocatable::from(bigint_str!(
@@ -1794,6 +1855,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1803,12 +1865,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from((0, 0)),
                 MaybeRelocatable::from((0, 0))
@@ -1857,6 +1920,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1866,11 +1930,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -1914,6 +1982,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1923,12 +1992,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::DiffIndexComp(
                 relocatable!(1, 0),
                 relocatable!(0, 0)
@@ -1977,6 +2047,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -1986,12 +2057,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::DiffTypeComparison(
                 MaybeRelocatable::from((1, 0)),
                 MaybeRelocatable::from(bigint!(1))
@@ -2016,6 +2088,7 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2034,7 +2107,10 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(0));
 
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -2054,6 +2130,7 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2073,7 +2150,7 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotZero(bigint!(0), vm.prime))
         );
     }
@@ -2095,6 +2172,7 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2114,7 +2192,7 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotZero(
                 vm.prime.clone(),
                 vm.prime
@@ -2139,6 +2217,7 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2158,7 +2237,7 @@ mod tests {
         ids.insert(String::from("value"), bigint!(10));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetReference(bigint!(10)))
         );
     }
@@ -2180,6 +2259,7 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2199,7 +2279,7 @@ mod tests {
         ids.insert(String::from("incorrect_id"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("value")],
                 vec![String::from("incorrect_id")],
@@ -2223,6 +2303,7 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2242,7 +2323,7 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -2281,11 +2362,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::SplitIntNotZero)
         );
     }
@@ -2322,10 +2404,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -2386,6 +2472,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2395,6 +2482,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2404,6 +2492,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2413,11 +2502,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(2))))
@@ -2482,6 +2575,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2491,6 +2585,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2500,6 +2595,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2509,12 +2605,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::SplitIntLimbOutOfRange(bigint!(100)))
         );
     }
@@ -2558,6 +2655,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2567,11 +2665,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         //Check that is_positive now contains 1 (true)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 1))),
@@ -2618,6 +2718,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2627,11 +2728,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, ids).expect("Error while executing hint");
+        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+            .expect("Error while executing hint");
         //Check that is_positive now contains 0 (false)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 1))),
@@ -2681,6 +2784,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2690,12 +2794,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutsideValidRange(as_int(
                 &BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
                 &vm.prime
@@ -2747,6 +2852,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2756,12 +2862,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -2806,6 +2913,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2815,11 +2923,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Check that root (0,1) has the square root of 81
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 1))),
@@ -2861,6 +2973,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2870,12 +2983,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutside250BitRange(bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
             )))
@@ -2923,6 +3037,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -2932,12 +3047,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -2993,6 +3109,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3002,6 +3119,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3011,6 +3129,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3020,11 +3139,12 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, ids).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(2))))
@@ -3080,6 +3200,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3089,6 +3210,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3098,6 +3220,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3107,12 +3230,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -3162,6 +3286,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3171,6 +3296,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3180,6 +3306,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3189,12 +3316,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -3250,6 +3378,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3259,6 +3388,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3268,6 +3398,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3277,12 +3408,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -3338,6 +3470,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3347,6 +3480,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3356,6 +3490,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3365,12 +3500,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert!(matches!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ))
     }
@@ -3428,6 +3564,7 @@ mod tests {
                     offset1: -6,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3437,6 +3574,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3446,6 +3584,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3455,6 +3594,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3464,6 +3604,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3473,11 +3614,12 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, ids).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
@@ -3541,6 +3683,7 @@ mod tests {
                     offset1: -6,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3550,6 +3693,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3559,6 +3703,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3568,6 +3713,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3577,6 +3723,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3586,11 +3733,12 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, ids).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(4))))
@@ -3654,6 +3802,7 @@ mod tests {
                     offset1: -6,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3663,6 +3812,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3672,6 +3822,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3681,6 +3832,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3690,6 +3842,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3699,12 +3852,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -3762,6 +3916,7 @@ mod tests {
                     offset1: -6,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3771,6 +3926,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3780,6 +3936,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3789,6 +3946,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3798,6 +3956,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3807,12 +3966,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -3876,6 +4036,7 @@ mod tests {
                     offset1: -6,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3885,6 +4046,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3894,6 +4056,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3903,6 +4066,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3912,6 +4076,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3921,12 +4086,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -3990,6 +4156,7 @@ mod tests {
                     offset1: -6,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -3999,6 +4166,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4008,6 +4176,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4017,6 +4186,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4026,6 +4196,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4035,12 +4206,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert!(matches!(
-            execute_hint(&mut vm, &hint_code, ids),
+            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ))
     }
@@ -4080,6 +4252,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4089,6 +4262,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4098,11 +4272,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
         assert_eq!(
@@ -4151,6 +4329,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4160,6 +4339,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4169,12 +4349,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutside250BitRange(
                 bigint!(1).shl(251i32)
             ))
@@ -4232,6 +4413,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4241,6 +4423,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4250,11 +4433,15 @@ mod tests {
                     offset1: -3,
                     offset2: 1,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -4318,6 +4505,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4327,6 +4515,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4336,12 +4525,13 @@ mod tests {
                     offset1: -3,
                     offset2: 1,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, incomplete_ids),
+            execute_hint(&mut vm, hint_code, incomplete_ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![
                     String::from("high"),
@@ -4404,6 +4594,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4413,6 +4604,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4422,12 +4614,13 @@ mod tests {
                     offset1: -3,
                     offset2: 1,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -4483,6 +4676,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4492,6 +4686,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4501,6 +4696,7 @@ mod tests {
                     offset1: -3,
                     offset2: 1,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
@@ -4515,7 +4711,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
@@ -4577,6 +4773,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4586,6 +4783,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4595,6 +4793,7 @@ mod tests {
                     offset1: -3,
                     offset2: 1,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
@@ -4609,7 +4808,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 1)),
@@ -4671,6 +4870,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4680,6 +4880,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4689,12 +4890,13 @@ mod tests {
                     offset1: -3,
                     offset2: 1,
                     inner_dereference: true,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -4752,6 +4954,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4761,11 +4964,15 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -4819,6 +5026,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4828,12 +5036,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertLtFelt(bigint!(3), bigint!(2)))
         );
     }
@@ -4888,6 +5097,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4897,12 +5107,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a"), String::from("b"),],
                 vec![String::from("a"),],
@@ -4962,6 +5173,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -4971,12 +5183,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -5032,6 +5245,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -5041,12 +5255,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -5104,6 +5319,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -5113,12 +5329,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))
@@ -5176,6 +5393,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -5185,12 +5403,13 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
