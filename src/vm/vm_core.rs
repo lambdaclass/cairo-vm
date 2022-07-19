@@ -7,6 +7,7 @@ use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::dict_manager::DictManager;
 use crate::vm::hints::execute_hint::execute_hint;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
@@ -35,11 +36,14 @@ pub struct HintData {
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
 }
+
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     pub segments: MemorySegmentManager,
+    pub _program_base: Option<MaybeRelocatable>,
+    pub memory: Memory,
     pub exec_scopes: ExecutionScopes,
     //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
@@ -51,8 +55,6 @@ pub struct VirtualMachine {
     //debug_file_contents: HashMap<String, String>,
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
-    pub _program_base: Option<MaybeRelocatable>,
-    pub memory: Memory,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     //Some(accessed_addresses) == proof mode enabled
     accessed_addresses: Option<Vec<MaybeRelocatable>>,
@@ -60,6 +62,7 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
+    pub dict_manager: DictManager,
 }
 
 impl HintData {
@@ -100,6 +103,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
         }
     }
@@ -2428,6 +2432,7 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
         };
 
