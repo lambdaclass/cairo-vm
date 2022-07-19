@@ -36,7 +36,7 @@ fn apply_ap_tracking_correction(
 }
 
 ///Computes the memory address indicated by the HintReference
-fn compute_addr_from_reference(
+pub fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
     vm: &VirtualMachine,
