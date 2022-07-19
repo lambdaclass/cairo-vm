@@ -129,23 +129,18 @@ fn get_address_from_var_name(
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
-    let var_ref = if let Some(var_ref) = ids.get(&String::from(var_name)) {
-        var_ref
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
-
-    if let Ok(Some(var_addr)) = get_address_from_reference(
+    let var_ref = ids
+        .get(&String::from(var_name))
+        .ok_or(VirtualMachineError::FailedToGetIds)?;
+    get_address_from_reference(
         var_ref,
         &vm.references,
         &vm.run_context,
         vm,
         hint_ap_tracking,
-    ) {
-        return Ok(var_addr);
-    }
-
-    Err(VirtualMachineError::FailedToGetIds)
+    )
+    .map_err(|_| VirtualMachineError::FailedToGetIds)?
+    .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
 ///Implements hint: memory[ap] = segments.add()
@@ -1344,10 +1339,9 @@ pub fn unsigned_div_rem(
 //  Implements hint:
 //  %{ vm_exit_scope() %}
 pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    match vm.exec_scopes.exit_scope() {
-        Ok(_) => Ok(()),
-        Err(e) => Err(VirtualMachineError::MainScopeError(e)),
-    }
+    vm.exec_scopes
+        .exit_scope()
+        .map_err(VirtualMachineError::MainScopeError)
 }
 
 //  Implements hint:
@@ -1391,9 +1385,9 @@ pub fn memcpy_continue_copying(
         get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
-    let mut n = match vm.exec_scopes.get_local_variables() {
+    let n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
-            Some(PyValueType::BigInt(n)) => n.clone(),
+            Some(PyValueType::BigInt(n)) => n,
             _ => {
                 return Err(VirtualMachineError::VariableNotInScopeError(String::from(
                     "n",
@@ -1404,25 +1398,13 @@ pub fn memcpy_continue_copying(
     };
 
     // reassign `n` with `n - 1`
+    let new_n = n - 1_i32;
     vm.exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(n - 1_i32));
-
-    // get new value of `n`
-    n = match vm.exec_scopes.get_local_variables() {
-        Some(variables) => match variables.get("n") {
-            Some(PyValueType::BigInt(n)) => n.clone(),
-            _ => {
-                return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                    "n",
-                )))
-            }
-        },
-        None => return Err(VirtualMachineError::ScopeError),
-    };
+        .assign_or_update_variable("n", PyValueType::BigInt(new_n.clone()));
 
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
-    if n.is_positive() {
+    if new_n.is_positive() {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
             .map_err(VirtualMachineError::MemoryError)
