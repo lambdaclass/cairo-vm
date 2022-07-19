@@ -1,5 +1,5 @@
 use crate::types::program::Program;
-use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
+use crate::vm::errors::cairo_run_errors::CairoRunError;
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
