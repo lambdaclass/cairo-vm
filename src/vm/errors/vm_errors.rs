@@ -53,7 +53,6 @@ pub enum VirtualMachineError {
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
     CantCreateDictionaryOnTakenSegment(usize),
-    NoDictManager,
     NoDictTracker(usize),
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
@@ -157,9 +156,6 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
                 write!(f, "DictManagerError: Tried to create tracker for a dictionary on segment: {:?} when there is already a tracker for a dictionary on this segment", index)
-            },
-            VirtualMachineError::NoDictManager => {
-                write!(f, "Dict Error: No dict manager found")
             },
             VirtualMachineError::NoDictTracker(index) => {
                 write!(f, "Dict Error: No dict tracker found for segment {:?}", index)

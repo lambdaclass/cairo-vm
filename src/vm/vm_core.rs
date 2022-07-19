@@ -61,7 +61,7 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
-    pub dict_manager: Option<DictManager>,
+    pub dict_manager: DictManager,
 }
 
 impl HintData {
@@ -102,7 +102,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: None,
+            dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
         }
     }
@@ -2425,7 +2425,7 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: None,
+            dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
         };
 

@@ -7,7 +7,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::{dict_manager::DictManager, hint_utils::get_address_from_reference};
+use super::hint_utils::get_address_from_reference;
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 const DICT_ACCESS_SIZE: usize = 3;
 
@@ -34,17 +34,11 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available
 */
 pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    if vm.dict_manager.is_none() {
-        vm.dict_manager = Some(DictManager::new());
-    }
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict = get_initial_dict(vm).ok_or(VirtualMachineError::NoInitialDict)?;
-    //This unwrap will never fail as dict_manager is checked for None value beforehand
-    let base = vm.dict_manager.as_mut().unwrap().new_dict(
-        &mut vm.segments,
-        &mut vm.memory,
-        initial_dict,
-    )?;
+    let base = vm
+        .dict_manager
+        .new_dict(&mut vm.segments, &mut vm.memory, initial_dict)?;
     vm.memory
         .insert(&vm.run_context.ap, &base)
         .map_err(VirtualMachineError::MemoryError)
@@ -65,9 +59,6 @@ pub fn default_dict_new(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    if vm.dict_manager.is_none() {
-        vm.dict_manager = Some(DictManager::new());
-    }
     //Check that ids contains the reference id for each variable used by the hint
     let default_value_ref = if let Some(default_value_ref) = ids.get(&String::from("default_value"))
     {
@@ -99,8 +90,8 @@ pub fn default_dict_new(
 
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = get_initial_dict(vm);
-    //This unwrap will never fail as dict_manager is checked for None value beforehand
-    let base = vm.dict_manager.as_mut().unwrap().new_default_dict(
+
+    let base = vm.dict_manager.new_default_dict(
         &mut vm.segments,
         &mut vm.memory,
         &default_value,
@@ -120,9 +111,6 @@ pub fn dict_read(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    if vm.dict_manager.is_none() {
-        return Err(VirtualMachineError::NoDictManager);
-    }
     //Check that ids contains the reference id for each variable used by the hint
     let (key_ref, value_ref, dict_ptr_ref) =
         if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
@@ -163,17 +151,12 @@ pub fn dict_read(
             Ok(_),
             Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
         ) => {
-            let tracker = if let Some(tracker) = vm
-                .dict_manager
-                .as_mut()
-                .unwrap()
-                .trackers
-                .get_mut(&dict_ptr.segment_index)
-            {
-                tracker
-            } else {
-                return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
-            };
+            let tracker =
+                if let Some(tracker) = vm.dict_manager.trackers.get_mut(&dict_ptr.segment_index) {
+                    tracker
+                } else {
+                    return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
+                };
             tracker.current_ptr.offset += DICT_ACCESS_SIZE;
             let value = if let Some(value) = tracker.data.get(key) {
                 value
@@ -198,9 +181,6 @@ pub fn dict_write(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    if vm.dict_manager.is_none() {
-        return Err(VirtualMachineError::NoDictManager);
-    }
     //Check that ids contains the reference id for each variable used by the hint
     let (key_ref, value_ref, dict_ptr_ref) =
         if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
@@ -249,13 +229,7 @@ pub fn dict_write(
     let value_copy = new_value.clone();
 
     //Get tracker for dictionary
-    let tracker = if let Some(tracker) = vm
-        .dict_manager
-        .as_mut()
-        .unwrap()
-        .trackers
-        .get_mut(&dict_ptr.segment_index)
-    {
+    let tracker = if let Some(tracker) = vm.dict_manager.trackers.get_mut(&dict_ptr.segment_index) {
         tracker
     } else {
         return Err(VirtualMachineError::NoDictTracker(dict_ptr.segment_index));
@@ -296,7 +270,7 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::dict_manager::Dictionary;
+    use crate::vm::hints::dict_manager::{DictManager, Dictionary};
     use crate::vm::hints::execute_hint::HintReference;
     use crate::{bigint, relocatable};
     use crate::{
@@ -326,12 +300,10 @@ mod tests {
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from((0, 0))))
         );
-        //Check there is a dict_manager
-        assert_ne!(vm.dict_manager, None);
         //Check the dict manager has a tracker for segment 0,
         //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
-            vm.dict_manager.unwrap().trackers.get(&0),
+            vm.dict_manager.trackers.get(&0),
             Some(&DictTracker::new_empty(&relocatable!(0, 0)))
         );
     }
@@ -406,7 +378,7 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
@@ -467,13 +439,7 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager
-                .as_mut()
-                .unwrap()
-                .trackers
-                .get(&1)
-                .unwrap()
-                .current_ptr,
+            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -501,7 +467,7 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
@@ -575,7 +541,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create manager
         let dict_manager = DictManager::new();
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
@@ -635,78 +601,6 @@ mod tests {
     }
 
     #[test]
-    fn run_dict_read_no_manager() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            .as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-        //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
-        //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //ids.value
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
-        //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                },
-            ),
-        ]);
-        //Execute the hint
-        assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
-            Err(VirtualMachineError::NoDictManager)
-        );
-    }
-
-    #[test]
     fn run_default_dict_new_valid() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
         let mut vm = VirtualMachine::new(
@@ -748,12 +642,10 @@ mod tests {
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from((2, 0))))
         );
-        //Check there is a dict_manager
-        assert_ne!(vm.dict_manager, None);
         //Check the dict manager has a tracker for segment 2,
         //and that tracker contains the ptr (2,0) and an empty dict
         assert_eq!(
-            vm.dict_manager.unwrap().trackers.get(&2),
+            vm.dict_manager.trackers.get(&2),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(2, 0),
                 &bigint!(17),
@@ -814,7 +706,7 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
@@ -881,8 +773,6 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             vm.dict_manager
-                .as_mut()
-                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -892,13 +782,7 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager
-                .as_mut()
-                .unwrap()
-                .trackers
-                .get(&1)
-                .unwrap()
-                .current_ptr,
+            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
             relocatable!(1, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the default_value (2)
@@ -930,7 +814,7 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
@@ -997,8 +881,6 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             vm.dict_manager
-                .as_mut()
-                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1008,13 +890,7 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager
-                .as_mut()
-                .unwrap()
-                .trackers
-                .get(&1)
-                .unwrap()
-                .current_ptr,
+            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
             relocatable!(1, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
@@ -1046,7 +922,7 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
@@ -1113,8 +989,6 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             vm.dict_manager
-                .as_mut()
-                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1124,13 +998,7 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager
-                .as_mut()
-                .unwrap()
-                .trackers
-                .get(&1)
-                .unwrap()
-                .current_ptr,
+            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
             relocatable!(1, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
@@ -1160,7 +1028,7 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = Some(dict_manager);
+        vm.dict_manager = dict_manager;
         //Insert ids into memory
         //ids.key
         vm.memory
