@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use num_bigint::BigInt;
+use num_traits::FromPrimitive;
 
 use crate::{
+    bigint,
     types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
@@ -87,6 +89,42 @@ pub fn squash_dict_inner_first_iteration(
     let range_check_ptr_copy = range_check_ptr.clone();
     vm.memory
         .insert(&range_check_ptr_copy, &MaybeRelocatable::from(first_val))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+// Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
+pub fn squash_dict_inner_skip_loop(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that current_access_indeces is in scope
+    let current_access_indices = get_access_indices(vm).ok_or_else(|| {
+        VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
+    })?;
+    //Check that ids contains the reference id for each variable used by the hint
+    let should_skip_loop_ref = ids.get(&String::from("should_skip_loop")).ok_or_else(|| {
+        VirtualMachineError::IncorrectIds(
+            vec![String::from("should_skip_loop")],
+            ids.clone().into_keys().collect(),
+        )
+    })?;
+    //Check that each reference id corresponds to a value in the reference manager
+    let should_skip_loop_addr =
+        get_address_from_reference(should_skip_loop_ref, &vm.references, &vm.run_context, vm)
+            .ok_or_else(|| {
+                VirtualMachineError::FailedToGetReference(should_skip_loop_ref.clone())
+            })?;
+    //Main Logic
+    let should_skip_loop = if current_access_indices.is_empty() {
+        bigint!(0)
+    } else {
+        bigint!(1)
+    };
+    vm.memory
+        .insert(
+            &should_skip_loop_addr,
+            &MaybeRelocatable::from(should_skip_loop),
+        )
         .map_err(VirtualMachineError::MemoryError)
 }
 
