@@ -193,4 +193,46 @@ pub fn find_element(
 mod tests {
     use super::*;
     use crate::vm::hints::execute_hint::execute_hint;
+
+    #[test]
+    fn element_found_by_search() {}
+
+    #[test]
+    fn element_found_by_global() {}
+
+    #[test] 
+    fn element_not_found_search() {}
+
+    #[test] 
+    fn element_not_found_global() {}
+
+    #[test]
+    fn find_elm_incorrect_ids() {}
+
+    #[test]
+    fn find_elm_failed_ids_get_addres() {}
+
+    #[test]
+    fn find_elm_failed_ids_get_from_mem() {}
+
+    #[test]
+    fn find_elm_builtin_is_none() {}
+
+    #[test]
+    fn find_elm_range_check_not_present() {}
+
+    #[test]
+    fn find_elm_not_int_elm_size() {}
+
+    #[test]
+    fn find_elm_positive_elm_size() {}
+
+    #[test]
+    fn find_elm_not_int_n_elms() {}
+
+    #[test]
+    fn find_elm_not_negative_n_elms() {}
+
+    #[test]
+    fn find_elm_n_elms_gt_max_size() {}
 }
