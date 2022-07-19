@@ -52,7 +52,11 @@ pub enum VirtualMachineError {
     SqrtNegative(BigInt),
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
+    CantCreateDictionaryOnTakenSegment(usize),
+    NoDictTracker(usize),
+    NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
+    NoInitialDict,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -150,9 +154,19 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
             },
+            VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
+                write!(f, "DictManagerError: Tried to create tracker for a dictionary on segment: {:?} when there is already a tracker for a dictionary on this segment", index)
+            },
+            VirtualMachineError::NoDictTracker(index) => {
+                write!(f, "Dict Error: No dict tracker found for segment {:?}", index)
+            },
+            VirtualMachineError::NoValueForKey(key) => {
+                write!(f, "Dict Error: No value found for key: {:?}", key)},
             VirtualMachineError::AssertLtFelt(a, b) => {
                 write!(f, "Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", a, b)
-
+            },
+            VirtualMachineError::NoInitialDict => {
+                write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
             },
         }
     }
