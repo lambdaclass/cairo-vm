@@ -340,6 +340,7 @@ pub fn dict_update(
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value.clone(),
             current_value.cloned(),
+            key.clone(),
         ));
     }
     //Update Value
