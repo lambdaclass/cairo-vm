@@ -808,27 +808,8 @@ pub fn is_positive(
     ) {
         (value_addr, is_positive_addr)
     } else {
-        println!(
-            "PRINT 1: {:?}, PRINT 2: {:?}",
-            get_address_from_reference(
-                value_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                is_positive_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-        );
         return Err(VirtualMachineError::FailedToGetIds);
     };
-
-    println!("Entre match");
 
     //Check that the ids are in memory
     match (vm.memory.get(&value_addr), vm.memory.get(&is_positive_addr)) {
