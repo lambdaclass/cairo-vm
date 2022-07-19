@@ -189,3 +189,9 @@ pub fn find_element(
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::hints::execute_hint::execute_hint;
+}
