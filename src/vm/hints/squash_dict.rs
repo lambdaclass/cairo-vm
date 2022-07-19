@@ -51,7 +51,7 @@ pub fn squash_dict_inner_first_iteration(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that access_indeces is in scope
+    //Check that access_indices and key are in scope
     let access_indices = get_access_indices(vm)
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
     let key = get_int_from_scope(vm, "key")
