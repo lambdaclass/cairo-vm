@@ -39,6 +39,7 @@ $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
+	cargo install --version 1.14.0 hyperfine
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
