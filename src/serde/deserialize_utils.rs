@@ -68,20 +68,14 @@ pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseErro
         // issue: https://github.com/lambdaclass/cleopatra_cairo/issues/280
 
         // _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
-        _ => {
-            println!(
-                "Warning: {:?}: \n Avoid Parse Error creating a default ValueAddres",
-                ReferenceParseError::InvalidStringError(String::from(value))
-            );
-            Ok(ValueAddress {
-                register: Some(Register::FP),
-                offset1: 0,
-                offset2: 0,
-                immediate: None,
-                dereference: true,
-                inner_dereference: false,
-            })
-        }
+        _ => Ok(ValueAddress {
+            register: Some(Register::FP),
+            offset1: 0,
+            offset2: 0,
+            immediate: None,
+            dereference: true,
+            inner_dereference: false,
+        }),
     }
 }
 // parse string values of format `[cast(reg, *felt)]`
@@ -163,20 +157,14 @@ pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError>
         // issue: https://github.com/lambdaclass/cleopatra_cairo/issues/280
 
         // _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
-        _ => {
-            println!(
-                "Warning: {:?}: \n Avoid Parse Error creating a default ValueAddres",
-                ReferenceParseError::InvalidStringError(String::from(value))
-            );
-            Ok(ValueAddress {
-                register: Some(Register::FP),
-                offset1: 0,
-                offset2: 0,
-                immediate: None,
-                dereference: false,
-                inner_dereference: false,
-            })
-        }
+        _ => Ok(ValueAddress {
+            register: Some(Register::FP),
+            offset1: 0,
+            offset2: 0,
+            immediate: None,
+            dereference: false,
+            inner_dereference: false,
+        }),
     }
 }
 
