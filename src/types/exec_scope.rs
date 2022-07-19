@@ -11,6 +11,7 @@ pub struct ExecutionScopes {
 pub enum PyValueType {
     BigInt(BigInt),
     Dictionary(HashMap<BigInt, BigInt>),
+    KeyToListMap(HashMap<BigInt, Vec<BigInt>>),
 }
 
 impl ExecutionScopes {

@@ -57,6 +57,7 @@ pub enum VirtualMachineError {
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
     NoInitialDict,
+    NoLocalVariable(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -167,6 +168,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NoInitialDict => {
                 write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
+            },
+            VirtualMachineError::NoLocalVariable(name) => {
+                write!(f, "Hint Exception: Couldnt find local variable '{:?}'", name)
             },
         }
     }
