@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658268826296,
+  "lastUpdate": 1658272486639,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -5229,6 +5229,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 2197,
             "range": "± 176",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4aa98785e122748ce0155d4cea6b9117aa14da4c",
+          "message": "[HINTS] Add support for memcpy hints (#297)\n\n* Save work in progress\r\n\r\n* Save work in progress\r\n\r\n* Add unit tests for memcpy_enter_scope hint\r\n\r\n* Finish all unit test for memcpy hints\r\n\r\n* Add integration test for memcpy hints\r\n\r\n* Add memcpy_test.cairo to cairo_programs\r\n\r\n* Small refactors in hint functions\r\n\r\n* Small refactors in memcpy_continue_copying",
+          "timestamp": "2022-07-19T20:09:56-03:00",
+          "tree_id": "0c31bd822c778fa385ad1a229408af109e53b4ab",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/4aa98785e122748ce0155d4cea6b9117aa14da4c"
+        },
+        "date": 1658272483763,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2002,
+            "range": "± 158",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 2098,
+            "range": "± 144",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 2129,
+            "range": "± 279",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 2122,
+            "range": "± 163",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 2120,
+            "range": "± 230",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 2106,
+            "range": "± 112",
             "unit": "ns/iter"
           }
         ]
