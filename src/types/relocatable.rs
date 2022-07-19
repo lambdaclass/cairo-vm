@@ -404,10 +404,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
         let sub_addr = addr_a.sub(addr_b, &bigint!(23));
-        assert_eq!(
-            Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 10))),
-            sub_addr
-        );
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(10))), sub_addr);
     }
 
     #[test]
