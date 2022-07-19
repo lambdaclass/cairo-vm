@@ -1,4 +1,7 @@
-use crate::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
+use crate::{
+    bigint,
+    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
@@ -132,10 +135,9 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel_a.segment_index,
-                        offset: rel_a.offset - rel_b.offset,
-                    }));
+                    return Ok(MaybeRelocatable::from(bigint!(
+                        (rel_a.offset - rel_b.offset) as i32
+                    )));
                 }
                 Err(VirtualMachineError::DiffIndexSub)
             }
