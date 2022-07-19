@@ -163,4 +163,99 @@ mod tests {
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
     }
+
+    #[test]
+    fn squash_dict_inner_first_iteration_empty_accessed_indices() {
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        //Prepare scope variables
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        //Leave current_accessed_indices empty
+        let current_accessed_indices = vec![];
+        access_indices.insert(bigint!(5), current_accessed_indices);
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
+        vm.exec_scopes
+            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (range_check_ptr)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("range_check_ptr"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::EmptyAccessedIndices)
+        );
+    }
+
+    #[test]
+    fn squash_dict_inner_first_iteration_no_local_variables() {
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        //No scope variables
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (range_check_ptr)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("range_check_ptr"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::NoLocalVariable(String::from(
+                "access_indices"
+            )))
+        );
+    }
 }
