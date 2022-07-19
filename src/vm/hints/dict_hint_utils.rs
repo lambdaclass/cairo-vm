@@ -14,9 +14,7 @@ const DICT_ACCESS_SIZE: usize = 3;
 fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::Dictionary(py_initial_dict)) =
-            variables.get(&String::from("initial_dict"))
-        {
+        if let Some(PyValueType::Dictionary(py_initial_dict)) = variables.get("initial_dict") {
             initial_dict = Some(py_initial_dict.clone());
         }
     }
@@ -39,14 +37,8 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     if vm.dict_manager.is_none() {
         vm.dict_manager = Some(DictManager::new());
     }
-
     //Get initial dictionary from scope (defined by an earlier hint)
-    let initial_dict = if let Some(initial_dict) = get_initial_dict(vm) {
-        initial_dict
-    } else {
-        return Err(VirtualMachineError::NoInitialDict);
-    };
-
+    let initial_dict = get_initial_dict(vm).ok_or(VirtualMachineError::NoInitialDict)?;
     //This unwrap will never fail as dict_manager is checked for None value beforehand
     let base = vm.dict_manager.as_mut().unwrap().new_dict(
         &mut vm.segments,
