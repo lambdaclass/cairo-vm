@@ -17,27 +17,22 @@ use std::ops::{Neg, Shl, Shr};
 
 fn apply_ap_tracking_correction(
     ap: &Relocatable,
-    ref_ap_tracking: Option<&ApTracking>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ref_ap_tracking: &ApTracking,
+    hint_ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
-    if let (Some(ref_tracking_data), Some(hint_tracking_data)) = (ref_ap_tracking, hint_ap_tracking)
-    {
-        // check that both groups are the same
-        if ref_tracking_data.group != hint_tracking_data.group {
-            return Err(VirtualMachineError::InvalidTrackingGroup(
-                ref_tracking_data.group,
-                hint_tracking_data.group,
-            ));
-        }
-        let ap_diff = hint_tracking_data.offset - ref_tracking_data.offset;
-
-        Ok(MaybeRelocatable::from((
-            ap.segment_index,
-            ap.offset - ap_diff,
-        )))
-    } else {
-        Err(VirtualMachineError::NoneApTrackingData)
+    // check that both groups are the same
+    if ref_ap_tracking.group != hint_ap_tracking.group {
+        return Err(VirtualMachineError::InvalidTrackingGroup(
+            ref_ap_tracking.group,
+            hint_ap_tracking.group,
+        ));
     }
+    let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
+
+    Ok(MaybeRelocatable::from((
+        ap.segment_index,
+        ap.offset - ap_diff,
+    )))
 }
 
 ///Computes the memory address indicated by the HintReference
@@ -50,14 +45,23 @@ fn compute_addr_from_reference(
     let base_addr = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
         Register::AP => {
-            if let MaybeRelocatable::RelocatableValue(relocatable) = &run_context.ap {
-                apply_ap_tracking_correction(
-                    &relocatable,
-                    hint_reference.ap_tracking_data.as_ref(),
-                    hint_ap_tracking,
-                )?;
+            if hint_ap_tracking.is_none() || hint_reference.ap_tracking_data.is_none() {
+                return Err(VirtualMachineError::NoneApTrackingData);
             }
-            return Err(VirtualMachineError::InvalidApValue(run_context.ap.clone()));
+
+            if let MaybeRelocatable::RelocatableValue(ref relocatable) = run_context.ap {
+                apply_ap_tracking_correction(
+                    relocatable,
+                    // it is safe to call these unrwaps here, since it has been checked
+                    // they are not None's
+                    // this could be refactored to use pattern match but it will be
+                    // unnecesarily verbose
+                    hint_reference.ap_tracking_data.as_ref().unwrap(),
+                    hint_ap_tracking.unwrap(),
+                )?
+            } else {
+                return Err(VirtualMachineError::InvalidApValue(run_context.ap.clone()));
+            }
         }
     };
 
@@ -804,8 +808,25 @@ pub fn is_positive(
     ) {
         (value_addr, is_positive_addr)
     } else {
+        println!("PRINT 1: {:?}, PRINT 2: {:?}",         get_address_from_reference(
+            value_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            is_positive_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),);
         return Err(VirtualMachineError::FailedToGetIds);
     };
+
+    println!("Entre match");
+    
     //Check that the ids are in memory
     match (vm.memory.get(&value_addr), vm.memory.get(&is_positive_addr)) {
         (Ok(Some(maybe_rel_value)), Ok(_)) => {
