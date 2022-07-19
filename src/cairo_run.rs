@@ -1,5 +1,5 @@
 use crate::types::program::Program;
-use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
@@ -41,10 +41,15 @@ pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoR
 }
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
-    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
-        return Err(CairoRunError::Runner(error));
-    }
-    Ok(())
+    let mut buffer = BufWriter::new(io::stdout());
+    writeln!(&mut buffer, "Program Output: ")
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
+    cairo_runner
+        .write_output(&mut buffer)
+        .map_err(CairoRunError::Runner)?;
+    buffer
+        .flush()
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
