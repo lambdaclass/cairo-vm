@@ -1366,7 +1366,7 @@ pub fn memcpy_enter_scope(
 
             Ok(())
         }
-        _ => return Err(VirtualMachineError::FailedToGetIds),
+        _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
 
@@ -1418,11 +1418,11 @@ pub fn memcpy_continue_copying(
     if n.is_positive() {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
-            .map_err(|e| VirtualMachineError::MemoryError(e))
+            .map_err(VirtualMachineError::MemoryError)
     } else {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(0)))
-            .map_err(|e| VirtualMachineError::MemoryError(e))
+            .map_err(VirtualMachineError::MemoryError)
     }
 }
 
