@@ -148,11 +148,10 @@ pub fn find_element(
                             }
                         }
 
-                        let n_elms_iter: i32 = if let Some(n_elms_iter) = n_elms.to_i32() {
-                            n_elms_iter
-                        } else {
-                            return Err(VirtualMachineError::OffsetExceeded(n_elms.clone()));
-                        };
+                        let n_elms_iter: i32 = 
+                            n_elms
+                            .to_i32()
+                            .ok_or(VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
 
                         let array_start = vm
                             .memory
