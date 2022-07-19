@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::get_address_from_reference;
@@ -15,9 +16,8 @@ Implements hint:
 pub fn pow(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    println!("ids: {:?}:", ids);
-
     //Check that ids contains the reference id for the variables used by the hint
     let (prev_locs_ref, locs_ref) = if let (Some(prev_locs_ref), Some(locs_ref)) = (
         ids.get(&String::from("prev_locs")),
@@ -31,32 +31,38 @@ pub fn pow(
         ));
     };
 
-    println!("prev_locs_ref {:?}", prev_locs_ref);
-    println!("locs_ref {:?}", locs_ref);
-    println!("vm.references {:?}", vm.references);
-
     // Get the addresses of the variables used in the hints
     let (prev_locs_addr, locs_addr) = if let (
-        Some(MaybeRelocatable::RelocatableValue(prev_locs_addr)),
-        Some(MaybeRelocatable::RelocatableValue(locs_addr)),
+        Ok(Some(MaybeRelocatable::RelocatableValue(prev_locs_addr))),
+        Ok(Some(MaybeRelocatable::RelocatableValue(locs_addr))),
     ) = (
-        get_address_from_reference(prev_locs_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(locs_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(
+            prev_locs_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            locs_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
     ) {
         (prev_locs_addr, locs_addr)
     } else {
         return Err(VirtualMachineError::FailedToGetIds);
     };
 
-    println!("prev_locs_addr: {:?}", prev_locs_addr);
-    println!("locs_addr: {:?}", locs_addr);
-
     let prev_locs_exp_addr =
         MaybeRelocatable::from((prev_locs_addr.segment_index, prev_locs_addr.offset + 4));
+
     match vm.memory.get(&prev_locs_exp_addr) {
         Ok(Some(MaybeRelocatable::Int(prev_locs_exp))) => {
             let locs_bit = prev_locs_exp.mod_floor(&vm.prime) & bigint!(1);
-            println!("locs: {:?}", locs_bit);
+
             vm.memory
                 .insert(
                     &MaybeRelocatable::RelocatableValue(locs_addr),
@@ -99,7 +105,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 11));
+        vm.run_context.ap = MaybeRelocatable::from((1, 12));
 
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
@@ -115,6 +121,10 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 4,
+                        offset: 3,
+                    }),
                 },
             ),
             (
@@ -124,6 +134,10 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 4,
+                        offset: 3,
+                    }),
                 },
             ),
         ]);
@@ -136,8 +150,13 @@ mod tests {
             )
             .unwrap();
 
+        let ap_tracking = ApTracking {
+            group: 4,
+            offset: 4,
+        };
+
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
 
         //Check hint memory inserts
         assert_eq!(
@@ -168,9 +187,11 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("locs"), bigint!(1));
 
+        let ap_tracking: ApTracking = ApTracking::new();
+
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("prev_locs"), String::from("locs")],
                 vec![String::from("locs")]
@@ -210,6 +231,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking::new()),
                 },
             ),
             // Incorrect reference, offset1 out of range
@@ -220,13 +242,16 @@ mod tests {
                     offset1: -12,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking::new()),
                 },
             ),
         ]);
 
+        let ap_tracking: ApTracking = ApTracking::new();
+
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -263,6 +288,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking::new()),
                 },
             ),
             (
@@ -272,6 +298,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking::new()),
                 },
             ),
         ]);
@@ -284,9 +311,11 @@ mod tests {
             )
             .unwrap();
 
+        let ap_tracking: ApTracking = ApTracking::new();
+
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -325,6 +354,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking::new()),
                 },
             ),
             (
@@ -334,6 +364,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking::new()),
                 },
             ),
         ]);
@@ -354,9 +385,11 @@ mod tests {
             )
             .unwrap();
 
+        let ap_tracking: ApTracking = ApTracking::new();
+
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),
