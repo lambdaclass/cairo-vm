@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658238671537,
+  "lastUpdate": 1658242668859,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -3811,6 +3811,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 2228,
             "range": "± 146",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f86b4352be15bb6ebf321850b4f21927a927128e",
+          "message": "Merge pull request #296 from lambdaclass/remove_fibonacci_1000_benchmark\n\nDelete cairo_programs/benchmarks/fibonacci_1000.cairo",
+          "timestamp": "2022-07-19T11:53:20-03:00",
+          "tree_id": "ec005c1103f039933c202697effa269b198a79f7",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/f86b4352be15bb6ebf321850b4f21927a927128e"
+        },
+        "date": 1658242666885,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2187,
+            "range": "± 133",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 2206,
+            "range": "± 145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 2203,
+            "range": "± 127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 2194,
+            "range": "± 135",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 2189,
+            "range": "± 133",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 2235,
+            "range": "± 183",
             "unit": "ns/iter"
           }
         ]
