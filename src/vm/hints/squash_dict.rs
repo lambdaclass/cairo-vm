@@ -1,0 +1,89 @@
+use std::collections::HashMap;
+
+use num_bigint::BigInt;
+
+use crate::{
+    types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+};
+
+use super::hint_utils::get_address_from_reference;
+
+fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<BigInt>>> {
+    let mut access_indices: Option<HashMap<BigInt, Vec<BigInt>>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::KeyToListMap(py_access_indices)) = variables.get("access_indices")
+        {
+            access_indices = Some(py_access_indices.clone());
+        }
+    }
+    access_indices
+}
+
+fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt> {
+    let mut val: Option<BigInt> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+            val = Some(py_val.clone());
+        }
+    }
+    val
+}
+
+/*Implements hint:
+    current_access_indices = sorted(access_indices[key])[::-1]
+    current_access_index = current_access_indices.pop()
+    memory[ids.range_check_ptr] = current_access_index
+*/
+pub fn squash_dict_inner_first_iteration(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that access_indeces is in scope
+    let access_indices = get_access_indices(vm)
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
+    let key = get_int_from_scope(vm, "key")
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
+    //Check that ids contains the reference id for each variable used by the hint
+    let range_check_ptr_ref = ids.get(&String::from("range_check_ptr")).ok_or_else(|| {
+        VirtualMachineError::IncorrectIds(
+            vec![String::from("range_check_ptr")],
+            ids.clone().into_keys().collect(),
+        )
+    })?;
+    //Check that each reference id corresponds to a value in the reference manager
+    let range_check_ptr_addr =
+        get_address_from_reference(range_check_ptr_ref, &vm.references, &vm.run_context, vm)
+            .ok_or_else(|| {
+                VirtualMachineError::FailedToGetReference(range_check_ptr_ref.clone())
+            })?;
+    //Get ids from memory
+    let range_check_ptr = vm
+        .memory
+        .get(&range_check_ptr_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or(VirtualMachineError::MemoryGet(range_check_ptr_addr))?;
+    //Get current_indices from access_indices
+    let mut current_indices = access_indices
+        .get(&key)
+        .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?
+        .clone();
+    current_indices.sort();
+    current_indices.reverse();
+    //Get current_access_index
+    let first_val = current_indices
+        .pop()
+        .ok_or(VirtualMachineError::EmptyAccessedIndices)?;
+    //Store variables in scope
+    vm.exec_scopes
+        .assign_or_update_variable("current_indices", PyValueType::List(current_indices));
+    vm.exec_scopes.assign_or_update_variable(
+        "current_access_index",
+        PyValueType::BigInt(first_val.clone()),
+    );
+    //Insert current_accesss_index into range_check_ptr
+    let range_check_ptr_copy = range_check_ptr.clone();
+    vm.memory
+        .insert(&range_check_ptr_copy, &MaybeRelocatable::from(first_val))
+        .map_err(VirtualMachineError::MemoryError)
+}
