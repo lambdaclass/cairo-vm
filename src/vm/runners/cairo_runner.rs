@@ -360,6 +360,13 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_output(&mut self) -> Result<Option<String>, RunnerError> {
+        let mut output = Vec::<u8>::new();
+        self.write_output(&mut output)?;
+        let output = String::from_utf8(output).map_err(|_| RunnerError::FailedStringConversion)?;
+        Ok(Some(output))
+    }
+
     ///Writes the values hosted in the output builtin's segment
     /// Does nothing if the output builtin is not present in the program
     pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
@@ -372,11 +379,6 @@ impl CairoRunner {
                 Some(base) => base,
                 None => return Err(RunnerError::UninitializedBase),
             };
-
-            let write_result = writeln!(stdout, "Program Output: ");
-            if write_result.is_err() {
-                return Err(RunnerError::WriteFail);
-            }
 
             // After this if block,
             // segment_used_sizes is always Some(_)
@@ -3345,10 +3347,7 @@ mod tests {
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
-        assert_eq!(
-            String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n1\n2\n"))
-        );
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n2\n")));
     }
 
     #[test]
@@ -3401,10 +3400,7 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
-        assert_eq!(
-            String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n1\n17\n"))
-        );
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n17\n")));
     }
 
     #[test]
@@ -3443,7 +3439,9 @@ mod tests {
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
+            Ok(String::from(
+                "-347635731488942605882605540010235804344383682379185578591125677225688681570\n"
+            ))
         );
     }
 
