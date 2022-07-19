@@ -41,13 +41,10 @@ pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoR
 }
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
-    let mut buffer = BufWriter::new(io::stdout());
-    if let Err(error) = cairo_runner.write_output(&mut buffer) {
+    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
         return Err(CairoRunError::Runner(error));
     }
-    buffer
-        .flush()
-        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))
+    Ok(())
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
