@@ -1,5 +1,5 @@
 use crate::{
-    bigint,
+    bigintusize,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
@@ -135,8 +135,8 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::from(bigint!(
-                        (rel_a.offset - rel_b.offset) as i32
+                    return Ok(MaybeRelocatable::from(bigintusize!(
+                        rel_a.offset - rel_b.offset
                     )));
                 }
                 Err(VirtualMachineError::DiffIndexSub)
