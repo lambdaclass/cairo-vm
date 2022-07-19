@@ -3,6 +3,7 @@ use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
+use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -16,32 +17,23 @@ use std::collections::HashMap;
 use std::ops::{Neg, Shl, Shr};
 
 fn apply_ap_tracking_correction(
-    ap: MaybeRelocatable,
-    ref_ap_tracking: Option<&ApTracking>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ap: &Relocatable,
+    ref_ap_tracking: &ApTracking,
+    hint_ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
-    if let (Some(ref_tracking_data), Some(hint_tracking_data)) = (ref_ap_tracking, hint_ap_tracking)
-    {
-        // check that both groups are the same
-        if ref_tracking_data.group != hint_tracking_data.group {
-            return Err(VirtualMachineError::InvalidTrackingGroup(
-                ref_tracking_data.group,
-                hint_tracking_data.group,
-            ));
-        }
-        if let MaybeRelocatable::RelocatableValue(relocatable) = ap {
-            let ap_diff = hint_tracking_data.offset - ref_tracking_data.offset;
-
-            Ok(MaybeRelocatable::from((
-                relocatable.segment_index,
-                relocatable.offset - ap_diff,
-            )))
-        } else {
-            Err(VirtualMachineError::InvalidApValue(ap))
-        }
-    } else {
-        Err(VirtualMachineError::NoneApTrackingData)
+    // check that both groups are the same
+    if ref_ap_tracking.group != hint_ap_tracking.group {
+        return Err(VirtualMachineError::InvalidTrackingGroup(
+            ref_ap_tracking.group,
+            hint_ap_tracking.group,
+        ));
     }
+    let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
+
+    Ok(MaybeRelocatable::from((
+        ap.segment_index,
+        ap.offset - ap_diff,
+    )))
 }
 
 ///Computes the memory address indicated by the HintReference
@@ -53,11 +45,25 @@ fn compute_addr_from_reference(
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
-        Register::AP => apply_ap_tracking_correction(
-            run_context.ap.clone(),
-            hint_reference.ap_tracking_data.as_ref(),
-            hint_ap_tracking,
-        )?,
+        Register::AP => {
+            if hint_ap_tracking.is_none() || hint_reference.ap_tracking_data.is_none() {
+                return Err(VirtualMachineError::NoneApTrackingData);
+            }
+
+            if let MaybeRelocatable::RelocatableValue(ref relocatable) = run_context.ap {
+                apply_ap_tracking_correction(
+                    relocatable,
+                    // it is safe to call these unrwaps here, since it has been checked
+                    // they are not None's
+                    // this could be refactored to use pattern match but it will be
+                    // unnecesarily verbose
+                    hint_reference.ap_tracking_data.as_ref().unwrap(),
+                    hint_ap_tracking.unwrap(),
+                )?
+            } else {
+                return Err(VirtualMachineError::InvalidApValue(run_context.ap.clone()));
+            }
+        }
     };
 
     if let MaybeRelocatable::RelocatableValue(relocatable) = base_addr {
@@ -95,7 +101,7 @@ fn compute_addr_from_reference(
 }
 
 ///Computes the memory address given by the reference id
-fn get_address_from_reference(
+pub fn get_address_from_reference(
     reference_id: &BigInt,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
@@ -830,6 +836,7 @@ pub fn is_positive(
     } else {
         return Err(VirtualMachineError::FailedToGetIds);
     };
+
     //Check that the ids are in memory
     match (vm.memory.get(&value_addr), vm.memory.get(&is_positive_addr)) {
         (Ok(Some(maybe_rel_value)), Ok(_)) => {
@@ -1387,7 +1394,7 @@ pub fn memcpy_continue_copying(
     let mut n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
             Some(PyValueType::BigInt(n)) => n.clone(),
-            None => {
+            _ => {
                 return Err(VirtualMachineError::VariableNotInScopeError(String::from(
                     "n",
                 )))
@@ -1404,7 +1411,7 @@ pub fn memcpy_continue_copying(
     n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
             Some(PyValueType::BigInt(n)) => n.clone(),
-            None => {
+            _ => {
                 return Err(VirtualMachineError::VariableNotInScopeError(String::from(
                     "n",
                 )))

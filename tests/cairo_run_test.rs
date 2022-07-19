@@ -151,3 +151,51 @@ fn cairo_run_memcpy() {
     cairo_run::cairo_run(Path::new("cairo_programs/memcpy_test.json"), false)
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_dict() {
+    cairo_run::cairo_run(Path::new("cairo_programs/dict.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_dict_update() {
+    cairo_run::cairo_run(Path::new("cairo_programs/dict_update.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_dict_write_bad() {
+    assert!(cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_dict_new.json"),
+        false
+    )
+    .is_err());
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_dict_new.json"),
+        false,
+    )
+    .err();
+    assert_eq!(
+        err.unwrap().to_string(),
+        "VM failure: Dict Error: Tried to create a dict whithout an initial dict"
+    );
+}
+
+#[test]
+fn cairo_run_dict_update_bad() {
+    assert!(cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+        false
+    )
+    .is_err());
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_dict_update.json"),
+        false,
+    )
+    .err();
+    assert_eq!(
+        err.unwrap().to_string(),
+        "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: Some(5) for key: 2"
+    );
+}
