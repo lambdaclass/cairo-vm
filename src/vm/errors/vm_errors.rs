@@ -57,6 +57,7 @@ pub enum VirtualMachineError {
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
     NoInitialDict,
+    WrongPrevValue(BigInt, Option<BigInt>, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -167,6 +168,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NoInitialDict => {
                 write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
+            },
+            VirtualMachineError::WrongPrevValue(prev, current, key) => {
+                write!(f, "Dict Error: Got the wrong value for dict_update, expected value: {:?}, got: {:?} for key: {:?}", prev, current, key)
             },
         }
     }
