@@ -156,7 +156,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
             },
             VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
-                write!(f, "Error: Tried to create a dictionary on segment: {:?} when this segment already corresponds to a dictionary", index)
+                write!(f, "DictManagerError: Tried to create tracker for a dictionary on segment: {:?} when there is already a tracker for a dictionary on this segment", index)
             },
             VirtualMachineError::NoDictManager => {
                 write!(f, "Dict Error: No dict manager found")
