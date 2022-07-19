@@ -2426,6 +2426,8 @@ mod tests {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             exec_scopes: ExecutionScopes::new(),
+            find_element_index: None,
+            find_element_max_size: None,
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);

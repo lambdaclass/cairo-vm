@@ -230,7 +230,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -364,7 +364,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -383,7 +383,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
