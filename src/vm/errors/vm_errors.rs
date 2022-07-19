@@ -58,6 +58,8 @@ pub enum VirtualMachineError {
     AssertLtFelt(BigInt, BigInt),
     NoInitialDict,
     NoLocalVariable(String),
+    NoKeyInAccessIndices(BigInt),
+    EmptyAccessedIndices,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -171,6 +173,12 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NoLocalVariable(name) => {
                 write!(f, "Hint Exception: Couldnt find local variable '{:?}'", name)
+            },
+            VirtualMachineError::NoKeyInAccessIndices(key) => {
+                write!(f, "squash_dict_inner fail: couldnt find key {:?} in accesses_indices", key)
+            },
+            VirtualMachineError::EmptyAccessedIndices =>{
+                write!(f, "squash_dict_inner fail: accessed_indices is empty")
             },
         }
     }

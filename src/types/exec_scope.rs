@@ -10,6 +10,7 @@ pub struct ExecutionScopes {
 #[derive(Eq, PartialEq, Debug)]
 pub enum PyValueType {
     BigInt(BigInt),
+    List(Vec<BigInt>),
     Dictionary(HashMap<BigInt, BigInt>),
     KeyToListMap(HashMap<BigInt, Vec<BigInt>>),
 }
