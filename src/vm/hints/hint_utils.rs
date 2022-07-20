@@ -1336,6 +1336,12 @@ pub fn unsigned_div_rem(
     }
 }
 
+//Implements hint: vm_enter_scope()
+pub fn enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    vm.exec_scopes.enter_scope(HashMap::new());
+    Ok(())
+}
+
 //  Implements hint:
 //  %{ vm_exit_scope() %}
 pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {

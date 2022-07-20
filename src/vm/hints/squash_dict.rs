@@ -294,6 +294,7 @@ pub fn squash_dict_inner_next_key(
         .assign_or_update_variable("key", PyValueType::BigInt(next_key));
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use crate::bigint;

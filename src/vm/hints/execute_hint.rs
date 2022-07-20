@@ -10,7 +10,7 @@ use crate::vm::hints::dict_hint_utils::{
 };
 use crate::vm::hints::hint_utils::{
     add_segment, assert_250_bit, assert_le_felt, assert_lt_felt, assert_nn, assert_not_equal,
-    assert_not_zero, exit_scope, is_le_felt, is_nn, is_nn_out_of_range, is_positive,
+    assert_not_zero, enter_scope, exit_scope, is_le_felt, is_nn, is_nn_out_of_range, is_positive,
     memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
@@ -96,6 +96,7 @@ pub fn execute_hint(
         Ok("assert ids.n_used_accesses == len(access_indices[key]") => squash_dict_inner_used_accesses_assert(vm, ids),
         Ok("assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\n    ids.next_key = key = keys.pop()"
         ) => squash_dict_inner_next_key(vm, ids),
+        Ok("vm_enter_scope()") => enter_scope(vm),
         Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
         ) => dict_update(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
@@ -5725,5 +5726,24 @@ mod tests {
                 ExecScopeError::ExitMainScopeError
             ))
         );
+    }
+
+    #[test]
+    fn run_enter_scope() {
+        let hint_code = "vm_enter_scope()".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            Ok(())
+        );
+        //Check exec_scopes
+        let expected_scope = vec![HashMap::new(), HashMap::new()];
+        assert_eq!(vm.exec_scopes.data, expected_scope)
     }
 }
