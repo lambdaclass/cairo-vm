@@ -257,7 +257,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     Ok(())
 }
 
-// Implements Hint:  assert len(keys) == 0
+// Implements Hint: assert len(keys) == 0
 pub fn squash_dict_inner_assert_len_keys(
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
@@ -267,6 +267,31 @@ pub fn squash_dict_inner_assert_len_keys(
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
+    Ok(())
+}
+
+// Implements Hint:
+//  assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'
+//  ids.next_key = key = keys.pop()
+pub fn squash_dict_inner_next_key(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that current_access_indices is in scope
+    let mut keys = get_list_from_scope(vm, "keys")
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("keys")))?;
+    //Get addr for ids variables
+    let next_key_addr = get_address_from_var_name("next_key", ids, vm, None)?;
+    let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
+    //Insert next_key into ids.next_keys
+    vm.memory
+        .insert(&next_key_addr, &MaybeRelocatable::from(next_key.clone()))
+        .map_err(VirtualMachineError::MemoryError)?;
+    //Update local variables
+    vm.exec_scopes
+        .assign_or_update_variable("keys", PyValueType::List(keys));
+    vm.exec_scopes
+        .assign_or_update_variable("key", PyValueType::BigInt(next_key));
     Ok(())
 }
 #[cfg(test)]

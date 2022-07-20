@@ -73,6 +73,7 @@ pub enum VirtualMachineError {
     WrongPrevValue(BigInt, Option<BigInt>, BigInt),
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
     KeysNotEmpty,
+    EmptyKeys,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -223,6 +224,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::KeysNotEmpty =>{
                 write!(f, "squash_dict_inner fail: local keys is not empty")
+            },
+            VirtualMachineError::EmptyKeys =>{
+                write!(f, "squash_dict_inner fail: local keys is empty")
             },
         }
     }
