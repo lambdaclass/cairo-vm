@@ -316,6 +316,7 @@ mod tests {
     const SQUASH_DICT_INNER_USED_ACCESSES_ASSERT: &str =
         "assert ids.n_used_accesses == len(access_indices[key]";
     const SQUASH_DICT_INNER_LEN_KEYS: &str = "assert len(keys) == 0";
+    const SQUASH_DICT_INNER_NEXT_KEY: &str = "assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\n    ids.next_key = key = keys.pop()";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
@@ -1064,6 +1065,97 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
             Err(VirtualMachineError::NoLocalVariable(String::from("keys")))
+        );
+    }
+
+    #[test]
+    fn squash_dict_inner_next_key_keys_non_empty() {
+        let hint_code = SQUASH_DICT_INNER_NEXT_KEY.as_bytes();
+        //Prepare scope variables
+        let keys = vec![bigint!(1), bigint!(3)];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..1 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("keys", PyValueType::List(keys));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("next_key"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check the value of ids.next_key
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(3))))
+        );
+        //Check local variables
+        let variables = vm.exec_scopes.get_local_variables().unwrap();
+        let keys = variables.get("keys").unwrap();
+        let key = variables.get("key").unwrap();
+        assert_eq!(key, &PyValueType::BigInt(bigint!(3)));
+        assert_eq!(keys, &PyValueType::List(vec![bigint!(1)]));
+    }
+
+    #[test]
+    fn squash_dict_inner_next_key_keys_empty() {
+        let hint_code = SQUASH_DICT_INNER_NEXT_KEY.as_bytes();
+        //Prepare scope variables
+        let keys = vec![];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..1 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("keys", PyValueType::List(keys));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("next_key"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::EmptyKeys)
         );
     }
 }

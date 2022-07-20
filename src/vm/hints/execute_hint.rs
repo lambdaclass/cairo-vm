@@ -18,7 +18,7 @@ use crate::vm::hints::pow_utils::pow;
 use crate::vm::hints::squash_dict::{
     squash_dict_inner_assert_len_keys, squash_dict_inner_check_access_index,
     squash_dict_inner_continue_loop, squash_dict_inner_first_iteration,
-    squash_dict_inner_len_assert, squash_dict_inner_skip_loop,
+    squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
     squash_dict_inner_used_accesses_assert,
 };
 use crate::vm::vm_core::VirtualMachine;
@@ -94,6 +94,8 @@ pub fn execute_hint(
         Ok("assert len(keys) == 0") => squash_dict_inner_assert_len_keys(vm),
         Ok("assert len(current_access_indices) == 0") => squash_dict_inner_len_assert(vm),
         Ok("assert ids.n_used_accesses == len(access_indices[key]") => squash_dict_inner_used_accesses_assert(vm, ids),
+        Ok("assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\n    ids.next_key = key = keys.pop()"
+        ) => squash_dict_inner_next_key(vm, ids),
         Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
         ) => dict_update(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),

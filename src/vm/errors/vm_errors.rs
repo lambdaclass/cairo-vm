@@ -226,7 +226,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "squash_dict_inner fail: local keys is not empty")
             },
             VirtualMachineError::EmptyKeys =>{
-                write!(f, "squash_dict_inner fail: local keys is empty")
+                write!(f, "squash_dict_inner fail: No keys left but remaining_accesses > 0")
             },
         }
     }
