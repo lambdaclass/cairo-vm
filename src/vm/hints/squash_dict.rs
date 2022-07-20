@@ -107,7 +107,7 @@ pub fn squash_dict_inner_skip_loop(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that current_access_indeces is in scope
+    //Check that current_access_indices is in scope
     let current_access_indices =
         get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
             VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
@@ -197,6 +197,50 @@ pub fn squash_dict_inner_check_access_index(
         PyValueType::BigInt(new_access_index),
     );
     Ok(())
+}
+
+// Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
+pub fn squash_dict_inner_continue_loop(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that current_access_indices is in scope
+    let current_access_indices =
+        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
+            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
+        })?;
+    //Check that ids contains the reference id for each variable used by the hint
+    let loop_temps_ref = ids.get(&String::from("loop_temps")).ok_or_else(|| {
+        VirtualMachineError::IncorrectIds(
+            vec![String::from("loop_temps")],
+            ids.clone().into_keys().collect(),
+        )
+    })?;
+    //Check that each reference id corresponds to a value in the reference manager
+    let loop_temps_addr =
+        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm)
+            .ok_or_else(|| VirtualMachineError::FailedToGetReference(loop_temps_ref.clone()))?;
+    //Get loop_temps from memory
+    let loop_temps = vm
+        .memory
+        .get(&loop_temps_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or_else(|| VirtualMachineError::MemoryGet(loop_temps_addr.clone()))?;
+    //Main Logic
+    let should_continue = if current_access_indices.is_empty() {
+        bigint!(0)
+    } else {
+        bigint!(1)
+    };
+    //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
+    //Insert loop_temps.delta_minus1 into memory
+    let should_continue_addr = loop_temps.add_usize_mod(3, None);
+    vm.memory
+        .insert(
+            &should_continue_addr,
+            &MaybeRelocatable::from(should_continue),
+        )
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 #[cfg(test)]
