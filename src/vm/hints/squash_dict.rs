@@ -213,6 +213,7 @@ mod tests {
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\n    current_access_index = current_access_indices.pop()\n    memory[ids.range_check_ptr] = current_access_index";
     const SQUASH_DICT_INNER_SKIP_LOOP: &str =
         "ids.should_skip_loop = 0 if current_access_indices else 1";
+    const SQUASH_DICT_INNER_CHECK_ACCESS_INDEX: &str = "new_access_index = current_access_indices.pop()\n    ids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\n    current_access_index = new_access_index";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
@@ -453,6 +454,71 @@ mod tests {
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+        );
+    }
+
+    #[test]
+    fn squash_dict_inner_check_access_index_valid() {
+        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX.as_bytes();
+        //Prepare scope variables
+        let current_access_indices = vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes.assign_or_update_variable(
+            "current_access_indices",
+            PyValueType::List(current_access_indices),
+        );
+        vm.exec_scopes
+            .assign_or_update_variable("current_access_index", PyValueType::BigInt(bigint!(1)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (loop_temps)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("loop_temps"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        //Check scope variables
+        let variables = vm.exec_scopes.get_local_variables().unwrap();
+        let current_access_indices_scope = variables.get("current_access_indices").unwrap();
+        let new_access_index = variables.get("new_access_index").unwrap();
+        let current_access_index = variables.get("current_access_index").unwrap();
+        assert_eq!(
+            current_access_indices_scope,
+            &PyValueType::List(vec![bigint!(10), bigint!(9), bigint!(7)])
+        );
+        assert_eq!(current_access_index, &PyValueType::BigInt(bigint!(5)));
+        assert_eq!(new_access_index, &PyValueType::BigInt(bigint!(5)));
+        //Check the value of loop_temps.index_delta_minus_1
+        //new_index - current_index -1
+        //5 - 1 - 1 = 3
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
     }
 }
