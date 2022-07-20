@@ -37,7 +37,7 @@ fn apply_ap_tracking_correction(
 }
 
 ///Computes the memory address indicated by the HintReference
-fn compute_addr_from_reference(
+pub fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
     vm: &VirtualMachine,
@@ -1397,22 +1397,26 @@ pub fn memcpy_continue_copying(
         None => return Err(VirtualMachineError::ScopeError),
     };
 
-    // reassign `n` with `n - 1`
+    // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
-    vm.exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(new_n.clone()));
 
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(1)))
-            .map_err(VirtualMachineError::MemoryError)
+            .map_err(VirtualMachineError::MemoryError)?;
     } else {
         vm.memory
             .insert(&continue_copying_addr, &MaybeRelocatable::Int(bigint!(0)))
-            .map_err(VirtualMachineError::MemoryError)
+            .map_err(VirtualMachineError::MemoryError)?;
     }
+
+    // we reassign `n` at the end so that the borrow checker doesn't complain
+    vm.exec_scopes
+        .assign_or_update_variable("n", PyValueType::BigInt(new_n));
+
+    Ok(())
 }
 
 //Implements hint: from starkware.cairo.common.math_utils import as_int
