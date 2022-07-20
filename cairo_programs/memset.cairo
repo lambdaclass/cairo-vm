@@ -3,13 +3,17 @@ from starkware.cairo.common.memset import memset
 
 func main():
     alloc_locals
-    let (local string1 : felt*) = alloc()
-    memset(string1,'I dont know why',20)
-    let (local string2 : felt*) = alloc()
-    memset(string2,'Do you know why',20)
+    let (local strings : felt*) = alloc()
+    memset(strings,'Lambda',20)
+    assert strings[0] = 'Lambda'
+    assert strings[19] = 'Lambda'
+    assert strings[20] = 'can insert new value'
 
-    assert string1[19] = 'I dont know why'
-    assert string2[1] = 'Do you know why'
+    let numbers : felt* = alloc()
+    memset(numbers, 10, 100)
+    assert numbers[0] = 10
+    assert numbers[99] = 10
+    assert numbers[100] = 11
 
 return ()
 end
