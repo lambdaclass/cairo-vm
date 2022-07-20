@@ -68,15 +68,10 @@ pub fn memset_continue_loop(
 
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    if new_n.is_positive() {
-        vm.memory
-            .insert(&continue_loop_addr, &MaybeRelocatable::Int(bigint!(1)))
-            .map_err(VirtualMachineError::MemoryError)?;
-    } else {
-        vm.memory
-            .insert(&continue_loop_addr, &MaybeRelocatable::Int(bigint!(0)))
-            .map_err(VirtualMachineError::MemoryError)?;
-    }
+    let should_continue = bigint!(new_n.is_positive() as i32);
+    vm.memory
+        .insert(&continue_loop_addr, &MaybeRelocatable::Int(should_continue))
+        .map_err(VirtualMachineError::MemoryError)?;
 
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
