@@ -12,6 +12,10 @@ BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
 COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
 
+BAD_TEST_DIR=cairo_programs/bad_programs
+BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
+COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
+
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
@@ -29,9 +33,13 @@ $(TEST_DIR)/%.trace: $(TEST_DIR)/%.json
 
 $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 	cairo-compile $< --output $@
+
+$(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
+	cairo-compile $< --output $@
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
+	cargo install --version 1.14.0 hyperfine
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
@@ -48,7 +56,7 @@ run:
 check:
 	cargo check
 
-test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM)
+test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM) $(COMPILED_BAD_TESTS)
 	cargo test
 
 clippy:
@@ -84,3 +92,4 @@ clean:
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(BENCH_DIR)/*.json
+	rm -f $(BAD_TEST_DIR)/*.json

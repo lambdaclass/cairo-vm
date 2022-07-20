@@ -1,19 +1,19 @@
 use crate::types::program::Program;
-use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
 use std::fs::File;
-use std::io::{self, Error, ErrorKind, Write};
+use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
-pub fn cairo_run(path: &Path) -> Result<CairoRunner, CairoRunError> {
+pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::new(path) {
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let mut cairo_runner = CairoRunner::new(&program);
+    let mut cairo_runner = CairoRunner::new(&program, trace_enabled);
     cairo_runner.initialize_segments(None);
 
     let end = match cairo_runner.initialize_main_entrypoint() {
@@ -41,10 +41,15 @@ pub fn cairo_run(path: &Path) -> Result<CairoRunner, CairoRunError> {
 }
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
-    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
-        return Err(CairoRunError::Runner(error));
-    }
-    Ok(())
+    let mut buffer = BufWriter::new(io::stdout());
+    writeln!(&mut buffer, "Program Output: ")
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
+    cairo_runner
+        .write_output(&mut buffer)
+        .map_err(CairoRunError::Runner)?;
+    buffer
+        .flush()
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
@@ -53,7 +58,8 @@ pub fn write_binary_trace(
     relocated_trace: &[RelocatedTraceEntry],
     trace_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(trace_file)?;
+    let file = File::create(trace_file)?;
+    let mut buffer = BufWriter::new(file);
 
     for (i, entry) in relocated_trace.iter().enumerate() {
         if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
@@ -63,7 +69,7 @@ pub fn write_binary_trace(
         }
     }
 
-    Ok(())
+    buffer.flush()
 }
 
 /*
@@ -78,7 +84,8 @@ pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(memory_file)?;
+    let file = File::create(memory_file)?;
+    let mut buffer = BufWriter::new(file);
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
@@ -92,10 +99,8 @@ pub fn write_binary_memory(
         }
     }
 
-    match buffer.write(&memory_bytes) {
-        Err(e) => Err(e),
-        Ok(_) => Ok(()),
-    }
+    buffer.write_all(&memory_bytes)?;
+    buffer.flush()
 }
 
 // encodes a given memory cell.
@@ -121,7 +126,7 @@ mod tests {
             Err(e) => return Err(CairoRunError::Program(e)),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program);
+        let mut cairo_runner = CairoRunner::new(&program, true);
 
         cairo_runner.initialize_segments(None);
 
@@ -161,7 +166,7 @@ mod tests {
         // it should fail when the program is loaded.
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
 
-        assert!(cairo_run(no_data_program_path).is_err());
+        assert!(cairo_run(no_data_program_path, false).is_err());
     }
 
     #[test]
@@ -170,7 +175,7 @@ mod tests {
         // it should fail when trying to run initialize_main_entrypoint.
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
 
-        assert!(cairo_run(no_main_program_path).is_err());
+        assert!(cairo_run(no_main_program_path, false).is_err());
     }
 
     #[test]
@@ -179,7 +184,7 @@ mod tests {
         // decode the instruction.
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
 
-        assert!(cairo_run(invalid_memory).is_err());
+        assert!(cairo_run(invalid_memory, false).is_err());
     }
 
     #[test]
@@ -194,9 +199,14 @@ mod tests {
 
         // relocate memory so we can dump it to file
         assert!(cairo_runner.relocate().is_ok());
+        assert!(cairo_runner.vm.trace.is_some());
+        assert!(cairo_runner.relocated_trace.is_some());
 
         // write cleopatra vm trace file
-        assert!(write_binary_trace(&cairo_runner.relocated_trace, cleopatra_trace_path).is_ok());
+        assert!(
+            write_binary_trace(&cairo_runner.relocated_trace.unwrap(), cleopatra_trace_path)
+                .is_ok()
+        );
 
         // compare that the original cairo vm trace file and cleopatra vm trace files are equal
         assert!(compare_files(cleopatra_trace_path, expected_trace_path).is_ok());
@@ -220,5 +230,22 @@ mod tests {
 
         // compare that the original cairo vm memory file and cleopatra vm memory files are equal
         assert!(compare_files(cleopatra_memory_path, expected_memory_path).is_ok());
+    }
+
+    #[test]
+    fn run_with_no_trace() {
+        let program_path = Path::new("cairo_programs/struct.json");
+        let program = Program::new(program_path).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, false);
+
+        cairo_runner.initialize_segments(None);
+
+        let end = cairo_runner.initialize_main_entrypoint().unwrap();
+
+        assert!(cairo_runner.initialize_vm().is_ok());
+
+        assert!(cairo_runner.run_until_pc(end).is_ok());
+
+        assert!(cairo_runner.vm.trace.is_none());
     }
 }

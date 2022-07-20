@@ -1,4 +1,7 @@
-use crate::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
+use crate::{
+    bigintusize,
+    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
@@ -132,10 +135,9 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel_a.segment_index,
-                        offset: rel_a.offset - rel_b.offset,
-                    }));
+                    return Ok(MaybeRelocatable::from(bigintusize!(
+                        rel_a.offset - rel_b.offset
+                    )));
                 }
                 Err(VirtualMachineError::DiffIndexSub)
             }
@@ -402,10 +404,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
         let sub_addr = addr_a.sub(addr_b, &bigint!(23));
-        assert_eq!(
-            Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 10))),
-            sub_addr
-        );
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(10))), sub_addr);
     }
 
     #[test]
