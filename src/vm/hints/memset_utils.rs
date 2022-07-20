@@ -51,16 +51,20 @@ pub fn memset_continue_loop(
     let continue_loop_addr = get_address_from_var_name("continue_loop", ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
-    let n = match vm.exec_scopes.get_local_variables() {
-        Some(variables) => match variables.get("n") {
-            Some(PyValueType::BigInt(n)) => n,
-            _ => {
-                return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                    "n",
-                )))
-            }
-        },
-        None => return Err(VirtualMachineError::ScopeError),
+
+    // get `n` variable from vm scope
+    let n = match vm
+        .exec_scopes
+        .get_local_variables()
+        .ok_or(VirtualMachineError::ScopeError)?
+        .get("n")
+    {
+        Some(PyValueType::BigInt(n)) => n,
+        _ => {
+            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                "n",
+            )))
+        }
     };
 
     // this variable will hold the value of `n - 1`
