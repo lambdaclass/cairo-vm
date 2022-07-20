@@ -402,7 +402,7 @@ mod tests {
     }
 
     #[test]
-    fn element_found_by_global() {
+    fn element_found_by_oracle() {
         let (mut vm, ids) = init_vm_ids(None, None, None, false);
         vm.find_element_index = Some(bigint!(1));
 
@@ -431,7 +431,7 @@ mod tests {
     }
 
     #[test]
-    fn element_not_found_global() {
+    fn element_not_found_oracle() {
         let (mut vm, ids) = init_vm_ids(None, None, None, false);
         vm.find_element_index = Some(bigint!(2));
 
