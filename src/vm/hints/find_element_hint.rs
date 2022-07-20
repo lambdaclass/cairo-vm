@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::{
     errors::vm_errors::VirtualMachineError, hints::hint_utils::get_address_from_reference,
@@ -11,6 +12,7 @@ use std::collections::HashMap;
 pub fn find_element(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let (array_ptr_ref, elm_size_ref, n_elms_ref, index_ref, key_ref) = if let (
         Some(array_ptr_ref),
@@ -37,17 +39,47 @@ pub fn find_element(
     };
 
     let (array_ptr_addr, elm_size_addr, n_elms_addr, index_addr, key_addr) = if let (
-        Some(array_ptr_addr),
-        Some(elm_size_addr),
-        Some(n_elms_addr),
-        Some(index_addr),
-        Some(key_addr),
+        Ok(Some(array_ptr_addr)),
+        Ok(Some(elm_size_addr)),
+        Ok(Some(n_elms_addr)),
+        Ok(Some(index_addr)),
+        Ok(Some(key_addr)),
     ) = (
-        get_address_from_reference(array_ptr_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(elm_size_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(n_elms_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(index_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(key_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(
+            array_ptr_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            elm_size_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            n_elms_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            index_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
+        get_address_from_reference(
+            key_ref,
+            &vm.references,
+            &vm.run_context,
+            vm,
+            hint_ap_tracking,
+        ),
     ) {
         (
             array_ptr_addr,
@@ -276,6 +308,7 @@ mod tests {
                     offset1: -4,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -285,6 +318,7 @@ mod tests {
                     offset1: -3,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -294,6 +328,7 @@ mod tests {
                     offset1: -2,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -303,6 +338,7 @@ mod tests {
                     offset1: -1,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
             (
@@ -312,6 +348,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    ap_tracking_data: None,
                 },
             ),
         ]);
@@ -331,7 +368,10 @@ mod tests {
     fn element_found_by_search() {
         let (mut vm, ids) = init_vm_ids();
 
-        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Ok(())
+        );
 
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 3))),
@@ -344,7 +384,10 @@ mod tests {
         let (mut vm, ids) = init_vm_ids();
         vm.find_element_index = Some(bigint!(1));
 
-        assert_eq!(execute_hint(&mut vm, FIND_ELEMENT_HINT, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Ok(())
+        );
 
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 3))),
@@ -358,7 +401,7 @@ mod tests {
         vm.memory.data[0][4] = Some(MaybeRelocatable::from(bigint!(7)));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::FindElemKeyNotFound(
                 MaybeRelocatable::Int(bigint!(7))
             ))
@@ -371,7 +414,7 @@ mod tests {
         vm.find_element_index = Some(bigint!(2));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::FindElemNoFoundKey)
         );
     }
@@ -382,7 +425,7 @@ mod tests {
         ids.remove(&"array_ptr".to_string());
 
         assert!(matches!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ));
     }
@@ -397,11 +440,12 @@ mod tests {
                 offset1: -7,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         );
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -412,7 +456,7 @@ mod tests {
         vm.memory.data[0][2] = None;
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -423,7 +467,7 @@ mod tests {
         _ = vm.builtin_runners.pop();
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -438,7 +482,7 @@ mod tests {
         ));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -449,7 +493,7 @@ mod tests {
         vm.memory.data[0][1] = Some(MaybeRelocatable::from((7, 8)));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((7, 8))
             ))
@@ -462,7 +506,7 @@ mod tests {
         vm.memory.data[0][1] = Some(MaybeRelocatable::Int(bigint!(0)));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
         );
     }
@@ -473,7 +517,7 @@ mod tests {
         vm.memory.data[0][1] = Some(MaybeRelocatable::Int(bigint!(-1)));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -485,7 +529,7 @@ mod tests {
         vm.memory.data[0][2] = Some(relocatable.clone());
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(relocatable))
         );
     }
@@ -496,7 +540,7 @@ mod tests {
         vm.memory.data[0][2] = Some(MaybeRelocatable::Int(bigint!(-1)));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -505,14 +549,10 @@ mod tests {
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids) = init_vm_ids();
         vm.find_element_max_size = Some(bigint!(1));
-        return Err(VirtualMachineError::FindElemMaxSize(
-            find_element_max_size.clone(),
-            n_elms.clone(),
-        ));
 
         assert_eq!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids),
-            Err(VirtualMachineError::FindElemMaxSize(bigint!(1)))
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );
     }
 }
