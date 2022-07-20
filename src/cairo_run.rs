@@ -1,10 +1,10 @@
 use crate::types::program::Program;
-use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
 use std::fs::File;
-use std::io::{self, Error, ErrorKind, Write};
+use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
 pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoRunError> {
@@ -41,10 +41,15 @@ pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoR
 }
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
-    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
-        return Err(CairoRunError::Runner(error));
-    }
-    Ok(())
+    let mut buffer = BufWriter::new(io::stdout());
+    writeln!(&mut buffer, "Program Output: ")
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
+    cairo_runner
+        .write_output(&mut buffer)
+        .map_err(CairoRunError::Runner)?;
+    buffer
+        .flush()
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
@@ -53,7 +58,8 @@ pub fn write_binary_trace(
     relocated_trace: &[RelocatedTraceEntry],
     trace_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(trace_file)?;
+    let file = File::create(trace_file)?;
+    let mut buffer = BufWriter::new(file);
 
     for (i, entry) in relocated_trace.iter().enumerate() {
         if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
@@ -63,7 +69,7 @@ pub fn write_binary_trace(
         }
     }
 
-    Ok(())
+    buffer.flush()
 }
 
 /*
@@ -78,7 +84,8 @@ pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(memory_file)?;
+    let file = File::create(memory_file)?;
+    let mut buffer = BufWriter::new(file);
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
@@ -92,10 +99,8 @@ pub fn write_binary_memory(
         }
     }
 
-    match buffer.write(&memory_bytes) {
-        Err(e) => Err(e),
-        Ok(_) => Ok(()),
-    }
+    buffer.write_all(&memory_bytes)?;
+    buffer.flush()
 }
 
 // encodes a given memory cell.
