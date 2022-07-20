@@ -334,6 +334,8 @@ mod tests {
     const SQUASH_DICT_INNER_CONTINUE_LOOP: &str =
         "ids.loop_temps.should_continue = 1 if current_access_indices else 0";
     const SQUASH_DICT_INNER_ASSERT_LEN: &str = "assert len(current_access_indices) == 0";
+    const SQUASH_DICT_INNER_USED_ACCESSES_ASSERT: &str =
+        "assert ids.n_used_accesses == len(access_indices[key]";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
@@ -864,6 +866,166 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
+        );
+    }
+
+    #[test]
+    fn squash_dict_inner_uses_accesses_assert_valid() {
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        //Prepare scope variables
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
+        vm.exec_scopes
+            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (n_used_accesses)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("n_used_accesses"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        //Hint would fail is assertion fails
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn squash_dict_inner_uses_accesses_assert_wrong_used_access_number() {
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        //Prepare scope variables
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
+        vm.exec_scopes
+            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (n_used_accesses)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("n_used_accesses"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::NumUsedAccessesAssertFail(
+                bigint!(5),
+                4,
+                bigint!(5)
+            ))
+        );
+    }
+
+    #[test]
+    fn squash_dict_inner_uses_accesses_assert_used_access_number_relocatable() {
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        //Prepare scope variables
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
+        vm.exec_scopes
+            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (n_used_accesses)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 2)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("n_used_accesses"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
         );
     }
 }
