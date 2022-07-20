@@ -521,4 +521,54 @@ mod tests {
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
     }
+
+    #[test]
+    fn squash_dict_inner_check_access_current_access_addr_empty() {
+        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX.as_bytes();
+        //Prepare scope variables
+        let current_access_indices = vec![];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Store scope variables
+        vm.exec_scopes.assign_or_update_variable(
+            "current_access_indices",
+            PyValueType::List(current_access_indices),
+        );
+        vm.exec_scopes
+            .assign_or_update_variable("current_access_index", PyValueType::BigInt(bigint!(1)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (loop_temps)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("loop_temps"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids),
+            Err(VirtualMachineError::EmptyCurrentAccessIndices)
+        );
+    }
 }
