@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::{
-    errors::vm_errors::VirtualMachineError, hints::hint_utils::get_address_from_reference,
+    errors::vm_errors::VirtualMachineError, hints::hint_utils::get_address_from_var_name,
     runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
@@ -14,83 +14,11 @@ pub fn find_element(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let (array_ptr_ref, elm_size_ref, n_elms_ref, index_ref, key_ref) = if let (
-        Some(array_ptr_ref),
-        Some(elm_size_ref),
-        Some(n_elms_ref),
-        Some(index_ref),
-        Some(key_ref),
-    ) = (
-        ids.get("array_ptr"),
-        ids.get("elm_size"),
-        ids.get("n_elms"),
-        ids.get("index"),
-        ids.get("key"),
-    ) {
-        (array_ptr_ref, elm_size_ref, n_elms_ref, index_ref, key_ref)
-    } else {
-        return Err(VirtualMachineError::IncorrectIds(
-            vec!["array_ptr", "elm_size", "n_elms", "index", "key"]
-                .iter()
-                .map(|s| s.to_string())
-                .collect(),
-            ids.into_keys().collect(),
-        ));
-    };
-
-    let (array_ptr_addr, elm_size_addr, n_elms_addr, index_addr, key_addr) = if let (
-        Ok(Some(array_ptr_addr)),
-        Ok(Some(elm_size_addr)),
-        Ok(Some(n_elms_addr)),
-        Ok(Some(index_addr)),
-        Ok(Some(key_addr)),
-    ) = (
-        get_address_from_reference(
-            array_ptr_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            elm_size_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            n_elms_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            index_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            key_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-    ) {
-        (
-            array_ptr_addr,
-            elm_size_addr,
-            n_elms_addr,
-            index_addr,
-            key_addr,
-        )
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
+    let array_ptr_addr = get_address_from_var_name("array_ptr", ids.clone(), vm, hint_ap_tracking)?;
+    let elm_size_addr = get_address_from_var_name("elm_size", ids.clone(), vm, hint_ap_tracking)?;
+    let n_elms_addr = get_address_from_var_name("n_elms", ids.clone(), vm, hint_ap_tracking)?;
+    let index_addr = get_address_from_var_name("index", ids.clone(), vm, hint_ap_tracking)?;
+    let key_addr = get_address_from_var_name("key", ids, vm, hint_ap_tracking)?;
 
     match (
         vm.memory.get(&array_ptr_addr),
@@ -439,17 +367,6 @@ mod tests {
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::FindElemNoFoundKey)
         );
-    }
-
-    #[test]
-    fn find_elm_incorrect_ids() {
-        let (mut vm, mut ids) = init_vm_ids(None, None, None, false);
-        ids.remove(&"array_ptr".to_string());
-
-        assert!(matches!(
-            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(_, _))
-        ));
     }
 
     #[test]
