@@ -123,7 +123,7 @@ pub fn get_address_from_reference(
     Ok(None)
 }
 
-fn get_address_from_var_name(
+pub fn get_address_from_var_name(
     var_name: &str,
     ids: HashMap<String, BigInt>,
     vm: &VirtualMachine,

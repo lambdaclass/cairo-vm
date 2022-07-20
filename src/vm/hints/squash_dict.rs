@@ -9,7 +9,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::hint_utils::get_address_from_reference;
+use super::hint_utils::get_address_from_var_name;
 
 fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<BigInt>>> {
     let mut access_indices: Option<HashMap<BigInt, Vec<BigInt>>> = None;
@@ -56,22 +56,8 @@ pub fn squash_dict_inner_first_iteration(
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
     let key = get_int_from_scope(vm, "key")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
-    //Check that ids contains the reference id for each variable used by the hint
-    let range_check_ptr_ref = ids.get(&String::from("range_check_ptr")).ok_or_else(|| {
-        VirtualMachineError::IncorrectIds(
-            vec![String::from("range_check_ptr")],
-            ids.clone().into_keys().collect(),
-        )
-    })?;
-    //Check that each reference id corresponds to a value in the reference manager
-    let range_check_ptr_addr = get_address_from_reference(
-        range_check_ptr_ref,
-        &vm.references,
-        &vm.run_context,
-        vm,
-        None,
-    )?
-    .ok_or_else(|| VirtualMachineError::FailedToGetReference(range_check_ptr_ref.clone()))?;
+    //Get addr for ids variables
+    let range_check_ptr_addr = get_address_from_var_name("range_check_ptr", ids, vm, None)?;
     //Get ids from memory
     let range_check_ptr = vm
         .memory
@@ -115,22 +101,8 @@ pub fn squash_dict_inner_skip_loop(
         get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
             VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
         })?;
-    //Check that ids contains the reference id for each variable used by the hint
-    let should_skip_loop_ref = ids.get(&String::from("should_skip_loop")).ok_or_else(|| {
-        VirtualMachineError::IncorrectIds(
-            vec![String::from("should_skip_loop")],
-            ids.clone().into_keys().collect(),
-        )
-    })?;
-    //Check that each reference id corresponds to a value in the reference manager
-    let should_skip_loop_addr = get_address_from_reference(
-        should_skip_loop_ref,
-        &vm.references,
-        &vm.run_context,
-        vm,
-        None,
-    )?
-    .ok_or_else(|| VirtualMachineError::FailedToGetReference(should_skip_loop_ref.clone()))?;
+    //Get addr for ids variables
+    let should_skip_loop_addr = get_address_from_var_name("should_skip_loop", ids, vm, None)?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -162,17 +134,8 @@ pub fn squash_dict_inner_check_access_index(
     let current_access_index = get_int_from_scope(vm, "current_access_index").ok_or_else(|| {
         VirtualMachineError::NoLocalVariable(String::from("current_access_index"))
     })?;
-    //Check that ids contains the reference id for each variable used by the hint
-    let loop_temps_ref = ids.get(&String::from("loop_temps")).ok_or_else(|| {
-        VirtualMachineError::IncorrectIds(
-            vec![String::from("loop_temps")],
-            ids.clone().into_keys().collect(),
-        )
-    })?;
-    //Check that each reference id corresponds to a value in the reference manager
-    let loop_temps_addr =
-        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm, None)?
-            .ok_or_else(|| VirtualMachineError::FailedToGetReference(loop_temps_ref.clone()))?;
+    //Get addr for ids variables
+    let loop_temps_addr = get_address_from_var_name("loop_temps", ids, vm, None)?;
     //Get loop_temps from memory
     let loop_temps = vm
         .memory
@@ -216,16 +179,8 @@ pub fn squash_dict_inner_continue_loop(
             VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
         })?;
     //Check that ids contains the reference id for each variable used by the hint
-    let loop_temps_ref = ids.get(&String::from("loop_temps")).ok_or_else(|| {
-        VirtualMachineError::IncorrectIds(
-            vec![String::from("loop_temps")],
-            ids.clone().into_keys().collect(),
-        )
-    })?;
-    //Check that each reference id corresponds to a value in the reference manager
-    let loop_temps_addr =
-        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm, None)?
-            .ok_or_else(|| VirtualMachineError::FailedToGetReference(loop_temps_ref.clone()))?;
+    //Get addr for ids variables
+    let loop_temps_addr = get_address_from_var_name("loop_temps", ids, vm, None)?;
     //Get loop_temps from memory
     let loop_temps = vm
         .memory
@@ -272,22 +227,8 @@ pub fn squash_dict_inner_used_accesses_assert(
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
     let key = get_int_from_scope(vm, "key")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
-    //Check that ids contains the reference id for each variable used by the hint
-    let n_used_accesses_ref = ids.get(&String::from("n_used_accesses")).ok_or_else(|| {
-        VirtualMachineError::IncorrectIds(
-            vec![String::from("n_used_accesses")],
-            ids.clone().into_keys().collect(),
-        )
-    })?;
-    //Check that each reference id corresponds to a value in the reference manager
-    let n_used_accesses_addr = get_address_from_reference(
-        n_used_accesses_ref,
-        &vm.references,
-        &vm.run_context,
-        vm,
-        None,
-    )?
-    .ok_or_else(|| VirtualMachineError::FailedToGetReference(n_used_accesses_ref.clone()))?;
+    //Get addr for ids variables
+    let n_used_accesses_addr = get_address_from_var_name("n_used_accesses", ids, vm, None)?;
     //Get n_used_accesses from memory
     let maybe_rel_n_used_accesses = vm
         .memory
