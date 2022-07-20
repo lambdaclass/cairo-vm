@@ -153,6 +153,12 @@ fn cairo_run_memcpy() {
 }
 
 #[test]
+fn cairo_run_memset() {
+    cairo_run::cairo_run(Path::new("cairo_programs/memset.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_pow() {
     cairo_run::cairo_run(Path::new("cairo_programs/pow.json"), false)
         .expect("Couldn't run program");

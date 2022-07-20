@@ -14,6 +14,7 @@ use crate::vm::hints::hint_utils::{
     memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
+use crate::vm::hints::memset_utils::{memset_continue_loop, memset_enter_scope};
 use crate::vm::hints::pow_utils::pow;
 use crate::vm::vm_core::VirtualMachine;
 
@@ -59,7 +60,9 @@ pub fn execute_hint(
         ) => assert_not_zero(vm, ids, None),
         Ok("vm_exit_scope()") => exit_scope(vm),
         Ok("vm_enter_scope({'n': ids.len})") => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
+        Ok("vm_enter_scope({'n': ids.n})") => memset_enter_scope(vm, ids, Some(ap_tracking)),
         Ok("n -= 1\nids.continue_copying = 1 if n > 0 else 0") => memcpy_continue_copying(vm, ids, Some(ap_tracking)),
+        Ok("n -= 1\nids.continue_loop = 1 if n > 0 else 0") => memset_continue_loop(vm, ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)") => unsigned_div_rem(vm, ids, None),
