@@ -256,6 +256,19 @@ pub fn squash_dict_inner_used_accesses_assert(
     }
     Ok(())
 }
+
+// Implements Hint:  assert len(keys) == 0
+pub fn squash_dict_inner_assert_len_keys(
+    vm: &mut VirtualMachine,
+) -> Result<(), VirtualMachineError> {
+    //Check that current_access_indices is in scope
+    let keys = get_list_from_scope(vm, "keys")
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("keys")))?;
+    if !keys.is_empty() {
+        return Err(VirtualMachineError::KeysNotEmpty);
+    };
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use crate::bigint;

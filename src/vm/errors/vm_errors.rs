@@ -72,6 +72,7 @@ pub enum VirtualMachineError {
     CurrentAccessIndicesNotEmpty,
     WrongPrevValue(BigInt, Option<BigInt>, BigInt),
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
+    KeysNotEmpty,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -219,6 +220,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NumUsedAccessesAssertFail(used, len, key) => {
                 write!(f, "squash_dict_inner fail: Number of used accesses:{:?} doesnt match the lengh: {:?} of the access_indices at key: {:?}", used, len, key)
+            },
+            VirtualMachineError::KeysNotEmpty =>{
+                write!(f, "squash_dict_inner fail: local keys is not empty")
             },
         }
     }
