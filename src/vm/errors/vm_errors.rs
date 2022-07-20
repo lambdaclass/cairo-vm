@@ -71,6 +71,7 @@ pub enum VirtualMachineError {
     EmptyCurrentAccessIndices,
     CurrentAccessIndicesNotEmpty,
     WrongPrevValue(BigInt, Option<BigInt>, BigInt),
+    NumUsedAccessesAssertFail(BigInt, usize, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -215,6 +216,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::InvalidApValue(addr) => {
                 write!(f, "Expected relocatable for ap, got {:?}", addr)
+            },
+            VirtualMachineError::NumUsedAccessesAssertFail(used, len, key) => {
+                write!(f, "squash_dict_inner fail: Number of used accesses:{:?} doesnt match the lengh: {:?} of the access_indices at key: {:?}", used, len, key)
             },
         }
     }

@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
 use crate::{
-    bigint,
+    bigint, bigintusize,
     types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
@@ -306,9 +306,13 @@ pub fn squash_dict_inner_used_accesses_assert(
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    //if *n_used_accesses != bigint_usize!(access_indices_at_key.len()) {
-
-    //}
+    if *n_used_accesses != bigintusize!(access_indices_at_key.len()) {
+        return Err(VirtualMachineError::NumUsedAccessesAssertFail(
+            n_used_accesses.clone(),
+            access_indices_at_key.len(),
+            key,
+        ));
+    }
     Ok(())
 }
 #[cfg(test)]
