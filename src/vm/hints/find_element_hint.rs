@@ -230,7 +230,12 @@ mod tests {
 
     const FIND_ELEMENT_HINT: &[u8] = "array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\nkey = ids.key\n\nif '__find_element_index' in globals():\n    ids.index = __find_element_index\n    found_key = memory[array_ptr + elm_size * __find_element_index]\n    assert found_key == key, \\\n        f'Invalid index found in __find_element_index. index: {__find_element_index}, ' \\\n        f'expected key {key}, found key: {found_key}.'\n    # Delete __find_element_index to make sure it's not used for the next calls.\n    del __find_element_index\nelse:\n    n_elms = ids.n_elms\n    assert isinstance(n_elms, int) and n_elms >= 0, \\\n        f'Invalid value for n_elms. Got: {n_elms}.'\n    if '__find_element_max_size' in globals():\n        assert n_elms <= __find_element_max_size, \\\n            f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n            f'Got: n_elms={n_elms}.'\n\n    for i in range(n_elms):\n        if memory[array_ptr + elm_size * i] == key:\n            ids.index = i\n            break\n    else:\n        raise ValueError(f'Key {key} was not found.')".as_bytes();
 
-    fn init_vm_ids() -> (VirtualMachine, HashMap<String, BigInt>) {
+    fn init_vm_ids(
+        elm_size: Option<&MaybeRelocatable>,
+        n_elms: Option<&MaybeRelocatable>,
+        key: Option<&MaybeRelocatable>,
+        skip_insertion: bool,
+    ) -> (VirtualMachine, HashMap<String, BigInt>) {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -251,6 +256,9 @@ mod tests {
           index = None. Should become 1
           key = 3
         */
+        let elm_size_default = MaybeRelocatable::from(bigint!(2));
+        let n_elms_default = MaybeRelocatable::from(bigint!(2));
+        let key_default = MaybeRelocatable::from(bigint!(3));
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
@@ -260,19 +268,33 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(2)),
+                if let Some(rel) = elm_size {
+                    rel
+                } else {
+                    &elm_size_default
+                },
             )
             .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .expect("Unexpected memory insert fail");
+        if !skip_insertion {
+            vm.memory
+                .insert(
+                    &MaybeRelocatable::from((0, 2)),
+                    if let Some(rel) = n_elms {
+                        rel
+                    } else {
+                        &n_elms_default
+                    },
+                )
+                .expect("Unexpected memory insert fail");
+        }
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::from(bigint!(3)),
+                if let Some(rel) = key {
+                    rel
+                } else {
+                    &key_default
+                },
             )
             .expect("Unexpected memory insert fail");
         vm.memory
@@ -366,7 +388,7 @@ mod tests {
 
     #[test]
     fn element_found_by_search() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -381,7 +403,7 @@ mod tests {
 
     #[test]
     fn element_found_by_global() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
         vm.find_element_index = Some(bigint!(1));
 
         assert_eq!(
@@ -397,8 +419,8 @@ mod tests {
 
     #[test]
     fn element_not_found_search() {
-        let (mut vm, ids) = init_vm_ids();
-        vm.memory.data[0][4] = Some(MaybeRelocatable::from(bigint!(7)));
+        let (mut vm, ids) =
+            init_vm_ids(None, None, Some(&MaybeRelocatable::from(bigint!(7))), false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -410,7 +432,7 @@ mod tests {
 
     #[test]
     fn element_not_found_global() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
         vm.find_element_index = Some(bigint!(2));
 
         assert_eq!(
@@ -421,7 +443,7 @@ mod tests {
 
     #[test]
     fn find_elm_incorrect_ids() {
-        let (mut vm, mut ids) = init_vm_ids();
+        let (mut vm, mut ids) = init_vm_ids(None, None, None, false);
         ids.remove(&"array_ptr".to_string());
 
         assert!(matches!(
@@ -432,7 +454,7 @@ mod tests {
 
     #[test]
     fn find_elm_failed_ids_get_addres() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
         vm.references.insert(
             0,
             HintReference {
@@ -452,8 +474,7 @@ mod tests {
 
     #[test]
     fn find_elm_failed_ids_get_from_mem() {
-        let (mut vm, ids) = init_vm_ids();
-        vm.memory.data[0][2] = None;
+        let (mut vm, ids) = init_vm_ids(None, None, None, true);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -463,7 +484,7 @@ mod tests {
 
     #[test]
     fn find_elm_builtin_is_none() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
         _ = vm.builtin_runners.pop();
 
         assert_eq!(
@@ -474,7 +495,7 @@ mod tests {
 
     #[test]
     fn find_elm_range_check_not_present() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
         _ = vm.builtin_runners.pop();
         vm.builtin_runners.push((
             "output".to_string(),
@@ -489,8 +510,7 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_elm_size() {
-        let (mut vm, ids) = init_vm_ids();
-        vm.memory.data[0][1] = Some(MaybeRelocatable::from((7, 8)));
+        let (mut vm, ids) = init_vm_ids(Some(&MaybeRelocatable::from((7, 8))), None, None, false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -502,8 +522,8 @@ mod tests {
 
     #[test]
     fn find_elm_zero_elm_size() {
-        let (mut vm, ids) = init_vm_ids();
-        vm.memory.data[0][1] = Some(MaybeRelocatable::Int(bigint!(0)));
+        let (mut vm, ids) =
+            init_vm_ids(Some(&MaybeRelocatable::Int(bigint!(0))), None, None, false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -513,8 +533,8 @@ mod tests {
 
     #[test]
     fn find_elm_negative_elm_size() {
-        let (mut vm, ids) = init_vm_ids();
-        vm.memory.data[0][1] = Some(MaybeRelocatable::Int(bigint!(-1)));
+        let (mut vm, ids) =
+            init_vm_ids(Some(&MaybeRelocatable::Int(bigint!(-1))), None, None, false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -524,9 +544,8 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let (mut vm, ids) = init_vm_ids();
         let relocatable = MaybeRelocatable::from((1, 2));
-        vm.memory.data[0][2] = Some(relocatable.clone());
+        let (mut vm, ids) = init_vm_ids(None, Some(&relocatable), None, false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -536,8 +555,8 @@ mod tests {
 
     #[test]
     fn find_elm_negative_n_elms() {
-        let (mut vm, ids) = init_vm_ids();
-        vm.memory.data[0][2] = Some(MaybeRelocatable::Int(bigint!(-1)));
+        let (mut vm, ids) =
+            init_vm_ids(None, Some(&MaybeRelocatable::Int(bigint!(-1))), None, false);
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -547,7 +566,7 @@ mod tests {
 
     #[test]
     fn find_elm_n_elms_gt_max_size() {
-        let (mut vm, ids) = init_vm_ids();
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
         vm.find_element_max_size = Some(bigint!(1));
 
         assert_eq!(
