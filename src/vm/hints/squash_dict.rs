@@ -290,6 +290,7 @@ mod tests {
     const SQUASH_DICT_INNER_ASSERT_LEN: &str = "assert len(current_access_indices) == 0";
     const SQUASH_DICT_INNER_USED_ACCESSES_ASSERT: &str =
         "assert ids.n_used_accesses == len(access_indices[key]";
+    const SQUASH_DICT_INNER_LEN_KEYS: &str = "assert len(keys) == 0";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
@@ -980,6 +981,64 @@ mod tests {
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
+        );
+    }
+
+    #[test]
+    fn squash_dict_assert_len_keys_empty() {
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        //Prepare scope variables
+        let keys = vec![];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("keys", PyValueType::List(keys));
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn squash_dict_assert_len_keys_not_empty() {
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        //Prepare scope variables
+        let keys = vec![bigint!(3)];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Store scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("keys", PyValueType::List(keys));
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            Err(VirtualMachineError::KeysNotEmpty)
+        );
+    }
+
+    #[test]
+    fn squash_dict_assert_len_keys_no_keys() {
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            Err(VirtualMachineError::NoLocalVariable(String::from("keys")))
         );
     }
 }
