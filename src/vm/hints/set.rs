@@ -169,15 +169,15 @@ pub fn set_add(
                             }
 
                             let set_span = set_end_ptr.sub(set_ptr, &vm.prime)?;
-                            let range_limit = if let MaybeRelocatable::Int(ref range_limit) =
-                                set_span
-                            {
-                                range_limit
-                                    .to_i32()
-                                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
-                            } else {
-                                return Err(VirtualMachineError::ExpectedInteger(set_span.clone()));
-                            };
+                            // sub method always returns a MaybeRelocatable::Int
+                            let range_limit =
+                                if let MaybeRelocatable::Int(ref range_limit) = set_span {
+                                    range_limit
+                                        .to_i32()
+                                        .ok_or(VirtualMachineError::BigintToUsizeFail)?
+                                } else {
+                                    return Err(VirtualMachineError::ExpectedInteger(set_span));
+                                };
 
                             for i in (0..range_limit).step_by(elm_size) {
                                 let set_iter = vm
@@ -222,7 +222,10 @@ pub fn set_add(
 mod tests {
     use super::*;
     use crate::types::instruction::Register;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::{
+        hints::execute_hint::{execute_hint, HintReference},
+        runners::builtin_runner::OutputBuiltinRunner,
+    };
     use num_bigint::Sign;
 
     const HINT_CODE: &[u8] = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0".as_bytes();
@@ -403,7 +406,6 @@ mod tests {
     #[test]
     fn set_add_already_exists() {
         let (mut vm, ids) = init_vm_ids();
-
         vm.memory.data[2][0] = Some(MaybeRelocatable::from(bigint!(1)));
         vm.memory.data[2][1] = Some(MaybeRelocatable::from(bigint!(3)));
 
@@ -421,5 +423,100 @@ mod tests {
             vm.memory.get(&MaybeRelocatable::from((0, 1))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
         )
+    }
+
+    #[test]
+    fn elm_size_not_int() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][3] = Some(MaybeRelocatable::from((7, 8)));
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((7, 8))
+            ))
+        );
+    }
+
+    #[test]
+    fn set_ptr_gt_set_end_ptr() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][2] = Some(MaybeRelocatable::from((1, 3)));
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::InvalidSetRange(
+                MaybeRelocatable::from((1, 3)),
+                MaybeRelocatable::from((1, 2)),
+            ))
+        );
+    }
+
+    #[test]
+    fn find_elm_incorrect_ids() {
+        let (mut vm, mut ids) = init_vm_ids();
+        ids.remove(&"set_ptr".to_string());
+
+        assert!(matches!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::IncorrectIds(_, _))
+        ));
+    }
+
+    #[test]
+    fn find_elm_failed_ids_get_addres() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.references.insert(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -7,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        );
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn find_elm_failed_ids_get_from_mem() {
+        let (mut vm, ids) = init_vm_ids();
+        vm.memory.data[0][2] = None;
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn builtin_is_none() {
+        let (mut vm, ids) = init_vm_ids();
+        _ = vm.builtin_runners.pop();
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn range_check_not_present() {
+        let (mut vm, ids) = init_vm_ids();
+        _ = vm.builtin_runners.pop();
+        vm.builtin_runners.push((
+            "output".to_string(),
+            Box::new(OutputBuiltinRunner::new(true)),
+        ));
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
     }
 }
