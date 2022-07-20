@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658350306016,
+  "lastUpdate": 1658350933374,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6244,6 +6244,66 @@ window.BENCHMARK_DATA = {
           {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 2200,
+            "range": "± 111",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "372ebdfffba4b1b1f6c345b9e2f0a78f444be883",
+          "message": "[HINTS] Add implementation for memset on pow (memset.cairo) (#303)\n\n* Save work in progress\r\n\r\n* Save work in progress\r\n\r\n* Add unit tests for memcpy_enter_scope hint\r\n\r\n* Finish all unit test for memcpy hints\r\n\r\n* Add integration test for memcpy hints\r\n\r\n* Add memcpy_test.cairo to cairo_programs\r\n\r\n* Small refactors in hint functions\r\n\r\n* add draft implementation of memset hints\r\n\r\n* add integration test\r\n\r\n* add memset_utils.rs\r\n\r\n* add unit test\r\n\r\n* update integration testr\r\n\r\n* update memset_continue_loop\r\n\r\n* add check_array to integration test\r\n\r\n* refactor fn memset_continue_loop\r\n\r\n* refactor memset_continue_loop\r\n\r\n* restore memset_continue_loop\r\n\r\n* refactor memset_continue_loop with ok_or\r\n\r\nCo-authored-by: Mariano Nicolini <mariano.nicolini@lambdaclass.com>",
+          "timestamp": "2022-07-20T17:57:43-03:00",
+          "tree_id": "53c7a35121242311238b32c65df1f879ce6206a6",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/372ebdfffba4b1b1f6c345b9e2f0a78f444be883"
+        },
+        "date": 1658350931346,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2179,
+            "range": "± 114",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 2209,
+            "range": "± 117",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 2196,
+            "range": "± 112",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 2230,
+            "range": "± 142",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 2214,
+            "range": "± 111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 2178,
             "range": "± 111",
             "unit": "ns/iter"
           }
