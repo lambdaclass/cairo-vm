@@ -8,10 +8,12 @@ use crate::vm::{
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
+use crate::serde::deserialize_program::ApTracking;
 
 pub fn set_add(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let (is_elm_in_set_ref, index_ref, set_ptr_ref, elm_size_ref, elm_ptr_ref, set_end_ptr_ref) =
@@ -60,19 +62,19 @@ pub fn set_add(
         elm_ptr_addr,
         set_end_ptr_addr,
     ) = if let (
-        Some(is_elm_in_set_addr),
-        Some(index_addr),
-        Some(set_ptr_addr),
-        Some(elm_size_addr),
-        Some(elm_ptr_addr),
-        Some(set_end_ptr_addr),
+        Ok(Some(is_elm_in_set_addr)),
+        Ok(Some(index_addr)),
+        Ok(Some(set_ptr_addr)),
+        Ok(Some(elm_size_addr)),
+        Ok(Some(elm_ptr_addr)),
+        Ok(Some(set_end_ptr_addr)),
     ) = (
-        get_address_from_reference(is_elm_in_set_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(index_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(set_ptr_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(elm_size_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(elm_ptr_ref, &vm.references, &vm.run_context, vm),
-        get_address_from_reference(set_end_ptr_ref, &vm.references, &vm.run_context, vm),
+        get_address_from_reference(is_elm_in_set_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(index_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(set_ptr_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(elm_size_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(elm_ptr_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
+        get_address_from_reference(set_end_ptr_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
     ) {
         (
             is_elm_in_set_addr,
@@ -96,10 +98,10 @@ pub fn set_add(
         (
             Ok(_),
             Ok(_),
-            Ok(Some(maybe_rel_set_ptr)),
+            Ok(Some(_maybe_rel_set_ptr)),
             Ok(Some(maybe_rel_elm_size)),
             Ok(Some(_)),
-            Ok(Some(maybe_rel_set_end_ptr)),
+            Ok(Some(_maybe_rel_set_end_ptr)),
         ) => {
             for (name, builtin) in &vm.builtin_runners {
                 //Check that range_check_builtin is present
@@ -117,20 +119,25 @@ pub fn set_add(
 
                             let elm_usize =
                                 if let &MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                                    match elm_size.to_usize() {
-                                        Some(elm_usize) => elm_usize,
-                                        None => {
-                                            return Err(VirtualMachineError::ValueOutOfRange(
-                                                elm_size.clone(),
-                                            ))
-                                        }
-                                    }
+                                    elm_size.to_usize().ok_or(VirtualMachineError::ValueOutOfRange(elm_size.clone()))?
                                 } else {
                                     return Err(VirtualMachineError::ExpectedInteger(
                                         elm_size_addr.clone(),
                                     ));
                                 };
 
+                            let set_ptr = vm
+                             .memory
+                             .get(&set_ptr_addr)
+                             .map_err(VirtualMachineError::MemoryError)?
+                             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
+
+                            let set_end_ptr = vm
+                             .memory
+                             .get(&set_end_ptr_addr)
+                             .map_err(VirtualMachineError::MemoryError)?
+                             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
+                            /*
                             let set_ptr =
                                 if let &MaybeRelocatable::Int(ref set_ptr) = maybe_rel_set_ptr {
                                     set_ptr
@@ -148,40 +155,38 @@ pub fn set_add(
                                 return Err(VirtualMachineError::ExpectedInteger(
                                     set_end_ptr_addr.clone(),
                                 ));
-                            };
+                            };*/
                             // Main logic
 
+                            /*
                             if set_ptr > set_end_ptr {
                                 return Err(VirtualMachineError::OutOfValidRange(
                                     set_ptr.clone(),
                                     set_end_ptr.clone(),
                                 ));
-                            }
+                            }*/
 
                             let elm = match vm.memory.get_range(&elm_ptr_addr, elm_usize) {
                                 Ok(vec) => vec,
                                 Err(e) => return Err(VirtualMachineError::MemoryError(e)),
                             };
 
-                            let set_size = match (set_end_ptr - set_ptr).to_usize() {
-                                Some(size) => size,
-                                None => {
-                                    return Err(VirtualMachineError::ValueOutOfRange(
-                                        elm_size.clone(),
-                                    ))
-                                }
+                            let set_size = if let Ok(MaybeRelocatable::Int(ref set_size)) = set_end_ptr.sub(set_ptr, &vm.prime) {
+                                set_size.to_i32().ok_or(VirtualMachineError::InvalidInstructionEncoding)?
+                            } else {
+                                return Err(VirtualMachineError::InvalidInstructionEncoding);
                             };
 
                             for i in (0..set_size).step_by(elm_usize) {
                                 let set_iter = match vm
                                     .memory
-                                    .get_range(&elm_ptr_addr.add_usize_mod(i, None), elm_usize)
+                                    .get_range(&elm_ptr_addr.add_usize_mod(i as usize, None), elm_usize)
                                 {
                                     Ok(vec) => vec,
                                     Err(e) => return Err(VirtualMachineError::MemoryError(e)),
                                 };
                                 if elm == set_iter {
-                                    let index = match (i / elm_usize).to_bigint() {
+                                    let index = match (i / elm_usize as i32).to_bigint() {
                                         Some(elm_usize) => elm_usize,
                                         None => {
                                             return Err(VirtualMachineError::ValueOutOfRange(
@@ -223,6 +228,7 @@ pub fn set_add(
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +243,7 @@ mod tests {
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
+            false,
         );
 
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
@@ -258,4 +265,4 @@ mod tests {
         ids.insert(String::from("elm_ptr"), bigint!(4));
         ids.insert(String::from("set_end_ptr"), bigint!(5));
     }
-}
+}*/
