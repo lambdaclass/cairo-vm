@@ -51,9 +51,9 @@ pub fn memset_continue_loop(
     let continue_loop_addr = get_address_from_var_name("continue_loop", ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
-    let mut n = match vm.exec_scopes.get_local_variables() {
+    let n = match vm.exec_scopes.get_local_variables() {
         Some(variables) => match variables.get("n") {
-            Some(PyValueType::BigInt(n)) => n.clone(),
+            Some(PyValueType::BigInt(n)) => n,
             _ => {
                 return Err(VirtualMachineError::VariableNotInScopeError(String::from(
                     "n",
@@ -63,36 +63,28 @@ pub fn memset_continue_loop(
         None => return Err(VirtualMachineError::ScopeError),
     };
 
-    // reassign `n` with `n - 1`
-    vm.exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(n - 1_i32));
+    // this variable will hold the value of `n - 1`
+    let new_n = n - 1_i32;
 
-    // get new value of `n`
-    n = match vm.exec_scopes.get_local_variables() {
-        Some(variables) => match variables.get("n") {
-            Some(PyValueType::BigInt(n)) => n.clone(),
-            _ => {
-                return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                    "n",
-                )))
-            }
-        },
-        None => return Err(VirtualMachineError::ScopeError),
-    };
-
-    // if it is positive, insert 1 in the address of `continue_loop`
+    // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    if n.is_positive() {
+    if new_n.is_positive() {
         vm.memory
             .insert(&continue_loop_addr, &MaybeRelocatable::Int(bigint!(1)))
-            .map_err(VirtualMachineError::MemoryError)
+            .map_err(VirtualMachineError::MemoryError)?;
     } else {
         vm.memory
             .insert(&continue_loop_addr, &MaybeRelocatable::Int(bigint!(0)))
-            .map_err(VirtualMachineError::MemoryError)
+            .map_err(VirtualMachineError::MemoryError)?;
     }
-}
 
+    // Reassign `n` with `n - 1`
+    // we do it at the end of the function so that the borrow checker doesn't complain
+    vm.exec_scopes
+        .assign_or_update_variable("n", PyValueType::BigInt(new_n));
+
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use super::*;
