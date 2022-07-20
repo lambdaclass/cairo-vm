@@ -60,11 +60,7 @@ pub fn memset_continue_loop(
                 )))
             }
         },
-        None => {
-            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "n",
-            )))
-        }
+        None => return Err(VirtualMachineError::ScopeError),
     };
 
     // this variable will hold the value of `n - 1`
