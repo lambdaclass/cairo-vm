@@ -34,115 +34,110 @@ pub fn find_element(
             Ok(_),
             Ok(Some(maybe_rel_key)),
         ) => {
-            for (name, builtin) in &vm.builtin_runners {
-                //Check that range_check_builtin is present
-                let _builtin = match builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>() {
-                    Some(b) => b,
-                    None => return Err(VirtualMachineError::NoRangeCheckBuiltin),
+            let _ = vm.builtin_runners.iter()
+                .find(|(name, _)| name.as_str() == "range_check")
+                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?
+                .1
+                .as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
+
+            let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
+                elm_size
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_elm_size.clone(),
+                ));
+            };
+
+            if !elm_size.is_positive() {
+                return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
+            }
+
+            if let Some(find_element_index_value) = vm.find_element_index.clone() {
+                vm.find_element_index = None;
+                let array_start = vm
+                    .memory
+                    .get(&array_ptr_addr)
+                    .map_err(VirtualMachineError::MemoryError)?
+                    .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
+                let found_key =
+                    vm.memory
+                        .get(&array_start.add_int_mod(
+                            &(elm_size * &find_element_index_value),
+                            &vm.prime,
+                        )?)
+                        .map_err(VirtualMachineError::MemoryError)?
+                        .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
+                if found_key != maybe_rel_key {
+                    return Err(VirtualMachineError::InvalidIndex(
+                        find_element_index_value,
+                        maybe_rel_key.clone(),
+                        found_key.clone(),
+                    ));
+                }
+
+                return vm
+                    .memory
+                    .insert(
+                        &index_addr,
+                        &MaybeRelocatable::Int(find_element_index_value),
+                    )
+                    .map_err(VirtualMachineError::MemoryError);
+            } else {
+                let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
+                    n_elms
+                } else {
+                    return Err(VirtualMachineError::ExpectedInteger(
+                        maybe_rel_n_elms.clone(),
+                    ));
                 };
 
-                if name == &"range_check".to_string() {
-                    let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                        elm_size
-                    } else {
-                        return Err(VirtualMachineError::ExpectedInteger(
-                            maybe_rel_elm_size.clone(),
-                        ));
-                    };
+                if n_elms.is_negative() {
+                    return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+                }
 
-                    if !elm_size.is_positive() {
-                        return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
-                    }
-
-                    if let Some(find_element_index_value) = vm.find_element_index.clone() {
-                        vm.find_element_index = None;
-                        let array_start = vm
-                            .memory
-                            .get(&array_ptr_addr)
-                            .map_err(VirtualMachineError::MemoryError)?
-                            .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
-
-                        let found_key =
-                            vm.memory
-                                .get(&array_start.add_int_mod(
-                                    &(elm_size * &find_element_index_value),
-                                    &vm.prime,
-                                )?)
-                                .map_err(VirtualMachineError::MemoryError)?
-                                .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
-
-                        if found_key != maybe_rel_key {
-                            return Err(VirtualMachineError::InvalidIndex(
-                                find_element_index_value,
-                                maybe_rel_key.clone(),
-                                found_key.clone(),
-                            ));
-                        }
-
-                        return vm
-                            .memory
-                            .insert(
-                                &index_addr,
-                                &MaybeRelocatable::Int(find_element_index_value),
-                            )
-                            .map_err(VirtualMachineError::MemoryError);
-                    } else {
-                        let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
-                            n_elms
-                        } else {
-                            return Err(VirtualMachineError::ExpectedInteger(
-                                maybe_rel_n_elms.clone(),
-                            ));
-                        };
-
-                        if n_elms.is_negative() {
-                            return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
-                        }
-
-                        if let Some(find_element_max_size) = &vm.find_element_max_size {
-                            if n_elms > find_element_max_size {
-                                return Err(VirtualMachineError::FindElemMaxSize(
-                                    find_element_max_size.clone(),
-                                    n_elms.clone(),
-                                ));
-                            }
-                        }
-
-                        let n_elms_iter: i32 = n_elms
-                            .to_i32()
-                            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
-
-                        let array_start = vm
-                            .memory
-                            .get(&array_ptr_addr)
-                            .map_err(VirtualMachineError::MemoryError)?
-                            .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
-
-                        for i in 0..n_elms_iter {
-                            let iter_addr =
-                                &array_start.add_int_mod(&(elm_size * bigint!(i)), &vm.prime)?;
-                            let iter_key = vm
-                                .memory
-                                .get(iter_addr)
-                                .map_err(VirtualMachineError::MemoryError)?
-                                .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
-
-                            if iter_key == maybe_rel_key {
-                                return vm
-                                    .memory
-                                    .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
-                                    .map_err(VirtualMachineError::MemoryError);
-                            }
-                        }
-
-                        return Err(VirtualMachineError::FindElemKeyNotFound(
-                            maybe_rel_key.clone(),
+                if let Some(find_element_max_size) = &vm.find_element_max_size {
+                    if n_elms > find_element_max_size {
+                        return Err(VirtualMachineError::FindElemMaxSize(
+                            find_element_max_size.clone(),
+                            n_elms.clone(),
                         ));
                     }
                 }
-            }
 
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
+                let n_elms_iter: i32 = n_elms
+                    .to_i32()
+                    .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
+
+                let array_start = vm
+                    .memory
+                    .get(&array_ptr_addr)
+                    .map_err(VirtualMachineError::MemoryError)?
+                    .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
+                for i in 0..n_elms_iter {
+                    let iter_addr =
+                        &array_start.add_int_mod(&(elm_size * bigint!(i)), &vm.prime)?;
+                    let iter_key = vm
+                        .memory
+                        .get(iter_addr)
+                        .map_err(VirtualMachineError::MemoryError)?
+                        .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+
+                    if iter_key == maybe_rel_key {
+                        return vm
+                            .memory
+                            .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
+                            .map_err(VirtualMachineError::MemoryError);
+                    }
+                }
+
+                return Err(VirtualMachineError::FindElemKeyNotFound(
+                    maybe_rel_key.clone(),
+                ));
+            }
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
@@ -422,6 +417,22 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn find_elm_range_check_not_first() {
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
+        let range_builtin = vm.builtin_runners.pop();
+        vm.builtin_runners.push((
+            "output".to_string(),
+            Box::new(OutputBuiltinRunner::new(true)),
+        ));
+        vm.builtin_runners.push(range_builtin.expect("Lost range check builtin"));
+
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Ok(())
         );
     }
 
