@@ -139,6 +139,66 @@ pub fn squash_dict_inner_skip_loop(
         .map_err(VirtualMachineError::MemoryError)
 }
 
+/*Implements Hint:
+   new_access_index = current_access_indices.pop()
+   ids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1
+   current_access_index = new_access_index
+*/
+pub fn squash_dict_inner_check_access_index(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that current_access_indices and current_access_index are in scope
+    let mut current_access_indices =
+        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
+            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
+        })?;
+    let current_access_index = get_int_from_scope(vm, "current_access_index").ok_or_else(|| {
+        VirtualMachineError::NoLocalVariable(String::from("current_access_index"))
+    })?;
+    //Check that ids contains the reference id for each variable used by the hint
+    let loop_temps_ref = ids.get(&String::from("loop_temps")).ok_or_else(|| {
+        VirtualMachineError::IncorrectIds(
+            vec![String::from("loop_temps")],
+            ids.clone().into_keys().collect(),
+        )
+    })?;
+    //Check that each reference id corresponds to a value in the reference manager
+    let loop_temps_addr =
+        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm)
+            .ok_or_else(|| VirtualMachineError::FailedToGetReference(loop_temps_ref.clone()))?;
+    //Get loop_temps from memory
+    let loop_temps = vm
+        .memory
+        .get(&loop_temps_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or_else(|| VirtualMachineError::MemoryGet(loop_temps_addr.clone()))?
+        .clone();
+    //Main Logic
+    let new_access_index = current_access_indices
+        .pop()
+        .ok_or(VirtualMachineError::EmptyAccessedIndices)?;
+    vm.exec_scopes.assign_or_update_variable(
+        "new_access_index",
+        PyValueType::BigInt(new_access_index.clone()),
+    );
+    vm.exec_scopes.assign_or_update_variable(
+        "current_access_indices",
+        PyValueType::List(current_access_indices),
+    );
+    let index_delta_minus1 = new_access_index.clone() - current_access_index - bigint!(1);
+    //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
+    //Insert loop_temps.delta_minus1 into memory
+    vm.memory
+        .insert(&loop_temps, &MaybeRelocatable::from(index_delta_minus1))
+        .map_err(VirtualMachineError::MemoryError)?;
+    vm.exec_scopes.assign_or_update_variable(
+        "current_access_index",
+        PyValueType::BigInt(new_access_index),
+    );
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::bigint;
