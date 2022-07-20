@@ -61,6 +61,7 @@ pub enum VirtualMachineError {
     NoKeyInAccessIndices(BigInt),
     EmptyAccessIndices,
     EmptyCurrentAccessIndices,
+    CurrentAccessIndicesNotEmpty,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -183,6 +184,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::EmptyCurrentAccessIndices =>{
                 write!(f, "squash_dict_inner fail: local current_accessed_indices is empty")
+            },
+            VirtualMachineError::CurrentAccessIndicesNotEmpty =>{
+                write!(f, "squash_dict_inner fail: local current_accessed_indices not empty, loop ended with remaining unaccounted elements")
             },
         }
     }

@@ -12,7 +12,7 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::hints::squash_dict::{
     squash_dict_inner_check_access_index, squash_dict_inner_continue_loop,
-    squash_dict_inner_first_iteration, squash_dict_inner_skip_loop,
+    squash_dict_inner_first_iteration, squash_dict_inner_len_assert, squash_dict_inner_skip_loop,
 };
 use crate::vm::vm_core::VirtualMachine;
 
@@ -70,6 +70,7 @@ pub fn execute_hint(
         ) => squash_dict_inner_check_access_index(vm, ids),
         Ok("ids.loop_temps.should_continue = 1 if current_access_indices else 0"
         ) => squash_dict_inner_continue_loop(vm, ids),
+        Ok("assert len(current_access_indices) == 0") => squash_dict_inner_len_assert(vm),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)") => unsigned_div_rem(vm, ids),

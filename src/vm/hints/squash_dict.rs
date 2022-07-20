@@ -243,6 +243,18 @@ pub fn squash_dict_inner_continue_loop(
         .map_err(VirtualMachineError::MemoryError)
 }
 
+// Implements Hint: assert len(current_access_indices) == 0
+pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    //Check that current_access_indices is in scope
+    let current_access_indices =
+        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
+            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
+        })?;
+    if !current_access_indices.is_empty() {
+        return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
+    }
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use crate::bigint;
@@ -260,6 +272,7 @@ mod tests {
     const SQUASH_DICT_INNER_CHECK_ACCESS_INDEX: &str = "new_access_index = current_access_indices.pop()\n    ids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\n    current_access_index = new_access_index";
     const SQUASH_DICT_INNER_CONTINUE_LOOP: &str =
         "ids.loop_temps.should_continue = 1 if current_access_indices else 0";
+    const SQUASH_DICT_INNER_ASSERT_LEN: &str = "assert len(current_access_indices) == 0";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
@@ -715,6 +728,51 @@ mod tests {
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+    }
+
+    #[test]
+    fn assert_current_indices_len_is_empty() {
+        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN.as_bytes();
+        //Prepare scope variables
+        let current_access_indices = vec![];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Store scope variables
+        vm.exec_scopes.assign_or_update_variable(
+            "current_access_indices",
+            PyValueType::List(current_access_indices),
+        );
+        //Execute the hint
+        //Hint should produce an error if assertion fails
+        assert_eq!(execute_hint(&mut vm, hint_code, HashMap::new()), Ok(()));
+    }
+
+    #[test]
+    fn assert_current_indices_len_is_empty_not() {
+        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN.as_bytes();
+        //Prepare scope variables
+        let current_access_indices = vec![bigint!(29)];
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Store scope variables
+        vm.exec_scopes.assign_or_update_variable(
+            "current_access_indices",
+            PyValueType::List(current_access_indices),
+        );
+        //Execute the hint
+        //Hint should produce an error if assertion fails
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new()),
+            Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }
 }
