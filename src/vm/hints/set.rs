@@ -218,15 +218,16 @@ pub fn set_add(
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::hints::hint_utils::execute_hint;
+    use crate::types::instruction::Register;
+    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use num_bigint::Sign;
 
-    #[test]
-    fn set_add_successful() {
-        let hint_code = "assert ids.elm_size > 0\n        assert ids.set_ptr <= ids.set_end_ptr\n        elm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\n        for i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n            if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n                ids.index = i // ids.elm_size\n                ids.is_elm_in_set = 1\n                break\n        else:\n            ids.is_elm_in_set = 0".as_bytes();
+    const HINT_CODE: &[u8] = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0".as_bytes();
+
+    fn init_vm_ids() -> (VirtualMachine, HashMap<String, BigInt>) {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -236,23 +237,189 @@ mod tests {
             false,
         );
 
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((2, 0)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
-            .unwrap();
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(7)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((2, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .expect("Unexpected memory insert fail");
+
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                5,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
 
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("is_elm_in_set"), bigint!(0));
-        ids.insert(String::from("index"), bigint!(1));
-        ids.insert(String::from("set_ptr"), bigint!(2));
-        ids.insert(String::from("elm_size"), bigint!(3));
-        ids.insert(String::from("elm_ptr"), bigint!(4));
-        ids.insert(String::from("set_end_ptr"), bigint!(5));
+        for (i, s) in [
+            "is_elm_in_set",
+            "index",
+            "set_ptr",
+            "elm_size",
+            "elm_ptr",
+            "set_end_ptr",
+        ]
+        .iter()
+        .enumerate()
+        {
+            ids.insert(s.to_string(), bigint!(i as i32));
+        }
+
+        (vm, ids)
     }
-}*/
+
+    #[test]
+    fn set_add_new_elem() {
+        let (mut vm, ids) = init_vm_ids();
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
+        )
+    }
+
+    #[test]
+    fn set_add_already_exists() {
+        let (mut vm, ids) = init_vm_ids();
+
+        vm.memory.data[2][0] = Some(MaybeRelocatable::from(bigint!(1)));
+        vm.memory.data[2][1] = Some(MaybeRelocatable::from(bigint!(3)));
+
+        assert_eq!(
+            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
+        )
+    }
+}
