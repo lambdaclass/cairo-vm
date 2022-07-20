@@ -64,11 +64,14 @@ pub fn squash_dict_inner_first_iteration(
         )
     })?;
     //Check that each reference id corresponds to a value in the reference manager
-    let range_check_ptr_addr =
-        get_address_from_reference(range_check_ptr_ref, &vm.references, &vm.run_context, vm)
-            .ok_or_else(|| {
-                VirtualMachineError::FailedToGetReference(range_check_ptr_ref.clone())
-            })?;
+    let range_check_ptr_addr = get_address_from_reference(
+        range_check_ptr_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        None,
+    )?
+    .ok_or_else(|| VirtualMachineError::FailedToGetReference(range_check_ptr_ref.clone()))?;
     //Get ids from memory
     let range_check_ptr = vm
         .memory
@@ -120,11 +123,14 @@ pub fn squash_dict_inner_skip_loop(
         )
     })?;
     //Check that each reference id corresponds to a value in the reference manager
-    let should_skip_loop_addr =
-        get_address_from_reference(should_skip_loop_ref, &vm.references, &vm.run_context, vm)
-            .ok_or_else(|| {
-                VirtualMachineError::FailedToGetReference(should_skip_loop_ref.clone())
-            })?;
+    let should_skip_loop_addr = get_address_from_reference(
+        should_skip_loop_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        None,
+    )?
+    .ok_or_else(|| VirtualMachineError::FailedToGetReference(should_skip_loop_ref.clone()))?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -165,7 +171,7 @@ pub fn squash_dict_inner_check_access_index(
     })?;
     //Check that each reference id corresponds to a value in the reference manager
     let loop_temps_addr =
-        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm)
+        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm, None)?
             .ok_or_else(|| VirtualMachineError::FailedToGetReference(loop_temps_ref.clone()))?;
     //Get loop_temps from memory
     let loop_temps = vm
@@ -218,7 +224,7 @@ pub fn squash_dict_inner_continue_loop(
     })?;
     //Check that each reference id corresponds to a value in the reference manager
     let loop_temps_addr =
-        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm)
+        get_address_from_reference(loop_temps_ref, &vm.references, &vm.run_context, vm, None)?
             .ok_or_else(|| VirtualMachineError::FailedToGetReference(loop_temps_ref.clone()))?;
     //Get loop_temps from memory
     let loop_temps = vm
@@ -255,9 +261,60 @@ pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), Virtu
     }
     Ok(())
 }
+
+//Implements hint: assert ids.n_used_accesses == len(access_indices[key]
+pub fn squash_dict_inner_used_accesses_assert(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
+    //Check that access_indices and key are in scope
+    let access_indices = get_access_indices(vm)
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
+    let key = get_int_from_scope(vm, "key")
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
+    //Check that ids contains the reference id for each variable used by the hint
+    let n_used_accesses_ref = ids.get(&String::from("n_used_accesses")).ok_or_else(|| {
+        VirtualMachineError::IncorrectIds(
+            vec![String::from("n_used_accesses")],
+            ids.clone().into_keys().collect(),
+        )
+    })?;
+    //Check that each reference id corresponds to a value in the reference manager
+    let n_used_accesses_addr = get_address_from_reference(
+        n_used_accesses_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        None,
+    )?
+    .ok_or_else(|| VirtualMachineError::FailedToGetReference(n_used_accesses_ref.clone()))?;
+    //Get n_used_accesses from memory
+    let maybe_rel_n_used_accesses = vm
+        .memory
+        .get(&n_used_accesses_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or_else(|| VirtualMachineError::MemoryGet(n_used_accesses_addr.clone()))?;
+    //Check that n_used_accesses is an int value
+    let n_used_accesses = if let MaybeRelocatable::Int(n_used_accesses) = maybe_rel_n_used_accesses
+    {
+        n_used_accesses
+    } else {
+        return Err(VirtualMachineError::ExpectedInteger(n_used_accesses_addr));
+    };
+    //Main Logic
+    let access_indices_at_key = access_indices
+        .get(&key)
+        .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
+
+    //if *n_used_accesses != bigint_usize!(access_indices_at_key.len()) {
+
+    //}
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use crate::bigint;
+    use crate::serde::deserialize_program::ApTracking;
     use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
@@ -314,10 +371,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
         //Check scope variables
         //Prepare expected data
         let variables = vm.exec_scopes.get_local_variables().unwrap();
@@ -377,11 +438,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -419,11 +481,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::NoLocalVariable(String::from(
                 "access_indices"
             )))
@@ -462,10 +525,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
         //Check the value of ids.should_skip_loop
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
@@ -505,10 +572,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
         //Check the value of ids.should_skip_loop
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
@@ -557,10 +628,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
         //Check scope variables
         let variables = vm.exec_scopes.get_local_variables().unwrap();
         let current_access_indices_scope = variables.get("current_access_indices").unwrap();
@@ -622,11 +697,12 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids),
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -670,10 +746,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 3))),
@@ -720,10 +800,14 @@ mod tests {
                 offset1: -1,
                 offset2: 0,
                 inner_dereference: false,
+                ap_tracking_data: None,
             },
         )]);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 3))),
@@ -749,7 +833,10 @@ mod tests {
         );
         //Execute the hint
         //Hint should produce an error if assertion fails
-        assert_eq!(execute_hint(&mut vm, hint_code, HashMap::new()), Ok(()));
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -771,7 +858,7 @@ mod tests {
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new()),
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }

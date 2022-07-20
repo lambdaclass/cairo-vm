@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable;
@@ -35,6 +36,7 @@ pub struct HintData {
     pub hint_code: Vec<u8>,
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
+    pub ap_tracking_data: ApTracking,
 }
 
 pub struct VirtualMachine {
@@ -66,8 +68,16 @@ pub struct VirtualMachine {
 }
 
 impl HintData {
-    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, BigInt>) -> HintData {
-        HintData { hint_code, ids }
+    pub fn new(
+        hint_code: Vec<u8>,
+        ids: HashMap<String, BigInt>,
+        ap_tracking_data: ApTracking,
+    ) -> HintData {
+        HintData {
+            hint_code,
+            ids,
+            ap_tracking_data,
+        }
     }
 }
 
@@ -481,7 +491,12 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                execute_hint(self, &hint_data.hint_code, hint_data.ids.clone())?
+                execute_hint(
+                    self,
+                    &hint_data.hint_code,
+                    hint_data.ids.clone(),
+                    &hint_data.ap_tracking_data,
+                )?
             }
         }
         self.skip_instruction_execution = false;
@@ -3577,6 +3592,7 @@ mod tests {
             vec![HintData::new(
                 "memory[ap] = segments.add()".as_bytes().to_vec(),
                 HashMap::new(),
+                ApTracking::new(),
             )],
         );
 

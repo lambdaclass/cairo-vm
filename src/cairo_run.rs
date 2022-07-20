@@ -42,9 +42,11 @@ pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoR
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
     let mut buffer = BufWriter::new(io::stdout());
-    if let Err(error) = cairo_runner.write_output(&mut buffer) {
-        return Err(CairoRunError::Runner(error));
-    }
+    writeln!(&mut buffer, "Program Output: ")
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
+    cairo_runner
+        .write_output(&mut buffer)
+        .map_err(CairoRunError::Runner)?;
     buffer
         .flush()
         .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))

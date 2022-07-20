@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::types::instruction::Register;
 use crate::types::program::Program;
 use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::{is_subsequence, to_field_element};
@@ -235,6 +236,12 @@ impl CairoRunner {
                         offset1: reference.value_address.offset1,
                         offset2: reference.value_address.offset2,
                         inner_dereference: reference.value_address.inner_dereference,
+                        // only store `ap` tracking data if the reference is referred to it
+                        ap_tracking_data: if register == &Register::FP {
+                            None
+                        } else {
+                            Some(reference.ap_tracking_data.clone())
+                        },
                     },
                 );
             }
@@ -254,6 +261,7 @@ impl CairoRunner {
                     hint_list.push(HintData::new(
                         hint_data.code.clone(),
                         hint_data.flow_tracking_data.reference_ids.clone(),
+                        hint_data.flow_tracking_data.ap_tracking.clone(),
                     ));
                 } else {
                     //Insert the first hint at a given pc
@@ -264,6 +272,7 @@ impl CairoRunner {
                             CairoRunner::remove_path_from_reference_ids(
                                 &hint_data.flow_tracking_data.reference_ids,
                             )?,
+                            hint_data.flow_tracking_data.ap_tracking.clone(),
                         )],
                     );
                 }
@@ -360,6 +369,13 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_output(&mut self) -> Result<Option<String>, RunnerError> {
+        let mut output = Vec::<u8>::new();
+        self.write_output(&mut output)?;
+        let output = String::from_utf8(output).map_err(|_| RunnerError::FailedStringConversion)?;
+        Ok(Some(output))
+    }
+
     ///Writes the values hosted in the output builtin's segment
     /// Does nothing if the output builtin is not present in the program
     pub fn write_output(&mut self, stdout: &mut dyn io::Write) -> Result<(), RunnerError> {
@@ -372,11 +388,6 @@ impl CairoRunner {
                 Some(base) => base,
                 None => return Err(RunnerError::UninitializedBase),
             };
-
-            let write_result = writeln!(stdout, "Program Output: ");
-            if write_result.is_err() {
-                return Err(RunnerError::WriteFail);
-            }
 
             // After this if block,
             // segment_used_sizes is always Some(_)
@@ -3345,10 +3356,7 @@ mod tests {
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
-        assert_eq!(
-            String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n1\n2\n"))
-        );
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n2\n")));
     }
 
     #[test]
@@ -3401,10 +3409,7 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
-        assert_eq!(
-            String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n1\n17\n"))
-        );
+        assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n17\n")));
     }
 
     #[test]
@@ -3443,7 +3448,9 @@ mod tests {
         cairo_runner.write_output(&mut stdout).unwrap();
         assert_eq!(
             String::from_utf8(stdout),
-            Ok(String::from("Program Output: \n-347635731488942605882605540010235804344383682379185578591125677225688681570\n"))
+            Ok(String::from(
+                "-347635731488942605882605540010235804344383682379185578591125677225688681570\n"
+            ))
         );
     }
 
