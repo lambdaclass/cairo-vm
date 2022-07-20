@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::{relocatable::MaybeRelocatable, exec_scope::PyValueType};
 use crate::vm::{
     errors::vm_errors::VirtualMachineError, hints::hint_utils::get_address_from_var_name,
     runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
@@ -53,8 +53,17 @@ pub fn find_element(
                 return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
             }
 
-            if let Some(find_element_index_value) = vm.find_element_index.clone() {
-                vm.find_element_index = None;
+            let find_element_index = if let Some(variables) = vm.exec_scopes.get_local_variables() {
+                if let Some(PyValueType::BigInt(bigint)) = variables.get("find_element_index") {
+                    Some(bigint)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            if let Some(find_element_index_value) = find_element_index {
                 let array_start = vm
                     .memory
                     .get(&array_ptr_addr)
@@ -64,27 +73,31 @@ pub fn find_element(
                 let found_key =
                     vm.memory
                         .get(&array_start.add_int_mod(
-                            &(elm_size * &find_element_index_value),
+                            &(elm_size * find_element_index_value),
                             &vm.prime,
                         )?)
                         .map_err(VirtualMachineError::MemoryError)?
                         .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
 
+
                 if found_key != maybe_rel_key {
                     return Err(VirtualMachineError::InvalidIndex(
-                        find_element_index_value,
+                        find_element_index_value.clone(),
                         maybe_rel_key.clone(),
                         found_key.clone(),
                     ));
                 }
 
-                return vm
-                    .memory
-                    .insert(
-                        &index_addr,
-                        &MaybeRelocatable::Int(find_element_index_value),
-                    )
-                    .map_err(VirtualMachineError::MemoryError);
+                vm
+                .memory
+                .insert(
+                    &index_addr,
+                    &MaybeRelocatable::Int(find_element_index_value.clone()),
+                )
+                .map_err(VirtualMachineError::MemoryError)?;
+
+                vm.exec_scopes.delete_variable("find_element_index");
+                return Ok(());
             } else {
                 let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
                     n_elms
@@ -98,12 +111,14 @@ pub fn find_element(
                     return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
                 }
 
-                if let Some(find_element_max_size) = &vm.find_element_max_size {
-                    if n_elms > find_element_max_size {
-                        return Err(VirtualMachineError::FindElemMaxSize(
-                            find_element_max_size.clone(),
-                            n_elms.clone(),
-                        ));
+                if let Some(variables) = vm.exec_scopes.get_local_variables() {
+                    if let Some(PyValueType::BigInt(find_element_max_size)) = variables.get("find_element_max_size") {
+                        if n_elms > find_element_max_size {
+                            return Err(VirtualMachineError::FindElemMaxSize(
+                                find_element_max_size.clone(),
+                                n_elms.clone(),
+                            ));
+                        }
                     }
                 }
 
@@ -327,7 +342,8 @@ mod tests {
     #[test]
     fn element_found_by_oracle() {
         let (mut vm, ids) = init_vm_ids(None, None, None, false);
-        vm.find_element_index = Some(bigint!(1));
+        vm.exec_scopes
+            .assign_or_update_variable("find_element_index", PyValueType::BigInt(bigint!(1)));
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -356,7 +372,8 @@ mod tests {
     #[test]
     fn element_not_found_oracle() {
         let (mut vm, ids) = init_vm_ids(None, None, None, false);
-        vm.find_element_index = Some(bigint!(2));
+        vm.exec_scopes
+            .assign_or_update_variable("find_element_index", PyValueType::BigInt(bigint!(2)));
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -495,7 +512,8 @@ mod tests {
     #[test]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids) = init_vm_ids(None, None, None, false);
-        vm.find_element_max_size = Some(bigint!(1));
+        vm.exec_scopes
+            .assign_or_update_variable("find_element_max_size", PyValueType::BigInt(bigint!(1)));
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),

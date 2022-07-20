@@ -65,8 +65,6 @@ pub struct VirtualMachine {
     current_step: usize,
     skip_instruction_execution: bool,
     pub dict_manager: DictManager,
-    pub find_element_index: Option<BigInt>,
-    pub find_element_max_size: Option<BigInt>,
 }
 
 impl HintData {
@@ -117,8 +115,6 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
-            find_element_index: None,
-            find_element_max_size: None,
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
@@ -2453,8 +2449,6 @@ mod tests {
             segments: MemorySegmentManager::new(),
             dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
-            find_element_index: None,
-            find_element_max_size: None,
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);
