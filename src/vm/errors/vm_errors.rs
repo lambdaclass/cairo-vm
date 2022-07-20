@@ -59,7 +59,8 @@ pub enum VirtualMachineError {
     NoInitialDict,
     NoLocalVariable(String),
     NoKeyInAccessIndices(BigInt),
-    EmptyAccessedIndices,
+    EmptyAccessIndices,
+    EmptyCurrentAccessIndices,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -177,8 +178,11 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::NoKeyInAccessIndices(key) => {
                 write!(f, "squash_dict_inner fail: couldnt find key {:?} in accesses_indices", key)
             },
-            VirtualMachineError::EmptyAccessedIndices =>{
-                write!(f, "squash_dict_inner fail: accessed_indices is empty")
+            VirtualMachineError::EmptyAccessIndices =>{
+                write!(f, "squash_dict_inner fail: local accessed_indices is empty")
+            },
+            VirtualMachineError::EmptyCurrentAccessIndices =>{
+                write!(f, "squash_dict_inner fail: local current_accessed_indices is empty")
             },
         }
     }

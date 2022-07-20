@@ -85,7 +85,7 @@ pub fn squash_dict_inner_first_iteration(
     //Get current_access_index
     let first_val = current_access_indices
         .pop()
-        .ok_or(VirtualMachineError::EmptyAccessedIndices)?;
+        .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
     vm.exec_scopes.assign_or_update_variable(
         "current_access_indices",
@@ -177,7 +177,7 @@ pub fn squash_dict_inner_check_access_index(
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
-        .ok_or(VirtualMachineError::EmptyAccessedIndices)?;
+        .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     vm.exec_scopes.assign_or_update_variable(
         "new_access_index",
         PyValueType::BigInt(new_access_index.clone()),
@@ -323,7 +323,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids),
-            Err(VirtualMachineError::EmptyAccessedIndices)
+            Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
 
