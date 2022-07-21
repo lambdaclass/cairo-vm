@@ -61,10 +61,9 @@ pub enum VirtualMachineError {
     NoDictTracker(usize),
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
-    FindElemKeyNotFound(MaybeRelocatable),
     FindElemMaxSize(BigInt, BigInt),
     InvalidIndex(BigInt, MaybeRelocatable, MaybeRelocatable),
-    FindElemNoFoundKey,
+    KeyNotFound,
     NoneApTrackingData,
     InvalidTrackingGroup(usize, usize),
     InvalidApValue(MaybeRelocatable),
@@ -200,10 +199,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidApValue(addr) => {
                 write!(f, "Expected relocatable for ap, got {:?}", addr)
             },
-            VirtualMachineError::FindElemKeyNotFound(key) => write!(f, "Key {:?}, was not found", key),
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
-            VirtualMachineError::FindElemNoFoundKey => write!(f, "Found Key is None"),
+            VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
         }
     }
 }

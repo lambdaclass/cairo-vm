@@ -68,7 +68,7 @@ pub fn find_element(
                     .memory
                     .get(&array_ptr_addr)
                     .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+                    .ok_or(VirtualMachineError::KeyNotFound)?;
 
                 let found_key =
                     vm.memory
@@ -77,7 +77,7 @@ pub fn find_element(
                             &vm.prime,
                         )?)
                         .map_err(VirtualMachineError::MemoryError)?
-                        .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+                        .ok_or(VirtualMachineError::KeyNotFound)?;
 
 
                 if found_key != maybe_rel_key {
@@ -130,7 +130,7 @@ pub fn find_element(
                     .memory
                     .get(&array_ptr_addr)
                     .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::FindElemNoFoundKey)?
+                    .ok_or(VirtualMachineError::KeyNotFound)?
                     // This clone is needed in order to be able to use memory.get below
                     .clone()
                     ;
@@ -140,7 +140,7 @@ pub fn find_element(
                         .memory
                         .get(&array_start)
                         .map_err(VirtualMachineError::MemoryError)?
-                        .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+                        .ok_or(VirtualMachineError::KeyNotFound)?;
 
                     if iter_key == maybe_rel_key {
                         return vm
@@ -153,9 +153,13 @@ pub fn find_element(
                         array_start.add_int_mod(elm_size, &vm.prime)?;
                 }
 
-                return Err(VirtualMachineError::FindElemKeyNotFound(
-                    maybe_rel_key.clone(),
-                ));
+                if let MaybeRelocatable::Int(ref key) = maybe_rel_key {
+                    return Err(VirtualMachineError::NoValueForKey(
+                        key.clone(),
+                    ));
+                } else {
+                    return Err(VirtualMachineError::ExpectedInteger(maybe_rel_key.clone()));
+                }
             }
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
@@ -367,8 +371,8 @@ mod tests {
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-            Err(VirtualMachineError::FindElemKeyNotFound(
-                MaybeRelocatable::Int(bigint!(7))
+            Err(VirtualMachineError::NoValueForKey(
+                bigint!(7)
             ))
         );
     }
@@ -381,7 +385,7 @@ mod tests {
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-            Err(VirtualMachineError::FindElemNoFoundKey)
+            Err(VirtualMachineError::KeyNotFound)
         );
     }
 
@@ -522,6 +526,17 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
+        );
+    }
+
+    #[test]
+    fn find_elm_key_not_int() {
+        let relocatable = MaybeRelocatable::from((1,2));
+        let (mut vm, ids) = init_vm_ids(None, None, Some(&relocatable), false);
+
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(relocatable.clone()))
         );
     }
 }
