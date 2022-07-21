@@ -152,21 +152,13 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
-                if let Some(rel) = set_ptr {
-                    rel
-                } else {
-                    &set_ptr_default
-                },
+                set_ptr.unwrap_or(&set_ptr_default),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 3)),
-                if let Some(rel) = elm_size {
-                    rel
-                } else {
-                    &elm_size_default
-                },
+                elm_size.unwrap_or(&elm_size_default),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
@@ -208,21 +200,13 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((2, 0)),
-                if let Some(rel) = elm_a {
-                    rel
-                } else {
-                    &elm_a_default
-                },
+                elm_a.unwrap_or(&elm_a_default),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
                 &MaybeRelocatable::from((2, 1)),
-                if let Some(rel) = elm_b {
-                    rel
-                } else {
-                    &elm_b_default
-                },
+                elm_b.unwrap_or(&elm_b_default),
             )
             .expect("Unexpected memory insert fail");
 
