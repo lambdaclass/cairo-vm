@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658424124820,
+  "lastUpdate": 1658426269097,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -6753,6 +6753,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 2101,
             "range": "± 94",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1d3531ca222d2b938ba9622f0a61ec3bece756ea",
+          "message": "[HINTS] Find element hint (#294)\n\n* Add find_element_index global\r\n\r\n* Addinitial find elem logic\r\n\r\n* Fix find element hint broken parts\r\n\r\n* Run cargo clippy\r\n\r\n* Fix bug on key find\r\n\r\n* Add cairo program for integration test\r\n\r\n* Fix addr bug on given index path\r\n\r\n* Run cargo fmt\r\n\r\n* Fix error typo in test\r\n\r\n* Add test module\r\n\r\n* Refactor range limit assignation\r\n\r\n* Empty unit test cases\r\n\r\n* Add vm init helper\r\n\r\n* Add unit tests\r\n\r\n* Finish unit tests\r\n\r\n* Use ap tracking\r\n\r\n* Run cargo clippy\r\n\r\n* Accessing memory directly\r\n\r\n* Change test name global > oracle\r\n\r\n* Use get_address_from_val_name\r\n\r\n* Fix range check order bug\r\n\r\n* Use scopes instead of adding vm field\r\n\r\n* Remove multiplication in loop\r\n\r\n* Refactor and reuse errors\r\n\r\n* Add integration test; run fmt, clippy",
+          "timestamp": "2022-07-21T14:53:15-03:00",
+          "tree_id": "7da09f22cfae05ad4aa3dd8dfb2fba774208fc70",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/1d3531ca222d2b938ba9622f0a61ec3bece756ea"
+        },
+        "date": 1658426267810,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2009,
+            "range": "± 86",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 2010,
+            "range": "± 106",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 2013,
+            "range": "± 145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 2006,
+            "range": "± 87",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 2016,
+            "range": "± 86",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 2010,
+            "range": "± 82",
             "unit": "ns/iter"
           }
         ]
