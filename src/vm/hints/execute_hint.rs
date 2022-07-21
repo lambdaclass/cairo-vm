@@ -84,13 +84,13 @@ pub fn execute_hint(
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
         ) => default_dict_new(vm, ids),
         Ok("current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index"
-        ) => squash_dict_inner_first_iteration(vm, ids),
+        ) => squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking)),
         Ok("ids.should_skip_loop = 0 if current_access_indices else 1"
-        ) => squash_dict_inner_skip_loop(vm, ids),
+        ) => squash_dict_inner_skip_loop(vm, ids, Some(ap_tracking)),
         Ok("new_access_index = current_access_indices.pop()\nids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\ncurrent_access_index = new_access_index"
-        ) => squash_dict_inner_check_access_index(vm, ids),
+        ) => squash_dict_inner_check_access_index(vm, ids, Some(ap_tracking)),
         Ok("ids.loop_temps.should_continue = 1 if current_access_indices else 0"
-        ) => squash_dict_inner_continue_loop(vm, ids),
+        ) => squash_dict_inner_continue_loop(vm, ids, Some(ap_tracking)),
         Ok("assert len(keys) == 0") => squash_dict_inner_assert_len_keys(vm),
         Ok("assert len(current_access_indices) == 0") => squash_dict_inner_len_assert(vm),
         Ok("assert ids.n_used_accesses == len(access_indices[key])") => squash_dict_inner_used_accesses_assert(vm, ids, Some(ap_tracking)),

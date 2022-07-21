@@ -54,6 +54,7 @@ fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt
 pub fn squash_dict_inner_first_iteration(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
     let access_indices = get_access_indices(vm)
@@ -61,7 +62,8 @@ pub fn squash_dict_inner_first_iteration(
     let key = get_int_from_scope(vm, "key")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
     //Get addr for ids variables
-    let range_check_ptr_addr = get_address_from_var_name("range_check_ptr", &ids, vm, None)?;
+    let range_check_ptr_addr =
+        get_address_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
     //Get ids from memory
     let range_check_ptr = vm
         .memory
@@ -99,6 +101,7 @@ pub fn squash_dict_inner_first_iteration(
 pub fn squash_dict_inner_skip_loop(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
@@ -106,7 +109,8 @@ pub fn squash_dict_inner_skip_loop(
             VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
         })?;
     //Get addr for ids variables
-    let should_skip_loop_addr = get_address_from_var_name("should_skip_loop", &ids, vm, None)?;
+    let should_skip_loop_addr =
+        get_address_from_var_name("should_skip_loop", &ids, vm, hint_ap_tracking)?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -129,6 +133,7 @@ pub fn squash_dict_inner_skip_loop(
 pub fn squash_dict_inner_check_access_index(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
     let mut current_access_indices =
@@ -139,14 +144,7 @@ pub fn squash_dict_inner_check_access_index(
         VirtualMachineError::NoLocalVariable(String::from("current_access_index"))
     })?;
     //Get addr for ids variables
-    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, None)?;
-    //Get loop_temps from memory
-    let loop_temps = vm
-        .memory
-        .get(&loop_temps_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(loop_temps_addr.clone()))?
-        .clone();
+    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
@@ -163,7 +161,10 @@ pub fn squash_dict_inner_check_access_index(
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
     vm.memory
-        .insert(&loop_temps, &MaybeRelocatable::from(index_delta_minus1))
+        .insert(
+            &loop_temps_addr,
+            &MaybeRelocatable::from(index_delta_minus1),
+        )
         .map_err(VirtualMachineError::MemoryError)?;
     vm.exec_scopes.assign_or_update_variable(
         "current_access_index",
@@ -176,6 +177,7 @@ pub fn squash_dict_inner_check_access_index(
 pub fn squash_dict_inner_continue_loop(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
@@ -184,13 +186,7 @@ pub fn squash_dict_inner_continue_loop(
         })?;
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
-    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, None)?;
-    //Get loop_temps from memory
-    let loop_temps = vm
-        .memory
-        .get(&loop_temps_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(loop_temps_addr.clone()))?;
+    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -199,7 +195,7 @@ pub fn squash_dict_inner_continue_loop(
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    let should_continue_addr = loop_temps.add_usize_mod(3, None);
+    let should_continue_addr = loop_temps_addr.add_usize_mod(3, None);
     vm.memory
         .insert(
             &should_continue_addr,
@@ -729,13 +725,6 @@ mod tests {
             .assign_or_update_variable("current_access_index", PyValueType::BigInt(bigint!(1)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory (loop_temps)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("loop_temps"), bigint!(0));
@@ -770,7 +759,7 @@ mod tests {
         //new_index - current_index -1
         //5 - 1 - 1 = 3
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
     }
@@ -847,13 +836,6 @@ mod tests {
         );
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("loop_temps"), bigint!(0));
@@ -875,7 +857,7 @@ mod tests {
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            vm.memory.get(&MaybeRelocatable::from((0, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -901,13 +883,6 @@ mod tests {
         );
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("loop_temps"), bigint!(0));
@@ -929,7 +904,7 @@ mod tests {
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            vm.memory.get(&MaybeRelocatable::from((0, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
