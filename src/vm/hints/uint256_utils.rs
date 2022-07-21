@@ -3,7 +3,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_integer_from_var_name, get_struct_field_from_struct_address,
+    get_address_from_var_name, get_integer_from_address_with_offset, get_integer_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -33,10 +33,10 @@ pub fn uint256_add(
         get_address_from_var_name("carry_high", ids.clone(), vm, hint_ap_tracking)?;
     let carry_low_addr = get_address_from_var_name("carry_low", ids, vm, hint_ap_tracking)?;
 
-    let a_low = get_struct_field_from_struct_address(&a_addr, 0, vm)?;
-    let a_high = get_struct_field_from_struct_address(&a_addr, 1, vm)?;
-    let b_low = get_struct_field_from_struct_address(&b_addr, 0, vm)?;
-    let b_high = get_struct_field_from_struct_address(&b_addr, 1, vm)?;
+    let a_low = get_integer_from_address_with_offset(&a_addr, 0, vm)?;
+    let a_high = get_integer_from_address_with_offset(&a_addr, 1, vm)?;
+    let b_low = get_integer_from_address_with_offset(&b_addr, 0, vm)?;
+    let b_high = get_integer_from_address_with_offset(&b_addr, 1, vm)?;
 
     // Hint main logic
     // sum_low = ids.a.low + ids.b.low
