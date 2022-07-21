@@ -86,10 +86,14 @@ impl Memory {
         }
     }
 
+    //Gets the value from memory address.
+    //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
+    //else raises Err
     pub fn get_integer(&self, key: &MaybeRelocatable) -> Result<&BigInt, VirtualMachineError> {
         match self.get(key) {
             Ok(Some(MaybeRelocatable::Int(int))) => Ok(int),
-            _ => Err(VirtualMachineError::ExpectedInteger(key.clone())),
+            Ok(_) => Err(VirtualMachineError::ExpectedInteger(key.clone())),
+            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
     }
 
@@ -368,5 +372,58 @@ mod memory_tests {
             .unwrap();
         builtin.add_validation_rule(&mut memory);
         assert_eq!(memory.validate_existing_memory(), Ok(()));
+    }
+
+    #[test]
+    fn get_integer_valid() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        assert_eq!(
+            memory.get_integer(&MaybeRelocatable::from((0, 0))),
+            Ok(&bigint!(10))
+        );
+    }
+
+    #[test]
+    fn get_integer_invalid_expected_integer() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 10)),
+            )
+            .unwrap();
+        assert_eq!(
+            memory.get_integer(&MaybeRelocatable::from((0, 0))),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
+    }
+
+    #[test]
+    fn get_integer_invalid_memory_error() {
+        let key = MaybeRelocatable::from(bigint!(0));
+        let memory = Memory::new();
+        let error = memory.get_integer(&key);
+        assert_eq!(
+            error,
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::AddressNotRelocatable
+            ))
+        );
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "Memory addresses must be relocatable"
+        );
     }
 }
