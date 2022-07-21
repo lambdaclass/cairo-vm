@@ -171,6 +171,12 @@ fn cairo_run_dict_update() {
 }
 
 #[test]
+fn cairo_run_uint256() {
+    cairo_run::cairo_run(Path::new("cairo_programs/uint256.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_dict_write_bad() {
     assert!(cairo_run::cairo_run(
         Path::new("cairo_programs/bad_programs/bad_dict_new.json"),
