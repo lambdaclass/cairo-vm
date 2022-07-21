@@ -48,13 +48,14 @@ pub fn set_add(
                 .as_any()
                 .downcast_ref::<RangeCheckBuiltinRunner>()
                 .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
+
             let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
                 if elm_size.is_zero() {
                     return Err(VirtualMachineError::ValueNotPositive(elm_size.clone()));
                 }
                 elm_size
                     .to_usize()
-                    .ok_or_else(|| VirtualMachineError::ValueNotPositive(elm_size.clone()))?
+                    .ok_or_else(|| VirtualMachineError::BigintToUsizeFail)?
             } else {
                 return Err(VirtualMachineError::ExpectedInteger(
                     maybe_rel_elm_size.clone(),
@@ -366,7 +367,7 @@ mod tests {
 
         assert_eq!(
             execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
-            Err(VirtualMachineError::ValueNotPositive(int))
+            Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
 
