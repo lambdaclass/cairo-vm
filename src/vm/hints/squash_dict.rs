@@ -5,6 +5,7 @@ use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::{
     bigint, bigintusize,
+    serde::deserialize_program::ApTracking,
     types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
@@ -322,13 +323,15 @@ pub fn squash_dict_inner_next_key(
 pub fn squash_dict(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let dict_accesses_addr = get_address_from_var_name("dict_accesses", &ids, vm, None)?;
-    let ptr_diff_addr = get_address_from_var_name("ptr_diff", &ids, vm, None)?;
-    let n_accesses_addr = get_address_from_var_name("n_accesses", &ids, vm, None)?;
-    let big_keys_addr = get_address_from_var_name("big_keys", &ids, vm, None)?;
-    let first_key_addr = get_address_from_var_name("first_key", &ids, vm, None)?;
+    let dict_accesses_addr =
+        get_address_from_var_name("dict_accesses", &ids, vm, hint_ap_tracking)?;
+    let ptr_diff_addr = get_address_from_var_name("ptr_diff", &ids, vm, hint_ap_tracking)?;
+    let n_accesses_addr = get_address_from_var_name("n_accesses", &ids, vm, hint_ap_tracking)?;
+    let big_keys_addr = get_address_from_var_name("big_keys", &ids, vm, hint_ap_tracking)?;
+    let first_key_addr = get_address_from_var_name("first_key", &ids, vm, hint_ap_tracking)?;
     //Get ids variables from memory
     let ptr_diff = if let MaybeRelocatable::Int(ptr_diff) = vm
         .memory
@@ -350,11 +353,16 @@ pub fn squash_dict(
     } else {
         return Err(VirtualMachineError::ExpectedInteger(n_accesses_addr));
     };
+    let address = vm
+        .memory
+        .get(&dict_accesses_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or_else(|| VirtualMachineError::MemoryGet(n_accesses_addr.clone()))?
+        .clone();
     //Get range_check_builtin
     let range_check_builtin = get_range_check_builtin(vm)?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
-    let address = dict_accesses_addr;
     if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
