@@ -3,3 +3,4 @@ pub mod dict_manager;
 pub mod execute_hint;
 pub mod hint_utils;
 pub mod pow_utils;
+pub mod uint256_utils;
