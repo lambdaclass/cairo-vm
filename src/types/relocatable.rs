@@ -59,7 +59,7 @@ impl MaybeRelocatable {
                 big_offset = big_offset.mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
+                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
                 };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -109,7 +109,7 @@ impl MaybeRelocatable {
                 let big_offset: BigInt = (num_ref + rel.offset).mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
+                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
                 };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -232,7 +232,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -366,7 +366,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -385,7 +385,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
