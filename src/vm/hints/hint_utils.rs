@@ -16,6 +16,22 @@ use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 use std::ops::{Neg, Shl, Shr};
 
+//Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
+pub fn get_range_check_builtin(
+    vm: &VirtualMachine,
+) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+    for (name, builtin) in &vm.builtin_runners {
+        if name == &String::from("range_check") {
+            if let Some(range_check_builtin) =
+                builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+            {
+                return Ok(range_check_builtin);
+            };
+        }
+    }
+    Err(VirtualMachineError::NoRangeCheckBuiltin)
+}
+
 fn apply_ap_tracking_correction(
     ap: &Relocatable,
     ref_ap_tracking: &ApTracking,
