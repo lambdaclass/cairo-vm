@@ -55,7 +55,7 @@ pub fn set_add(
                 }
                 elm_size
                     .to_usize()
-                    .ok_or_else(|| VirtualMachineError::BigintToUsizeFail)?
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
             } else {
                 return Err(VirtualMachineError::ExpectedInteger(
                     maybe_rel_elm_size.clone(),
