@@ -165,6 +165,69 @@ pub fn find_element(
     }
 }
 
+pub fn search_sorted_lower(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let array_ptr_addr = get_address_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
+    let elm_size_addr = get_address_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
+    let n_elms_addr = get_address_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
+    let index_addr = get_address_from_var_name("index", &ids, vm, hint_ap_tracking)?;
+    let key_addr = get_address_from_var_name("key", &ids, vm, hint_ap_tracking)?;
+
+    match (
+        vm.memory.get(&array_ptr_addr),
+        vm.memory.get(&elm_size_addr),
+        vm.memory.get(&n_elms_addr),
+        vm.memory.get(&index_addr),
+        vm.memory.get(&key_addr),
+    ) {
+        (
+            Ok(Some(maybe_rel_array_ptr)),
+            Ok(Some(maybe_rel_elm_size)),
+            Ok(Some(maybe_rel_n_elms)),
+            Ok(_),
+            Ok(Some(maybe_rel_key)),
+        ) => {
+            let _ = vm
+                .builtin_runners
+                .iter()
+                .find(|(name, _)| name.as_str() == "range_check")
+                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?
+                .1
+                .as_any()
+                .downcast_ref::<RangeCheckBuiltinRunner>()
+                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
+            
+            let _elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
+                elm_size.to_usize().ok_or(VirtualMachineError::KeyNotFound)?
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(maybe_rel_elm_size.clone()));
+            };
+
+            let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
+                n_elms.to_i32().ok_or(VirtualMachineError::KeyNotFound)?
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(maybe_rel_n_elms.clone()));
+            };
+
+            let mut array_iter = maybe_rel_array_ptr.clone();
+
+            for i in 0..n_elms {
+                let value = vm.memory.get(&array_iter).map_err(VirtualMachineError::MemoryError)?.ok_or(VirtualMachineError::KeyNotFound)?;
+                if value >= maybe_rel_key {
+                    return vm.memory.insert(&index_addr, &MaybeRelocatable::Int(bigint!(i))).map_err(VirtualMachineError::MemoryError);
+                }
+                array_iter = array_iter.add_mod(maybe_rel_elm_size, &vm.prime)?;
+            }
+            
+            Ok(())
+        }
+        _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
