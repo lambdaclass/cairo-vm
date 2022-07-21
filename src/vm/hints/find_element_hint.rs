@@ -126,18 +126,19 @@ pub fn find_element(
                     .to_i32()
                     .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
 
-                let array_start = vm
+                let mut array_start = vm
                     .memory
                     .get(&array_ptr_addr)
                     .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
+                    .ok_or(VirtualMachineError::FindElemNoFoundKey)?
+                    // This clone is needed in order to be able to use memory.get below
+                    .clone()
+                    ;
 
                 for i in 0..n_elms_iter {
-                    let iter_addr =
-                        &array_start.add_int_mod(&(elm_size * bigint!(i)), &vm.prime)?;
                     let iter_key = vm
                         .memory
-                        .get(iter_addr)
+                        .get(&array_start)
                         .map_err(VirtualMachineError::MemoryError)?
                         .ok_or(VirtualMachineError::FindElemNoFoundKey)?;
 
@@ -147,6 +148,9 @@ pub fn find_element(
                             .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
                             .map_err(VirtualMachineError::MemoryError);
                     }
+
+                    array_start =
+                        array_start.add_int_mod(elm_size, &vm.prime)?;
                 }
 
                 return Err(VirtualMachineError::FindElemKeyNotFound(
