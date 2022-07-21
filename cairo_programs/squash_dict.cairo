@@ -1,6 +1,5 @@
 %builtins range_check
 
-from starkware.cairo.common.dict import dict_squash
 from starkware.cairo.common.squash_dict import squash_dict
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.dict_access import DictAccess
@@ -31,5 +30,12 @@ func main{range_check_ptr}() -> ():
     let (squashed_dict_end) = squash_dict{
         range_check_ptr=range_check_ptr
     }(dict_start, dict_end, squashed_dict_start)
+    
+    #Check the values of the squashed_dict
+    #should be: {0: (100, 300), 1: (50, 150)}
+    assert squashed_dict_start[0] = DictAccess(
+        key=0, prev_value=100, new_value=300)
+    assert squashed_dict_start[1] = DictAccess(
+        key=1, prev_value=50, new_value=150)
     return ()
 end
