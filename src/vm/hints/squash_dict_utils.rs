@@ -350,7 +350,7 @@ pub fn squash_dict(
     let squash_dict_max_size = get_int_from_scope(vm, "__squash_dict_max_size");
     if let Some(max_size) = squash_dict_max_size {
         if n_accesses > max_size {
-            return Err(VirtualMachineError::SquashDictMaxSizesExceeded(
+            return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 max_size, n_accesses,
             ));
         };
@@ -1252,7 +1252,7 @@ mod tests {
 
     #[test]
     fn squash_dict_valid_one_key_dict_no_max_size() {
-        //Dict = {0: (1,1), 0: (1,2)}
+        //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT.as_bytes();
         //Create vm
         let mut vm = VirtualMachine::new(
@@ -1423,5 +1423,1063 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
+    }
+
+    #[test]
+    fn squash_dict_valid_two_key_dict_no_max_size() {
+        //Dict = {1: (1,1), 1: (1,2), 2: (10,10), 2: (10,20)}
+        let hint_code = SQUASH_DICT.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        //Insert ids into memory
+        //ids.n_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //ids.n_ptr_diff
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(6)),
+            )
+            .unwrap();
+        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
+        //ids.dict_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Points to the first dict_access
+        //dict_accesses[0].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //dict_accesses[2].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 6)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //dict_accesses[2].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        //dict_accesses[2].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 8)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        //dict_accesses[3].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 9)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //dict_accesses[3].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 10)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        //dict_accesses[3].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 11)),
+                &MaybeRelocatable::from(bigint!(20)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses"), bigint!(0));
+        ids.insert(String::from("big_keys"), bigint!(1));
+        ids.insert(String::from("first_key"), bigint!(2));
+        ids.insert(String::from("ptr_diff"), bigint!(3));
+        ids.insert(String::from("n_accesses"), bigint!(4));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check scope variables
+        let access_indices = get_access_indices(&mut vm).unwrap();
+        assert_eq!(
+            access_indices,
+            HashMap::from([
+                (bigint!(1), vec![bigint!(0), bigint!(1)]),
+                (bigint!(2), vec![bigint!(2), bigint!(3)])
+            ])
+        );
+        let keys = get_list_from_scope(&mut vm, "keys").unwrap();
+        assert_eq!(keys, vec![bigint!(2)]);
+        let key = get_int_from_scope(&mut vm, "key").unwrap();
+        assert_eq!(key, bigint!(1));
+        //Check ids variables
+        let big_keys = vm
+            .memory
+            .get(&MaybeRelocatable::from((0, 1)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
+        let first_key = vm
+            .memory
+            .get(&MaybeRelocatable::from((0, 2)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
+    }
+
+    #[test]
+    fn squash_dict_valid_one_key_dict_with_max_size() {
+        //Dict = {1: (1,1), 1: (1,2)}
+        let hint_code = SQUASH_DICT.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Create scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("__squash_dict_max_size", PyValueType::BigInt(bigint!(12)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        //Insert ids into memory
+        //ids.n_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //ids.n_ptr_diff
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(6)),
+            )
+            .unwrap();
+        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
+        //ids.dict_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Points to the first dict_access
+        //dict_accesses[0].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses"), bigint!(0));
+        ids.insert(String::from("big_keys"), bigint!(1));
+        ids.insert(String::from("first_key"), bigint!(2));
+        ids.insert(String::from("ptr_diff"), bigint!(3));
+        ids.insert(String::from("n_accesses"), bigint!(4));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check scope variables
+        let access_indices = get_access_indices(&mut vm).unwrap();
+        assert_eq!(
+            access_indices,
+            HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+        );
+        let keys = get_list_from_scope(&mut vm, "keys").unwrap();
+        assert_eq!(keys, vec![]);
+        let key = get_int_from_scope(&mut vm, "key").unwrap();
+        assert_eq!(key, bigint!(1));
+        //Check ids variables
+        let big_keys = vm
+            .memory
+            .get(&MaybeRelocatable::from((0, 1)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
+        let first_key = vm
+            .memory
+            .get(&MaybeRelocatable::from((0, 2)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
+    }
+
+    #[test]
+    fn squash_dict_invalid_one_key_dict_with_max_size_exceeded() {
+        //Dict = {1: (1,1), 1: (1,2)}
+        let hint_code = SQUASH_DICT.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Create scope variables
+        vm.exec_scopes
+            .assign_or_update_variable("__squash_dict_max_size", PyValueType::BigInt(bigint!(1)));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        //Insert ids into memory
+        //ids.n_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //ids.n_ptr_diff
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(6)),
+            )
+            .unwrap();
+        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
+        //ids.dict_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Points to the first dict_access
+        //dict_accesses[0].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses"), bigint!(0));
+        ids.insert(String::from("big_keys"), bigint!(1));
+        ids.insert(String::from("first_key"), bigint!(2));
+        ids.insert(String::from("ptr_diff"), bigint!(3));
+        ids.insert(String::from("n_accesses"), bigint!(4));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::SquashDictMaxSizeExceeded(
+                bigint!(1),
+                bigint!(2)
+            ))
+        );
+    }
+
+    #[test]
+    fn squash_dict_invalid_one_key_dict_bad_ptr_diff() {
+        //Dict = {1: (1,1), 1: (1,2)}
+        let hint_code = SQUASH_DICT.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        //Insert ids into memory
+        //ids.n_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //ids.n_ptr_diff
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(7)),
+            )
+            .unwrap();
+        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
+        //ids.dict_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Points to the first dict_access
+        //dict_accesses[0].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses"), bigint!(0));
+        ids.insert(String::from("big_keys"), bigint!(1));
+        ids.insert(String::from("first_key"), bigint!(2));
+        ids.insert(String::from("ptr_diff"), bigint!(3));
+        ids.insert(String::from("n_accesses"), bigint!(4));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
+        );
+    }
+    #[test]
+    fn squash_dict_invalid_one_key_dict_with_n_access_too_big() {
+        //Dict = {1: (1,1), 1: (1,2)}
+        let hint_code = SQUASH_DICT.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        //Insert ids into memory
+        //ids.n_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(BigInt::new(
+                    Sign::Plus,
+                    vec![1, 0, 0, 0, 0, 0, 17, 134217728],
+                )),
+            )
+            .unwrap();
+        //ids.n_ptr_diff
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(6)),
+            )
+            .unwrap();
+        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
+        //ids.dict_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Points to the first dict_access
+        //dict_accesses[0].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses"), bigint!(0));
+        ids.insert(String::from("big_keys"), bigint!(1));
+        ids.insert(String::from("first_key"), bigint!(2));
+        ids.insert(String::from("ptr_diff"), bigint!(3));
+        ids.insert(String::from("n_accesses"), bigint!(4));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::NAccessesTooBig(BigInt::new(
+                Sign::Plus,
+                vec![1, 0, 0, 0, 0, 0, 17, 134217728]
+            ),))
+        );
+    }
+
+    #[test]
+    fn squash_dict_valid_one_key_dict_no_max_size_big_keys() {
+        //Dict = {(prime - 1): (1,1), (prime - 1): (1,2)}
+        let hint_code = SQUASH_DICT.as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        //Insert ids into memory
+        //ids.n_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //ids.n_ptr_diff
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from(bigint!(6)),
+            )
+            .unwrap();
+        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
+        //ids.dict_accesses
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Points to the first dict_access
+        //dict_accesses[0].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(BigInt::new(
+                    Sign::Plus,
+                    vec![1, 0, 0, 0, 0, 0, 17, 134217727],
+                )),
+            )
+            .unwrap();
+        //dict_accesses[0].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[0].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].key
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from(BigInt::new(
+                    Sign::Plus,
+                    vec![1, 0, 0, 0, 0, 0, 17, 134217727],
+                )),
+            )
+            .unwrap();
+        //dict_accesses[1].prev_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        //dict_accesses[1].next_value
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses"), bigint!(0));
+        ids.insert(String::from("big_keys"), bigint!(1));
+        ids.insert(String::from("first_key"), bigint!(2));
+        ids.insert(String::from("ptr_diff"), bigint!(3));
+        ids.insert(String::from("n_accesses"), bigint!(4));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -4,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                4,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check scope variables
+        let access_indices = get_access_indices(&mut vm).unwrap();
+        assert_eq!(
+            access_indices,
+            HashMap::from([(
+                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
+                vec![bigint!(0), bigint!(1)]
+            )])
+        );
+        let keys = get_list_from_scope(&mut vm, "keys").unwrap();
+        assert_eq!(keys, vec![]);
+        let key = get_int_from_scope(&mut vm, "key").unwrap();
+        assert_eq!(
+            key,
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727])
+        );
+        //Check ids variables
+        let big_keys = vm
+            .memory
+            .get(&MaybeRelocatable::from((0, 1)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(1)));
+        let first_key = vm
+            .memory
+            .get(&MaybeRelocatable::from((0, 2)))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            first_key,
+            &MaybeRelocatable::from(BigInt::new(
+                Sign::Plus,
+                vec![1, 0, 0, 0, 0, 0, 17, 134217727]
+            ))
+        );
     }
 }

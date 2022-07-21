@@ -75,7 +75,7 @@ pub enum VirtualMachineError {
     KeysNotEmpty,
     EmptyKeys,
     PtrDiffNotDivisibleByDictAccessSize,
-    SquashDictMaxSizesExceeded(BigInt, BigInt),
+    SquashDictMaxSizeExceeded(BigInt, BigInt),
     NAccessesTooBig(BigInt),
 }
 
@@ -234,7 +234,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize =>{
                 write!(f, "squash_dict fail: Accesses array size must be divisible by DictAccess.SIZE")
             },
-            VirtualMachineError::SquashDictMaxSizesExceeded(max_size, n_accesses) =>{
+            VirtualMachineError::SquashDictMaxSizeExceeded(max_size, n_accesses) =>{
                 write!(f, "squash_dict() can only be used with n_accesses<={:?}. ' \nGot: n_accesses={:?}", max_size, n_accesses)
             },
             VirtualMachineError::NAccessesTooBig(n_accesses) => {
