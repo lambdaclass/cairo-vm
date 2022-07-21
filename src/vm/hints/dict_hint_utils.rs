@@ -8,7 +8,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::hint_utils::get_address_from_reference;
+use super::hint_utils::{get_address_from_reference, get_address_from_var_name};
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
@@ -416,6 +416,47 @@ pub fn dict_update(
     Ok(())
 }
 
+/* Implements hint:
+   # Prepare arguments for dict_new. In particular, the same dictionary values should be copied
+   # to the new (squashed) dictionary.
+   vm_enter_scope({
+       # Make __dict_manager accessible.
+       '__dict_manager': __dict_manager,
+       # Create a copy of the dict, in case it changes in the future.
+       'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),
+   })
+*/
+pub fn dict_squash_copy_dict(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let dict_accesses_end_addr =
+        get_address_from_var_name("dict_accesses_and", &ids, vm, hint_ap_tracking)?;
+    let dict_access_end = if let MaybeRelocatable::RelocatableValue(rel) = vm
+        .memory
+        .get(&dict_accesses_end_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or_else(|| VirtualMachineError::MemoryGet(dict_accesses_end_addr.clone()))?
+    {
+        rel
+    } else {
+        return Err(VirtualMachineError::ExpectedRelocatable(
+            dict_accesses_end_addr,
+        ));
+    };
+    let dict_copy = vm
+        .dict_manager
+        .trackers
+        .get(&dict_access_end.segment_index)
+        .ok_or(VirtualMachineError::NoDictTracker(
+            dict_access_end.segment_index,
+        ))?
+        .get_dictionary_copy();
+    vm.exec_scopes
+        .assign_or_update_variable("initial_dict", PyValueType::Dictionary(dict_copy));
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

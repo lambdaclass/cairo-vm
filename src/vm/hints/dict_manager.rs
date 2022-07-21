@@ -149,6 +149,17 @@ impl DictTracker {
             current_ptr: base.clone(),
         }
     }
+
+    //Returns a copy of the contained dictionary, losing the dictionary type in the process
+    pub fn get_dictionary_copy(&self) -> HashMap<BigInt, BigInt> {
+        match &self.data {
+            Dictionary::SimpleDictionary(dict) => dict.clone(),
+            Dictionary::DefaultDictionary {
+                dict,
+                default_value: _,
+            } => dict.clone(),
+        }
+    }
 }
 
 #[cfg(test)]
