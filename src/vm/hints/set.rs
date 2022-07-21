@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::hints::hint_utils::get_address_from_var_name;
@@ -6,6 +5,7 @@ use crate::vm::{
     errors::vm_errors::VirtualMachineError, runners::builtin_runner::RangeCheckBuiltinRunner,
     vm_core::VirtualMachine,
 };
+use crate::{bigint, bigintusize};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use std::collections::HashMap;
@@ -77,7 +77,7 @@ pub fn set_add(
             // sub method always returns a MaybeRelocatable::Int
             let range_limit = if let MaybeRelocatable::Int(ref range_limit) = set_span {
                 range_limit
-                    .to_i32()
+                    .to_usize()
                     .ok_or(VirtualMachineError::BigintToUsizeFail)?
             } else {
                 return Err(VirtualMachineError::ExpectedInteger(set_span));
@@ -93,7 +93,7 @@ pub fn set_add(
                     vm.memory
                         .insert(
                             &index_addr,
-                            &MaybeRelocatable::Int(bigint!(i / elm_size as i32)),
+                            &MaybeRelocatable::Int(bigintusize!(i / elm_size)),
                         )
                         .map_err(VirtualMachineError::MemoryError)?;
                     return vm
