@@ -23,7 +23,6 @@ fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> 
 }
 
 /*Implements hint:
-
    if '__dict_manager' not in globals():
            from starkware.cairo.common.dict import DictManager
            __dict_manager = DictManager()
@@ -46,7 +45,6 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 }
 
 /*Implements hint:
-
    if '__dict_manager' not in globals():
             from starkware.cairo.common.dict import DictManager
             __dict_manager = DictManager()
@@ -59,6 +57,7 @@ is not available, an empty dict is created always
 pub fn default_dict_new(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value_ref = if let Some(default_value_ref) = ids.get(&String::from("default_value"))
@@ -71,9 +70,13 @@ pub fn default_dict_new(
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
-    let default_value_addr = if let Ok(Some(default_value_addr)) =
-        get_address_from_reference(default_value_ref, &vm.references, &vm.run_context, vm, None)
-    {
+    let default_value_addr = if let Ok(Some(default_value_addr)) = get_address_from_reference(
+        default_value_ref,
+        &vm.references,
+        &vm.run_context,
+        vm,
+        hint_ap_tracking,
+    ) {
         default_value_addr
     } else {
         return Err(VirtualMachineError::FailedToGetReference(

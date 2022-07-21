@@ -82,7 +82,7 @@ pub fn execute_hint(
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
         ) => dict_write(vm, ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
-        ) => default_dict_new(vm, ids),
+        ) => default_dict_new(vm, ids, Some(ap_tracking)),
         Ok("current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index"
         ) => squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking)),
         Ok("ids.should_skip_loop = 0 if current_access_indices else 1"
