@@ -161,7 +161,7 @@ pub fn get_integer_from_var_name<'a>(
 // Gets the value of the address + offset
 //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
 //else raises Err
-pub fn get_integer_from_address_with_offset<'a>(
+pub fn get_integer_from_address_plus_offset<'a>(
     address: &MaybeRelocatable,
     field_offset: usize,
     vm: &'a VirtualMachine,
@@ -1704,7 +1704,7 @@ mod tests {
     }
 
     #[test]
-    fn get_integer_from_address_with_offset_valid() {
+    fn get_integer_from_address_plus_offset_valid() {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1722,13 +1722,13 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            get_integer_from_address_with_offset(&MaybeRelocatable::from((0, 0)), 1, &vm),
+            get_integer_from_address_plus_offset(&MaybeRelocatable::from((0, 0)), 1, &vm),
             Ok(&bigint!(10))
         );
     }
 
     #[test]
-    fn get_integer_from_address_with_offset_invalid_expectected_integer() {
+    fn get_integer_from_address_plus_offset_invalid_expectected_integer() {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1738,7 +1738,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         assert_eq!(
-            get_integer_from_address_with_offset(&MaybeRelocatable::from((0, 0)), 1, &vm),
+            get_integer_from_address_plus_offset(&MaybeRelocatable::from((0, 0)), 1, &vm),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
