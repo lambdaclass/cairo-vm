@@ -5,6 +5,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
     hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -123,7 +124,7 @@ pub fn get_address_from_reference(
     Ok(None)
 }
 
-fn get_address_from_var_name(
+pub fn get_address_from_var_name(
     var_name: &str,
     ids: HashMap<String, BigInt>,
     vm: &VirtualMachine,
@@ -141,6 +142,35 @@ fn get_address_from_var_name(
     )
     .map_err(|_| VirtualMachineError::FailedToGetIds)?
     .ok_or(VirtualMachineError::FailedToGetIds)
+}
+
+pub fn get_integer_from_var_name<'a>(
+    var_name: &str,
+    ids: HashMap<String, BigInt>,
+    vm: &'a VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<&'a BigInt, VirtualMachineError> {
+    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory.get_integer(&var_address)
+}
+
+pub fn get_struct_field_from_struct_address<'a>(
+    struct_address: &MaybeRelocatable,
+    field_offset: usize,
+    vm: &'a VirtualMachine,
+) -> Result<&'a BigInt, VirtualMachineError> {
+    let relocatable = if let MaybeRelocatable::RelocatableValue(relocatable) = struct_address {
+        relocatable
+    } else {
+        return Err(VirtualMachineError::MemoryError(
+            MemoryError::AddressNotRelocatable,
+        ));
+    };
+
+    vm.memory.get_integer(&MaybeRelocatable::from((
+        relocatable.segment_index,
+        relocatable.offset + field_offset,
+    )))
 }
 
 ///Implements hint: memory[ap] = segments.add()
