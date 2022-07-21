@@ -98,6 +98,7 @@ pub fn split_64(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint_str;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -335,6 +336,182 @@ mod tests {
                     MaybeRelocatable::from((1, 12)),
                     MaybeRelocatable::from(bigint!(2)),
                     MaybeRelocatable::from(bigint!(0))
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn run_split_64_ok() {
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint_str!(b"850981239023189021389081239089023")),
+            )
+            .unwrap();
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check hint memory inserts
+        // ids.low
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 10))),
+            Ok(Some(&MaybeRelocatable::from(bigint_str!(
+                b"7249717543555297151"
+            ))))
+        );
+        // ids.high
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 11))),
+            Ok(Some(&MaybeRelocatable::from(bigint_str!(
+                b"46131785404667"
+            ))))
+        );
+    }
+
+    #[test]
+    fn run_split_64_memory_error() {
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint_str!(b"850981239023189021389081239089023")),
+            )
+            .unwrap();
+
+        //Insert a value in the ids.low address, so the hint insertion fails
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 10)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((1, 10)),
+                    MaybeRelocatable::from(bigint!(0)),
+                    MaybeRelocatable::from(bigint_str!(b"7249717543555297151"))
                 )
             ))
         );
