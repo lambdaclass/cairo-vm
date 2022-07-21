@@ -6,13 +6,13 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
 
-#[derive(Eq, Hash, PartialEq, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
     pub segment_index: usize,
     pub offset: usize,
 }
 
-#[derive(Eq, Hash, PartialEq, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(BigInt),
