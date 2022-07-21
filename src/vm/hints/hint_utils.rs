@@ -144,6 +144,9 @@ pub fn get_address_from_var_name(
     .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
+//Gets the value of a variable name.
+//If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
+//else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
     ids: HashMap<String, BigInt>,
@@ -1596,5 +1599,104 @@ pub fn assert_lt_felt(
         }
 
         _ => Err(VirtualMachineError::FailedToGetIds),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use num_bigint::Sign;
+
+    use super::*;
+
+    #[test]
+    fn get_integer_from_var_name_valid() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        let var_name: &str = "variable";
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("variable"), bigint!(0));
+
+        //Insert ids.prev_locs.exp into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+
+        assert_eq!(
+            get_integer_from_var_name(var_name, ids, &vm, None),
+            Ok(&bigint!(10))
+        );
+    }
+
+    #[test]
+    fn get_integer_from_var_name_invalid_expected_integer() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -2,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        let var_name: &str = "variable";
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("variable"), bigint!(0));
+
+        //Insert ids.variable into memory as a RelocatableValue
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 1)),
+            )
+            .unwrap();
+
+        assert_eq!(
+            get_integer_from_var_name(var_name, ids, &vm, None),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
     }
 }
