@@ -10,7 +10,7 @@ use crate::{
 
 use super::hint_utils::get_address_from_reference;
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
-const DICT_ACCESS_SIZE: usize = 3;
+pub const DICT_ACCESS_SIZE: usize = 3;
 
 fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;

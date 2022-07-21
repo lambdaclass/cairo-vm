@@ -74,6 +74,9 @@ pub enum VirtualMachineError {
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
     KeysNotEmpty,
     EmptyKeys,
+    PtrDiffNotDivisibleByDictAccessSize,
+    SquashDictMaxSizesExceeded(BigInt, BigInt),
+    NAccessesTooBig(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -227,6 +230,15 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::EmptyKeys =>{
                 write!(f, "squash_dict_inner fail: No keys left but remaining_accesses > 0")
+            },
+            VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize =>{
+                write!(f, "squash_dict fail: Accesses array size must be divisible by DictAccess.SIZE")
+            },
+            VirtualMachineError::SquashDictMaxSizesExceeded(max_size, n_accesses) =>{
+                write!(f, "squash_dict() can only be used with n_accesses<={:?}. ' \nGot: n_accesses={:?}", max_size, n_accesses)
+            },
+            VirtualMachineError::NAccessesTooBig(n_accesses) => {
+                write!(f, "squash_dict fail: n_accesses: {:?} is too big to be converted into an iterator", n_accesses)
             },
         }
     }
