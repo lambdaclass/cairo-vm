@@ -225,6 +225,7 @@ pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), Virtu
 pub fn squash_dict_inner_used_accesses_assert(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
     let access_indices = get_access_indices(vm)
@@ -232,7 +233,8 @@ pub fn squash_dict_inner_used_accesses_assert(
     let key = get_int_from_scope(vm, "key")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
     //Get addr for ids variables
-    let n_used_accesses_addr = get_address_from_var_name("n_used_accesses", &ids, vm, None)?;
+    let n_used_accesses_addr =
+        get_address_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?;
     //Get n_used_accesses from memory
     let maybe_rel_n_used_accesses = vm
         .memory
@@ -280,12 +282,13 @@ pub fn squash_dict_inner_assert_len_keys(
 pub fn squash_dict_inner_next_key(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let mut keys = get_list_from_scope(vm, "keys")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("keys")))?;
     //Get addr for ids variables
-    let next_key_addr = get_address_from_var_name("next_key", &ids, vm, None)?;
+    let next_key_addr = get_address_from_var_name("next_key", &ids, vm, hint_ap_tracking)?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     vm.memory
@@ -435,17 +438,17 @@ mod tests {
 
     use super::*;
     //Hint code as consts
-    const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\n    current_access_index = current_access_indices.pop()\n    memory[ids.range_check_ptr] = current_access_index";
+    const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";
     const SQUASH_DICT_INNER_SKIP_LOOP: &str =
         "ids.should_skip_loop = 0 if current_access_indices else 1";
-    const SQUASH_DICT_INNER_CHECK_ACCESS_INDEX: &str = "new_access_index = current_access_indices.pop()\n    ids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\n    current_access_index = new_access_index";
+    const SQUASH_DICT_INNER_CHECK_ACCESS_INDEX: &str = "new_access_index = current_access_indices.pop()\nids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\ncurrent_access_index = new_access_index";
     const SQUASH_DICT_INNER_CONTINUE_LOOP: &str =
         "ids.loop_temps.should_continue = 1 if current_access_indices else 0";
     const SQUASH_DICT_INNER_ASSERT_LEN: &str = "assert len(current_access_indices) == 0";
     const SQUASH_DICT_INNER_USED_ACCESSES_ASSERT: &str =
-        "assert ids.n_used_accesses == len(access_indices[key]";
+        "assert ids.n_used_accesses == len(access_indices[key])";
     const SQUASH_DICT_INNER_LEN_KEYS: &str = "assert len(keys) == 0";
-    const SQUASH_DICT_INNER_NEXT_KEY: &str = "assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\n    ids.next_key = key = keys.pop()";
+    const SQUASH_DICT_INNER_NEXT_KEY: &str = "assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\nids.next_key = key = keys.pop()";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
