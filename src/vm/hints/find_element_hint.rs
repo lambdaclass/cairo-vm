@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::{relocatable::MaybeRelocatable, exec_scope::PyValueType};
+use crate::types::{exec_scope::PyValueType, relocatable::MaybeRelocatable};
 use crate::vm::{
     errors::vm_errors::VirtualMachineError, hints::hint_utils::get_address_from_var_name,
     runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
@@ -34,11 +34,14 @@ pub fn find_element(
             Ok(_),
             Ok(Some(maybe_rel_key)),
         ) => {
-            let _ = vm.builtin_runners.iter()
+            let _ = vm
+                .builtin_runners
+                .iter()
                 .find(|(name, _)| name.as_str() == "range_check")
                 .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?
                 .1
-                .as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                .as_any()
+                .downcast_ref::<RangeCheckBuiltinRunner>()
                 .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
 
             let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
@@ -70,15 +73,14 @@ pub fn find_element(
                     .map_err(VirtualMachineError::MemoryError)?
                     .ok_or(VirtualMachineError::KeyNotFound)?;
 
-                let found_key =
-                    vm.memory
-                        .get(&array_start.add_int_mod(
-                            &(elm_size * find_element_index_value),
-                            &vm.prime,
-                        )?)
-                        .map_err(VirtualMachineError::MemoryError)?
-                        .ok_or(VirtualMachineError::KeyNotFound)?;
-
+                let found_key = vm
+                    .memory
+                    .get(
+                        &array_start
+                            .add_int_mod(&(elm_size * find_element_index_value), &vm.prime)?,
+                    )
+                    .map_err(VirtualMachineError::MemoryError)?
+                    .ok_or(VirtualMachineError::KeyNotFound)?;
 
                 if found_key != maybe_rel_key {
                     return Err(VirtualMachineError::InvalidIndex(
@@ -88,16 +90,15 @@ pub fn find_element(
                     ));
                 }
 
-                vm
-                .memory
-                .insert(
-                    &index_addr,
-                    &MaybeRelocatable::Int(find_element_index_value.clone()),
-                )
-                .map_err(VirtualMachineError::MemoryError)?;
+                vm.memory
+                    .insert(
+                        &index_addr,
+                        &MaybeRelocatable::Int(find_element_index_value.clone()),
+                    )
+                    .map_err(VirtualMachineError::MemoryError)?;
 
                 vm.exec_scopes.delete_variable("find_element_index");
-                return Ok(());
+                Ok(())
             } else {
                 let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
                     n_elms
@@ -112,7 +113,9 @@ pub fn find_element(
                 }
 
                 if let Some(variables) = vm.exec_scopes.get_local_variables() {
-                    if let Some(PyValueType::BigInt(find_element_max_size)) = variables.get("find_element_max_size") {
+                    if let Some(PyValueType::BigInt(find_element_max_size)) =
+                        variables.get("find_element_max_size")
+                    {
                         if n_elms > find_element_max_size {
                             return Err(VirtualMachineError::FindElemMaxSize(
                                 find_element_max_size.clone(),
@@ -132,8 +135,7 @@ pub fn find_element(
                     .map_err(VirtualMachineError::MemoryError)?
                     .ok_or(VirtualMachineError::KeyNotFound)?
                     // This clone is needed in order to be able to use memory.get below
-                    .clone()
-                    ;
+                    .clone();
 
                 for i in 0..n_elms_iter {
                     let iter_key = vm
@@ -149,16 +151,13 @@ pub fn find_element(
                             .map_err(VirtualMachineError::MemoryError);
                     }
 
-                    array_start =
-                        array_start.add_int_mod(elm_size, &vm.prime)?;
+                    array_start = array_start.add_int_mod(elm_size, &vm.prime)?;
                 }
 
                 if let MaybeRelocatable::Int(ref key) = maybe_rel_key {
-                    return Err(VirtualMachineError::NoValueForKey(
-                        key.clone(),
-                    ));
+                    Err(VirtualMachineError::NoValueForKey(key.clone()))
                 } else {
-                    return Err(VirtualMachineError::ExpectedInteger(maybe_rel_key.clone()));
+                    Err(VirtualMachineError::ExpectedInteger(maybe_rel_key.clone()))
                 }
             }
         }
@@ -371,9 +370,7 @@ mod tests {
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoValueForKey(
-                bigint!(7)
-            ))
+            Err(VirtualMachineError::NoValueForKey(bigint!(7)))
         );
     }
 
@@ -453,7 +450,8 @@ mod tests {
             "output".to_string(),
             Box::new(OutputBuiltinRunner::new(true)),
         ));
-        vm.builtin_runners.push(range_builtin.expect("Lost range check builtin"));
+        vm.builtin_runners
+            .push(range_builtin.expect("Lost range check builtin"));
 
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
@@ -531,7 +529,7 @@ mod tests {
 
     #[test]
     fn find_elm_key_not_int() {
-        let relocatable = MaybeRelocatable::from((1,2));
+        let relocatable = MaybeRelocatable::from((1, 2));
         let (mut vm, ids) = init_vm_ids(None, None, Some(&relocatable), false);
 
         assert_eq!(
