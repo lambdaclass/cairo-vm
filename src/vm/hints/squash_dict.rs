@@ -12,7 +12,9 @@ use crate::{
 
 use super::{
     dict_hint_utils::DICT_ACCESS_SIZE,
-    hint_utils::{get_address_from_var_name, get_range_check_builtin},
+    hint_utils::{
+        get_address_from_var_name, get_int_from_scope, get_list_from_scope, get_range_check_builtin,
+    },
 };
 
 fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<BigInt>>> {
@@ -24,26 +26,6 @@ fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<Big
         }
     }
     access_indices
-}
-
-fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt> {
-    let mut val: Option<BigInt> = None;
-    if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
-            val = Some(py_val.clone());
-        }
-    }
-    val
-}
-
-fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
-    let mut val: Option<Vec<BigInt>> = None;
-    if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::List(py_val)) = variables.get(name) {
-            val = Some(py_val.clone());
-        }
-    }
-    val
 }
 
 /*Implements hint:

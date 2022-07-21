@@ -16,6 +16,27 @@ use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 use std::ops::{Neg, Shl, Shr};
 
+//Returns the value in the current execution scope that matches the name and is of type BigInt
+pub fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt> {
+    let mut val: Option<BigInt> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+            val = Some(py_val.clone());
+        }
+    }
+    val
+}
+
+//Returns the value in the current execution scope that matches the name and is of type List
+pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
+    let mut val: Option<Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get(name) {
+            val = Some(py_val.clone());
+        }
+    }
+    val
+}
 //Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
     vm: &VirtualMachine,
