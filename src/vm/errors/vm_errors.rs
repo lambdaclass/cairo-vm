@@ -27,7 +27,7 @@ pub enum VirtualMachineError {
     InvalidRes(i64),
     InvalidOpcode(i64),
     RelocatableAdd,
-    OffsetExeeded(BigInt),
+    OffsetExceeded(BigInt),
     NotImplemented,
     DiffIndexSub,
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
@@ -61,6 +61,9 @@ pub enum VirtualMachineError {
     NoDictTracker(usize),
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
+    FindElemMaxSize(BigInt, BigInt),
+    InvalidIndex(BigInt, MaybeRelocatable, MaybeRelocatable),
+    KeyNotFound,
     NoneApTrackingData,
     InvalidTrackingGroup(usize, usize),
     InvalidApValue(MaybeRelocatable),
@@ -104,7 +107,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::RelocatableAdd => {
                 write!(f, "Cannot add two relocatable values")
             }
-            VirtualMachineError::OffsetExeeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
+            VirtualMachineError::OffsetExceeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
             VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
             VirtualMachineError::PureValue => Ok(()),
             VirtualMachineError::DiffIndexSub => write!(
@@ -196,6 +199,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidApValue(addr) => {
                 write!(f, "Expected relocatable for ap, got {:?}", addr)
             },
+            VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
+            VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
+            VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
         }
     }
 }
