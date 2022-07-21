@@ -15,7 +15,7 @@ use crate::vm::hints::hint_utils::{
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
 use crate::vm::hints::pow_utils::pow;
-use crate::vm::hints::uint256_utils::uint256_add;
+use crate::vm::hints::uint256_utils::{split_64, uint256_add};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -79,6 +79,7 @@ pub fn execute_hint(
         ) => dict_update(vm, ids, None),
         Ok("sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0"
         ) => uint256_add(vm, ids, Some(ap_tracking)),
+        Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

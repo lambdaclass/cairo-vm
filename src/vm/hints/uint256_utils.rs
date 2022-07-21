@@ -3,12 +3,13 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_struct_field_from_struct_address,
+    get_address_from_var_name, get_integer_from_var_name, get_struct_field_from_struct_address,
 };
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
+use std::ops::{Shl, Shr};
 
 /*
 Implements hint:
@@ -60,6 +61,34 @@ pub fn uint256_add(
             .insert(&carry_high_addr, &MaybeRelocatable::from(carry_high)),
         vm.memory
             .insert(&carry_low_addr, &MaybeRelocatable::from(carry_low)),
+    ) {
+        (Ok(_), Ok(_)) => Ok(()),
+        (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
+    }
+}
+
+/*
+Implements hint:
+    %{
+        ids.low = ids.a & ((1<<64) - 1)
+        ids.high = ids.a >> 64
+    %}
+*/
+pub fn split_64(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let a = get_integer_from_var_name("a", ids.clone(), vm, hint_ap_tracking)?;
+    let high_addr = get_address_from_var_name("high", ids.clone(), vm, hint_ap_tracking)?;
+    let low_addr = get_address_from_var_name("low", ids, vm, hint_ap_tracking)?;
+
+    let low: BigInt = a & (bigint!(1).shl(64_usize) - 1);
+    let high: BigInt = a.shr(64_usize);
+
+    match (
+        vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
+        vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
     ) {
         (Ok(_), Ok(_)) => Ok(()),
         (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
