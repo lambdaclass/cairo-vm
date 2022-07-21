@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658438014479,
+  "lastUpdate": 1658439046532,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -7037,6 +7037,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 2329,
             "range": "± 133",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ba9c189055f16439c30dbe61c7ac90c2287a2439",
+          "message": "[HINTS] Set add hint (#289)\n\n* Add hint execution\r\n\r\n* Add get_memory method\r\n\r\n* Correct match\r\n\r\n* Correct get_range\r\n\r\n* Add set to mods\r\n\r\n* Add set hint\r\n\r\n* Add set_add logic\r\n\r\n* Run cargo\r\n\r\n* Begin unit tests\r\n\r\n* Add set_add cairo program\r\n\r\n* Fix hint string\r\n\r\n* Fix errors on set_add; add new errors\r\n\r\n* Add main sucess cases\r\n\r\n* Add unit and integration tests\r\n\r\n* Add missing check and refactor\r\n\r\n* Fix wrong types\r\n\r\n* Change error type\r\n\r\n* Run cargo clippy\r\n\r\n* Test unwrap refactor",
+          "timestamp": "2022-07-21T18:26:02-03:00",
+          "tree_id": "4f8da47d0e937c79c044590edfc2112eb9e80577",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/ba9c189055f16439c30dbe61c7ac90c2287a2439"
+        },
+        "date": 1658439045290,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2126,
+            "range": "± 179",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 2117,
+            "range": "± 168",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 2242,
+            "range": "± 196",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 2145,
+            "range": "± 164",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 2114,
+            "range": "± 162",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 2086,
+            "range": "± 142",
             "unit": "ns/iter"
           }
         ]
