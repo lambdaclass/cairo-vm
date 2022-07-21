@@ -14,11 +14,11 @@ pub fn find_element(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let array_ptr_addr = get_address_from_var_name("array_ptr", ids.clone(), vm, hint_ap_tracking)?;
-    let elm_size_addr = get_address_from_var_name("elm_size", ids.clone(), vm, hint_ap_tracking)?;
-    let n_elms_addr = get_address_from_var_name("n_elms", ids.clone(), vm, hint_ap_tracking)?;
-    let index_addr = get_address_from_var_name("index", ids.clone(), vm, hint_ap_tracking)?;
-    let key_addr = get_address_from_var_name("key", ids, vm, hint_ap_tracking)?;
+    let array_ptr_addr = get_address_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
+    let elm_size_addr = get_address_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
+    let n_elms_addr = get_address_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
+    let index_addr = get_address_from_var_name("index", &ids, vm, hint_ap_tracking)?;
+    let key_addr = get_address_from_var_name("key", &ids, vm, hint_ap_tracking)?;
 
     match (
         vm.memory.get(&array_ptr_addr),

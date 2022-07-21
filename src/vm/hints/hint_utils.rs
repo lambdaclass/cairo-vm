@@ -125,7 +125,7 @@ pub fn get_address_from_reference(
 
 pub fn get_address_from_var_name(
     var_name: &str,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -1351,7 +1351,7 @@ pub fn memcpy_enter_scope(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len_addr = get_address_from_var_name("len", ids, vm, hint_ap_tracking)?;
+    let len_addr = get_address_from_var_name("len", &ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&len_addr) {
         Ok(Some(maybe_rel_len)) => {
@@ -1382,7 +1382,7 @@ pub fn memcpy_continue_copying(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let continue_copying_addr =
-        get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("continue_copying", &ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
     let n = match vm.exec_scopes.get_local_variables() {
