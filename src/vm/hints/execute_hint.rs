@@ -15,7 +15,7 @@ use crate::vm::hints::hint_utils::{
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
 use crate::vm::hints::pow_utils::pow;
-use crate::vm::hints::squash_dict::{
+use crate::vm::hints::squash_dict_utils::{
     squash_dict, squash_dict_inner_assert_len_keys, squash_dict_inner_check_access_index,
     squash_dict_inner_continue_loop, squash_dict_inner_first_iteration,
     squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
