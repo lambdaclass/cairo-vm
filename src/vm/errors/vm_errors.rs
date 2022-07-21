@@ -43,6 +43,7 @@ pub enum VirtualMachineError {
     OutOfValidRange(BigInt, BigInt),
     FailedToGetReference(BigInt),
     ValueOutOfRange(BigInt),
+    ValueNotPositive(BigInt),
     UnknownHint(String),
     ValueOutsideValidRange(BigInt),
     SplitIntNotZero,
@@ -69,6 +70,8 @@ pub enum VirtualMachineError {
     InvalidApValue(MaybeRelocatable),
     NoInitialDict,
     WrongPrevValue(BigInt, Option<BigInt>, BigInt),
+    BigintToUsizeFail,
+    InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -149,6 +152,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
             VirtualMachineError::ValueOutsideValidRange(value) => write!(f, "Value: {:?} is outside valid range", value),
+            VirtualMachineError::ValueNotPositive(value) => write!(f, "Value: {:?} should be positive", value),
             VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
             VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
             VirtualMachineError::DiffTypeComparison(a, b) => {
@@ -199,6 +203,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidApValue(addr) => {
                 write!(f, "Expected relocatable for ap, got {:?}", addr)
             },
+            VirtualMachineError::BigintToUsizeFail => write!(f, "Couldn't convert BigInt to usize"),
+            VirtualMachineError::InvalidSetRange(start, end) => write!(f, "Set starting point {:?} is bigger it's ending point {:?}", start, end),
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),

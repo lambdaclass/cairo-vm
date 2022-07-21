@@ -5,3 +5,4 @@ pub mod find_element_hint;
 pub mod hint_utils;
 pub mod memset_utils;
 pub mod pow_utils;
+pub mod set;
