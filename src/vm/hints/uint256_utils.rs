@@ -27,8 +27,8 @@ pub fn uint256_add(
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_maybe_rel = get_relocatable_from_var_name("a", ids.clone(), vm, hint_ap_tracking)?;
-    let b_maybe_rel = get_relocatable_from_var_name("b", ids.clone(), vm, hint_ap_tracking)?;
+    let a_maybe_rel = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let b_maybe_rel = get_relocatable_from_var_name("b", &ids, vm, hint_ap_tracking)?;
     let carry_high_addr =
         get_address_from_var_name("carry_high", ids.clone(), vm, hint_ap_tracking)?;
     let carry_low_addr = get_address_from_var_name("carry_low", ids, vm, hint_ap_tracking)?;
@@ -77,7 +77,7 @@ pub fn split_64(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", ids.clone(), vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
     let high_addr = get_address_from_var_name("high", ids.clone(), vm, hint_ap_tracking)?;
     let low_addr = get_address_from_var_name("low", ids, vm, hint_ap_tracking)?;
 

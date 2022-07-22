@@ -148,12 +148,12 @@ pub fn get_address_from_var_name(
 //else raises Err
 pub fn get_relocatable_from_var_name(
     var_name: &str,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
     if let MaybeRelocatable::RelocatableValue(relocatable) =
-        get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?
+        get_address_from_var_name(var_name, ids.clone(), vm, hint_ap_tracking)?
     {
         Ok(relocatable)
     } else {
@@ -166,7 +166,7 @@ pub fn get_relocatable_from_var_name(
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     vm: &'a VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<&'a BigInt, VirtualMachineError> {
@@ -1660,7 +1660,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            get_integer_from_var_name(var_name, ids, &vm, None),
+            get_integer_from_var_name(var_name, &ids, &vm, None),
             Ok(&bigint!(10))
         );
     }
@@ -1705,7 +1705,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            get_integer_from_var_name(var_name, ids, &vm, None),
+            get_integer_from_var_name(var_name, &ids, &vm, None),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
