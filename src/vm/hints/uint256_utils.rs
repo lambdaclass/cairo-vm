@@ -2,7 +2,8 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_integer_from_address_plus_offset, get_integer_from_var_name,
+    get_address_from_var_name, get_integer_from_relocatable_plus_offset, get_integer_from_var_name,
+    get_relocatable_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, bigint_u64};
@@ -26,16 +27,16 @@ pub fn uint256_add(
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_addr = get_address_from_var_name("a", ids.clone(), vm, hint_ap_tracking)?;
-    let b_addr = get_address_from_var_name("b", ids.clone(), vm, hint_ap_tracking)?;
+    let a_maybe_rel = get_relocatable_from_var_name("a", ids.clone(), vm, hint_ap_tracking)?;
+    let b_maybe_rel = get_relocatable_from_var_name("b", ids.clone(), vm, hint_ap_tracking)?;
     let carry_high_addr =
         get_address_from_var_name("carry_high", ids.clone(), vm, hint_ap_tracking)?;
     let carry_low_addr = get_address_from_var_name("carry_low", ids, vm, hint_ap_tracking)?;
 
-    let a_low = get_integer_from_address_plus_offset(&a_addr, 0, vm)?;
-    let a_high = get_integer_from_address_plus_offset(&a_addr, 1, vm)?;
-    let b_low = get_integer_from_address_plus_offset(&b_addr, 0, vm)?;
-    let b_high = get_integer_from_address_plus_offset(&b_addr, 1, vm)?;
+    let a_low = get_integer_from_relocatable_plus_offset(&a_maybe_rel, 0, vm)?;
+    let a_high = get_integer_from_relocatable_plus_offset(&a_maybe_rel, 1, vm)?;
+    let b_low = get_integer_from_relocatable_plus_offset(&b_maybe_rel, 0, vm)?;
+    let b_high = get_integer_from_relocatable_plus_offset(&b_maybe_rel, 1, vm)?;
 
     // Hint main logic
     // sum_low = ids.a.low + ids.b.low

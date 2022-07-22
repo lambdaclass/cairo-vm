@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::types::relocatable::Relocatable;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
@@ -89,10 +90,12 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: &MaybeRelocatable) -> Result<&BigInt, VirtualMachineError> {
-        match self.get(key) {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        match self.get(&MaybeRelocatable::from((key.segment_index, key.offset))) {
             Ok(Some(MaybeRelocatable::Int(int))) => Ok(int),
-            Ok(_) => Err(VirtualMachineError::ExpectedInteger(key.clone())),
+            Ok(_) => Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((key.segment_index, key.offset)),
+            )),
             Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
     }
@@ -400,7 +403,7 @@ mod memory_tests {
             )
             .unwrap();
         assert_eq!(
-            memory.get_integer(&MaybeRelocatable::from((0, 0))),
+            memory.get_integer(&Relocatable::from((0, 0))),
             Ok(&bigint!(10))
         );
     }
@@ -417,27 +420,10 @@ mod memory_tests {
             )
             .unwrap();
         assert_eq!(
-            memory.get_integer(&MaybeRelocatable::from((0, 0))),
+            memory.get_integer(&Relocatable::from((0, 0))),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
-        );
-    }
-
-    #[test]
-    fn get_integer_invalid_memory_error() {
-        let key = MaybeRelocatable::from(bigint!(0));
-        let memory = Memory::new();
-        let error = memory.get_integer(&key);
-        assert_eq!(
-            error,
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::AddressNotRelocatable
-            ))
-        );
-        assert_eq!(
-            error.unwrap_err().to_string(),
-            "Memory addresses must be relocatable"
         );
     }
 }

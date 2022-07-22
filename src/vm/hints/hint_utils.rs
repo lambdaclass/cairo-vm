@@ -5,7 +5,6 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
-use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
     hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -144,6 +143,24 @@ pub fn get_address_from_var_name(
     .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
+//Gets the address of a variable name.
+//If the address is an MaybeRelocatable::Relocatable(Relocatable) return Relocatable
+//else raises Err
+pub fn get_relocatable_from_var_name(
+    var_name: &str,
+    ids: HashMap<String, BigInt>,
+    vm: &VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<Relocatable, VirtualMachineError> {
+    if let MaybeRelocatable::RelocatableValue(relocatable) =
+        get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?
+    {
+        Ok(relocatable)
+    } else {
+        Err(VirtualMachineError::FailedToGetIds)
+    }
+}
+
 //Gets the value of a variable name.
 //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
 //else raises Err
@@ -153,28 +170,20 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    vm.memory.get_integer(&var_address)
+    let relocatable = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory.get_integer(&relocatable)
 }
 
 // Given a memory address and an offset
 // Gets the value of the address + offset
 //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
 //else raises Err
-pub fn get_integer_from_address_plus_offset<'a>(
-    address: &MaybeRelocatable,
+pub fn get_integer_from_relocatable_plus_offset<'a>(
+    relocatable: &Relocatable,
     field_offset: usize,
     vm: &'a VirtualMachine,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    let relocatable = if let MaybeRelocatable::RelocatableValue(relocatable) = address {
-        relocatable
-    } else {
-        return Err(VirtualMachineError::MemoryError(
-            MemoryError::AddressNotRelocatable,
-        ));
-    };
-
-    vm.memory.get_integer(&MaybeRelocatable::from((
+    vm.memory.get_integer(&Relocatable::from((
         relocatable.segment_index,
         relocatable.offset + field_offset,
     )))
@@ -1704,7 +1713,7 @@ mod tests {
     }
 
     #[test]
-    fn get_integer_from_address_plus_offset_valid() {
+    fn get_integer_from_relocatable_plus_offset_valid() {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1722,13 +1731,13 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            get_integer_from_address_plus_offset(&MaybeRelocatable::from((0, 0)), 1, &vm),
+            get_integer_from_relocatable_plus_offset(&Relocatable::from((0, 0)), 1, &vm),
             Ok(&bigint!(10))
         );
     }
 
     #[test]
-    fn get_integer_from_address_plus_offset_invalid_expectected_integer() {
+    fn get_integer_from_relocatable_plus_offset_invalid_expectected_integer() {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1738,7 +1747,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         assert_eq!(
-            get_integer_from_address_plus_offset(&MaybeRelocatable::from((0, 0)), 1, &vm),
+            get_integer_from_relocatable_plus_offset(&Relocatable::from((0, 0)), 1, &vm),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
