@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -6,10 +5,10 @@ use crate::vm::hints::hint_utils::{
     get_address_from_var_name, get_integer_from_address_plus_offset, get_integer_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
+use crate::{bigint, bigint_u64};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
-use std::ops::{Shl, Shr};
 
 /*
 Implements hint:
@@ -81,14 +80,15 @@ pub fn split_64(
     let high_addr = get_address_from_var_name("high", ids.clone(), vm, hint_ap_tracking)?;
     let low_addr = get_address_from_var_name("low", ids, vm, hint_ap_tracking)?;
 
-    let low: BigInt = a & (bigint!(1).shl(64_usize) - 1);
-    let high: BigInt = a.shr(64_usize);
+    let mut digits = a.iter_u64_digits();
+    let low = digits.next().unwrap_or(0u64);
+    let high = digits.next().unwrap_or(0u64);
 
     vm.memory
-        .insert(&low_addr, &MaybeRelocatable::from(low))
+        .insert(&low_addr, &MaybeRelocatable::from(bigint_u64!(low)))
         .map_err(VirtualMachineError::MemoryError)?;
     vm.memory
-        .insert(&high_addr, &MaybeRelocatable::from(high))
+        .insert(&high_addr, &MaybeRelocatable::from(bigint_u64!(high)))
         .map_err(VirtualMachineError::MemoryError)
 }
 
