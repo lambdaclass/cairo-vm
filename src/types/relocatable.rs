@@ -141,6 +141,9 @@ impl MaybeRelocatable {
                 }
                 Err(VirtualMachineError::DiffIndexSub)
             }
+            (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
+                Ok(MaybeRelocatable::from((rel_a.segment_index, (rel_a.offset - num_b).to_usize().ok_or(VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?)))
+            }
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
