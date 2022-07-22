@@ -43,6 +43,7 @@ pub enum VirtualMachineError {
     OutOfValidRange(BigInt, BigInt),
     FailedToGetReference(BigInt),
     ValueOutOfRange(BigInt),
+    ValueNotPositive(BigInt),
     UnknownHint(String),
     ValueOutsideValidRange(BigInt),
     SplitIntNotZero,
@@ -68,7 +69,20 @@ pub enum VirtualMachineError {
     InvalidTrackingGroup(usize, usize),
     InvalidApValue(MaybeRelocatable),
     NoInitialDict,
+    NoLocalVariable(String),
+    NoKeyInAccessIndices(BigInt),
+    EmptyAccessIndices,
+    EmptyCurrentAccessIndices,
+    CurrentAccessIndicesNotEmpty,
     WrongPrevValue(BigInt, Option<BigInt>, BigInt),
+    NumUsedAccessesAssertFail(BigInt, usize, BigInt),
+    KeysNotEmpty,
+    EmptyKeys,
+    PtrDiffNotDivisibleByDictAccessSize,
+    SquashDictMaxSizeExceeded(BigInt, BigInt),
+    NAccessesTooBig(BigInt),
+    BigintToUsizeFail,
+    InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -149,6 +163,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
             VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
             VirtualMachineError::ValueOutsideValidRange(value) => write!(f, "Value: {:?} is outside valid range", value),
+            VirtualMachineError::ValueNotPositive(value) => write!(f, "Value: {:?} should be positive", value),
             VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
             VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
             VirtualMachineError::DiffTypeComparison(a, b) => {
@@ -187,6 +202,21 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::NoInitialDict => {
                 write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
             },
+            VirtualMachineError::NoLocalVariable(name) => {
+                write!(f, "Hint Exception: Couldnt find local variable '{:?}'", name)
+            },
+            VirtualMachineError::NoKeyInAccessIndices(key) => {
+                write!(f, "squash_dict_inner fail: couldnt find key {:?} in accesses_indices", key)
+            },
+            VirtualMachineError::EmptyAccessIndices =>{
+                write!(f, "squash_dict_inner fail: local accessed_indices is empty")
+            },
+            VirtualMachineError::EmptyCurrentAccessIndices =>{
+                write!(f, "squash_dict_inner fail: local current_accessed_indices is empty")
+            },
+            VirtualMachineError::CurrentAccessIndicesNotEmpty =>{
+                write!(f, "squash_dict_inner fail: local current_accessed_indices not empty, loop ended with remaining unaccounted elements")
+            },
             VirtualMachineError::WrongPrevValue(prev, current, key) => {
                 write!(f, "Dict Error: Got the wrong value for dict_update, expected value: {:?}, got: {:?} for key: {:?}", prev, current, key)
             },
@@ -199,6 +229,26 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidApValue(addr) => {
                 write!(f, "Expected relocatable for ap, got {:?}", addr)
             },
+            VirtualMachineError::NumUsedAccessesAssertFail(used, len, key) => {
+                write!(f, "squash_dict_inner fail: Number of used accesses:{:?} doesnt match the lengh: {:?} of the access_indices at key: {:?}", used, len, key)
+            },
+            VirtualMachineError::KeysNotEmpty =>{
+                write!(f, "squash_dict_inner fail: local keys is not empty")
+            },
+            VirtualMachineError::EmptyKeys =>{
+                write!(f, "squash_dict_inner fail: No keys left but remaining_accesses > 0")
+            },
+            VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize =>{
+                write!(f, "squash_dict fail: Accesses array size must be divisible by DictAccess.SIZE")
+            },
+            VirtualMachineError::SquashDictMaxSizeExceeded(max_size, n_accesses) =>{
+                write!(f, "squash_dict() can only be used with n_accesses<={:?}. ' \nGot: n_accesses={:?}", max_size, n_accesses)
+            },
+            VirtualMachineError::NAccessesTooBig(n_accesses) => {
+                write!(f, "squash_dict fail: n_accesses: {:?} is too big to be converted into an iterator", n_accesses)
+            },
+            VirtualMachineError::BigintToUsizeFail => write!(f, "Couldn't convert BigInt to usize"),
+            VirtualMachineError::InvalidSetRange(start, end) => write!(f, "Set starting point {:?} is bigger it's ending point {:?}", start, end),
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),

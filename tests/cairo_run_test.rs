@@ -223,3 +223,15 @@ fn cairo_run_dict_update_bad() {
         "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: Some(5) for key: 2"
     );
 }
+
+#[test]
+fn cairo_run_squash_dict() {
+    cairo_run::cairo_run(Path::new("cairo_programs/squash_dict.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_set_add() {
+    cairo_run::cairo_run(Path::new("cairo_programs/set_add.json"), false)
+        .expect("Couldn't run program");
+}
