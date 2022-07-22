@@ -146,7 +146,7 @@ impl MaybeRelocatable {
                     rel_a.segment_index,
                     (rel_a.offset - num_b)
                         .to_usize()
-                        .ok_or(VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?,
+                        .ok_or_else(|| VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?,
                 )))
             }
             _ => Err(VirtualMachineError::NotImplemented),

@@ -651,4 +651,214 @@ mod tests {
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
+
+    #[test]
+    fn search_sorted_lower_no_matches() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "key".to_string(),
+            MaybeRelocatable::Int(bigint!(7)),
+        )]));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(2))))
+        )
+    }
+
+    #[test]
+    fn search_sorted_lower_failed_ids_get_addres() {
+        let (mut vm, ids) = init_vm_ids(HashMap::new());
+        vm.references.insert(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -7,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        );
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_failed_ids_get_from_mem() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        const FP_OFFSET_START: usize = 4;
+        vm.references = HashMap::new();
+        for i in 0..=FP_OFFSET_START {
+            vm.references.insert(
+                i,
+                HintReference {
+                    register: Register::FP,
+                    offset1: i as i32 - FP_OFFSET_START as i32,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            );
+        }
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        for (i, s) in ["array_ptr", "elm_size", "n_elms", "index", "key"]
+            .iter()
+            .enumerate()
+        {
+            ids.insert(s.to_string(), bigint!(i as i32));
+        }
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_builtin_is_none() {
+        let (mut vm, ids) = init_vm_ids(HashMap::new());
+        _ = vm.builtin_runners.pop();
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_range_check_not_present() {
+        let (mut vm, ids) = init_vm_ids(HashMap::new());
+        _ = vm.builtin_runners.pop();
+        vm.builtin_runners.push((
+            "output".to_string(),
+            Box::new(OutputBuiltinRunner::new(true)),
+        ));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::NoRangeCheckBuiltin)
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_range_check_not_first() {
+        let (mut vm, ids) = init_vm_ids(HashMap::new());
+        let range_builtin = vm.builtin_runners.pop();
+        vm.builtin_runners.push((
+            "output".to_string(),
+            Box::new(OutputBuiltinRunner::new(true)),
+        ));
+        vm.builtin_runners
+            .push(range_builtin.expect("Lost range check builtin"));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_not_int_elm_size() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "elm_size".to_string(),
+            MaybeRelocatable::from((7, 8)),
+        )]));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((7, 8))
+            ))
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_zero_elm_size() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "elm_size".to_string(),
+            MaybeRelocatable::Int(bigint!(0)),
+        )]));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_negative_elm_size() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "elm_size".to_string(),
+            MaybeRelocatable::Int(bigint!(-1)),
+        )]));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_not_int_n_elms() {
+        let relocatable = MaybeRelocatable::from((1, 2));
+        let (mut vm, ids) =
+            init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(relocatable))
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_negative_n_elms() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "n_elms".to_string(),
+            MaybeRelocatable::Int(bigint!(-1)),
+        )]));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_empty_scope() {
+        let (mut vm, ids) = init_vm_ids(HashMap::new());
+        vm.exec_scopes = ExecutionScopes::new();
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn search_sorted_lower_n_elms_gt_max_size() {
+        let (mut vm, ids) = init_vm_ids(HashMap::new());
+        vm.exec_scopes
+            .assign_or_update_variable("find_element_max_size", PyValueType::BigInt(bigint!(1)));
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
+        );
+    }
 }
