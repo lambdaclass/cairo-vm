@@ -199,30 +199,83 @@ pub fn search_sorted_lower(
                 .as_any()
                 .downcast_ref::<RangeCheckBuiltinRunner>()
                 .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
-            
-            let _elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                elm_size.to_usize().ok_or(VirtualMachineError::KeyNotFound)?
+
+            let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
+                elm_size
             } else {
-                return Err(VirtualMachineError::ExpectedInteger(maybe_rel_elm_size.clone()));
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_elm_size.clone(),
+                ));
+            };
+
+            if !elm_size.is_positive() {
+                return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
+            }
+
+            let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
+                n_elms
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_n_elms.clone(),
+                ));
+            };
+
+            if n_elms.is_negative() {
+                return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+            }
+
+            if let Some(variables) = vm.exec_scopes.get_local_variables() {
+                if let Some(PyValueType::BigInt(find_element_max_size)) =
+                    variables.get("find_element_max_size")
+                {
+                    if n_elms > find_element_max_size {
+                        return Err(VirtualMachineError::FindElemMaxSize(
+                            find_element_max_size.clone(),
+                            n_elms.clone(),
+                        ));
+                    }
+                }
+            }
+
+            let _elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
+                elm_size
+                    .to_usize()
+                    .ok_or(VirtualMachineError::KeyNotFound)?
+            } else {
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_elm_size.clone(),
+                ));
             };
 
             let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
                 n_elms.to_i32().ok_or(VirtualMachineError::KeyNotFound)?
             } else {
-                return Err(VirtualMachineError::ExpectedInteger(maybe_rel_n_elms.clone()));
+                return Err(VirtualMachineError::ExpectedInteger(
+                    maybe_rel_n_elms.clone(),
+                ));
             };
 
             let mut array_iter = maybe_rel_array_ptr.clone();
 
             for i in 0..n_elms {
-                let value = vm.memory.get(&array_iter).map_err(VirtualMachineError::MemoryError)?.ok_or(VirtualMachineError::KeyNotFound)?;
+                let value = vm
+                    .memory
+                    .get(&array_iter)
+                    .map_err(VirtualMachineError::MemoryError)?
+                    .ok_or(VirtualMachineError::KeyNotFound)?;
                 if value >= maybe_rel_key {
-                    return vm.memory.insert(&index_addr, &MaybeRelocatable::Int(bigint!(i))).map_err(VirtualMachineError::MemoryError);
+                    return vm
+                        .memory
+                        .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
+                        .map_err(VirtualMachineError::MemoryError);
                 }
                 array_iter = array_iter.add_mod(maybe_rel_elm_size, &vm.prime)?;
             }
-            
-            Ok(())
+
+            let index_value = maybe_rel_n_elms.clone();
+            vm.memory
+                .insert(&index_addr, &index_value)
+                .map_err(VirtualMachineError::MemoryError)
         }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
@@ -237,6 +290,7 @@ mod tests {
     use num_bigint::Sign;
 
     const FIND_ELEMENT_HINT: &[u8] = "array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\nkey = ids.key\n\nif '__find_element_index' in globals():\n    ids.index = __find_element_index\n    found_key = memory[array_ptr + elm_size * __find_element_index]\n    assert found_key == key, \\\n        f'Invalid index found in __find_element_index. index: {__find_element_index}, ' \\\n        f'expected key {key}, found key: {found_key}.'\n    # Delete __find_element_index to make sure it's not used for the next calls.\n    del __find_element_index\nelse:\n    n_elms = ids.n_elms\n    assert isinstance(n_elms, int) and n_elms >= 0, \\\n        f'Invalid value for n_elms. Got: {n_elms}.'\n    if '__find_element_max_size' in globals():\n        assert n_elms <= __find_element_max_size, \\\n            f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n            f'Got: n_elms={n_elms}.'\n\n    for i in range(n_elms):\n        if memory[array_ptr + elm_size * i] == key:\n            ids.index = i\n            break\n    else:\n        raise ValueError(f'Key {key} was not found.')".as_bytes();
+    const SEARCH_SORTED_LOWER_HINT: &[u8] = "array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\n\nn_elms = ids.n_elms\nassert isinstance(n_elms, int) and n_elms >= 0, \\\n    f'Invalid value for n_elms. Got: {n_elms}.'\nif '__find_element_max_size' in globals():\n    assert n_elms <= __find_element_max_size, \\\n        f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n        f'Got: n_elms={n_elms}.'\n\nfor i in range(n_elms):\n    if memory[array_ptr + elm_size * i] >= ids.key:\n        ids.index = i\n        break\nelse:\n    ids.index = n_elms".as_bytes();
 
     fn init_vm_ids(
         elm_size: Option<&MaybeRelocatable>,
@@ -392,6 +446,21 @@ mod tests {
         }
 
         (vm, ids)
+    }
+
+    #[test]
+    fn search_sorted_lower() {
+        let (mut vm, ids) = init_vm_ids(None, None, None, false);
+
+        assert_eq!(
+            execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
+        )
     }
 
     #[test]
