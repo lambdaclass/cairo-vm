@@ -50,7 +50,7 @@ pub fn uint256_add(
         bigint!(0)
     };
 
-    let carry_high = if a_high + b_high + carry_low.clone() >= shift {
+    let carry_high = if a_high + b_high + &carry_low >= shift {
         bigint!(1)
     } else {
         bigint!(0)
