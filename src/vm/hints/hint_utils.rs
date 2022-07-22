@@ -189,12 +189,9 @@ pub fn get_relocatable_from_var_name(
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
-    if let MaybeRelocatable::RelocatableValue(relocatable) =
-        get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?
-    {
-        Ok(relocatable)
-    } else {
-        Err(VirtualMachineError::FailedToGetIds)
+    match get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)? {
+        MaybeRelocatable::RelocatableValue(relocatable) => Ok(relocatable),
+        address => Err(VirtualMachineError::ExpectedRelocatable(address)),
     }
 }
 
