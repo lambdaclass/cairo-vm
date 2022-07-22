@@ -16,12 +16,10 @@ func fib_wrapper(n):
 end
 
 func fib(first_element, second_element, n) -> (res : felt):
-    jmp fib_body if n != 0
-    tempvar result = second_element
-    return(second_element)
+    if n == 0:
+        return(second_element)
+    end
 
-    fib_body:
     tempvar y = first_element + second_element
-    fib(second_element, y, n - 1)
-    ret
+    return fib(second_element, y, n - 1)
 end
