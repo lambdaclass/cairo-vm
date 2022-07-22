@@ -18,6 +18,13 @@ macro_rules! bigint64 {
 }
 
 #[macro_export]
+macro_rules! bigint_u64 {
+    ($val : expr) => {
+        BigInt::from_u64($val).unwrap()
+    };
+}
+
+#[macro_export]
 macro_rules! bigintusize {
     ($val : expr) => {
         BigInt::from_usize($val).unwrap()

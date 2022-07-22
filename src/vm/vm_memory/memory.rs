@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::types::relocatable::Relocatable;
 use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
+use num_bigint::BigInt;
 
 pub struct ValidationRule(
     pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
@@ -81,6 +84,19 @@ impl Memory {
             Ok(None)
         } else {
             Err(MemoryError::AddressNotRelocatable)
+        }
+    }
+
+    //Gets the value from memory address.
+    //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
+    //else raises Err
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        match self.get(&MaybeRelocatable::from((key.segment_index, key.offset))) {
+            Ok(Some(MaybeRelocatable::Int(int))) => Ok(int),
+            Ok(_) => Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((key.segment_index, key.offset)),
+            )),
+            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
     }
 
@@ -373,5 +389,41 @@ mod memory_tests {
             .unwrap();
         builtin.add_validation_rule(&mut memory);
         assert_eq!(memory.validate_existing_memory(), Ok(()));
+    }
+
+    #[test]
+    fn get_integer_valid() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+        assert_eq!(
+            memory.get_integer(&Relocatable::from((0, 0))),
+            Ok(&bigint!(10))
+        );
+    }
+
+    #[test]
+    fn get_integer_invalid_expected_integer() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((0, 10)),
+            )
+            .unwrap();
+        assert_eq!(
+            memory.get_integer(&Relocatable::from((0, 0))),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
     }
 }
