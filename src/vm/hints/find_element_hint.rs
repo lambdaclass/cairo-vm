@@ -550,48 +550,58 @@ mod tests {
                 MaybeRelocatable::from((7, 8))
             ))
         );
-    } /*
+    }
 
-      #[test]
-      fn find_elm_zero_elm_size() {
-          let (mut vm, ids) = init_vm_ids(HashMap::from([("elm_size", MaybeRelocatable::Int(bigint!(0)))]));
+    #[test]
+    fn find_elm_zero_elm_size() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "elm_size".to_string(),
+            MaybeRelocatable::Int(bigint!(0)),
+        )]));
 
-          assert_eq!(
-              execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-              Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
-          );
-      }
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
+        );
+    }
 
-      #[test]
-      fn find_elm_negative_elm_size() {
-          let (mut vm, ids) = init_vm_ids(HashMap::from([("elm_size", MaybeRelocatable::Int(bigint!(-1)))]));
+    #[test]
+    fn find_elm_negative_elm_size() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "elm_size".to_string(),
+            MaybeRelocatable::Int(bigint!(-1)),
+        )]));
 
-          assert_eq!(
-              execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-              Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
-          );
-      }
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+        );
+    }
 
-      #[test]
-      fn find_elm_not_int_n_elms() {
-          let relocatable = MaybeRelocatable::from((1, 2));
-          let (mut vm, ids) = init_vm_ids(HashMap::from([("n_elms", &relocatable)]));
+    #[test]
+    fn find_elm_not_int_n_elms() {
+        let relocatable = MaybeRelocatable::from((1, 2));
+        let (mut vm, ids) =
+            init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
 
-          assert_eq!(
-              execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-              Err(VirtualMachineError::ExpectedInteger(relocatable))
-          );
-      }
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(relocatable))
+        );
+    }
 
-      #[test]
-      fn find_elm_negative_n_elms() {
-          let (mut vm, ids) = init_vm_ids(HashMap::from([("n_elms", MaybeRelocatable::Int(bigint!(-1)))]));
+    #[test]
+    fn find_elm_negative_n_elms() {
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "n_elms".to_string(),
+            MaybeRelocatable::Int(bigint!(-1)),
+        )]));
 
-          assert_eq!(
-              execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
-              Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
-          );
-      }*/
+        assert_eq!(
+            execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
+        );
+    }
 
     #[test]
     fn find_elm_empty_scope() {
