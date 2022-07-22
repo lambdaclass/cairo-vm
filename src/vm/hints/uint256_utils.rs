@@ -1,3 +1,4 @@
+use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -8,8 +9,9 @@ use crate::vm::hints::hint_utils::{
 use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, bigint_u64};
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, Signed};
 use std::collections::HashMap;
+use std::ops::Shl;
 
 /*
 Implements hint:
@@ -89,6 +91,57 @@ pub fn split_64(
         .map_err(VirtualMachineError::MemoryError)?;
     vm.memory
         .insert(&high_addr, &MaybeRelocatable::from(bigint_u64!(high)))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+/*
+Implements hint:
+%{
+    from starkware.python.math_utils import isqrt
+    n = (ids.n.high << 128) + ids.n.low
+    root = isqrt(n)
+    assert 0 <= root < 2 ** 128
+    ids.root.low = root
+    ids.root.high = 0
+%}
+*/
+pub fn uint256_sqrt(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let n_relocatable = get_relocatable_from_var_name("n", &ids, vm, hint_ap_tracking)?;
+
+    let root_addr = get_address_from_var_name("root", &ids, vm, hint_ap_tracking)?;
+    let n_low = get_integer_from_relocatable_plus_offset(&n_relocatable, 0, vm)?;
+    let n_high = get_integer_from_relocatable_plus_offset(&n_relocatable, 1, vm)?;
+
+    // Hint main logic
+    // from starkware.python.math_utils import isqrt
+    // n = (ids.n.high << 128) + ids.n.low
+    // root = isqrt(n)
+    // assert 0 <= root < 2 ** 128
+    // ids.root.low = root
+    // ids.root.high = 0
+
+    let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
+
+    if !(root.is_positive() && root < bigint!(2).pow(128)) {
+        return Err(VirtualMachineError::AssertionFailed(format!(
+            "assert 0 <= {} < 2 ** 128",
+            &root
+        )));
+    }
+
+    vm.memory
+        .insert(&root_addr, &MaybeRelocatable::from(root))
+        .map_err(VirtualMachineError::MemoryError)?;
+
+    vm.memory
+        .insert(
+            &root_addr.add_usize_mod(1, None),
+            &MaybeRelocatable::from(bigint!(0)),
+        )
         .map_err(VirtualMachineError::MemoryError)
 }
 
