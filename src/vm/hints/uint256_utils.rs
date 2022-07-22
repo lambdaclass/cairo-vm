@@ -56,15 +56,13 @@ pub fn uint256_add(
         bigint!(0)
     };
 
-    match (
-        vm.memory
-            .insert(&carry_high_addr, &MaybeRelocatable::from(carry_high)),
-        vm.memory
-            .insert(&carry_low_addr, &MaybeRelocatable::from(carry_low)),
-    ) {
-        (Ok(_), Ok(_)) => Ok(()),
-        (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
-    }
+    vm.memory
+        .insert(&carry_high_addr, &MaybeRelocatable::from(carry_high))
+        .map_err(VirtualMachineError::MemoryError)?;
+
+    vm.memory
+        .insert(&carry_low_addr, &MaybeRelocatable::from(carry_low))
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 /*
@@ -86,13 +84,12 @@ pub fn split_64(
     let low: BigInt = a & (bigint!(1).shl(64_usize) - 1);
     let high: BigInt = a.shr(64_usize);
 
-    match (
-        vm.memory.insert(&low_addr, &MaybeRelocatable::from(low)),
-        vm.memory.insert(&high_addr, &MaybeRelocatable::from(high)),
-    ) {
-        (Ok(_), Ok(_)) => Ok(()),
-        (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
-    }
+    vm.memory
+        .insert(&low_addr, &MaybeRelocatable::from(low))
+        .map_err(VirtualMachineError::MemoryError)?;
+    vm.memory
+        .insert(&high_addr, &MaybeRelocatable::from(high))
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 #[cfg(test)]
