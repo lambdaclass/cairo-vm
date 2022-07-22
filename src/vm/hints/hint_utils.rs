@@ -16,6 +16,43 @@ use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 use std::ops::{Neg, Shl, Shr};
 
+//Returns the value in the current execution scope that matches the name and is of type BigInt
+pub fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt> {
+    let mut val: Option<BigInt> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+            val = Some(py_val.clone());
+        }
+    }
+    val
+}
+
+//Returns the value in the current execution scope that matches the name and is of type List
+pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
+    let mut val: Option<Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get(name) {
+            val = Some(py_val.clone());
+        }
+    }
+    val
+}
+//Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
+pub fn get_range_check_builtin(
+    vm: &VirtualMachine,
+) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+    for (name, builtin) in &vm.builtin_runners {
+        if name == &String::from("range_check") {
+            if let Some(range_check_builtin) =
+                builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+            {
+                return Ok(range_check_builtin);
+            };
+        }
+    }
+    Err(VirtualMachineError::NoRangeCheckBuiltin)
+}
+
 fn apply_ap_tracking_correction(
     ap: &Relocatable,
     ref_ap_tracking: &ApTracking,
@@ -125,7 +162,7 @@ pub fn get_address_from_reference(
 
 pub fn get_address_from_var_name(
     var_name: &str,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -1382,6 +1419,12 @@ pub fn unsigned_div_rem(
     }
 }
 
+//Implements hint: vm_enter_scope()
+pub fn enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    vm.exec_scopes.enter_scope(HashMap::new());
+    Ok(())
+}
+
 //  Implements hint:
 //  %{ vm_exit_scope() %}
 pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
@@ -1397,7 +1440,7 @@ pub fn memcpy_enter_scope(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len_addr = get_address_from_var_name("len", ids, vm, hint_ap_tracking)?;
+    let len_addr = get_address_from_var_name("len", &ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&len_addr) {
         Ok(Some(maybe_rel_len)) => {
@@ -1428,7 +1471,7 @@ pub fn memcpy_continue_copying(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let continue_copying_addr =
-        get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("continue_copying", &ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
     let n = match vm.exec_scopes.get_local_variables() {

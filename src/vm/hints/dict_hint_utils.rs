@@ -10,7 +10,7 @@ use crate::{
 
 use super::hint_utils::get_address_from_reference;
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
-const DICT_ACCESS_SIZE: usize = 3;
+pub const DICT_ACCESS_SIZE: usize = 3;
 
 fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
@@ -23,7 +23,6 @@ fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> 
 }
 
 /*Implements hint:
-
    if '__dict_manager' not in globals():
            from starkware.cairo.common.dict import DictManager
            __dict_manager = DictManager()
@@ -46,7 +45,6 @@ pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 }
 
 /*Implements hint:
-
    if '__dict_manager' not in globals():
             from starkware.cairo.common.dict import DictManager
             __dict_manager = DictManager()
