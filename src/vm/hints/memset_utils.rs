@@ -17,7 +17,7 @@ pub fn memset_enter_scope(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_addr = get_address_from_var_name("n", ids, vm, hint_ap_tracking)?;
+    let n_addr = get_address_from_var_name("n", &ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&n_addr) {
         Ok(Some(maybe_rel_n)) => {
@@ -48,7 +48,8 @@ pub fn memset_continue_loop(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let continue_loop_addr = get_address_from_var_name("continue_loop", ids, vm, hint_ap_tracking)?;
+    let continue_loop_addr =
+        get_address_from_var_name("continue_loop", &ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
 

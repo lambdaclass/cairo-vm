@@ -16,12 +16,12 @@ pub fn set_add(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let is_elm_in_set_addr =
-        get_address_from_var_name("is_elm_in_set", ids.clone(), vm, hint_ap_tracking)?;
-    let index_addr = get_address_from_var_name("index", ids.clone(), vm, hint_ap_tracking)?;
-    let set_ptr_addr = get_address_from_var_name("set_ptr", ids.clone(), vm, hint_ap_tracking)?;
-    let elm_size_addr = get_address_from_var_name("elm_size", ids.clone(), vm, hint_ap_tracking)?;
-    let elm_ptr_addr = get_address_from_var_name("elm_ptr", ids.clone(), vm, hint_ap_tracking)?;
-    let set_end_ptr_addr = get_address_from_var_name("set_end_ptr", ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("is_elm_in_set", &ids, vm, hint_ap_tracking)?;
+    let index_addr = get_address_from_var_name("index", &ids, vm, hint_ap_tracking)?;
+    let set_ptr_addr = get_address_from_var_name("set_ptr", &ids, vm, hint_ap_tracking)?;
+    let elm_size_addr = get_address_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
+    let elm_ptr_addr = get_address_from_var_name("elm_ptr", &ids, vm, hint_ap_tracking)?;
+    let set_end_ptr_addr = get_address_from_var_name("set_end_ptr", &ids, vm, hint_ap_tracking)?;
 
     match (
         vm.memory.get(&is_elm_in_set_addr),

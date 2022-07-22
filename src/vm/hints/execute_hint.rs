@@ -11,13 +11,19 @@ use crate::vm::hints::dict_hint_utils::{
 use crate::vm::hints::find_element_hint::find_element;
 use crate::vm::hints::hint_utils::{
     add_segment, assert_250_bit, assert_le_felt, assert_lt_felt, assert_nn, assert_not_equal,
-    assert_not_zero, exit_scope, is_le_felt, is_nn, is_nn_out_of_range, is_positive,
+    assert_not_zero, enter_scope, exit_scope, is_le_felt, is_nn, is_nn_out_of_range, is_positive,
     memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
 use crate::vm::hints::memset_utils::{memset_continue_loop, memset_enter_scope};
 use crate::vm::hints::pow_utils::pow;
 use crate::vm::hints::set::set_add;
+use crate::vm::hints::squash_dict_utils::{
+    squash_dict, squash_dict_inner_assert_len_keys, squash_dict_inner_check_access_index,
+    squash_dict_inner_continue_loop, squash_dict_inner_first_iteration,
+    squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
+    squash_dict_inner_used_accesses_assert,
+};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -67,10 +73,14 @@ pub fn execute_hint(
         Ok("n -= 1\nids.continue_loop = 1 if n > 0 else 0") => memset_continue_loop(vm, ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids, None),
-        Ok("array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\nkey = ids.key\n\nif '__find_element_index' in globals():\n    ids.index = __find_element_index\n    found_key = memory[array_ptr + elm_size * __find_element_index]\n    assert found_key == key, \\\n        f'Invalid index found in __find_element_index. index: {__find_element_index}, ' \\\n        f'expected key {key}, found key: {found_key}.'\n    # Delete __find_element_index to make sure it's not used for the next calls.\n    del __find_element_index\nelse:\n    n_elms = ids.n_elms\n    assert isinstance(n_elms, int) and n_elms >= 0, \\\n        f'Invalid value for n_elms. Got: {n_elms}.'\n    if '__find_element_max_size' in globals():\n        assert n_elms <= __find_element_max_size, \\\n            f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n            f'Got: n_elms={n_elms}.'\n\n    for i in range(n_elms):\n        if memory[array_ptr + elm_size * i] == key:\n            ids.index = i\n            break\n    else:\n        raise ValueError(f'Key {key} was not found.')") => find_element(vm, ids, None),
-        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)") => unsigned_div_rem(vm, ids, None),
-        Ok("from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound") => signed_div_rem(vm, ids, None),
-        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'") => assert_lt_felt(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)"
+        ) => unsigned_div_rem(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound"
+        ) => signed_div_rem(vm, ids, None),
+        Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
+        ) => assert_lt_felt(vm, ids, None),
+        Ok("array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\nkey = ids.key\n\nif '__find_element_index' in globals():\n    ids.index = __find_element_index\n    found_key = memory[array_ptr + elm_size * __find_element_index]\n    assert found_key == key, \\\n        f'Invalid index found in __find_element_index. index: {__find_element_index}, ' \\\n        f'expected key {key}, found key: {found_key}.'\n    # Delete __find_element_index to make sure it's not used for the next calls.\n    del __find_element_index\nelse:\n    n_elms = ids.n_elms\n    assert isinstance(n_elms, int) and n_elms >= 0, \\\n        f'Invalid value for n_elms. Got: {n_elms}.'\n    if '__find_element_max_size' in globals():\n        assert n_elms <= __find_element_max_size, \\\n            f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n            f'Got: n_elms={n_elms}.'\n\n    for i in range(n_elms):\n        if memory[array_ptr + elm_size * i] == key:\n            ids.index = i\n            break\n    else:\n        raise ValueError(f'Key {key} was not found.')"
+        ) => find_element(vm, ids, None),
         Ok("ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1") => pow(vm, ids, Some(ap_tracking)),
         Ok("assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0") => set_add(vm, ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict"
@@ -80,7 +90,23 @@ pub fn execute_hint(
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
         ) => dict_write(vm, ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
-        ) => default_dict_new(vm, ids, None),
+        ) => default_dict_new(vm, ids, Some(ap_tracking)),
+        Ok("current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index"
+        ) => squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking)),
+        Ok("ids.should_skip_loop = 0 if current_access_indices else 1"
+        ) => squash_dict_inner_skip_loop(vm, ids, Some(ap_tracking)),
+        Ok("new_access_index = current_access_indices.pop()\nids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\ncurrent_access_index = new_access_index"
+        ) => squash_dict_inner_check_access_index(vm, ids, Some(ap_tracking)),
+        Ok("ids.loop_temps.should_continue = 1 if current_access_indices else 0"
+        ) => squash_dict_inner_continue_loop(vm, ids, Some(ap_tracking)),
+        Ok("assert len(keys) == 0") => squash_dict_inner_assert_len_keys(vm),
+        Ok("assert len(current_access_indices) == 0") => squash_dict_inner_len_assert(vm),
+        Ok("assert ids.n_used_accesses == len(access_indices[key])") => squash_dict_inner_used_accesses_assert(vm, ids, Some(ap_tracking)),
+        Ok("assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\nids.next_key = key = keys.pop()"
+        ) => squash_dict_inner_next_key(vm, ids, Some(ap_tracking)),
+        Ok("dict_access_size = ids.DictAccess.SIZE\naddress = ids.dict_accesses.address_\nassert ids.ptr_diff % dict_access_size == 0, \\\n    'Accesses array size must be divisible by DictAccess.SIZE'\nn_accesses = ids.n_accesses\nif '__squash_dict_max_size' in globals():\n    assert n_accesses <= __squash_dict_max_size, \\\n        f'squash_dict() can only be used with n_accesses<={__squash_dict_max_size}. ' \\\n        f'Got: n_accesses={n_accesses}.'\n# A map from key to the list of indices accessing it.\naccess_indices = {}\nfor i in range(n_accesses):\n    key = memory[address + dict_access_size * i]\n    access_indices.setdefault(key, []).append(i)\n# Descending list of keys.\nkeys = sorted(access_indices.keys(), reverse=True)\n# Are the keys used bigger than range_check bound.\nids.big_keys = 1 if keys[0] >= range_check_builtin.bound else 0\nids.first_key = key = keys.pop()"
+        ) => squash_dict(vm, ids, Some(ap_tracking)),
+        Ok("vm_enter_scope()") => enter_scope(vm),
         Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
         ) => dict_update(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
@@ -5710,5 +5736,24 @@ mod tests {
                 ExecScopeError::ExitMainScopeError
             ))
         );
+    }
+
+    #[test]
+    fn run_enter_scope() {
+        let hint_code = "vm_enter_scope()".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            Ok(())
+        );
+        //Check exec_scopes
+        let expected_scope = vec![HashMap::new(), HashMap::new()];
+        assert_eq!(vm.exec_scopes.data, expected_scope)
     }
 }
