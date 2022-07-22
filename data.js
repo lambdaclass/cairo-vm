@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658515757754,
+  "lastUpdate": 1658516700927,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -7489,6 +7489,66 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 2086,
             "range": "± 118",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "40a6f3d50ff2b255d704763ccf7301b3b48769f9",
+          "message": "[HINTS] Add implementation for hints on squash_dict.cairo (#301)\n\n* Start first hint on squash_dict\r\n\r\n* Implement first hint on squash_dict_inner\r\n\r\n* Add missing file\r\n\r\n* Add test for squash_dict_inner_first_iteration\r\n\r\n* Add more unit tests for squash_dict_inner_fisrt_iteration\r\n\r\n* Add implementation for second hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_skip_loop\r\n\r\n* Fix typo\r\n\r\n* Add implementation for third hint on squash_dict_inner\r\n\r\n* Add unit test for third hint\r\n\r\n* Change error name\r\n\r\n* Add more unit tests for third hint\r\n\r\n* Add implementation for fourth hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_continue_loop\r\n\r\n* Add unit tests for squash_dict_inner_assert_len\r\n\r\n* Add implementatio for fifth hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_ddict_inner_used_accesses_assert\r\n\r\n* Refactors\r\n\r\n* Add implementation for sixth hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_assert_len_keys\r\n\r\n* Add implementation for seventh hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_next_key\r\n\r\n* Add implementation + tests for vm_exit_scope()\r\n\r\n* Add helper function get_ramge_check_builtin\r\n\r\n* Add implementation for last hint on squashed_dict\r\n\r\n* Add integration test for squash_dict\r\n\r\n* Fix squash_dict\r\n\r\n* Fix squash_dict_inner functions\r\n\r\n* Add integration test file\r\n\r\n* Fix address management of loop_temps\r\n\r\n* Add asserts to integration test\r\n\r\n* Move helper functions to hint_utils\r\n\r\n* Rename file\r\n\r\n* Revert change\r\n\r\n* Add first unit test for squash_dict\r\n\r\n* Add more unit tests for squash_dict",
+          "timestamp": "2022-07-22T16:00:24-03:00",
+          "tree_id": "43952b086b5593986feccd2b22cbb76390113bc0",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/40a6f3d50ff2b255d704763ccf7301b3b48769f9"
+        },
+        "date": 1658516699697,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2167,
+            "range": "± 159",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 2180,
+            "range": "± 119",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000.json",
+            "value": 2184,
+            "range": "± 131",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 2184,
+            "range": "± 129",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 2201,
+            "range": "± 125",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 2199,
+            "range": "± 126",
             "unit": "ns/iter"
           }
         ]
