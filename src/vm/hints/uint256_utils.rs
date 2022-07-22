@@ -27,16 +27,15 @@ pub fn uint256_add(
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_maybe_rel = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let b_maybe_rel = get_relocatable_from_var_name("b", &ids, vm, hint_ap_tracking)?;
-    let carry_high_addr =
-        get_address_from_var_name("carry_high", ids.clone(), vm, hint_ap_tracking)?;
-    let carry_low_addr = get_address_from_var_name("carry_low", ids, vm, hint_ap_tracking)?;
+    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let b_relocatable = get_relocatable_from_var_name("b", &ids, vm, hint_ap_tracking)?;
+    let carry_high_addr = get_address_from_var_name("carry_high", &ids, vm, hint_ap_tracking)?;
+    let carry_low_addr = get_address_from_var_name("carry_low", &ids, vm, hint_ap_tracking)?;
 
-    let a_low = get_integer_from_relocatable_plus_offset(&a_maybe_rel, 0, vm)?;
-    let a_high = get_integer_from_relocatable_plus_offset(&a_maybe_rel, 1, vm)?;
-    let b_low = get_integer_from_relocatable_plus_offset(&b_maybe_rel, 0, vm)?;
-    let b_high = get_integer_from_relocatable_plus_offset(&b_maybe_rel, 1, vm)?;
+    let a_low = get_integer_from_relocatable_plus_offset(&a_relocatable, 0, vm)?;
+    let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
+    let b_low = get_integer_from_relocatable_plus_offset(&b_relocatable, 0, vm)?;
+    let b_high = get_integer_from_relocatable_plus_offset(&b_relocatable, 1, vm)?;
 
     // Hint main logic
     // sum_low = ids.a.low + ids.b.low
@@ -78,8 +77,8 @@ pub fn split_64(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let high_addr = get_address_from_var_name("high", ids.clone(), vm, hint_ap_tracking)?;
-    let low_addr = get_address_from_var_name("low", ids, vm, hint_ap_tracking)?;
+    let high_addr = get_address_from_var_name("high", &ids, vm, hint_ap_tracking)?;
+    let low_addr = get_address_from_var_name("low", &ids, vm, hint_ap_tracking)?;
 
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
