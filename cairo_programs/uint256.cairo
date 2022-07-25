@@ -1,6 +1,6 @@
 %builtins range_check
 
-from starkware.cairo.common.uint256 import (Uint256, uint256_add, split_64, uint256_sqrt)
+from starkware.cairo.common.uint256 import (Uint256, uint256_add, split_64, uint256_sqrt, uint256_signed_nn)
 
 func main{range_check_ptr: felt}():
     let x :Uint256 = Uint256(5,2)
@@ -19,8 +19,13 @@ func main{range_check_ptr: felt}():
     let (root) = uint256_sqrt(Uint256(17,7))
     assert root = Uint256(48805497317890012913,0)
 
-
     # let (root_2) = uint256_sqrt(Uint256(0, 340282366920938463463374607431768211458))
-    
+
+    let (signed_nn) = uint256_signed_nn(x)
+    assert signed_nn = 1
+    let (p) = uint256_signed_nn(Uint256(1,170141183460469231731687303715884105728))
+    assert p = 0
+    let (q) = uint256_signed_nn(Uint256(1,170141183460469231731687303715884105727))
+    assert q = 1
     return()
 end
