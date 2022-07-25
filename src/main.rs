@@ -6,6 +6,13 @@ use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
 use cleopatra_cairo::vm::errors::trace_errors::TraceError;
 use std::path::PathBuf;
 
+#[cfg(feature = "with_mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "with_mimalloc")]
+#[global_allocator]
+static ALLOC: MiMalloc = MiMalloc;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
