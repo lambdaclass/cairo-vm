@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658768536956,
+  "lastUpdate": 1658774493500,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -8455,6 +8455,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 222033069,
             "range": "± 615183",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3e198935054aca0c615f3e24bbf98967fab90092",
+          "message": "[HINTS] Search sorted lower hint (#305)\n\n* Use reference for ids\r\n\r\n* Start hint\r\n\r\n* Bugfix sub didn't handle rel - int\r\n\r\n* Add bugfix chage to test\r\n\r\n* Extend search_sorted_lower checks\r\n\r\n* Run cargo fmt\r\n\r\n* Modify test initialization\r\n\r\n* Uncomment tests\r\n\r\n* Add unit and integration tests\r\n\r\n* Update find_element_hint.rs\r\n\r\n* Use bigintusize\r\n\r\n* Refactor and use helper functions\r\n\r\n* Run cargo fmt\r\n\r\n* Update find_element_hint.rs\r\n\r\n* Remove print",
+          "timestamp": "2022-07-25T15:30:14-03:00",
+          "tree_id": "ca2545e1d50866a2144c75145a28003c09c8137d",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/3e198935054aca0c615f3e24bbf98967fab90092"
+        },
+        "date": 1658774492272,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1702258798,
+            "range": "± 3977010",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 608358524,
+            "range": "± 1740536",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 300304442,
+            "range": "± 1141542",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1480460620,
+            "range": "± 7104709",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 223584233,
+            "range": "± 1009497",
             "unit": "ns/iter"
           }
         ]
