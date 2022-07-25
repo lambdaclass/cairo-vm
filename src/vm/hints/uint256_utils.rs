@@ -214,6 +214,8 @@ pub fn uint256_unsigned_div_rem(
 
     let a = a_high.shl(128_usize) + a_low;
     let div = div_high.shl(128_usize) + div_low;
+    //a and div will always be positive numbers
+    //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
 
     let quotient_low = &quotient & ((bigint!(1).shl(128_usize)) - 1_usize);
