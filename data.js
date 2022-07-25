@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658774493500,
+  "lastUpdate": 1658776624274,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -8509,6 +8509,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 223584233,
             "range": "± 1009497",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "27408f897d0213f5c7f30f25555b8f3b56fd4255",
+          "message": "[HINTS] Add implementation for dict_squash (dict.cairo) (#307)\n\n* Start first hint on squash_dict\r\n\r\n* Implement first hint on squash_dict_inner\r\n\r\n* Add missing file\r\n\r\n* Add test for squash_dict_inner_first_iteration\r\n\r\n* Add more unit tests for squash_dict_inner_fisrt_iteration\r\n\r\n* Add implementation for second hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_skip_loop\r\n\r\n* Fix typo\r\n\r\n* Add implementation for third hint on squash_dict_inner\r\n\r\n* Add unit test for third hint\r\n\r\n* Change error name\r\n\r\n* Add more unit tests for third hint\r\n\r\n* Add implementation for fourth hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_continue_loop\r\n\r\n* Add unit tests for squash_dict_inner_assert_len\r\n\r\n* Add implementatio for fifth hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_ddict_inner_used_accesses_assert\r\n\r\n* Refactors\r\n\r\n* Add implementation for sixth hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_assert_len_keys\r\n\r\n* Add implementation for seventh hint on squash_dict_inner\r\n\r\n* Add unit tests for squash_dict_inner_next_key\r\n\r\n* Add implementation + tests for vm_exit_scope()\r\n\r\n* Add helper function get_ramge_check_builtin\r\n\r\n* Add implementation for last hint on squashed_dict\r\n\r\n* Add integration test for squash_dict\r\n\r\n* Fix squash_dict\r\n\r\n* Fix squash_dict_inner functions\r\n\r\n* Add integration test file\r\n\r\n* Fix address management of loop_temps\r\n\r\n* Add asserts to integration test\r\n\r\n* Move helper functions to hint_utils\r\n\r\n* Rename file\r\n\r\n* Revert change\r\n\r\n* Add first unit test for squash_dict\r\n\r\n* Add more unit tests for squash_dict\r\n\r\n* Add implementation for first hint in dict_squash\r\n\r\n* Add unit tests for dict_squash_copy_dict\r\n\r\n* Add implementation for second hint on dict_squash\r\n\r\n* Add helper function get_tracker\r\n\r\n* Add unit tests for dict_squash_update_ptr\r\n\r\n* Add integration test for dict_squash\r\n\r\n* Improve integration test",
+          "timestamp": "2022-07-25T16:03:19-03:00",
+          "tree_id": "fba92b6917fd4824c0259de4e1fb0ee3fab5385f",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/27408f897d0213f5c7f30f25555b8f3b56fd4255"
+        },
+        "date": 1658776622148,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2027735192,
+            "range": "± 28936905",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 736345409,
+            "range": "± 9834226",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 361722409,
+            "range": "± 6709714",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1701527496,
+            "range": "± 26897689",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 268863470,
+            "range": "± 6518056",
             "unit": "ns/iter"
           }
         ]
