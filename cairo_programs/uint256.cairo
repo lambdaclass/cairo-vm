@@ -1,6 +1,18 @@
 %builtins range_check
 
-from starkware.cairo.common.uint256 import (Uint256, uint256_add, split_64, uint256_sqrt, uint256_signed_nn, uint256_unsigned_div_rem)
+from starkware.cairo.common.uint256 import (Uint256, uint256_add, split_64, uint256_sqrt, uint256_signed_nn, uint256_unsigned_div_rem, uint256_mul)
+from starkware.cairo.common.alloc import alloc
+
+func fill_array{range_check_ptr: felt}(array: Uint256*, base: Uint256, step: Uint256, array_length: felt, iterator: felt):
+    if iterator == array_length:
+        return()
+    end
+    let (res, carry_high) = uint256_add(step, base)
+    let (sqrt) = uint256_sqrt(res)
+
+    assert array[iterator] = sqrt
+    return fill_array(array, base, array[iterator], array_length, iterator + 1)
+end
 
 func main{range_check_ptr: felt}():
     let x :Uint256 = Uint256(5,2)
@@ -32,5 +44,13 @@ func main{range_check_ptr: felt}():
     assert b_quotient = Uint256(1,0)
     assert b_remainder = Uint256(340282366920938463463374607431768211377,0)
     
+    let (mult_low, mult_high) = uint256_mul(Uint256(59,2),  Uint256(10,0))
+    assert mult_low = Uint256(590,20)
+    assert mult_high = Uint256(0,0)
+
+    let array_length = 100
+    let (sum_array : Uint256*) = alloc()
+    fill_array(sum_array, Uint256(57,8), Uint256(17,7), array_length, 0)
+
     return()
 end
