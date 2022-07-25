@@ -6,7 +6,8 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::dict_hint_utils::{
-    default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_update, dict_write,
+    default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
+    dict_update, dict_write,
 };
 use crate::vm::hints::find_element_hint::find_element;
 use crate::vm::hints::hint_utils::{
@@ -111,6 +112,8 @@ pub fn execute_hint(
         ) => dict_update(vm, ids, None),
         Ok("# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
         ) => dict_squash_copy_dict(vm, ids, Some(ap_tracking)),
+        Ok("# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\nids.squashed_dict_end.address_"
+        ) => dict_squash_update_ptr(vm, ids, Some(ap_tracking)),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
