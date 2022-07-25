@@ -317,7 +317,7 @@ mod tests {
             .iter()
             .enumerate()
         {
-            ids.insert(s.to_string(), bigintuint!(i));
+            ids.insert(s.to_string(), bigintusize!(i));
         }
 
         (vm, ids)
