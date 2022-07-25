@@ -40,11 +40,11 @@ pub fn uint256_add(
     let b_low = get_integer_from_relocatable_plus_offset(&b_relocatable, 0, vm)?;
     let b_high = get_integer_from_relocatable_plus_offset(&b_relocatable, 1, vm)?;
 
-    // Hint main logic
-    // sum_low = ids.a.low + ids.b.low
-    // ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
-    // sum_high = ids.a.high + ids.b.high + ids.carry_low
-    // ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
+    //Main logic
+    //sum_low = ids.a.low + ids.b.low
+    //ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
+    //sum_high = ids.a.high + ids.b.high + ids.carry_low
+    //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
     let carry_low = if a_low + b_low >= shift {
         bigint!(1)
@@ -69,10 +69,10 @@ pub fn uint256_add(
 
 /*
 Implements hint:
-    %{
-        ids.low = ids.a & ((1<<64) - 1)
-        ids.high = ids.a >> 64
-    %}
+%{
+    ids.low = ids.a & ((1<<64) - 1)
+    ids.high = ids.a >> 64
+%}
 */
 pub fn split_64(
     vm: &mut VirtualMachine,
@@ -117,13 +117,13 @@ pub fn uint256_sqrt(
     let n_low = get_integer_from_relocatable_plus_offset(&n_relocatable, 0, vm)?;
     let n_high = get_integer_from_relocatable_plus_offset(&n_relocatable, 1, vm)?;
 
-    // Hint main logic
-    // from starkware.python.math_utils import isqrt
-    // n = (ids.n.high << 128) + ids.n.low
-    // root = isqrt(n)
-    // assert 0 <= root < 2 ** 128
-    // ids.root.low = root
-    // ids.root.high = 0
+    //Main logic
+    //from starkware.python.math_utils import isqrt
+    //n = (ids.n.high << 128) + ids.n.low
+    //root = isqrt(n)
+    //assert 0 <= root < 2 ** 128
+    //ids.root.low = root
+    //ids.root.high = 0
 
     let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
 
@@ -159,8 +159,8 @@ pub fn uint256_signed_nn(
 
     let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
 
-    // Hint main logic
-    // memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
+    //Main logic
+    //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
 
     let result: BigInt =
         if a_high.is_positive() && (a_high.mod_floor(&vm.prime)) < bigint_i128!(i128::MAX) + 1 {
@@ -493,14 +493,14 @@ mod tests {
         );
 
         //Check hint memory inserts
-        // ids.low
+        //ids.low
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 10))),
             Ok(Some(&MaybeRelocatable::from(bigint_str!(
                 b"7249717543555297151"
             ))))
         );
-        // ids.high
+        //ids.high
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 11))),
             Ok(Some(&MaybeRelocatable::from(bigint_str!(
@@ -666,14 +666,14 @@ mod tests {
         );
 
         //Check hint memory inserts
-        // ids.root.low
+        //ids.root.low
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 5))),
             Ok(Some(&MaybeRelocatable::from(bigint_str!(
                 b"48805497317890012913"
             ))))
         );
-        // ids.root.high
+        //ids.root.high
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 6))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
