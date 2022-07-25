@@ -254,7 +254,8 @@ pub fn get_address_from_var_name(
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
     let var_ref = ids
         .get(&String::from(var_name))
-        .ok_or(VirtualMachineError::IdNotFound(var_name.to_string()))?;
+        .ok_or_else(|| VirtualMachineError::IdNotFound(var_name.to_string()))?;
+    // .ok_or(VirtualMachineError::IdNotFound(var_name.to_string()))?;
     get_address_from_reference(
         var_ref,
         &vm.references,
