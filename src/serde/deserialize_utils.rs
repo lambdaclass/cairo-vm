@@ -3,12 +3,10 @@ use crate::serde::deserialize_program::ValueAddress;
 use crate::types::instruction::Register;
 use nom::{
     branch::alt,
-    bytes::{
-        complete::{take, take_until},
-        streaming::tag,
-    },
+    bytes::{complete::take_until, streaming::tag},
     character::complete::digit1,
-    combinator::{map_res, opt},
+    combinator::{map_res, opt, value},
+    error::{ErrorKind, ParseError},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -17,7 +15,7 @@ use num_integer::Integer;
 use num_traits::FromPrimitive;
 use parse_hyperlinks::take_until_unbalanced;
 use std::fmt;
-use std::num::{IntErrorKind, ParseIntError};
+use std::num::ParseIntError;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -56,68 +54,76 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
+/* NOM PARSERS */
+
+// Checks if the input has outer brackets. This is used to set
+// the `dereference` field of ValueAddress.
 fn outer_brackets(input: &str) -> IResult<&str, bool> {
     opt(delimited(
         tag("["),
         take_until_unbalanced('[', ']'),
         tag("]"),
     ))(input)
-    .map(|(reminder_input, consumed_input_res)| {
-        if let Some(consumed_input) = consumed_input_res {
-            (consumed_input, true)
+    .map(|(rem_input, res_opt)| {
+        if let Some(res) = res_opt {
+            (res, true)
         } else {
-            (reminder_input, false)
+            (rem_input, false)
         }
     })
 }
 
+// Removes the cast string and parenthesis from the value.
 fn take_cast(input: &str) -> IResult<&str, &str> {
-    tuple((
-        tag("cast"),
-        delimited(tag("("), take_until_unbalanced('(', ')'), tag(")")),
-    ))(input)
-    .map(|(consumed_input, (_, inside_parenthesis))| (inside_parenthesis, consumed_input))
+    let (rem_input, _) = tag("cast")(input)?;
+    delimited(tag("("), take_until_unbalanced('(', ')'), tag(")"))(rem_input)
+        .map(|(rem_input, res)| (res, rem_input))
 }
 
+// Returns the first argument of the cast function from the value.
 fn take_cast_first_arg(input: &str) -> IResult<&str, &str> {
-    let (next_input, _) = take_cast(input)?;
+    let (rem_input, _) = take_cast(input)?;
 
-    take_until(",")(next_input)
-        .map(|(consumed_input, cast_first_arg)| (cast_first_arg, consumed_input))
+    take_until(",")(rem_input).map(|(rem_input, res)| (res, rem_input))
 }
 
 fn register(input: &str) -> IResult<&str, Register> {
-    alt((tag("ap"), tag("fp")))(input).map(|(consumed_input, res)| match res {
-        "ap" => (consumed_input, Register::AP),
-        "fp" => (consumed_input, Register::FP),
-        _ => unreachable!(),
-    })
+    alt((
+        value(Register::AP, tag("ap")),
+        value(Register::FP, tag("fp")),
+    ))(input)
 }
 
-// Examples:
-// " + (-1)"
-// " + 2"
 fn offset(input: &str) -> IResult<&str, i32> {
-    if input == "" {
+    if input.eq("") {
         return Ok(("", 0));
     }
 
-    let (consumed_input_1, _) = opt(alt((tag(" + "), tag(" - "))))(input)?;
+    let (rem_input, _) = opt(tag(" + "))(input)?;
+    let (rem_input, num_opt) = opt(delimited(tag("("), take_until(")"), tag(")")))(rem_input)?;
 
-    let (consumed_input_2, num) =
-        opt(delimited(tag("("), take_until(")"), tag(")")))(consumed_input_1)?;
+    if let Some(num) = num_opt {
+        let parsed_num: i32 = match num.parse() {
+            Ok(parsed_num) => parsed_num,
+            Err(_) => {
+                return Err(nom::Err::Error(ParseError::from_error_kind(
+                    num,
+                    ErrorKind::MapRes,
+                )))
+            }
+        };
 
-    if let Some(n) = num {
-        Ok((consumed_input_2, n.parse::<i32>().unwrap()))
+        Ok((rem_input, parsed_num))
     } else {
-        map_res(digit1, i32::from_str)(consumed_input_2)
+        map_res(digit1, i32::from_str)(rem_input)
     }
 }
 
-// fp + 2
-// ap + (-1)
 fn register_and_offset(input: &str) -> IResult<&str, (Register, i32)> {
-    tuple((register, offset))(input)
+    let (rem_input, reg) = register(input)?;
+    let (rem_input, offset) = offset(rem_input)?;
+
+    Ok((rem_input, (reg, offset)))
 }
 
 fn inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
@@ -125,35 +131,35 @@ fn inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
         delimited(tag("["), take_until("]"), tag("]")),
         register_and_offset,
     )(input)
-    .map(|(consumed_input, res)| {
+    .map(|(rem_input, res)| {
         let (_, (register, offset)) = res;
 
-        (consumed_input, (true, register, offset))
+        (rem_input, (true, register, offset))
     })
 }
 
 fn no_inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
-    let (consumed_input, (register, offset)) = register_and_offset(input)?;
+    let (rem_input, (register, offset)) = register_and_offset(input)?;
 
-    Ok((consumed_input, (false, register, offset)))
+    Ok((rem_input, (false, register, offset)))
 }
 
-// The final parser
-// fn parse_value(input: &str) -> IResult<&str, (bool, Option<(Register, i32)>, Option<i32>)> {
 pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
-    let (consumed_input, (dereference, _, inner_deref, offs_or_imm)) = tuple((
+    let (rem_input, (dereference, _, inner_deref, offs_or_imm)) = tuple((
         outer_brackets,
         take_cast_first_arg,
         opt(alt((inner_dereference, no_inner_dereference))),
         opt(offset),
     ))(input)?;
 
+    // check if there was any register and offset to be parsed
     let (inner_deref, reg, offs1) = if let Some((inner_deref, reg, offs1)) = inner_deref {
         (inner_deref, Some(reg), offs1)
     } else {
         (false, None, 0)
     };
 
+    // check if there is a second offset or immediate value
     let offset_or_immediate = if let Some(offset_or_immediate) = offs_or_imm {
         offset_or_immediate
     } else {
@@ -180,333 +186,13 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         }
     };
 
-    Ok((consumed_input, value_address))
-
-    // .map(|(consumed_input, res)| {
-    //     let (dereference, _, )
-
-    //     (consumed_input, (res.0, res.2, res.3))
-    // })
-}
-
-fn parse_register(splitted_value_str: &[&str]) -> Option<Register> {
-    let str_tmp: Vec<&str> = splitted_value_str[0].split(',').collect();
-
-    let mut raw_reg_str = str_tmp[0].to_string();
-
-    raw_reg_str.retain(|c| !r#"["#.contains(c));
-
-    match raw_reg_str.split('(').collect::<Vec<_>>()[1] {
-        "ap" => Some(Register::AP),
-        "fp" => Some(Register::FP),
-        _ => None,
-    }
-}
-
-pub fn parse_dereference(value: &str) -> Result<ValueAddress, ReferenceParseError> {
-    let splitted: Vec<&str> = value.split(" + ").collect();
-
-    match splitted.len() {
-        1 => parse_dereference_no_offsets(&splitted),
-        2 => parse_dereference_with_one_offset(&splitted),
-        3 => parse_dereference_with_two_offsets(&splitted),
-
-        // FIXME this match arm is handled like this just to avoid unnecesary deserialization errors.
-        // For the moment, the ValueAddress structs returned in ths arm are not used in hints, so they are not important.
-        // issue: https://github.com/lambdaclass/cleopatra_cairo/issues/280
-
-        // _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
-        _ => Ok(ValueAddress {
-            register: Some(Register::FP),
-            offset1: 0,
-            offset2: 0,
-            immediate: None,
-            dereference: true,
-            inner_dereference: false,
-        }),
-    }
-}
-// parse string values of format `[cast(reg, *felt)]`
-fn parse_dereference_no_offsets(
-    splitted_value_str: &[&str],
-) -> Result<ValueAddress, ReferenceParseError> {
-    let register = parse_register(splitted_value_str);
-
-    Ok(ValueAddress {
-        register,
-        offset1: 0,
-        offset2: 0,
-        immediate: None,
-        dereference: true,
-        inner_dereference: false,
-    })
-}
-
-// parse string values of format `[cast(reg + offset1, *felt)]`
-fn parse_dereference_with_one_offset(
-    splitted_value_str: &[&str],
-) -> Result<ValueAddress, ReferenceParseError> {
-    let mut deref = parse_dereference_no_offsets(splitted_value_str)?;
-
-    let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
-    offset1_str.retain(|c| !r#"()]"#.contains(c));
-
-    let offset1: i32 = match offset1_str.parse() {
-        Ok(offset1) => offset1,
-        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
-        Err(e) => match e.kind() {
-            IntErrorKind::PosOverflow => 0,
-            _ => return Err(ReferenceParseError::IntError(e)),
-        },
-    };
-    deref.offset1 = offset1;
-
-    if splitted_value_str[0].contains(&"([") {
-        deref.inner_dereference = true;
-        return Ok(deref);
-    }
-
-    Ok(deref)
-}
-
-// parse string values of format `[cast([reg + offset1] + offset2, *felt)]`
-fn parse_dereference_with_two_offsets(
-    splitted_value_str: &[&str],
-) -> Result<ValueAddress, ReferenceParseError> {
-    let mut deref = parse_dereference_with_one_offset(splitted_value_str)?;
-
-    let mut offset2_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
-    offset2_str.retain(|c| !r#"()"#.contains(c));
-
-    let offset2: i32 = match offset2_str.parse() {
-        Ok(offset2) => offset2,
-        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
-        Err(e) => match e.kind() {
-            IntErrorKind::PosOverflow => 0,
-            _ => return Err(ReferenceParseError::IntError(e)),
-        },
-    };
-    deref.offset2 = offset2;
-    deref.inner_dereference = true;
-
-    Ok(deref)
-}
-
-pub fn parse_reference(value: &str) -> Result<ValueAddress, ReferenceParseError> {
-    let splitted: Vec<_> = value.split(" + ").collect();
-
-    match splitted.len() {
-        1 => parse_reference_no_offsets(&splitted),
-        2 => parse_reference_with_one_offset(&splitted),
-        3 => parse_reference_with_two_offsets(&splitted),
-
-        // FIXME this match arm is handled like this just to avoid unnecesary deserialization errors.
-        // For the moment, the ValueAddress structs returned in ths arm are not used in hints, so they are not important.
-        // issue: https://github.com/lambdaclass/cleopatra_cairo/issues/280
-
-        // _ => Err(ReferenceParseError::InvalidStringError(String::from(value))),
-        _ => Ok(ValueAddress {
-            register: Some(Register::FP),
-            offset1: 0,
-            offset2: 0,
-            immediate: None,
-            dereference: false,
-            inner_dereference: false,
-        }),
-    }
-}
-
-fn parse_reference_no_offsets(
-    splitted_value_str: &[&str],
-) -> Result<ValueAddress, ReferenceParseError> {
-    let register = parse_register(splitted_value_str);
-
-    Ok(ValueAddress {
-        register,
-        offset1: 0,
-        offset2: 0,
-        immediate: None,
-        dereference: false,
-        inner_dereference: false,
-    })
-}
-
-fn parse_reference_with_one_offset(
-    splitted_value_str: &[&str],
-) -> Result<ValueAddress, ReferenceParseError> {
-    let mut refe = parse_reference_no_offsets(splitted_value_str)?;
-
-    let mut offset1_str = splitted_value_str[1].split(',').collect::<Vec<_>>()[0].to_string();
-    offset1_str.retain(|c| !r#"()]"#.contains(c));
-
-    let offset1: i32 = match offset1_str.parse() {
-        Ok(offset1) => offset1,
-        // for the moment, references with values that overflow i32 are not important, they are just dummy references.
-        Err(e) => match e.kind() {
-            IntErrorKind::PosOverflow => 0,
-            _ => return Err(ReferenceParseError::IntError(e)),
-        },
-    };
-    refe.offset1 = offset1;
-
-    Ok(refe)
-}
-
-fn parse_reference_with_two_offsets(
-    splitted_value_str: &[&str],
-) -> Result<ValueAddress, ReferenceParseError> {
-    let mut refe = parse_reference_with_one_offset(splitted_value_str)?;
-
-    let mut immediate_str = splitted_value_str[2].split(',').collect::<Vec<_>>()[0].to_string();
-    immediate_str.retain(|c| !r#"()"#.contains(c));
-
-    let immediate: BigInt = match immediate_str.parse() {
-        Ok(immediate) => immediate,
-        Err(e) => return Err(ReferenceParseError::BigIntError(e)),
-    };
-
-    refe.immediate = Some(immediate);
-
-    Ok(refe)
+    Ok((rem_input, value_address))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::bigint;
-
-    #[test]
-    fn parse_dereference_with_one_offset_test() {
-        let value_string: &str = "[cast(fp + (-3), felt*)]";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_dereference_with_one_offset(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: -3,
-            offset2: 0,
-            immediate: None,
-            dereference: true,
-            inner_dereference: false,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
-
-    #[test]
-    fn parse_dereference_with_one_offset_and_inner_dereference_test() {
-        let value_string: &str = "[cast([fp + (-3)], felt*)]";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_dereference_with_one_offset(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: -3,
-            offset2: 0,
-            immediate: None,
-            dereference: true,
-            inner_dereference: true,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
-
-    #[test]
-    fn parse_dereference_with_two_offsets_test() {
-        let value_string: &str = "[cast([fp + (-4)] + 1, felt*)]";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_dereference_with_two_offsets(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: -4,
-            offset2: 1,
-            immediate: None,
-            dereference: true,
-            inner_dereference: true,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
-
-    #[test]
-    fn parse_dereference_no_offsets_test() {
-        let value_string: &str = "[cast(fp, felt*)]";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_dereference_no_offsets(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: 0,
-            offset2: 0,
-            immediate: None,
-            dereference: true,
-            inner_dereference: false,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
-
-    #[test]
-    fn parse_reference_with_one_offset_test() {
-        let value_string: &str = "cast(fp + (-3), felt*)";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_reference_with_one_offset(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: -3,
-            offset2: 0,
-            immediate: None,
-            dereference: false,
-            inner_dereference: false,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
-
-    #[test]
-    fn parse_reference_with_two_offsets_test() {
-        let value_string: &str = "cast([fp + (-4)] + 1, felt*)";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_reference_with_two_offsets(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: -4,
-            offset2: 0,
-            immediate: Some(bigint!(1)),
-            dereference: false,
-            inner_dereference: false,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
-
-    #[test]
-    fn parse_reference_no_offsets_test() {
-        let value_string: &str = "cast(fp, felt*)";
-        let splitted_value: Vec<&str> = value_string.split(" + ").collect();
-
-        let parsed_value = parse_reference_no_offsets(&splitted_value).unwrap();
-
-        let value_address = ValueAddress {
-            register: Some(Register::FP),
-            offset1: 0,
-            offset2: 0,
-            immediate: None,
-            dereference: false,
-            inner_dereference: false,
-        };
-
-        assert_eq!(value_address, parsed_value);
-    }
 
     #[test]
     fn outer_brackets_test() {
@@ -530,6 +216,7 @@ mod tests {
     fn take_cast_first_arg_test() {
         let value = "cast([fp + (-1)] + (-1), felt*)";
         let parsed = take_cast_first_arg(value);
+
         assert_eq!(parsed, Ok(("[fp + (-1)] + (-1)", ", felt*")));
     }
 
@@ -537,6 +224,7 @@ mod tests {
     fn parse_register_test() {
         let value = "fp + (-1)";
         let parsed = register(value);
+
         assert_eq!(parsed, Ok((" + (-1)", Register::FP)));
     }
 
@@ -565,10 +253,19 @@ mod tests {
     }
 
     #[test]
-    fn inside_brackets_test() {
+    fn parse_inner_dereference_test() {
         let value = "[fp + (-1)] + 2";
         let parsed = inner_dereference(value);
+
         assert_eq!(parsed, Ok((" + 2", (true, Register::FP, -1_i32))));
+    }
+
+    #[test]
+    fn parse_no_inner_dereference_test() {
+        let value = "ap + 3";
+        let parsed = no_inner_dereference(value);
+
+        assert_eq!(parsed, Ok(("", (false, Register::AP, 3_i32))));
     }
 
     #[test]
@@ -577,7 +274,6 @@ mod tests {
         let parsed_1 = parse_value(value_1);
         assert_eq!(
             parsed_1,
-            // Ok(("2", (true, Some((Register::FP, -1_i32)), Some(2_i32))))
             Ok((
                 "",
                 ValueAddress {
@@ -625,11 +321,4 @@ mod tests {
             ))
         );
     }
-
-    // #[test]
-    // fn asd_test() {
-    //     let a = "";
-    //     let parsed = asd(a);
-    //     assert_eq!(parsed, Ok(("", Some(""))));
-    // }
 }

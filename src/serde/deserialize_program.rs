@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::serde::deserialize_utils;
 use crate::types::instruction::Register;
 use crate::types::{
@@ -5,6 +6,7 @@ use crate::types::{
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
+use num_traits::FromPrimitive;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
@@ -83,6 +85,26 @@ pub struct ValueAddress {
     pub immediate: Option<BigInt>,
     pub dereference: bool,
     pub inner_dereference: bool,
+}
+
+impl ValueAddress {
+    // The parsing functionality is focused on the string formats that appear in the
+    // references used by hints. Errors may occur when parsing references not used by hints.
+    // When this happens, this default ValueAddress is returned to make explicit that the value was not
+    // parsed correctly.
+    // In case an incorrectly parsed reference is used by a hint, an error will be raised (IdNotFound) in the
+    // get_address_from_reference function call to notify this, and the parsing functionality should be
+    // extended to contemplate this new case.
+    pub fn no_hint_reference_default() -> ValueAddress {
+        ValueAddress {
+            register: None,
+            offset1: 99,
+            offset2: 99,
+            immediate: Some(bigint!(99)),
+            dereference: false,
+            inner_dereference: false,
+        }
+    }
 }
 
 struct BigIntVisitor;
@@ -194,14 +216,13 @@ impl<'de> de::Visitor<'de> for ValueAddressVisitor {
     where
         E: de::Error,
     {
-        let res = match value.chars().next() {
-            Some('[') => deserialize_utils::parse_dereference(value).map_err(de::Error::custom)?,
-            Some('c') => deserialize_utils::parse_reference(value).map_err(de::Error::custom)?,
-            _c => return Err("Expected '[' or 'c' as first char").map_err(de::Error::custom),
-        };
-        //let (_, res) = deserialize_utils::parse_value(value).map_err(de::Error::custom)?;
+        let parse_res = deserialize_utils::parse_value(value);
 
-        Ok(res)
+        if let Ok((_, res)) = parse_res {
+            return Ok(res);
+        }
+
+        Ok(ValueAddress::no_hint_reference_default())
     }
 }
 
@@ -469,7 +490,7 @@ mod tests {
                         offset2: 0,
                         immediate: Some(bigint!(2)),
                         dereference: false,
-                        inner_dereference: false,
+                        inner_dereference: true,
                     },
                 },
                 Reference {
