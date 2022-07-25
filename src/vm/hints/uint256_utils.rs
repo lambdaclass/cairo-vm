@@ -575,7 +575,7 @@ mod tests {
             )
             .unwrap();
 
-        //Insert a value in the ids.low address, so the hint insertion fails
+        //Insert a value in the ids.low address, so the hint insert fails
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 10)),
@@ -815,7 +815,7 @@ mod tests {
             )
             .unwrap();
 
-        //Insert a value in the ids.root.low address to the hint insert fails
+        //Insert a value in the ids.root.low address so the hint insert fails
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 5)),
@@ -831,6 +831,180 @@ mod tests {
                     MaybeRelocatable::from((1, 5)),
                     MaybeRelocatable::from(bigint!(1)),
                     MaybeRelocatable::from(bigint_str!(b"48805497317890012913")),
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn run_signed_nn_ok_result_one() {
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 4));
+        vm.run_context.ap = MaybeRelocatable::from((1, 5));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        //Insert ids.a.high into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(2).pow(127) - 1 + &vm.prime),
+            )
+            .unwrap();
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check hint memory insert
+        //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+        );
+    }
+
+    #[test]
+    fn run_signed_nn_ok_result_zero() {
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 4));
+        vm.run_context.ap = MaybeRelocatable::from((1, 5));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        //Insert ids.a.high into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(2).pow(127) + &vm.prime),
+            )
+            .unwrap();
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check hint memory insert
+        //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+    }
+
+    #[test]
+    fn run_signed_nn_ok_invalid_memory_insert() {
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 4));
+        vm.run_context.ap = MaybeRelocatable::from((1, 5));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("a"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -4,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+
+        //Insert ids.a.high into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        //Insert a value in ap so the hint insert fails
+        vm.memory
+            .insert(&vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
+            .unwrap();
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((1, 5)),
+                    MaybeRelocatable::from(bigint!(55)),
+                    MaybeRelocatable::from(bigint!(1)),
                 )
             ))
         );
