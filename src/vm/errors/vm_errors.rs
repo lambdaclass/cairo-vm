@@ -84,6 +84,7 @@ pub enum VirtualMachineError {
     NAccessesTooBig(BigInt),
     BigintToUsizeFail,
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
+    MismatchedDictPtr(Relocatable, Relocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -256,6 +257,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
+            VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
         }
     }
 }

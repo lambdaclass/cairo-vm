@@ -109,6 +109,24 @@ impl DictManager {
         );
         Ok(MaybeRelocatable::RelocatableValue(base))
     }
+
+    //Returns the tracker which's current_ptr matches with the given dict_ptr
+    pub fn get_tracker(
+        &mut self,
+        dict_ptr: &Relocatable,
+    ) -> Result<&mut DictTracker, VirtualMachineError> {
+        let tracker = self
+            .trackers
+            .get_mut(&dict_ptr.segment_index)
+            .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
+        if tracker.current_ptr != *dict_ptr {
+            return Err(VirtualMachineError::MismatchedDictPtr(
+                tracker.current_ptr.clone(),
+                dict_ptr.clone(),
+            ));
+        }
+        Ok(tracker)
+    }
 }
 
 impl Default for DictManager {
