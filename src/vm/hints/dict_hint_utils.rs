@@ -2480,7 +2480,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_copy_dict_valid_empty_dict() {
-        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2540,7 +2540,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_copy_dict_valid_non_empty_dict() {
-        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2607,7 +2607,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_copy_dict_invalid_no_dict() {
-        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2652,7 +2652,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_update_ptr_no_tracker() {
-        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\nids.squashed_dict_end.address_"
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2717,7 +2717,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_update_ptr_valid() {
-        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\nids.squashed_dict_end.address_"
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2797,7 +2797,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_update_ptr_mismatched_dict_ptr() {
-        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\nids.squashed_dict_end.address_"
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
             .as_bytes();
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
