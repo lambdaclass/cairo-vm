@@ -38,6 +38,7 @@ pub enum VirtualMachineError {
     IncorrectIds(Vec<String>, Vec<String>),
     MemoryGet(MaybeRelocatable),
     ExpectedInteger(MaybeRelocatable),
+    ExpectedRelocatable(MaybeRelocatable),
     FailedToGetIds,
     NonLeFelt(BigInt, BigInt),
     OutOfValidRange(BigInt, BigInt),
@@ -144,6 +145,9 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::ExpectedInteger(addr) => {
                 write!(f, "Expected integer at address {:?}", addr)
+            },
+            VirtualMachineError::ExpectedRelocatable(mayberelocatable) => {
+                write!(f, "Expected address to be a Relocatable, got {:?}", mayberelocatable)
             },
             VirtualMachineError::FailedToGetIds => {
                 write!(f, "Failed to get ids from memory")
