@@ -176,7 +176,6 @@ pub fn search_sorted_lower(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    println!("search_sorted_lower");
     let find_element_max_size = get_int_from_scope(vm, "find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
