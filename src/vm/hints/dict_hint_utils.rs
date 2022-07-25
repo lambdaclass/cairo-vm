@@ -488,11 +488,7 @@ pub fn dict_squash_update_ptr(
         ));
     };
     vm.dict_manager
-        .trackers
-        .get_mut(&squashed_dict_start.segment_index)
-        .ok_or(VirtualMachineError::NoDictTracker(
-            squashed_dict_start.segment_index,
-        ))?
+        .get_tracker(squashed_dict_start)?
         .current_ptr = squashed_dict_end.clone();
     Ok(())
 }
@@ -2716,6 +2712,161 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
+        );
+    }
+
+    #[test]
+    fn run_dict_squash_update_ptr_valid() {
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\nids.squashed_dict_end.address_"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Initialize dictionary
+        let mut dictionary = HashMap::<BigInt, BigInt>::new();
+        dictionary.insert(bigint!(1), bigint!(2));
+        //Create tracker
+        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        tracker.data = Dictionary::SimpleDictionary(dictionary);
+        //Create manager
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(1, tracker);
+        vm.dict_manager = dict_manager;
+        //ids.squash_dict_start
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //ids.squash_dict_end
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 3)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("squashed_dict_start"), bigint!(0));
+        ids.insert(String::from("squashed_dict_end"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+        //Check the updated pointer
+        assert_eq!(
+            vm.dict_manager
+                .get_tracker(&relocatable!(1, 3))
+                .unwrap()
+                .current_ptr,
+            relocatable!(1, 3)
+        );
+    }
+
+    #[test]
+    fn run_dict_squash_update_ptr_mismatched_dict_ptr() {
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\nids.squashed_dict_end.address_"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        //Initialize dictionary
+        let mut dictionary = HashMap::<BigInt, BigInt>::new();
+        dictionary.insert(bigint!(1), bigint!(2));
+        //Create tracker
+        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        tracker.data = Dictionary::SimpleDictionary(dictionary);
+        //Create manager
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(1, tracker);
+        vm.dict_manager = dict_manager;
+        //ids.squash_dict_start
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 3)),
+            )
+            .unwrap();
+        //ids.squash_dict_end
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 6)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("squashed_dict_start"), bigint!(0));
+        ids.insert(String::from("squashed_dict_end"), bigint!(1));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::MismatchedDictPtr(
+                relocatable!(1, 0),
+                relocatable!(1, 3)
+            ))
         );
     }
 }
