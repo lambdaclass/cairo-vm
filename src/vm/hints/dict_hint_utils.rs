@@ -432,7 +432,7 @@ pub fn dict_squash_copy_dict(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end_addr =
-        get_address_from_var_name("dict_accesses_and", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("dict_accesses_end", &ids, vm, hint_ap_tracking)?;
     let dict_access_end = if let MaybeRelocatable::RelocatableValue(rel) = vm
         .memory
         .get(&dict_accesses_end_addr)
@@ -453,8 +453,11 @@ pub fn dict_squash_copy_dict(
             dict_access_end.segment_index,
         ))?
         .get_dictionary_copy();
-    vm.exec_scopes
-        .assign_or_update_variable("initial_dict", PyValueType::Dictionary(dict_copy));
+
+    vm.exec_scopes.enter_scope(HashMap::from([(
+        String::from("initial_dict"),
+        PyValueType::Dictionary(dict_copy),
+    )]));
     Ok(())
 }
 #[cfg(test)]
@@ -2439,6 +2442,178 @@ mod tests {
         assert_eq!(
             vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
             relocatable!(1, 3)
+        );
+    }
+
+    #[test]
+    fn run_dict_squash_copy_dict_valid_empty_dict() {
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Initialize dictionary
+        let dictionary = HashMap::<BigInt, BigInt>::new();
+        //Create tracker
+        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        tracker.data = Dictionary::SimpleDictionary(dictionary);
+        //Create manager
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(1, tracker);
+        vm.dict_manager = dict_manager;
+        //ids.dict_access
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses_end"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+        //Check that a new exec scope has been created
+        assert_eq!(vm.exec_scopes.data.len(), 2);
+        //Check that this scope contains the expected initial-dict
+        let variables = vm.exec_scopes.get_local_variables().unwrap();
+        assert_eq!(variables.len(), 1);
+        assert_eq!(
+            variables.get("initial_dict"),
+            Some(&PyValueType::Dictionary(HashMap::new()))
+        );
+    }
+
+    #[test]
+    fn run_dict_squash_copy_dict_valid_non_empty_dict() {
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Initialize dictionary
+        let mut dictionary = HashMap::<BigInt, BigInt>::new();
+        dictionary.insert(bigint!(1), bigint!(2));
+        dictionary.insert(bigint!(3), bigint!(4));
+        dictionary.insert(bigint!(5), bigint!(6));
+        //Create tracker
+        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        tracker.data = Dictionary::SimpleDictionary(dictionary);
+        //Create manager
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(1, tracker);
+        vm.dict_manager = dict_manager;
+        //ids.dict_access
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses_end"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+        //Check that a new exec scope has been created
+        assert_eq!(vm.exec_scopes.data.len(), 2);
+        //Check that this scope contains the expected initial-dict
+        let variables = vm.exec_scopes.get_local_variables().unwrap();
+        assert_eq!(variables.len(), 1);
+        assert_eq!(
+            variables.get("initial_dict"),
+            Some(&PyValueType::Dictionary(HashMap::from([
+                (bigint!(1), bigint!(2)),
+                (bigint!(3), bigint!(4)),
+                (bigint!(5), bigint!(6))
+            ])))
+        );
+    }
+
+    #[test]
+    fn run_dict_squash_copy_dict_invalid_no_dict() {
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n# Make __dict_manager accessible.\n'__dict_manager': __dict_manager,\n# Create a copy of the dict, in case it changes in the future.\n'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+            .as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Create manager
+        let dict_manager = DictManager::new();
+        vm.dict_manager = dict_manager;
+        //ids.dict_access
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("dict_accesses_end"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::NoDictTracker(1))
         );
     }
 }
