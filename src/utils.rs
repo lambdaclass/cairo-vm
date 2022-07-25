@@ -32,6 +32,13 @@ macro_rules! bigintusize {
 }
 
 #[macro_export]
+macro_rules! bigint_i128 {
+    ($val : expr) => {
+        BigInt::from_i128($val).unwrap()
+    };
+}
+
+#[macro_export]
 macro_rules! bigint_str {
     ($val: expr) => {
         //BigInt::from_bytes_be(Sign::Plus, $val.chars().map(|c| c.to_digit(10).unwrap()).collect())
