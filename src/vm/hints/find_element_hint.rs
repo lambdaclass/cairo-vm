@@ -1,9 +1,15 @@
 use crate::bigint;
+use crate::bigintusize;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::{exec_scope::PyValueType, relocatable::MaybeRelocatable};
 use crate::vm::{
-    errors::vm_errors::VirtualMachineError, hints::hint_utils::get_address_from_var_name,
-    runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine,
+    errors::vm_errors::VirtualMachineError,
+    hints::hint_utils::{
+        get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
+        get_range_check_builtin, get_relocatable_from_var_name,
+    },
+    runners::builtin_runner::RangeCheckBuiltinRunner,
+    vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
@@ -170,115 +176,54 @@ pub fn search_sorted_lower(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let array_ptr_addr = get_address_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
-    let elm_size_addr = get_address_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
-    let n_elms_addr = get_address_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
+    println!("search_sorted_lower");
+    let find_element_max_size = get_int_from_scope(vm, "find_element_max_size");
+    let n_elms = get_integer_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
+    let rel_array_ptr = get_relocatable_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
     let index_addr = get_address_from_var_name("index", &ids, vm, hint_ap_tracking)?;
-    let key_addr = get_address_from_var_name("key", &ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?;
 
-    match (
-        vm.memory.get(&array_ptr_addr),
-        vm.memory.get(&elm_size_addr),
-        vm.memory.get(&n_elms_addr),
-        vm.memory.get(&index_addr),
-        vm.memory.get(&key_addr),
-    ) {
-        (
-            Ok(Some(maybe_rel_array_ptr)),
-            Ok(Some(maybe_rel_elm_size)),
-            Ok(Some(maybe_rel_n_elms)),
-            Ok(_),
-            Ok(Some(maybe_rel_key)),
-        ) => {
-            let _ = vm
-                .builtin_runners
-                .iter()
-                .find(|(name, _)| name.as_str() == "range_check")
-                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?
-                .1
-                .as_any()
-                .downcast_ref::<RangeCheckBuiltinRunner>()
-                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
+    let _ = get_range_check_builtin(vm)?;
 
-            let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                elm_size
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(
-                    maybe_rel_elm_size.clone(),
-                ));
-            };
-
-            if !elm_size.is_positive() {
-                return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
-            }
-
-            let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
-                n_elms
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(
-                    maybe_rel_n_elms.clone(),
-                ));
-            };
-
-            if n_elms.is_negative() {
-                return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
-            }
-
-            if let Some(variables) = vm.exec_scopes.get_local_variables() {
-                if let Some(PyValueType::BigInt(find_element_max_size)) =
-                    variables.get("find_element_max_size")
-                {
-                    if n_elms > find_element_max_size {
-                        return Err(VirtualMachineError::FindElemMaxSize(
-                            find_element_max_size.clone(),
-                            n_elms.clone(),
-                        ));
-                    }
-                }
-            }
-
-            let _elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                elm_size
-                    .to_usize()
-                    .ok_or(VirtualMachineError::KeyNotFound)?
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(
-                    maybe_rel_elm_size.clone(),
-                ));
-            };
-
-            let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
-                n_elms.to_i32().ok_or(VirtualMachineError::KeyNotFound)?
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(
-                    maybe_rel_n_elms.clone(),
-                ));
-            };
-
-            let mut array_iter = maybe_rel_array_ptr.clone();
-
-            for i in 0..n_elms {
-                let value = vm
-                    .memory
-                    .get(&array_iter)
-                    .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::KeyNotFound)?;
-                if value >= maybe_rel_key {
-                    return vm
-                        .memory
-                        .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
-                        .map_err(VirtualMachineError::MemoryError);
-                }
-                array_iter = array_iter.add_mod(maybe_rel_elm_size, &vm.prime)?;
-            }
-
-            let index_value = maybe_rel_n_elms.clone();
-            vm.memory
-                .insert(&index_addr, &index_value)
-                .map_err(VirtualMachineError::MemoryError)
-        }
-        _ => Err(VirtualMachineError::FailedToGetIds),
+    if !elm_size.is_positive() {
+        return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
     }
+
+    if n_elms.is_negative() {
+        return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+    }
+
+    if let Some(find_element_max_size) = find_element_max_size {
+        if n_elms > &find_element_max_size {
+            return Err(VirtualMachineError::FindElemMaxSize(
+                find_element_max_size,
+                n_elms.clone(),
+            ));
+        }
+    }
+
+    let mut array_iter = vm.memory.get_relocatable(&rel_array_ptr)?.clone();
+    let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
+    let elm_size_usize = elm_size
+        .to_usize()
+        .ok_or(VirtualMachineError::KeyNotFound)?;
+
+    for i in 0..n_elms_usize {
+        let value = vm.memory.get_integer(&array_iter)?;
+        if value >= key {
+            return vm
+                .memory
+                .insert(&index_addr, &MaybeRelocatable::Int(bigintusize!(i)))
+                .map_err(VirtualMachineError::MemoryError);
+        }
+        array_iter.offset += elm_size_usize;
+    }
+
+    let index_value = MaybeRelocatable::Int(n_elms.clone());
+    vm.memory
+        .insert(&index_addr, &index_value)
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 #[cfg(test)]
@@ -783,7 +728,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((7, 8))
+                MaybeRelocatable::from((0, 1))
             ))
         );
     }
@@ -816,13 +761,16 @@ mod tests {
 
     #[test]
     fn search_sorted_lower_not_int_n_elms() {
-        let relocatable = MaybeRelocatable::from((1, 2));
-        let (mut vm, ids) =
-            init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
+        let (mut vm, ids) = init_vm_ids(HashMap::from([(
+            "n_elms".to_string(),
+            MaybeRelocatable::from((1, 2)),
+        )]));
 
         assert_eq!(
             execute_hint(&mut vm, SEARCH_SORTED_LOWER_HINT, ids, &ApTracking::new()),
-            Err(VirtualMachineError::ExpectedInteger(relocatable))
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 2))
+            ))
         );
     }
 
