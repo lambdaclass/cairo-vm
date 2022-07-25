@@ -427,7 +427,7 @@ pub fn dict_squash_copy_dict(
     {
         rel
     } else {
-        return Err(VirtualMachineError::ExpectedRelocatable(
+        return Err(VirtualMachineError::ExpectedRelocatableAtAddr(
             dict_accesses_end_addr,
         ));
     };
@@ -471,7 +471,7 @@ pub fn dict_squash_update_ptr(
     {
         rel
     } else {
-        return Err(VirtualMachineError::ExpectedRelocatable(
+        return Err(VirtualMachineError::ExpectedRelocatableAtAddr(
             squashed_dict_start_addr,
         ));
     };
@@ -483,7 +483,7 @@ pub fn dict_squash_update_ptr(
     {
         rel
     } else {
-        return Err(VirtualMachineError::ExpectedRelocatable(
+        return Err(VirtualMachineError::ExpectedRelocatableAtAddr(
             squashed_dict_end_addr,
         ));
     };

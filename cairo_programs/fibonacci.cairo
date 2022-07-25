@@ -14,6 +14,5 @@ func fib(first_element, second_element, n) -> (res : felt):
 
     fib_body:
     tempvar y = first_element + second_element
-    fib(second_element, y, n - 1)
-    ret
+    return fib(second_element, y, n - 1)
 end

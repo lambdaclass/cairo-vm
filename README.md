@@ -3,7 +3,7 @@
 
 ![](./bonaparte.webp)
 
-Cleaopatra is a Rust implementation of the Cairo VM. The VM is fully functional but we don't support hints yet.
+Cleaopatra is a Rust implementation of the Cairo VM.
 
 The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
 
