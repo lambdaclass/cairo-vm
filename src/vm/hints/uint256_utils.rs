@@ -9,10 +9,10 @@ use crate::vm::hints::hint_utils::{
 use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, bigint_i128, bigint_u64};
 use num_bigint::BigInt;
-use num_integer::Integer;
+use num_integer::{div_rem, Integer};
 use num_traits::{FromPrimitive, Signed};
 use std::collections::HashMap;
-use std::ops::Shl;
+use std::ops::{Shl, Shr};
 
 /*
 Implements hint:
@@ -171,6 +171,79 @@ pub fn uint256_signed_nn(
 
     vm.memory
         .insert(&vm.run_context.ap, &MaybeRelocatable::from(result))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+/*
+Implements hint:
+%{
+    a = (ids.a.high << 128) + ids.a.low
+    div = (ids.div.high << 128) + ids.div.low
+    quotient, remainder = divmod(a, div)
+
+    ids.quotient.low = quotient & ((1 << 128) - 1)
+    ids.quotient.high = quotient >> 128
+    ids.remainder.low = remainder & ((1 << 128) - 1)
+    ids.remainder.high = remainder >> 128
+%}
+*/
+pub fn uint256_unsigned_div_rem(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let div_relocatable = get_relocatable_from_var_name("div", &ids, vm, hint_ap_tracking)?;
+    let quotient_addr = get_address_from_var_name("quotient", &ids, vm, hint_ap_tracking)?;
+    let remainder_addr = get_address_from_var_name("remainder", &ids, vm, hint_ap_tracking)?;
+
+    let a_low = get_integer_from_relocatable_plus_offset(&a_relocatable, 0, vm)?;
+    let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
+    let div_low = get_integer_from_relocatable_plus_offset(&div_relocatable, 0, vm)?;
+    let div_high = get_integer_from_relocatable_plus_offset(&div_relocatable, 1, vm)?;
+
+    //Main logic
+    //a = (ids.a.high << 128) + ids.a.low
+    //div = (ids.div.high << 128) + ids.div.low
+    //quotient, remainder = divmod(a, div)
+
+    //ids.quotient.low = quotient & ((1 << 128) - 1)
+    //ids.quotient.high = quotient >> 128
+    //ids.remainder.low = remainder & ((1 << 128) - 1)
+    //ids.remainder.high = remainder >> 128
+
+    let a = a_high.shl(128_usize) + a_low;
+
+    let div = div_high.shl(128_usize) + div_low;
+
+    let (quotient, remainder) = div_rem(a, div);
+
+    let quotient_low = &quotient & ((bigint!(1).shl(128_usize)) - 1_usize);
+    let quotient_high = quotient.shr(128_usize);
+
+    let remainder_low = &remainder & ((bigint!(1).shl(128_usize)) - 1_usize);
+    let remainder_high = remainder.shr(128_usize);
+
+    vm.memory
+        .insert(&quotient_addr, &MaybeRelocatable::from(quotient_low))
+        .map_err(VirtualMachineError::MemoryError)?;
+
+    vm.memory
+        .insert(
+            &quotient_addr.add_usize_mod(1, None),
+            &MaybeRelocatable::from(quotient_high),
+        )
+        .map_err(VirtualMachineError::MemoryError)?;
+
+    vm.memory
+        .insert(&remainder_addr, &MaybeRelocatable::from(remainder_low))
+        .map_err(VirtualMachineError::MemoryError)?;
+
+    vm.memory
+        .insert(
+            &remainder_addr.add_usize_mod(1, None),
+            &MaybeRelocatable::from(remainder_high),
+        )
         .map_err(VirtualMachineError::MemoryError)
 }
 
