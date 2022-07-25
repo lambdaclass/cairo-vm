@@ -24,7 +24,7 @@ use crate::vm::hints::squash_dict_utils::{
     squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
     squash_dict_inner_used_accesses_assert,
 };
-use crate::vm::hints::uint256_utils::{split_64, uint256_add, uint256_sqrt};
+use crate::vm::hints::uint256_utils::{split_64, uint256_add, uint256_signed_nn, uint256_sqrt};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -114,6 +114,7 @@ pub fn execute_hint(
         ) => uint256_add(vm, ids, None),
         Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
         Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0") => uint256_sqrt(vm, ids, None),
+        Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

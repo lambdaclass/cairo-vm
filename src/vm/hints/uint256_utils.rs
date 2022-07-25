@@ -7,8 +7,9 @@ use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, bigint_u64};
+use crate::{bigint, bigint_i128, bigint_u64};
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed};
 use std::collections::HashMap;
 use std::ops::Shl;
@@ -142,6 +143,34 @@ pub fn uint256_sqrt(
             &root_addr.add_usize_mod(1, None),
             &MaybeRelocatable::from(bigint!(0)),
         )
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+/*
+Implements hint:
+%{ memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0 %}
+*/
+pub fn uint256_signed_nn(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+
+    let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
+
+    // Hint main logic
+    // memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
+
+    let result: BigInt =
+        if a_high.is_positive() && (a_high.mod_floor(&vm.prime)) < bigint_i128!(i128::MAX) + 1 {
+            bigint!(1)
+        } else {
+            bigint!(0)
+        };
+
+    vm.memory
+        .insert(&vm.run_context.ap, &MaybeRelocatable::from(result))
         .map_err(VirtualMachineError::MemoryError)
 }
 
