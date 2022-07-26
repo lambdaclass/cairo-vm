@@ -7,7 +7,7 @@ use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, bigint_i128, bigint_u64};
+use crate::{bigint, bigint_i128, bigint_u128, bigint_u64};
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
 use num_traits::{FromPrimitive, Signed};
@@ -127,7 +127,7 @@ pub fn uint256_sqrt(
 
     let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
 
-    if !(root.is_positive() && root < bigint!(2).pow(128)) {
+    if root.is_negative() || root >= bigint!(1).shl(128) {
         return Err(VirtualMachineError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
             &root
@@ -163,7 +163,7 @@ pub fn uint256_signed_nn(
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
 
     let result: BigInt =
-        if a_high.is_positive() && (a_high.mod_floor(&vm.prime)) < bigint_i128!(i128::MAX) + 1 {
+        if !a_high.is_negative() && (a_high.mod_floor(&vm.prime)) <= bigint_i128!(i128::MAX) {
             bigint!(1)
         } else {
             bigint!(0)
@@ -218,10 +218,10 @@ pub fn uint256_unsigned_div_rem(
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
 
-    let quotient_low = &quotient & ((bigint!(1).shl(128_usize)) - 1_usize);
+    let quotient_low = &quotient & bigint_u128!(u128::MAX);
     let quotient_high = quotient.shr(128_usize);
 
-    let remainder_low = &remainder & ((bigint!(1).shl(128_usize)) - 1_usize);
+    let remainder_low = &remainder & bigint_u128!(u128::MAX);
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
@@ -952,7 +952,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(2).pow(127) - 1 + &vm.prime),
+                &MaybeRelocatable::from(&vm.prime + i128::MAX),
             )
             .unwrap();
 
@@ -1009,7 +1009,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(2).pow(127) + &vm.prime),
+                &MaybeRelocatable::from(bigint!(1).shl(127) + &vm.prime),
             )
             .unwrap();
 
