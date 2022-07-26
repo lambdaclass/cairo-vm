@@ -124,3 +124,27 @@ pub fn blake2s_compress(
     }
     new_state
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blake2s_compress_test_a() {
+        let h: [u32; 8] = [
+            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
+            1541459225,
+        ];
+        let message: [u32; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let new_state: [u32; 8] = blake2s_compress(h, message, 2, 0, 4294967295, 0)
+            .try_into()
+            .unwrap();
+        assert_eq!(
+            new_state,
+            [
+                412110711, 3234706100, 3894970767, 982912411, 937789635, 742982576, 3942558313,
+                1407547065
+            ]
+        )
+    }
+}
