@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658867183555,
+  "lastUpdate": 1658868403664,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -8913,6 +8913,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 219263257,
             "range": "± 907128",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2c26896266f85f8e9d8a025aabfcad4ff4e27ce7",
+          "message": "Add implementation for the remaining hints on Uint256.cairo (#316)\n\n* add fn get_integer\n\n* add fn get_integer_from_var_name and fn get_struct_field_from_struct_address\n\n* add uint256_add hint implemetation\n\n* add uint256_utils mod\n\n* add integration test\n\n* add split_64 hint implemetation\n\n* add split_64 to integration test\n\n* add fn get_integer unit tests\n\n* fn get_integer_from_var_name unit tests\n\n* rename get_struct_field_from_struct_address -> get_integer_from_address_with_offset && Add unit test\n\n* remove unneed ap_tracking from uint256_add\n\n* add uint256_add unit test\n\n* add split_64 unit test\n\n* rename get_integer_from_address_with_offset -> get_integer_from_address_plus_offset\n\n* replace match inserts\n\n* rm carry_low.clone()\n\n* add bigint_u64! macro\n\n* refactor fn split_64\n\n* refactor functions get_integer to receive a Relocatable as an input and create functions get_relocatable_from_var_name and get_integer_from_relocatable_plus_offset\n\n* add &ids to get_integer_from_var_name and get_relocatable_from_var_name\n\n* get_address_from_var_name uses &ids\n\n* add VirtualMachineError::ExpectedRelocatable\n\n* add VirtualMachineError::AssertionFailed\n\n* add uint256_sqrt hint implementation\n\n* add uint256_sqrt unit tests\n\n* add uint256_sqrt to integration test\n\n* add bigint_i128! macro\n\n* add uint256_signed_nn hint implementation\n\n* typos\n\n* add signed_nn unit tests\n\n* add uint256_signed_nn to integration test\n\n* add uint256_unsigned_div_rem implementation\n\n* add uint256_unsigned_div_rem unit tests\n\n* add uint256_signed_nn to integration test\n\n* update integration test\n\n* remove end of lines\n\n* add doc\n\n* add bigint_u128! macro\n\n* review corrections",
+          "timestamp": "2022-07-26T17:33:19-03:00",
+          "tree_id": "6a84ee92c8e6ac27e638a27498382bdac8b0efc2",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/2c26896266f85f8e9d8a025aabfcad4ff4e27ce7"
+        },
+        "date": 1658868400534,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2000378532,
+            "range": "± 31733814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 737600836,
+            "range": "± 10488870",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 354919129,
+            "range": "± 7539366",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1709846452,
+            "range": "± 41604183",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 259013210,
+            "range": "± 7642136",
             "unit": "ns/iter"
           }
         ]
