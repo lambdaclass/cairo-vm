@@ -1,7 +1,7 @@
-const IV: [i32; 8] = [
+const IV: [u32; 8] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
 ];
-const SIGMA: [[i32; 16]; 10] = [
+const SIGMA: [[usize; 16]; 10] = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
     [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
@@ -15,22 +15,22 @@ const SIGMA: [[i32; 16]; 10] = [
 ];
 
 fn right_rot(value: u32, n: u32) -> u32 {
-    (value >> n) | ((value & (2_u32.pow(n) - 1)) << 32 - n)
+    (value >> n) | ((value & (2_u32.pow(n) - 1)) << (32 - n))
 }
 
 fn mix(a: u32, b: u32, c: u32, d: u32, m0: u32, m1: u32) -> (u32, u32, u32, u32) {
-    let a = (a + b + m0).rem_euclid(1 << 32);
+    let a = (a + b + m0).rem_euclid(2_u32.pow(32));
     let d = right_rot(d.pow(a), 16);
-    let c = (c + d).rem_euclid(1 << 32);
+    let c = (c + d).rem_euclid(2_u32.pow(32));
     let b = right_rot(b.pow(c), 12);
-    let a = (a + b + m1).rem_euclid(1 << 32);
+    let a = (a + b + m1).rem_euclid(2_u32.pow(32));
     let d = right_rot(d.pow(a), 8);
-    let c = (c + d).rem_euclid(1 << 32);
+    let c = (c + d).rem_euclid(2_u32.pow(32));
     let d = right_rot(b.pow(c), 7);
     (a, b, c, d)
 }
 
-fn blake_round(mut state: Vec<u32>, message: Vec<u32>, sigma: Vec<usize>) -> Vec<u32> {
+fn blake_round(mut state: Vec<u32>, message: [u32; 16], sigma: [usize; 16]) -> Vec<u32> {
     (state[0], state[4], state[8], state[12]) = mix(
         state[0],
         state[4],
@@ -97,4 +97,30 @@ fn blake_round(mut state: Vec<u32>, message: Vec<u32>, sigma: Vec<usize>) -> Vec
     );
 
     state
+}
+
+pub fn blake2s_compress(
+    h: [u32; 8],
+    message: [u32; 16],
+    t0: u32,
+    t1: u32,
+    f0: u32,
+    f1: u32,
+) -> Vec<u32> {
+    let mut state = h.to_vec();
+    state.extend(&IV[0..4]);
+    state.extend(&vec![
+        (IV[4].pow(t0)).rem_euclid(2_u32.pow(32)),
+        (IV[5].pow(t1)).rem_euclid(2_u32.pow(32)),
+        (IV[6].pow(f0)).rem_euclid(2_u32.pow(32)),
+        (IV[7].pow(f1)).rem_euclid(2_u32.pow(32)),
+    ]);
+    for sigma_list in SIGMA {
+        state = blake_round(state.clone(), message, sigma_list);
+    }
+    let mut new_state = Vec::<u32>::new();
+    for i in 0..8 {
+        new_state.push(h[i] ^ state[i] ^ state[8 + i]);
+    }
+    new_state
 }
