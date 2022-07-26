@@ -27,7 +27,7 @@ fn mix(a: u64, b: u64, c: u64, d: u64, m0: u64, m1: u64) -> (u64, u64, u64, u64)
     let a = (a + b + m1) % 2_u64.pow(32);
     let d = right_rot(d ^ a, 8);
     let c = (c + d) % 2_u64.pow(32);
-    let d = right_rot(b ^ c, 7);
+    let b = right_rot(b ^ c, 7);
     (a, b, c, d)
 }
 
@@ -133,12 +133,12 @@ mod tests {
 
     #[test]
     fn blake2s_compress_test_a() {
-        let h: [u32; 8] = [
+        let h: [u64; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
             1541459225,
         ];
-        let message: [u32; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let new_state: [u32; 8] = blake2s_compress(h, message, 2, 0, 4294967295, 0)
+        let message: [u64; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let new_state: [u64; 8] = blake2s_compress(h, message, 2, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
