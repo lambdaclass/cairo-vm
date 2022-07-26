@@ -19,13 +19,13 @@ fn right_rot(value: u32, n: u32) -> u32 {
 }
 
 fn mix(a: u32, b: u32, c: u32, d: u32, m0: u32, m1: u32) -> (u32, u32, u32, u32) {
-    let a = (a + b + m0).rem_euclid(2_u32.pow(32));
+    let a = (a + b + m0).rem_euclid(1 << 32);
     let d = right_rot(d.pow(a), 16);
-    let c = (c + d).rem_euclid(2_u32.pow(32));
+    let c = (c + d).rem_euclid(1 << 32);
     let b = right_rot(b.pow(c), 12);
-    let a = (a + b + m1).rem_euclid(2_u32.pow(32));
+    let a = (a + b + m1).rem_euclid(1 << 32);
     let d = right_rot(d.pow(a), 8);
-    let c = (c + d).rem_euclid(2_u32.pow(32));
+    let c = (c + d).rem_euclid(1 << 32);
     let d = right_rot(b.pow(c), 7);
     (a, b, c, d)
 }
