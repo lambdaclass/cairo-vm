@@ -1,0 +1,20 @@
+%builtins range_check bitwise
+
+from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.cairo_blake2s.blake2s import blake2s
+from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+
+#Computes the hash of "Hello World"
+func main{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
+    alloc_locals
+    let inputs: felt* = alloc()
+    assert inputs[0] = 1819043144
+    assert inputs[1] = 1870078063
+    assert inputs[2] = 653255322
+    let (local blake2s_ptr_start) = alloc()
+    let blake2s_ptr = blake2s_ptr_start
+    let (output) =  blake2s{range_check_ptr=range_check_ptr, blake2s_ptr=blake2s_ptr}(inputs, 9)
+    assert output.low = 261625516853997187184234512048194139627
+    assert output.high = 138800199817394380987751229674198965894
+    return ()
+end
