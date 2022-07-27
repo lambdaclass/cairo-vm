@@ -28,6 +28,8 @@ use crate::vm::hints::squash_dict_utils::{
 use crate::vm::hints::uint256_utils::{
     split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
 };
+
+use crate::vm::hints::secp::bigint_utils::nondet_bigint3;
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -125,6 +127,7 @@ pub fn execute_hint(
         Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0") => uint256_sqrt(vm, ids, None),
         Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),
         Ok("a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128") => uint256_unsigned_div_rem(vm, ids, None),
+        Ok("from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))") => nondet_bigint3(vm, ids, Some(ap_tracking)),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
