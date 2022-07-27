@@ -1,12 +1,13 @@
 use crate::{
-    bigintusize,
+    bigint, bigintusize,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
             get_int_from_scope, get_integer_from_relocatable_plus_offset,
-            get_integer_from_var_name, get_relocatable_from_var_name, insert_integer_from_var_name,
+            get_integer_from_var_name, get_key_to_list_map_from_scope_mut, get_list_from_scope_ref,
+            get_range_check_builtin, get_relocatable_from_var_name, insert_integer_from_var_name,
         },
         vm_core::VirtualMachine,
     },
@@ -29,6 +30,7 @@ pub fn usort_body(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
+    let _ = get_range_check_builtin(vm)?;
     let input_ptr = get_relocatable_from_var_name("input", ids, vm, hint_ap_tracking)?;
     let usort_max_size = get_int_from_scope(vm, "usort_max_size");
     let input_len = get_integer_from_var_name("input_len", ids, vm, hint_ap_tracking)?;
@@ -67,22 +69,23 @@ pub fn usort_body(
         .assign_or_update_variable("positions_dict", PyValueType::KeyToListMap(positions_dict));
     let mut output_base = vm.segments.add(&mut vm.memory, Some(output.len()));
     let mut multiplicities_base = vm.segments.add(&mut vm.memory, Some(multiplicities.len()));
+    let output_len = output.len();
 
-    for output_iter in output.iter() {
+    for sorted_element in output.into_iter() {
         vm.memory
             .insert(
                 &MaybeRelocatable::RelocatableValue(output_base.clone()),
-                &MaybeRelocatable::Int(output_iter.clone()),
+                &MaybeRelocatable::Int(sorted_element),
             )
             .map_err(VirtualMachineError::MemoryError)?;
         output_base.offset += 1;
     }
 
-    for multiplicities_iter in multiplicities.iter() {
+    for repetition_amount in multiplicities.into_iter() {
         vm.memory
             .insert(
                 &MaybeRelocatable::RelocatableValue(multiplicities_base.clone()),
-                &MaybeRelocatable::Int(multiplicities_iter.clone()),
+                &MaybeRelocatable::Int(repetition_amount),
             )
             .map_err(VirtualMachineError::MemoryError)?;
         multiplicities_base.offset += 1;
@@ -90,9 +93,43 @@ pub fn usort_body(
 
     insert_integer_from_var_name(
         "output_len",
-        bigintusize!(output.len()),
+        bigintusize!(output_len),
         ids,
         vm,
         hint_ap_tracking,
     )
+}
+
+pub fn verify_usort(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let _ = get_range_check_builtin(vm);
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?.clone();
+    let positions: Vec<BigInt> = get_key_to_list_map_from_scope_mut(vm, "positions_dict")
+        .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
+        .remove(&value)
+        .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
+        .into_iter()
+        .rev()
+        .collect();
+
+    vm.exec_scopes
+        .assign_or_update_variable("positions", PyValueType::List(positions));
+    vm.exec_scopes
+        .assign_or_update_variable("last_pos", PyValueType::BigInt(bigint!(0)));
+
+    Ok(())
+}
+
+pub fn verify_multiplicity_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    let positions_len = get_list_from_scope_ref(vm, "positions")
+        .ok_or(VirtualMachineError::PositionsNotFound)?
+        .len();
+    if positions_len == 0 {
+        Ok(())
+    } else {
+        Err(VirtualMachineError::PositionsLengthNotZero)
+    }
 }

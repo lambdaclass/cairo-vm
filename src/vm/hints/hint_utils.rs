@@ -37,6 +37,33 @@ pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<Bi
     }
     val
 }
+
+pub fn get_list_from_scope_ref<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Option<&'a Vec<BigInt>> {
+    let mut val: Option<&'a Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
+pub fn get_key_to_list_map_from_scope_mut<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Option<&'a mut HashMap<BigInt, Vec<BigInt>>> {
+    let mut val: Option<&'a mut HashMap<BigInt, Vec<BigInt>>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::KeyToListMap(py_val)) = variables.get_mut(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
 //Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
     vm: &VirtualMachine,

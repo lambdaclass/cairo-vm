@@ -85,6 +85,9 @@ pub enum VirtualMachineError {
     BigintToUsizeFail,
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
     UsortOutOfRange(BigInt, BigInt),
+    UnexpectedPositionsDictFail,
+    PositionsNotFound,
+    PositionsLengthNotZero,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -257,6 +260,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
             VirtualMachineError::UsortOutOfRange(usort_max_size, input_len) => write!(f, "usort() can only be used with input_len<={}. Got: input_len={}.", usort_max_size, input_len),
+            VirtualMachineError::UnexpectedPositionsDictFail => write!(f, "unexpected usort fail: positions_dict or key value pair not found"),
+            VirtualMachineError::PositionsNotFound => write!(f, "unexpected verify multiplicity fail: positions not found"),
+            VirtualMachineError::PositionsLengthNotZero => write!(f, "unexpected verify multiplicity fail: positions length != 0"),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
         }
     }
