@@ -644,6 +644,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -654,6 +655,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -664,6 +666,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -739,6 +742,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -749,6 +753,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -759,6 +764,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -816,6 +822,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -826,6 +833,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -836,6 +844,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -879,6 +888,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
@@ -925,6 +935,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         assert_eq!(
@@ -997,6 +1008,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1007,6 +1019,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1017,6 +1030,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1111,6 +1125,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1121,6 +1136,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1131,6 +1147,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1225,6 +1242,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1235,6 +1253,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1245,6 +1264,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1337,6 +1357,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1347,6 +1368,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1357,6 +1379,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1440,6 +1463,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1450,6 +1474,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1460,6 +1485,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1470,6 +1496,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1568,6 +1595,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1578,6 +1606,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1588,6 +1617,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1598,6 +1628,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1696,6 +1727,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1706,6 +1738,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1716,6 +1749,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1726,6 +1760,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1813,6 +1848,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1823,6 +1859,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1833,6 +1870,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1843,6 +1881,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1931,6 +1970,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1941,6 +1981,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1951,6 +1992,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1961,6 +2003,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2060,6 +2103,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2070,6 +2114,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2080,6 +2125,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2090,6 +2136,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2189,6 +2236,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2199,6 +2247,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2209,6 +2258,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2219,6 +2269,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2307,6 +2358,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2317,6 +2369,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2327,6 +2380,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2337,6 +2391,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2423,6 +2478,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2433,6 +2489,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2443,6 +2500,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2453,6 +2511,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2520,6 +2579,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -2583,6 +2643,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -2641,6 +2702,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -2695,6 +2757,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2705,6 +2768,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2767,6 +2831,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2777,6 +2842,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2847,6 +2913,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2857,6 +2924,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);

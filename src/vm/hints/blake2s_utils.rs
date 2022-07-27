@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
-use super::hint_utils::get_address_from_var_name;
+use super::hint_utils::get_ptr_from_var_name;
 use crate::bigint_u64;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::Relocatable;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     types::relocatable::MaybeRelocatable,
@@ -50,8 +51,9 @@ written by this function.*/
 fn compute_blake2s_func(
     segments: &mut MemorySegmentManager,
     memory: &mut Memory,
-    output_ptr: &MaybeRelocatable,
+    output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
+    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     let h = get_fixed_size_u64_array::<8>(
         memory
             .get_range(&output_ptr.sub_usize_mod(26, None), 8)
@@ -72,7 +74,7 @@ fn compute_blake2s_func(
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
     segments
-        .load_data(memory, output_ptr, new_state)
+        .load_data(memory, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -86,12 +88,6 @@ pub fn compute_blake2s(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let output_addr = get_address_from_var_name("output", &ids, vm, hint_ap_tracking)?;
-    let output = vm
-        .memory
-        .get(&output_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or(VirtualMachineError::MemoryGet(output_addr))?;
-    let output_copy = output.clone();
-    compute_blake2s_func(&mut vm.segments, &mut vm.memory, &output_copy)
+    let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
+    compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
 }
