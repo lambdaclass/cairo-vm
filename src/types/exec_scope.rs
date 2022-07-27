@@ -13,6 +13,7 @@ pub enum PyValueType {
     List(Vec<BigInt>),
     Dictionary(HashMap<BigInt, BigInt>),
     KeyToListMap(HashMap<BigInt, Vec<BigInt>>),
+    None,
 }
 
 impl ExecutionScopes {

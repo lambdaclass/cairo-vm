@@ -180,6 +180,35 @@ pub fn get_address_from_var_name(
     .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
+pub fn insert_integer_from_var_name(
+    var_name: &str,
+    int: BigInt,
+    ids: &HashMap<String, BigInt>,
+    vm: &mut VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory
+        .insert(&var_address, &MaybeRelocatable::Int(int))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+pub fn insert_relocatable_from_var_name(
+    var_name: &str,
+    relocatable: Relocatable,
+    ids: &HashMap<String, BigInt>,
+    vm: &mut VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory
+        .insert(
+            &var_address,
+            &MaybeRelocatable::RelocatableValue(relocatable),
+        )
+        .map_err(VirtualMachineError::MemoryError)
+}
+
 //Gets the address of a variable name.
 //If the address is an MaybeRelocatable::Relocatable(Relocatable) return Relocatable
 //else raises Err

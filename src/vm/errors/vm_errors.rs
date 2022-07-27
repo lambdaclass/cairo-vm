@@ -84,6 +84,7 @@ pub enum VirtualMachineError {
     NAccessesTooBig(BigInt),
     BigintToUsizeFail,
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
+    UsortOutOfRange(BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -255,6 +256,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidSetRange(start, end) => write!(f, "Set starting point {:?} is bigger it's ending point {:?}", start, end),
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
+            VirtualMachineError::UsortOutOfRange(usort_max_size, input_len) => write!(f, "usort() can only be used with input_len<={}. Got: input_len={}.", usort_max_size, input_len),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
         }
     }
