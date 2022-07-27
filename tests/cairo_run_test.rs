@@ -189,6 +189,12 @@ fn cairo_run_find_element() {
 }
 
 #[test]
+fn cairo_run_search_sorted_lower() {
+    cairo_run::cairo_run(Path::new("cairo_programs/search_sorted_lower.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_dict_write_bad() {
     assert!(cairo_run::cairo_run(
         Path::new("cairo_programs/bad_programs/bad_dict_new.json"),
@@ -231,6 +237,12 @@ fn cairo_run_squash_dict() {
 }
 
 #[test]
+fn cairo_run_dict_squash() {
+    cairo_run::cairo_run(Path::new("cairo_programs/dict_squash.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_set_add() {
     cairo_run::cairo_run(Path::new("cairo_programs/set_add.json"), false)
         .expect("Couldn't run program");
@@ -238,6 +250,9 @@ fn cairo_run_set_add() {
 
 #[test]
 fn cairo_run_blake2s_hello_world_hash() {
-    cairo_run::cairo_run(Path::new("cairo_programs/blake2s_hello_world_hash.json"), false)
-        .expect("Couldn't run program");
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/blake2s_hello_world_hash.json"),
+        false,
+    )
+    .expect("Couldn't run program");
 }
