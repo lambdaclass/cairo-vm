@@ -6,8 +6,9 @@ use crate::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
             get_int_from_scope, get_integer_from_relocatable_plus_offset,
-            get_integer_from_var_name, get_key_to_list_map_from_scope_mut, get_list_from_scope_ref,
-            get_range_check_builtin, get_relocatable_from_var_name, insert_integer_from_var_name,
+            get_integer_from_var_name, get_key_to_list_map_from_scope_mut, get_list_from_scope_mut,
+            get_list_from_scope_ref, get_range_check_builtin, get_relocatable_from_var_name,
+            insert_integer_from_var_name,
         },
         vm_core::VirtualMachine,
     },
@@ -16,13 +17,13 @@ use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
-pub fn usort_enter_scope(vm: &mut VirtualMachine) {
+pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let usort_max_size =
         get_int_from_scope(vm, "usort_max_size").map_or(PyValueType::None, PyValueType::BigInt);
-    vm.exec_scopes.enter_scope(HashMap::from([(
+    Ok(vm.exec_scopes.enter_scope(HashMap::from([(
         "usort_max_size".to_string(),
         usort_max_size,
-    )]));
+    )])))
 }
 
 pub fn usort_body(
@@ -132,4 +133,25 @@ pub fn verify_multiplicity_assert(vm: &mut VirtualMachine) -> Result<(), Virtual
     } else {
         Err(VirtualMachineError::PositionsLengthNotZero)
     }
+}
+
+pub fn verify_multiplicity_body(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let current_pos = get_list_from_scope_mut(vm, "positions")
+        .ok_or(VirtualMachineError::PositionsNotFound)?
+        .pop()
+        .ok_or(VirtualMachineError::CouldntPopPositions)?;
+
+    let pos_diff = current_pos.clone()
+        - get_int_from_scope(vm, "last_pos").ok_or(VirtualMachineError::LastPosNotFound)?;
+
+    let _ = insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
+
+    vm.exec_scopes
+        .assign_or_update_variable("last_pos", PyValueType::BigInt(current_pos + 1));
+
+    Ok(())
 }

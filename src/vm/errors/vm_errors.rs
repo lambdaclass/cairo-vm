@@ -88,6 +88,8 @@ pub enum VirtualMachineError {
     UnexpectedPositionsDictFail,
     PositionsNotFound,
     PositionsLengthNotZero,
+    CouldntPopPositions,
+    LastPosNotFound,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -263,6 +265,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::UnexpectedPositionsDictFail => write!(f, "unexpected usort fail: positions_dict or key value pair not found"),
             VirtualMachineError::PositionsNotFound => write!(f, "unexpected verify multiplicity fail: positions not found"),
             VirtualMachineError::PositionsLengthNotZero => write!(f, "unexpected verify multiplicity fail: positions length != 0"),
+            VirtualMachineError::CouldntPopPositions => write!(f, "unexpected verify multiplicity fail: couldn't pop positions"),
+            VirtualMachineError::LastPosNotFound => write!(f, "unexpected verify multiplicity fail: last_pos not found"),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
         }
     }

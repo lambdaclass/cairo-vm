@@ -51,6 +51,19 @@ pub fn get_list_from_scope_ref<'a>(
     val
 }
 
+pub fn get_list_from_scope_mut<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Option<&'a mut Vec<BigInt>> {
+    let mut val: Option<&'a mut Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
 pub fn get_key_to_list_map_from_scope_mut<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
