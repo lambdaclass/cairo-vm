@@ -139,6 +139,7 @@ mod tests {
     use std::ops::Shl;
 
     use crate::bigint_str;
+    use crate::bigint_u128;
     use crate::math_utils::as_int;
     use crate::relocatable;
     use crate::types::exec_scope::PyValueType;
@@ -5774,5 +5775,484 @@ mod tests {
         //Check exec_scopes
         let expected_scope = vec![HashMap::new(), HashMap::new()];
         assert_eq!(vm.exec_scopes.data, expected_scope)
+    }
+
+    #[test]
+    fn unsafe_keccak_valid() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        vm.exec_scopes
+            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(500)));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+    }
+
+    #[test]
+    fn unsafe_keccak_max_size() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        vm.exec_scopes
+            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
+        );
+    }
+
+    #[test]
+    fn unsafe_keccak_invalid_input_length() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint_u128!(18446744073709551616)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_err());
+    }
+
+    #[test]
+    fn unsafe_keccak_invalid_word_size() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(-1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        vm.exec_scopes
+            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(10)));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                },
+            ),
+        ]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
+        );
     }
 }

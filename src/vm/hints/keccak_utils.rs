@@ -45,14 +45,11 @@ pub fn unsafe_keccak(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", &ids, vm, hint_ap_tracking)
-        .map_or_else(|e| Err(e), |len| Ok(len.clone()))?;
+        .map_or_else(Err, |len| Ok(len.clone()))?;
 
     if let Some(keccak_max_size) = get_int_from_scope(vm, "__keccak_max_size") {
         if length > keccak_max_size {
-            return Err(VirtualMachineError::KeccakMaxSize(
-                length.clone(),
-                keccak_max_size,
-            ));
+            return Err(VirtualMachineError::KeccakMaxSize(length, keccak_max_size));
         }
     }
 
@@ -66,17 +63,16 @@ pub fn unsafe_keccak(
     let u64_length = if let Some(u64_length) = length.to_u64() {
         u64_length
     } else {
-        return Err(VirtualMachineError::InvalidKeccakInputLength(
-            length.clone(),
-        ));
+        return Err(VirtualMachineError::InvalidKeccakInputLength(length));
     };
 
     let mut keccak_input = Vec::new();
-    for (word_i, byte_i) in (0..u64_length).enumerate().step_by(16) {
+    for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
         let word_addr = Relocatable {
             segment_index: data.segment_index,
             offset: data.offset + word_i,
         };
+
         let word = vm.memory.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
@@ -85,6 +81,10 @@ pub fn unsafe_keccak(
         }
 
         let (_, mut bytes) = word.to_bytes_be();
+        let mut bytes = {
+            let n_word_bytes = &bytes.len();
+            add_padding_at_beginning(&mut bytes, (n_bytes as usize - n_word_bytes) as usize)
+        };
 
         keccak_input.append(&mut bytes);
     }
@@ -110,4 +110,11 @@ pub fn unsafe_keccak(
         (Ok(_), Ok(_)) => Ok(()),
         (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
     }
+}
+
+pub fn add_padding_at_beginning(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
+    let mut res: Vec<u8> = vec![0; n_zeros];
+    res.extend(bytes_vector.iter());
+
+    res
 }
