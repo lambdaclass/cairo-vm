@@ -154,21 +154,28 @@ impl MaybeRelocatable {
     }
 
     ///Substracts a usize to self, then performs mod prime if prime is given
-    pub fn sub_usize_mod(&self, other: usize, prime: Option<BigInt>) -> MaybeRelocatable {
+    pub fn sub_usize_mod(
+        &self,
+        other: usize,
+        prime: Option<BigInt>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
             MaybeRelocatable::Int(ref value) => {
                 let mut num = value - other;
                 if let Some(num_prime) = prime {
                     num = num.mod_floor(&num_prime);
                 }
-                MaybeRelocatable::Int(num)
+                Ok(MaybeRelocatable::Int(num))
             }
             MaybeRelocatable::RelocatableValue(ref rel) => {
+                if rel.offset < other {
+                    return Err(VirtualMachineError::CantSubOffset(rel.offset, other));
+                }
                 let new_offset = rel.offset - other;
-                MaybeRelocatable::RelocatableValue(Relocatable {
+                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
-                })
+                }))
             }
         }
     }

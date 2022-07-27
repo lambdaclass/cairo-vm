@@ -56,20 +56,20 @@ fn compute_blake2s_func(
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     let h = get_fixed_size_u64_array::<8>(
         memory
-            .get_range(&output_ptr.sub_usize_mod(26, None), 8)
+            .get_range(&output_ptr.sub_usize_mod(26, None)?, 8)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let message = get_fixed_size_u64_array::<16>(
         memory
-            .get_range(&output_ptr.sub_usize_mod(18, None), 16)
+            .get_range(&output_ptr.sub_usize_mod(18, None)?, 16)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let t = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(2, None))?
+        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(2, None)?)?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let f = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None))?
+        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None)?)?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
@@ -90,4 +90,147 @@ pub fn compute_blake2s(
 ) -> Result<(), VirtualMachineError> {
     let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
     compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
+}
+
+#[cfg(test)]
+mod tests {
+    use num_bigint::Sign;
+
+    use super::*;
+    use crate::{
+        bigint,
+        types::instruction::Register,
+        vm::hints::execute_hint::{execute_hint, HintReference},
+    };
+
+    #[test]
+    fn compute_blake2s_output_offset_zero() {
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (output)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 5)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("output"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+                immediate: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::CantSubOffset(5, 26))
+        );
+    }
+
+    #[test]
+    fn compute_blake2s_output_empty_segment() {
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (output)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 26)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("output"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+                immediate: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::UnexpectMemoryGap)
+        );
+    }
+
+    #[test]
+    fn compute_blake2s_output_not_relocatable() {
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        //Insert ids into memory (output)
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from(bigint!(12)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("output"), bigint!(0));
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -1,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: None,
+                immediate: None,
+            },
+        )]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Err(VirtualMachineError::ExpectedRelocatable(
+                MaybeRelocatable::from((0, 0))
+            ))
+        );
+    }
 }

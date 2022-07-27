@@ -90,6 +90,7 @@ pub enum VirtualMachineError {
     FixedSizeArrayFail(usize),
     AssertionFailed(String),
     MismatchedDictPtr(Relocatable, Relocatable),
+    CantSubOffset(usize, usize),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -270,6 +271,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::FixedSizeArrayFail(size) => write!(f, "Failed to construct a fixed size array of size: {:?}", size),
             VirtualMachineError::AssertionFailed(error_msg) => write!(f, "{}",error_msg),
             VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
+            VirtualMachineError::CantSubOffset(offset , sub) => write!(f, "Cant substract {} from offset {}, offsets cant be negative", sub, offset),
         }
     }
 }
