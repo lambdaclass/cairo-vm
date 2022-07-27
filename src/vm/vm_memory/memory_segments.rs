@@ -1,7 +1,6 @@
-use std::any::Any;
-
 use num_bigint::BigInt;
 use num_integer::Integer;
+use std::any::Any;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -116,12 +115,11 @@ impl Default for MemorySegmentManager {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{bigint, relocatable};
     use num_bigint::BigInt;
     use num_traits::FromPrimitive;
     use std::vec;
-
-    use super::*;
 
     #[test]
     fn add_segment_no_size() {

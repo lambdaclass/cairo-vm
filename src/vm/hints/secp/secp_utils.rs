@@ -3,7 +3,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed};
-// const BASE: BigInt = bigint_str!(b"77371252455336267181195264"); // bigint!(2).pow(86)
+use std::ops::Shl;
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:
@@ -14,7 +14,7 @@ pub fn split(integer: &BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
-    let base = bigint!(2).pow(86);
+    let base = bigint!(1).shl(86);
     let mut num = integer.clone();
     let mut remainder: BigInt;
     let mut canonical_repr = Vec::new();
