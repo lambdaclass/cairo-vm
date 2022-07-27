@@ -33,6 +33,16 @@ macro_rules! bigint_u64 {
 
 #[macro_export]
 macro_rules! bigint_u128 {
+<<<<<<< HEAD
+=======
+    ($val : expr) => {
+        BigInt::from_u128($val).unwrap()
+    };
+}
+
+#[macro_export]
+macro_rules! bigintusize {
+>>>>>>> Fix bugs and add tests for unsafe_keccak
     ($val : expr) => {
         BigInt::from_u128($val).unwrap()
     };
