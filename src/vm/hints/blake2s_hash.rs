@@ -116,7 +116,6 @@ pub fn blake2s_compress(
         (IV[6] ^ f0),
         (IV[7] ^ f1),
     ]);
-    //State is correct until here
     for sigma_list in SIGMA {
         state = blake_round(state.clone(), message, sigma_list);
     }
