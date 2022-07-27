@@ -1,7 +1,12 @@
+use std::collections::HashMap;
+
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
+use super::hint_utils::get_address_from_var_name;
 use crate::bigint_u64;
+use crate::serde::deserialize_program::ApTracking;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{
@@ -46,9 +51,9 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(
-    segements: &mut MemorySegmentManager,
+    segments: &mut MemorySegmentManager,
     memory: &mut Memory,
-    output_ptr: MaybeRelocatable,
+    output_ptr: &MaybeRelocatable,
 ) -> Result<(), VirtualMachineError> {
     let h = get_fixed_size_u64_array::<8>(
         memory
@@ -69,8 +74,27 @@ fn compute_blake2s_func(
         .to_u64()
         .ok_or_else(|| VirtualMachineError::BigintToU64Fail)?;
     let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
-    segements
+    segments
         .load_data(memory, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
+}
+
+/* Implements hint:
+   from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func
+   compute_blake2s_func(segments=segments, output_ptr=ids.output)
+*/
+pub fn compute_blake2s(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let output_addr = get_address_from_var_name("output", &ids, vm, hint_ap_tracking)?;
+    let output = vm
+        .memory
+        .get(&output_addr)
+        .map_err(VirtualMachineError::MemoryError)?
+        .ok_or(VirtualMachineError::MemoryGet(output_addr))?;
+    let output_copy = output.clone();
+    compute_blake2s_func(&mut vm.segments, &mut vm.memory, &output_copy)
 }
