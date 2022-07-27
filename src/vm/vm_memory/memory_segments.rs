@@ -1,3 +1,8 @@
+use std::any::Any;
+
+use num_bigint::BigInt;
+use num_integer::Integer;
+
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::vm_memory::memory::Memory;
@@ -67,6 +72,40 @@ impl MemorySegmentManager {
         relocation_table.pop();
         Ok(relocation_table)
     }
+
+    pub fn gen_arg_vec_bigint(
+        &self,
+        arg: &Vec<BigInt>,
+        apply_modulo_to_args: bool,
+        prime: &BigInt,
+    ) -> Vec<MaybeRelocatable> {
+        if apply_modulo_to_args {
+            return arg
+                .iter()
+                .map(|x| MaybeRelocatable::from(x.mod_floor(prime)))
+                .collect();
+        } else {
+            arg.iter()
+                .map(|x| MaybeRelocatable::from(x.clone()))
+                .collect()
+        }
+    }
+
+    pub fn write_arg(
+        &mut self,
+        memory: &mut Memory,
+        ptr: &MaybeRelocatable,
+        arg: &dyn Any,
+        apply_modulo_to_args: bool,
+        prime: &BigInt,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        if let Some(vector) = arg.downcast_ref::<Vec<BigInt>>() {
+            let data = self.gen_arg_vec_bigint(vector, apply_modulo_to_args, prime);
+            self.load_data(memory, ptr, data)
+        } else {
+            return Err(MemoryError::WriteArg);
+        }
+    }
 }
 
 impl Default for MemorySegmentManager {
@@ -80,6 +119,7 @@ mod tests {
     use crate::{bigint, relocatable};
     use num_bigint::BigInt;
     use num_traits::FromPrimitive;
+    use std::vec;
 
     use super::*;
 
@@ -376,5 +416,48 @@ mod tests {
                 .expect("Couldn't relocate after compute effective sizes"),
             vec![1, 4, 7, 63, 141]
         )
+    }
+
+    #[test]
+    fn write_arg_with_apply_modulo() {
+        let data = vec![bigint!(11), bigint!(12), bigint!(13)];
+        let ptr = MaybeRelocatable::from((1, 0));
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        for _ in 0..2 {
+            segments.add(&mut memory, None);
+        }
+
+        let exec = segments.write_arg(&mut memory, &ptr, &data, true, &bigint!(5));
+
+        assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
+        assert_eq!(
+            memory.data[1],
+            vec![
+                Some(MaybeRelocatable::from(bigint!(1))),
+                Some(MaybeRelocatable::from(bigint!(2))),
+                Some(MaybeRelocatable::from(bigint!(3))),
+            ]
+        );
+    }
+
+    #[test]
+    fn write_arg_with_no_apply_modulo() {
+        let data = vec![bigint!(1), bigint!(2), bigint!(3)];
+        let ptr = MaybeRelocatable::from((0, 0));
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory, None);
+        let exec = segments.write_arg(&mut memory, &ptr, &data, false, &bigint!(22));
+
+        assert_eq!(exec, Ok(MaybeRelocatable::from((0, 3))));
+        assert_eq!(
+            memory.data[0],
+            vec![
+                Some(MaybeRelocatable::from(bigint!(1))),
+                Some(MaybeRelocatable::from(bigint!(2))),
+                Some(MaybeRelocatable::from(bigint!(3))),
+            ]
+        );
     }
 }
