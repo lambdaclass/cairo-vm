@@ -5,6 +5,7 @@ use num_bigint::BigInt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::blake2s_utils::compute_blake2s;
 use crate::vm::hints::dict_hint_utils::{
     default_dict_new, dict_new, dict_read, dict_update, dict_write,
 };
@@ -113,6 +114,8 @@ pub fn execute_hint(
         Ok("sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0"
         ) => uint256_add(vm, ids, None),
         Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
+        Ok("from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)"
+        ) => compute_blake2s(vm, ids, Some(ap_tracking)),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

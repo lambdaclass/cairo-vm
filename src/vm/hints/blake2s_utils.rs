@@ -28,20 +28,17 @@ fn get_fixed_size_u64_array<const T: usize>(
         } else {
             return Err(VirtualMachineError::ExpectedInteger(mayberel.clone()));
         };
-        u64_vec.push(
-            num.to_u64()
-                .ok_or_else(|| VirtualMachineError::BigintToU64Fail)?,
-        );
+        u64_vec.push(num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)?);
     }
-    Ok(u64_vec
+    u64_vec
         .try_into()
-        .map_err(|_| VirtualMachineError::FixedSizeArrayFail(T))?)
+        .map_err(|_| VirtualMachineError::FixedSizeArrayFail(T))
 }
 
 fn get_maybe_relocatable_array_from_u64(array: Vec<u64>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::new();
-    for i in 0..array.len() {
-        new_array.push(MaybeRelocatable::from(bigint_u64!(array[i])));
+    for element in array {
+        new_array.push(MaybeRelocatable::from(bigint_u64!(element)));
     }
     new_array
 }
@@ -68,14 +65,14 @@ fn compute_blake2s_func(
     let t = memory
         .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(2, None))?
         .to_u64()
-        .ok_or_else(|| VirtualMachineError::BigintToU64Fail)?;
+        .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let f = memory
         .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None))?
         .to_u64()
-        .ok_or_else(|| VirtualMachineError::BigintToU64Fail)?;
+        .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
     segments
-        .load_data(memory, &output_ptr, new_state)
+        .load_data(memory, output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
