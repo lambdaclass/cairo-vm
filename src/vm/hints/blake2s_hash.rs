@@ -96,7 +96,6 @@ fn blake_round(mut state: Vec<u64>, message: [u64; 16], sigma: [usize; 16]) -> V
         message[sigma[14]],
         message[sigma[15]],
     );
-
     state
 }
 
