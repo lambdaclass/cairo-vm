@@ -10,7 +10,6 @@ Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-#[allow(dead_code)]
 pub fn split(integer: &BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));

@@ -75,7 +75,7 @@ impl MemorySegmentManager {
 
     pub fn gen_arg_vec_bigint(
         &self,
-        arg: &Vec<BigInt>,
+        arg: &[BigInt],
         apply_modulo_to_args: bool,
         prime: &BigInt,
     ) -> Vec<MaybeRelocatable> {
@@ -103,7 +103,7 @@ impl MemorySegmentManager {
             let data = self.gen_arg_vec_bigint(vector, apply_modulo_to_args, prime);
             self.load_data(memory, ptr, data)
         } else {
-            return Err(MemoryError::WriteArg);
+            Err(MemoryError::WriteArg)
         }
     }
 }
