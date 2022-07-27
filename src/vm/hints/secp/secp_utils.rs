@@ -11,9 +11,9 @@ d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
 #[allow(dead_code)]
-fn split(integer: BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
+pub fn split(integer: &BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
     if integer.is_negative() {
-        return Err(VirtualMachineError::SecpSplitNegative(integer));
+        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
     let base = bigint!(2).pow(86);
     let mut num = integer.clone();
@@ -24,7 +24,7 @@ fn split(integer: BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
         canonical_repr.push(remainder);
     }
     if num != bigint!(0) {
-        return Err(VirtualMachineError::SecpSplitutOfRange(integer));
+        return Err(VirtualMachineError::SecpSplitutOfRange(integer.clone()));
     }
 
     Ok(canonical_repr)
@@ -37,14 +37,14 @@ mod tests {
 
     #[test]
     fn secp_split() {
-        let array_1 = split(bigint!(0));
-        let array_2 = split(bigint!(999992));
-        let array_3 = split(bigint_str!(
+        let array_1 = split(&bigint!(0));
+        let array_2 = split(&bigint!(999992));
+        let array_3 = split(&bigint_str!(
             b"7737125245533626718119526477371252455336267181195264773712524553362"
         ));
-        let array_4 = split(bigint!(-1));
+        let array_4 = split(&bigint!(-1));
         //TODO, Check SecpSplitutOfRange limit
-        let array_5 = split(bigint_str!(
+        let array_5 = split(&bigint_str!(
             b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
         ));
 
