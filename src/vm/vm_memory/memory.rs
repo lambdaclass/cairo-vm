@@ -100,6 +100,20 @@ impl Memory {
         }
     }
 
+    //Gets the value from memory address given by a MaybeRelocatable.
+    //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
+    //else raises Err
+    pub fn get_integer_from_maybe_relocatable(
+        &self,
+        key: &MaybeRelocatable,
+    ) -> Result<&BigInt, VirtualMachineError> {
+        match self.get(key) {
+            Ok(Some(MaybeRelocatable::Int(int))) => Ok(int),
+            Ok(_) => Err(VirtualMachineError::ExpectedInteger(key.clone())),
+            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+        }
+    }
+
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
         self.validation_rules.insert(segment_index, rule);
     }

@@ -83,7 +83,10 @@ pub enum VirtualMachineError {
     SquashDictMaxSizeExceeded(BigInt, BigInt),
     NAccessesTooBig(BigInt),
     BigintToUsizeFail,
+    BigintToU64Fail,
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
+    UnexpectMemoryGap,
+    FixedSizeArrayFail(usize),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -252,10 +255,13 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "squash_dict fail: n_accesses: {:?} is too big to be converted into an iterator", n_accesses)
             },
             VirtualMachineError::BigintToUsizeFail => write!(f, "Couldn't convert BigInt to usize"),
+            VirtualMachineError::BigintToU64Fail => write!(f, "Couldn't convert BigInt to u64"),
             VirtualMachineError::InvalidSetRange(start, end) => write!(f, "Set starting point {:?} is bigger it's ending point {:?}", start, end),
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
+            VirtualMachineError::UnexpectMemoryGap => write!(f, "Encountered unexpected memory gap"),
+            VirtualMachineError::FixedSizeArrayFail(size) => write!(f, "Failed to construct a fixed size array of size: {:?}", size),
         }
     }
 }

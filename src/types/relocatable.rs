@@ -145,6 +145,26 @@ impl MaybeRelocatable {
         }
     }
 
+    ///Substracts a usize to self, then performs mod prime if prime is given
+    pub fn sub_usize_mod(&self, other: usize, prime: Option<BigInt>) -> MaybeRelocatable {
+        match *self {
+            MaybeRelocatable::Int(ref value) => {
+                let mut num = value - other;
+                if let Some(num_prime) = prime {
+                    num = num.mod_floor(&num_prime);
+                }
+                MaybeRelocatable::Int(num)
+            }
+            MaybeRelocatable::RelocatableValue(ref rel) => {
+                let new_offset = rel.offset - other;
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: rel.segment_index,
+                    offset: new_offset,
+                })
+            }
+        }
+    }
+
     /// Performs mod floor for a MaybeRelocatable::Int with BigInt
     pub fn mod_floor(&self, other: &BigInt) -> Result<MaybeRelocatable, VirtualMachineError> {
         match self {
