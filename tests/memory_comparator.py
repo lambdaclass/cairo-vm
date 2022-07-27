@@ -30,7 +30,7 @@ def main():
             cleo_mem[k] = v
         assert len(cleo_mem) * 40 == len(cleo_raw), f'{filename2}: {len(cleo_mem) * 40} != {len(cleo_raw)}'
 
-    assert len(cairo_mem) == len(cleo_mem), f'{filename2}: {len(cairo_mem)=} {len(cleo_mem)=}'
+    assert len(cairo_mem) == len(cleo_mem), f'{filename2}: len(cairo_mem)={len(cairo_mem)} len(cairo_mem)={len(cleo_mem)}'
     if cairo_mem != cleo_mem:
         print(f'Mismatch between {filename1} (Cairo) and {filename2} (Cleopatra)')
         print('keys in Cairo but not Cleopatra:')
