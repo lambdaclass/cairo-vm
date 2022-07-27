@@ -87,6 +87,8 @@ pub enum VirtualMachineError {
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
     AssertionFailed(String),
     MismatchedDictPtr(Relocatable, Relocatable),
+    SecpSplitNegative(BigInt),
+    SecpSplitutOfRange(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -264,6 +266,10 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
             VirtualMachineError::AssertionFailed(error_msg) => write!(f, "{}",error_msg),
             VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
+            VirtualMachineError::SecpSplitNegative(integer) =>
+            write!(f, "Integer must be postive or zero, got: {}", integer),
+            VirtualMachineError::SecpSplitutOfRange(integer) =>
+            write!(f, "Integer: {} out of range", integer),
         }
     }
 }
