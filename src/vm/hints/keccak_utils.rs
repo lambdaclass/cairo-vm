@@ -44,8 +44,8 @@ pub fn unsafe_keccak(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let length = get_integer_from_var_name("length", &ids, vm, hint_ap_tracking)
-        .map_or_else(Err, |len| Ok(len.clone()))?;
+    let length = get_integer_from_var_name("length", &ids, vm, hint_ap_tracking)?
+        .clone();
 
     if let Some(keccak_max_size) = get_int_from_scope(vm, "__keccak_max_size") {
         if length > keccak_max_size {
@@ -112,7 +112,24 @@ pub fn unsafe_keccak(
     }
 }
 
-pub fn add_padding_at_beginning(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
+/*
+Implements hint:
+    %{
+        from eth_hash.auto import keccak
+        keccak_input = bytearray()
+        n_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr
+        for word in memory.get_range(ids.keccak_state.start_ptr, n_elms):
+            keccak_input += word.to_bytes(16, 'big')
+        hashed = keccak(keccak_input)
+        ids.high = int.from_bytes(hashed[:16], 'big')
+        ids.low = int.from_bytes(hashed[16:32], 'big')
+    %}
+ */
+pub fn unsafe_keccak_finalize() {
+
+}
+
+fn add_padding_at_beginning(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     let mut res: Vec<u8> = vec![0; n_zeros];
     res.extend(bytes_vector.iter());
 
