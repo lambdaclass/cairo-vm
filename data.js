@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659023778610,
+  "lastUpdate": 1659024726047,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -10067,6 +10067,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 219040016,
             "range": "± 636135",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7556eb05d57b12188721b5845ea580b9334a1c05",
+          "message": "[HINTS] Add implementation of unsafe_keccak hint (#318)\n\n* Add implementation of unsafe_keccak hint\r\n\r\n* Fix bugs and add tests for unsafe_keccak\r\n\r\n* Remove repeated macro\r\n\r\n* Small refacator in unsafe_keccak\r\n\r\n* Remove unsafe_keccak_finalize function signature\r\n\r\n* Small refactors in unsafe_keccak",
+          "timestamp": "2022-07-28T12:57:57-03:00",
+          "tree_id": "1fa88881003207c2f9d84b68e01e08580c9aa0ff",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/7556eb05d57b12188721b5845ea580b9334a1c05"
+        },
+        "date": 1659024724663,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2191290117,
+            "range": "± 52280520",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 786150220,
+            "range": "± 28816327",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 393674218,
+            "range": "± 16517303",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1812972822,
+            "range": "± 55169837",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 283935587,
+            "range": "± 10290159",
             "unit": "ns/iter"
           }
         ]
