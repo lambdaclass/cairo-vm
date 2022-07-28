@@ -292,6 +292,19 @@ pub fn get_integer_from_relocatable_plus_offset<'a>(
     )))
 }
 
+pub fn insert_integer_at_relocatable_plus_offset(
+    int: BigInt,
+    relocatable: &Relocatable,
+    field_offset: usize,
+    vm: &mut VirtualMachine,
+) -> Result<(), VirtualMachineError> {
+    let new_pos =
+        MaybeRelocatable::from((relocatable.segment_index, relocatable.offset + field_offset));
+    vm.memory
+        .insert(&new_pos, &MaybeRelocatable::from(int))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let new_segment_base =

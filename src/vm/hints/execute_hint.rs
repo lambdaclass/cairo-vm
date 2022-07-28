@@ -25,7 +25,10 @@ use crate::vm::hints::squash_dict_utils::{
     squash_dict_inner_used_accesses_assert,
 };
 use crate::vm::hints::uint256_utils::{split_64, uint256_add};
-use crate::vm::hints::usort::{usort_body, usort_enter_scope};
+use crate::vm::hints::usort::{
+    usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
+    verify_usort,
+};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -120,6 +123,11 @@ pub fn execute_hint(
         ) => usort_enter_scope(vm),
         Ok("from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])"
         ) => usort_body(vm, &ids, None),
+        Ok("last_pos = 0\npositions = positions_dict[ids.value][::-1]"
+        ) => verify_usort(vm, &ids, None),
+        Ok("assert len(positions) == 0") => verify_multiplicity_assert(vm),
+        Ok("current_pos = positions.pop()\nids.next_item_index = current_pos - last_pos\nlast_pos = current_pos + 1"
+        ) => verify_multiplicity_body(vm, &ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

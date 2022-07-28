@@ -260,7 +260,9 @@ impl CairoRunner {
                     //Add hint code to list of hints at given pc
                     hint_list.push(HintData::new(
                         hint_data.code.clone(),
-                        CairoRunner::remove_path_from_reference_ids(&hint_data.flow_tracking_data.reference_ids.clone())?,
+                        CairoRunner::remove_path_from_reference_ids(
+                            &hint_data.flow_tracking_data.reference_ids.clone(),
+                        )?,
                         hint_data.flow_tracking_data.ap_tracking.clone(),
                     ));
                 } else {
