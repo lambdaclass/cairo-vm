@@ -37,7 +37,7 @@ fn get_fixed_size_u64_array<const T: usize>(
 }
 
 fn get_maybe_relocatable_array_from_u64(array: &Vec<u64>) -> Vec<MaybeRelocatable> {
-    let mut new_array = Vec::<MaybeRelocatable>::new();
+    let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
         new_array.push(MaybeRelocatable::from(bigint_u64!(*element)));
     }
