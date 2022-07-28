@@ -185,6 +185,16 @@ impl MaybeRelocatable {
             _ => Err(VirtualMachineError::NotImplemented),
         }
     }
+
+    //Returns reference to BigInt inside self if Int variant or Error if RelocatableValue variant
+    pub fn get_int_ref(&self) -> Result<&BigInt, VirtualMachineError> {
+        match self {
+            MaybeRelocatable::Int(num) => Ok(num),
+            MaybeRelocatable::RelocatableValue(_) => {
+                Err(VirtualMachineError::ExpectedInteger(self.clone()))
+            }
+        }
+    }
 }
 
 ///Turns a MaybeRelocatable into a BigInt value

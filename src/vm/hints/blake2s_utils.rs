@@ -23,12 +23,9 @@ fn get_fixed_size_u64_array<const T: usize>(
 ) -> Result<[u64; T], VirtualMachineError> {
     let mut u64_vec = Vec::<u64>::with_capacity(h_range.len());
     for element in h_range {
-        let mayberel = element.ok_or(VirtualMachineError::UnexpectMemoryGap)?;
-        let num = if let MaybeRelocatable::Int(num) = mayberel {
-            num
-        } else {
-            return Err(VirtualMachineError::ExpectedInteger(mayberel.clone()));
-        };
+        let num = element
+            .ok_or(VirtualMachineError::UnexpectMemoryGap)?
+            .get_int_ref()?;
         u64_vec.push(num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)?);
     }
     u64_vec
