@@ -18,6 +18,9 @@ func main{output_ptr: felt*}():
 
     let res : Uint256 = unsafe_keccak_finalize(keccak_state)
 
+    assert res.low = 17219183504112405672555532996650339574
+    assert res.high = 235346966651632113557018504892503714354
+
     serialize_word(res.low)
     serialize_word(res.high)
 

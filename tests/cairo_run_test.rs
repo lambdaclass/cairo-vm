@@ -292,3 +292,12 @@ fn cairo_run_blake2s_felts() {
     cairo_run::cairo_run(Path::new("cairo_programs/blake2s_felts.json"), false)
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_unsafe_keccak_finalize() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/unsafe_keccak_finalize.json"),
+        false,
+    )
+    .expect("Couldn't run program");
+}
