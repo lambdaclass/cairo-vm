@@ -247,3 +247,9 @@ fn cairo_run_set_add() {
     cairo_run::cairo_run(Path::new("cairo_programs/set_add.json"), false)
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_unsafe_keccak() {
+    cairo_run::cairo_run(Path::new("cairo_programs/unsafe_keccak.json"), false)
+        .expect("Couldn't run program");
+}
