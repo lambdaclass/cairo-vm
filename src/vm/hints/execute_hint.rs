@@ -6,7 +6,8 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::dict_hint_utils::{
-    default_dict_new, dict_new, dict_read, dict_update, dict_write,
+    default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
+    dict_update, dict_write,
 };
 use crate::vm::hints::find_element_hint::{find_element, search_sorted_lower};
 use crate::vm::hints::hint_utils::{
@@ -24,7 +25,9 @@ use crate::vm::hints::squash_dict_utils::{
     squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
     squash_dict_inner_used_accesses_assert,
 };
-use crate::vm::hints::uint256_utils::{split_64, uint256_add};
+use crate::vm::hints::uint256_utils::{
+    split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
+};
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
@@ -116,6 +119,10 @@ pub fn execute_hint(
         Ok("vm_enter_scope()") => enter_scope(vm),
         Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
         ) => dict_update(vm, ids, None),
+        Ok("# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
+        ) => dict_squash_copy_dict(vm, ids, Some(ap_tracking)),
+        Ok("# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
+        ) => dict_squash_update_ptr(vm, ids, Some(ap_tracking)),
         Ok("sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0"
         ) => uint256_add(vm, ids, None),
         Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
@@ -128,6 +135,9 @@ pub fn execute_hint(
         Ok("assert len(positions) == 0") => verify_multiplicity_assert(vm),
         Ok("current_pos = positions.pop()\nids.next_item_index = current_pos - last_pos\nlast_pos = current_pos + 1"
         ) => verify_multiplicity_body(vm, &ids, None),
+        Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0") => uint256_sqrt(vm, ids, None),
+        Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),
+        Ok("a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128") => uint256_unsigned_div_rem(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

@@ -39,6 +39,7 @@ pub enum VirtualMachineError {
     MemoryGet(MaybeRelocatable),
     ExpectedInteger(MaybeRelocatable),
     ExpectedRelocatable(MaybeRelocatable),
+    ExpectedRelocatableAtAddr(MaybeRelocatable),
     FailedToGetIds,
     NonLeFelt(BigInt, BigInt),
     OutOfValidRange(BigInt, BigInt),
@@ -90,6 +91,8 @@ pub enum VirtualMachineError {
     PositionsLengthNotZero,
     CouldntPopPositions,
     LastPosNotFound,
+    AssertionFailed(String),
+    MismatchedDictPtr(Relocatable, Relocatable),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -152,6 +155,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::ExpectedInteger(addr) => {
                 write!(f, "Expected integer at address {:?}", addr)
             },
+            VirtualMachineError::ExpectedRelocatableAtAddr(addr) => {
+                write!(f, "Expected relocatable at address {:?}", addr)
+            }
             VirtualMachineError::ExpectedRelocatable(mayberelocatable) => {
                 write!(f, "Expected address to be a Relocatable, got {:?}", mayberelocatable)
             },
@@ -268,6 +274,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::CouldntPopPositions => write!(f, "unexpected verify multiplicity fail: couldn't pop positions"),
             VirtualMachineError::LastPosNotFound => write!(f, "unexpected verify multiplicity fail: last_pos not found"),
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
+            VirtualMachineError::AssertionFailed(error_msg) => write!(f, "{}",error_msg),
+            VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
         }
     }
 }
