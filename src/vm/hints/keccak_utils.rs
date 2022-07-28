@@ -1,6 +1,6 @@
 use super::hint_utils::{
-    get_int_from_scope, get_integer_from_var_name, get_ptr_from_var_name,
-    get_relocatable_from_var_name,
+    get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
+    get_ptr_from_var_name, get_relocatable_from_var_name,
 };
 use crate::types::relocatable::MaybeRelocatable;
 use crate::{
@@ -114,4 +114,125 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     res.extend(bytes_vector.iter());
 
     res
+}
+
+/*
+Implements hint:
+
+    %{
+        from eth_hash.auto import keccak
+        keccak_input = bytearray()
+        n_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr
+        for word in memory.get_range(ids.keccak_state.start_ptr, n_elms):
+            keccak_input += word.to_bytes(16, 'big')
+        hashed = keccak(keccak_input)
+        ids.high = int.from_bytes(hashed[:16], 'big')
+        ids.low = int.from_bytes(hashed[16:32], 'big')
+    %}
+
+ */
+pub fn unsafe_keccak_finalize(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    /* -----------------------------
+    Just for reference (cairo code):
+    struct KeccakState:
+        member start_ptr : felt*
+        member end_ptr : felt*
+    end
+    ----------------------------- */
+
+    let keccak_state_ptr =
+        match get_address_from_var_name("keccak_state", &ids, vm, hint_ap_tracking) {
+            Ok(MaybeRelocatable::RelocatableValue(relocatable)) => relocatable,
+            Err(e) => return Err(e),
+            _ => unreachable!(),
+        };
+
+    // as `keccak_state` is a struct, the pointer to the struct is the same as the pointer to the first element.
+    // this is why to get the pointer stored in the field `start_ptr` it is enough to pass the variable name as
+    // `keccak_state`, which is the one that appears in the reference manager of the compiled JSON.
+    let start_ptr = get_ptr_from_var_name("keccak_state", &ids, vm, hint_ap_tracking)?;
+
+    // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
+    // the memory cell contiguous to the one where KeccakState is pointing to.
+    let end_ptr = vm.memory.get_relocatable(&Relocatable {
+        segment_index: keccak_state_ptr.segment_index,
+        offset: keccak_state_ptr.offset + 1,
+    })?;
+
+    // this is not very nice code, we should consider adding the sub() method for Relocatable's
+    let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr.clone());
+    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
+
+    let n_elems = match maybe_rel_end_ptr.sub(&maybe_rel_start_ptr, &vm.prime) {
+        Ok(MaybeRelocatable::Int(num)) => num
+            .to_usize()
+            .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+        Err(e) => return Err(e),
+        _ => unreachable!(),
+    };
+
+    let mut keccak_input = Vec::new();
+    let range = vm
+        .memory
+        .get_range(&maybe_rel_start_ptr, n_elems)
+        .map_err(|e| VirtualMachineError::MemoryError(e))?;
+
+    assert_no_nones_in_range(&range)?;
+
+    for maybe_reloc_word in range.iter() {
+        let word = match maybe_reloc_word {
+            Some(MaybeRelocatable::Int(num)) => num,
+            _ => {
+                return Err(VirtualMachineError::ExpectedIntAtRange(
+                    maybe_reloc_word.cloned(),
+                ))
+            }
+        };
+
+        let (_, mut bytes) = word.to_bytes_be();
+        let mut bytes = {
+            let n_word_bytes = &bytes.len();
+            left_pad(&mut bytes, 16 - n_word_bytes)
+        };
+        keccak_input.append(&mut bytes);
+    }
+
+    let mut hasher = Keccak256::new();
+    hasher.update(keccak_input);
+
+    let hashed = hasher.finalize();
+
+    let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
+    let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
+
+    let high_addr = get_relocatable_from_var_name("high", &ids, vm, hint_ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", &ids, vm, hint_ap_tracking)?;
+
+    match (
+        vm.memory.insert(
+            &MaybeRelocatable::RelocatableValue(high_addr),
+            &MaybeRelocatable::Int(high),
+        ),
+        vm.memory.insert(
+            &MaybeRelocatable::RelocatableValue(low_addr),
+            &MaybeRelocatable::Int(low),
+        ),
+    ) {
+        (Ok(_), Ok(_)) => Ok(()),
+        (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
+    }
+}
+
+fn assert_no_nones_in_range<T>(range: &Vec<Option<T>>) -> Result<(), VirtualMachineError> {
+    for memory_cell in range {
+        memory_cell
+            .as_ref()
+            .ok_or(VirtualMachineError::NoneInMemoryRange)?;
+    }
+
+    Ok(())
 }
