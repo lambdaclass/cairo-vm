@@ -44,12 +44,7 @@ pub fn unsafe_keccak(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-<<<<<<< HEAD
     let length = get_integer_from_var_name("length", &ids, vm, hint_ap_tracking)?.clone();
-=======
-    let length = get_integer_from_var_name("length", &ids, vm, hint_ap_tracking)?
-        .clone();
->>>>>>> Small refacator in unsafe_keccak
 
     if let Some(keccak_max_size) = get_int_from_scope(vm, "__keccak_max_size") {
         if length > keccak_max_size {
