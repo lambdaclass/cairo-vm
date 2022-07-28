@@ -33,7 +33,6 @@ pub fn usort_body(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let _ = get_range_check_builtin(vm)?;
     let input_arr_start_ptr = get_relocatable_from_var_name("input", ids, vm, hint_ap_tracking)?;
     let input_ptr = vm.memory.get_relocatable(&input_arr_start_ptr)?.clone();
     let usort_max_size = get_int_from_scope(vm, "usort_max_size");
