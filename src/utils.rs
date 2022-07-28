@@ -25,6 +25,13 @@ macro_rules! bigint_u64 {
 }
 
 #[macro_export]
+macro_rules! bigint_u128 {
+    ($val : expr) => {
+        BigInt::from_u128($val).unwrap()
+    };
+}
+
+#[macro_export]
 macro_rules! bigintusize {
     ($val : expr) => {
         BigInt::from_usize($val).unwrap()
@@ -35,13 +42,6 @@ macro_rules! bigintusize {
 macro_rules! bigint_i128 {
     ($val : expr) => {
         BigInt::from_i128($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u128 {
-    ($val : expr) => {
-        BigInt::from_u128($val).unwrap()
     };
 }
 

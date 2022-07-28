@@ -93,6 +93,9 @@ pub enum VirtualMachineError {
     LastPosNotFound,
     AssertionFailed(String),
     MismatchedDictPtr(Relocatable, Relocatable),
+    KeccakMaxSize(BigInt, BigInt),
+    InvalidWordSize(BigInt),
+    InvalidKeccakInputLength(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -276,6 +279,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
             VirtualMachineError::AssertionFailed(error_msg) => write!(f, "{}",error_msg),
             VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
+            VirtualMachineError::KeccakMaxSize(length, keccak_max_size) => write!(f, "unsafe_keccak() can only be used with length<={:?}. Got: length={:?}", keccak_max_size, length),
+            VirtualMachineError::InvalidWordSize(word) => write!(f, "Invalid word size: {:?}", word),
+            VirtualMachineError::InvalidKeccakInputLength(length) => write!(f, "Invalid input length, Got: length={:?}", length),
         }
     }
 }
