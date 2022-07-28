@@ -11,10 +11,10 @@ use crate::{
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::FromPrimitive;
+use num_traits::Signed;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
-use std::cmp;
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap, ops::Shl};
 
 /* Implements hint:
    %{
@@ -59,11 +59,9 @@ pub fn unsafe_keccak(
     let low_addr = get_relocatable_from_var_name("low", &ids, vm, hint_ap_tracking)?;
 
     // transform to u64 to make ranges cleaner in the for loop below
-    let u64_length = if let Some(u64_length) = length.to_u64() {
-        u64_length
-    } else {
-        return Err(VirtualMachineError::InvalidKeccakInputLength(length));
-    };
+    let u64_length = length
+        .to_u64()
+        .ok_or(VirtualMachineError::InvalidKeccakInputLength(length))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
@@ -75,14 +73,14 @@ pub fn unsafe_keccak(
         let word = vm.memory.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if &bigint!(0) > word || word >= &bigint!(2).pow(8 * (n_bytes as u32)) {
+        if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {
             return Err(VirtualMachineError::InvalidWordSize(word.clone()));
         }
 
         let (_, mut bytes) = word.to_bytes_be();
         let mut bytes = {
             let n_word_bytes = &bytes.len();
-            add_padding_at_beginning(&mut bytes, (n_bytes as usize - n_word_bytes) as usize)
+            left_pad(&mut bytes, (n_bytes as usize - n_word_bytes) as usize)
         };
 
         keccak_input.append(&mut bytes);
@@ -111,7 +109,7 @@ pub fn unsafe_keccak(
     }
 }
 
-fn add_padding_at_beginning(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
+fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     let mut res: Vec<u8> = vec![0; n_zeros];
     res.extend(bytes_vector.iter());
 
