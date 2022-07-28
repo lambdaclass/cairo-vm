@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::blake2s_utils::compute_blake2s;
+use crate::vm::hints::blake2s_utils::{compute_blake2s, finalize_blake2s};
 use crate::vm::hints::dict_hint_utils::{
     default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
     dict_update, dict_write,
@@ -131,6 +131,8 @@ pub fn execute_hint(
         Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),
         Ok("a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128"
         ) => uint256_unsigned_div_rem(vm, ids, None),
+        Ok("# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)"
+        ) => finalize_blake2s(vm, ids, Some(ap_tracking)),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
