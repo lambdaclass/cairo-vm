@@ -19,9 +19,9 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
 fn get_fixed_size_u64_array<const T: usize>(
-    h_range: Vec<Option<&MaybeRelocatable>>,
+    h_range: &Vec<Option<&MaybeRelocatable>>,
 ) -> Result<[u64; T], VirtualMachineError> {
-    let mut u64_vec = Vec::<u64>::new();
+    let mut u64_vec = Vec::<u64>::with_capacity(h_range.len());
     for element in h_range {
         let mayberel = element.ok_or(VirtualMachineError::UnexpectMemoryGap)?;
         let num = if let MaybeRelocatable::Int(num) = mayberel {
@@ -55,12 +55,12 @@ fn compute_blake2s_func(
 ) -> Result<(), VirtualMachineError> {
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     let h = get_fixed_size_u64_array::<8>(
-        memory
+        &memory
             .get_range(&output_ptr.sub_usize_mod(26, None)?, 8)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let message = get_fixed_size_u64_array::<16>(
-        memory
+        &memory
             .get_range(&output_ptr.sub_usize_mod(18, None)?, 16)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
