@@ -109,13 +109,6 @@ pub fn unsafe_keccak(
     }
 }
 
-fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
-    let mut res: Vec<u8> = vec![0; n_zeros];
-    res.extend(bytes_vector.iter());
-
-    res
-}
-
 /*
 Implements hint:
 
@@ -206,11 +199,11 @@ pub fn unsafe_keccak_finalize(
 
     let hashed = hasher.finalize();
 
-    let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
-    let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
-
     let high_addr = get_relocatable_from_var_name("high", &ids, vm, hint_ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", &ids, vm, hint_ap_tracking)?;
+
+    let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
+    let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
     match (
         vm.memory.insert(
@@ -225,6 +218,13 @@ pub fn unsafe_keccak_finalize(
         (Ok(_), Ok(_)) => Ok(()),
         (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
     }
+}
+
+fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
+    let mut res: Vec<u8> = vec![0; n_zeros];
+    res.extend(bytes_vector.iter());
+
+    res
 }
 
 fn assert_no_nones_in_range<T>(range: &Vec<Option<T>>) -> Result<(), VirtualMachineError> {
