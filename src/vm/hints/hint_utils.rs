@@ -286,10 +286,7 @@ pub fn get_integer_from_relocatable_plus_offset<'a>(
     field_offset: usize,
     vm: &'a VirtualMachine,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    vm.memory.get_integer(&Relocatable::from((
-        relocatable.segment_index,
-        relocatable.offset + field_offset,
-    )))
+    vm.memory.get_integer(&(relocatable + field_offset))
 }
 
 pub fn insert_integer_at_relocatable_plus_offset(
@@ -298,10 +295,11 @@ pub fn insert_integer_at_relocatable_plus_offset(
     field_offset: usize,
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
-    let new_pos =
-        MaybeRelocatable::from((relocatable.segment_index, relocatable.offset + field_offset));
     vm.memory
-        .insert(&new_pos, &MaybeRelocatable::from(int))
+        .insert(
+            &MaybeRelocatable::RelocatableValue(relocatable + field_offset),
+            &MaybeRelocatable::from(int),
+        )
         .map_err(VirtualMachineError::MemoryError)
 }
 

@@ -5,6 +5,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
@@ -173,6 +174,17 @@ impl MaybeRelocatable {
                 MaybeRelocatable::from(val.mod_floor(div)),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
+}
+
+impl<'a> Add<usize> for &'a Relocatable {
+    type Output = Relocatable;
+
+    fn add(self, other: usize) -> Self::Output {
+        Relocatable {
+            segment_index: self.segment_index,
+            offset: self.offset + other,
         }
     }
 }
