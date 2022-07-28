@@ -120,8 +120,8 @@ pub fn finalize_blake2s(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", &ids, vm, hint_ap_tracking)?;
     const N_PACKED_INSTANCES: usize = 7;
+    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", &ids, vm, hint_ap_tracking)?;
     let message: [u64; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;
@@ -130,11 +130,11 @@ pub fn finalize_blake2s(
     padding.extend(message);
     padding.extend([0, 0xffffffff]);
     padding.extend(output);
-    let padding_copy = padding.clone();
-    for _ in 1..N_PACKED_INSTANCES - 1 {
-        padding.extend(padding_copy.clone());
+    let mut full_padding = Vec::<u64>::new();
+    for _ in 0..N_PACKED_INSTANCES - 1 {
+        full_padding.extend(padding.clone());
     }
-    let data = get_maybe_relocatable_array_from_u64(padding);
+    let data = get_maybe_relocatable_array_from_u64(full_padding);
     vm.segments
         .load_data(
             &mut vm.memory,
@@ -521,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    fn finalize_blake2s_invalid_segment_no_ids() {
+    fn finalize_blake2s_invalid_no_ids() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
         //Create vm
         let mut vm = VirtualMachine::new(
