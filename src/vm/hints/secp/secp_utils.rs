@@ -86,4 +86,24 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn secp_pack() {
+        let pack_1 = pack(&bigint!(10), &bigint!(10), &bigint!(10), &bigint!(160));
+        assert_eq!(
+            pack_1,
+            bigint_str!(b"59863107065073783529622931521771477038469668772249610")
+        );
+
+        let pack_2 = pack(
+            &bigint_str!(b"773712524553362"),
+            &bigint_str!(b"57408430697461422066401280"),
+            &bigint_str!(b"1292469707114105"),
+            &bigint_str!(b"1292469707114105"),
+        );
+        assert_eq!(
+            pack_2,
+            bigint_str!(b"4441762184457963985490320281689802156301430343378457")
+        );
+    }
 }
