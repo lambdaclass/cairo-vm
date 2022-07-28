@@ -340,7 +340,7 @@ mod tests {
             .unwrap();
         memory
             .insert(
-                &MaybeRelocatable::from((2, 4)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
