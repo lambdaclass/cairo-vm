@@ -130,8 +130,9 @@ pub fn finalize_blake2s(
     padding.extend(message);
     padding.extend([0, 0xffffffff]);
     padding.extend(output);
-    for _ in 0..N_PACKED_INSTANCES - 1 {
-        padding.extend(padding.clone());
+    let padding_copy = padding.clone();
+    for _ in 1..N_PACKED_INSTANCES - 1 {
+        padding.extend(padding_copy.clone());
     }
     let data = get_maybe_relocatable_array_from_u64(padding);
     vm.segments
