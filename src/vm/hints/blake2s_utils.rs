@@ -64,15 +64,11 @@ fn compute_blake2s_func(
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let t = memory
-        .get_integer_from_maybe_relocatable(&MaybeRelocatable::RelocatableValue(
-            output_rel.sub(2)?,
-        ))?
+        .get_integer(&output_rel.sub(2)?)?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let f = memory
-        .get_integer_from_maybe_relocatable(&MaybeRelocatable::RelocatableValue(
-            output_rel.sub(1)?,
-        ))?
+        .get_integer(&output_rel.sub(1)?)?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let new_state =
