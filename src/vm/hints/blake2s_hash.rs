@@ -31,7 +31,7 @@ fn mix(a: u64, b: u64, c: u64, d: u64, m0: u64, m1: u64) -> (u64, u64, u64, u64)
     (a, b, c, d)
 }
 
-fn blake_round(mut state: Vec<u64>, message: [u64; 16], sigma: [usize; 16]) -> Vec<u64> {
+fn blake_round(mut state: Vec<u64>, message: &[u64; 16], sigma: [usize; 16]) -> Vec<u64> {
     (state[0], state[4], state[8], state[12]) = mix(
         state[0],
         state[4],
@@ -100,8 +100,8 @@ fn blake_round(mut state: Vec<u64>, message: [u64; 16], sigma: [usize; 16]) -> V
 }
 
 pub fn blake2s_compress(
-    h: [u64; 8],
-    message: [u64; 16],
+    h: &[u64; 8],
+    message: &[u64; 16],
     t0: u64,
     t1: u64,
     f0: u64,
@@ -136,7 +136,7 @@ mod tests {
             1541459225,
         ];
         let message: [u64; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 2, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 2, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
@@ -155,7 +155,7 @@ mod tests {
             1541459225,
         ];
         let message: [u64; 16] = [45671065168, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 2, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 2, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
@@ -177,7 +177,7 @@ mod tests {
         let message: [u64; 16] = [
             1819043144, 1870078063, 6581362, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 9, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 9, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
@@ -213,7 +213,7 @@ mod tests {
             0,
             0,
         ];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 25, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 25, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
@@ -249,7 +249,7 @@ mod tests {
             0,
             0,
         ];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 41, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 41, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
@@ -285,7 +285,7 @@ mod tests {
             437383930,
             74833930,
         ];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 64, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 64, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(
@@ -321,7 +321,7 @@ mod tests {
             43725325930,
             748335230,
         ];
-        let new_state: [u64; 8] = blake2s_compress(h, message, 64, 0, 4294967295, 0)
+        let new_state: [u64; 8] = blake2s_compress(&h, &message, 64, 0, 4294967295, 0)
             .try_into()
             .unwrap();
         assert_eq!(

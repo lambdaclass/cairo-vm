@@ -72,7 +72,8 @@ fn compute_blake2s_func(
         .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None)?)?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
-    let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
+    let new_state =
+        get_maybe_relocatable_array_from_u64(blake2s_compress(&h, &message, t, 0, f, 0));
     segments
         .load_data(memory, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
