@@ -1,4 +1,4 @@
-const IV: [u64; 8] = [
+pub const IV: [u64; 8] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
 ];
 
@@ -20,13 +20,13 @@ fn right_rot(value: u64, n: u64) -> u64 {
 }
 
 fn mix(a: u64, b: u64, c: u64, d: u64, m0: u64, m1: u64) -> (u64, u64, u64, u64) {
-    let a = (a + b + m0) % 2_u64.pow(32);
+    let a = (a + b + m0) & u32::MAX as u64;
     let d = right_rot(d ^ a, 16);
-    let c = (c + d) % 2_u64.pow(32);
+    let c = (c + d) & u32::MAX as u64;
     let b = right_rot(b ^ c, 12);
-    let a = (a + b + m1) % 2_u64.pow(32);
+    let a = (a + b + m1) & u32::MAX as u64;
     let d = right_rot(d ^ a, 8);
-    let c = (c + d) % 2_u64.pow(32);
+    let c = (c + d) & u32::MAX as u64;
     let b = right_rot(b ^ c, 7);
     (a, b, c, d)
 }
