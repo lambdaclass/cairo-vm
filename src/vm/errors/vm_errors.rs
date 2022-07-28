@@ -89,6 +89,7 @@ pub enum VirtualMachineError {
     MismatchedDictPtr(Relocatable, Relocatable),
     SecpSplitNegative(BigInt),
     SecpSplitutOfRange(BigInt),
+    SecpVerifyZero(BigInt, BigInt, BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -270,6 +271,8 @@ impl fmt::Display for VirtualMachineError {
             write!(f, "Integer must be postive or zero, got: {}", integer),
             VirtualMachineError::SecpSplitutOfRange(integer) =>
             write!(f, "Integer: {} out of range", integer),
+            VirtualMachineError::SecpVerifyZero(d0, d1, d2) =>
+            write!(f, "verify_zero: Invalid input {:?}", vec![d0, d1, d2]),
         }
     }
 }
