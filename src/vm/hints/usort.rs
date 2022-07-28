@@ -108,8 +108,7 @@ pub fn verify_usort(
 ) -> Result<(), VirtualMachineError> {
     let _ = get_range_check_builtin(vm);
     let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?.clone();
-    let positions: Vec<BigInt> = get_key_to_list_map_from_scope_mut(vm, "positions_dict")
-        .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
+    let positions: Vec<BigInt> = get_key_to_list_map_from_scope_mut(vm, "positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
         .into_iter()

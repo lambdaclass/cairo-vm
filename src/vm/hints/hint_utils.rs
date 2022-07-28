@@ -67,11 +67,11 @@ pub fn get_list_from_scope_mut<'a>(
 pub fn get_key_to_list_map_from_scope_mut<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
-) -> Option<&'a mut HashMap<BigInt, Vec<BigInt>>> {
-    let mut val: Option<&'a mut HashMap<BigInt, Vec<BigInt>>> = None;
+) -> Result<&'a mut HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
+    let mut val = Err(VirtualMachineError::ScopeError);
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
         if let Some(PyValueType::KeyToListMap(py_val)) = variables.get_mut(name) {
-            val = Some(py_val);
+            val = Ok(py_val);
         }
     }
     val
