@@ -66,6 +66,7 @@ mod tests {
     use crate::bigint;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_traits::FromPrimitive;
@@ -260,6 +261,113 @@ mod tests {
                 bigint!(0),
                 bigint!(0),
                 bigint!(150)
+            ))
+        );
+    }
+
+    #[test]
+    fn run_verify_zero_invalid_memory_insert() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 9));
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 9));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("val"), bigint!(0));
+        ids.insert(String::from("q"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -5,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::AP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+        ]);
+
+        //Create AP tracking
+        let ap_tracking = ApTracking {
+            group: 1,
+            offset: 0,
+        };
+
+        //Insert ids.val.d0 into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        //Insert ids.val.d1 into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        //Insert ids.val.d2 into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 6)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        // Insert ids.val.d2  before the hint execution, so the hint memory.insert fails
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 9)),
+                &MaybeRelocatable::from(bigint!(55)),
+            )
+            .unwrap();
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((1, 9)),
+                    MaybeRelocatable::from(bigint!(55)),
+                    MaybeRelocatable::from(bigint!(0))
+                )
             ))
         );
     }
