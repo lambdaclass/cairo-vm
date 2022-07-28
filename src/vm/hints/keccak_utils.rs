@@ -172,7 +172,7 @@ pub fn unsafe_keccak_finalize(
     let range = vm
         .memory
         .get_range(&maybe_rel_start_ptr, n_elems)
-        .map_err(|e| VirtualMachineError::MemoryError(e))?;
+        .map_err(VirtualMachineError::MemoryError)?;
 
     assert_no_nones_in_range(&range)?;
 
