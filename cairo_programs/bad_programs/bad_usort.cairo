@@ -2,10 +2,6 @@
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import assert_lt, assert_nn
 
-# Sorts an array of field elements and removes duplicates.
-# Returns the sorted array and an array of multiplicities.
-# multiplicities[i] is the number of times that output[i] appeared in input.
-# Completeness assumption: All numbers are in [0, RANGE_CHECK_BOUND).
 func usort{range_check_ptr}(input_len : felt, input : felt*) -> (
     output_len : felt, output : felt*, multiplicities : felt*
 ):
@@ -45,7 +41,6 @@ func usort{range_check_ptr}(input_len : felt, input : felt*) -> (
     return (output_len=output - output_start, output=output_start, multiplicities=multiplicities)
 end
 
-# Verifies that usort of input is (output, multiplicities). See usort().
 func verify_usort{range_check_ptr, output : felt*}(
     input_len : felt, input : felt*, total_visited : felt, multiplicities : felt*, prev : felt
 ):
@@ -77,7 +72,6 @@ func verify_usort{range_check_ptr, output : felt*}(
     )
 end
 
-# Verifies that value appears at least multiplicity times in input.
 func verify_multiplicity{range_check_ptr}(
     multiplicity : felt, input_len : felt, input : felt*, value : felt
 ):
