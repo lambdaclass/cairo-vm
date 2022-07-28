@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::math_utils::as_int;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -27,6 +28,23 @@ pub fn split(integer: &BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
     }
 
     Ok(canonical_repr)
+}
+
+/*
+Takes an UnreducedBigInt3 struct which represents a triple of limbs (d0, d1, d2) of field
+elements and reconstructs the corresponding 256-bit integer (see split()).
+Note that the limbs do not have to be in the range [0, BASE).
+prime should be the Cairo field, and it is used to handle negative values of the limbs.
+*/
+pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
+    let unreduced_big_int_3 = vec![d0, d1, d2];
+    let base: BigInt = bigint!(1).shl(86_usize);
+
+    unreduced_big_int_3
+        .iter()
+        .enumerate()
+        .map(|(idx, value)| as_int(value, prime) * base.pow(idx as u32))
+        .sum()
 }
 
 #[cfg(test)]
