@@ -84,13 +84,16 @@ pub enum VirtualMachineError {
     SquashDictMaxSizeExceeded(BigInt, BigInt),
     NAccessesTooBig(BigInt),
     BigintToUsizeFail,
-    BigintToU64Fail,
+    BigintToU32Fail,
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
     UnexpectMemoryGap,
     FixedSizeArrayFail(usize),
     AssertionFailed(String),
     MismatchedDictPtr(Relocatable, Relocatable),
     CantSubOffset(usize, usize),
+    KeccakMaxSize(BigInt, BigInt),
+    InvalidWordSize(BigInt),
+    InvalidKeccakInputLength(BigInt),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -262,7 +265,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "squash_dict fail: n_accesses: {:?} is too big to be converted into an iterator", n_accesses)
             },
             VirtualMachineError::BigintToUsizeFail => write!(f, "Couldn't convert BigInt to usize"),
-            VirtualMachineError::BigintToU64Fail => write!(f, "Couldn't convert BigInt to u64"),
+            VirtualMachineError::BigintToU32Fail => write!(f, "Couldn't convert BigInt to u64"),
             VirtualMachineError::InvalidSetRange(start, end) => write!(f, "Set starting point {:?} is bigger it's ending point {:?}", start, end),
             VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
             VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
@@ -272,6 +275,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::AssertionFailed(error_msg) => write!(f, "{}",error_msg),
             VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
             VirtualMachineError::CantSubOffset(offset , sub) => write!(f, "Cant substract {} from offset {}, offsets cant be negative", sub, offset),
+            VirtualMachineError::KeccakMaxSize(length, keccak_max_size) => write!(f, "unsafe_keccak() can only be used with length<={:?}. Got: length={:?}", keccak_max_size, length),
+            VirtualMachineError::InvalidWordSize(word) => write!(f, "Invalid word size: {:?}", word),
+            VirtualMachineError::InvalidKeccakInputLength(length) => write!(f, "Invalid input length, Got: length={:?}", length),
         }
     }
 }

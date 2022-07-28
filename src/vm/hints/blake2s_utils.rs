@@ -4,7 +4,7 @@ use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
 use super::hint_utils::get_ptr_from_var_name;
-use crate::bigint_u64;
+use crate::bigint_u32;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::hints::blake2s_hash::IV;
@@ -19,28 +19,25 @@ use crate::{
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
-fn get_fixed_size_u64_array<const T: usize>(
-    h_range: Vec<Option<&MaybeRelocatable>>,
-) -> Result<[u64; T], VirtualMachineError> {
-    let mut u64_vec = Vec::<u64>::new();
+fn get_fixed_size_u32_array<const T: usize>(
+    h_range: &Vec<Option<&MaybeRelocatable>>,
+) -> Result<[u32; T], VirtualMachineError> {
+    let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for element in h_range {
-        let mayberel = element.ok_or(VirtualMachineError::UnexpectMemoryGap)?;
-        let num = if let MaybeRelocatable::Int(num) = mayberel {
-            num
-        } else {
-            return Err(VirtualMachineError::ExpectedInteger(mayberel.clone()));
-        };
-        u64_vec.push(num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)?);
+        let num = element
+            .ok_or(VirtualMachineError::UnexpectMemoryGap)?
+            .get_int_ref()?;
+        u32_vec.push(num.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)?);
     }
-    u64_vec
+    u32_vec
         .try_into()
         .map_err(|_| VirtualMachineError::FixedSizeArrayFail(T))
 }
 
-fn get_maybe_relocatable_array_from_u64(array: Vec<u64>) -> Vec<MaybeRelocatable> {
-    let mut new_array = Vec::<MaybeRelocatable>::new();
+fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
+    let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(bigint_u64!(element)));
+        new_array.push(MaybeRelocatable::from(bigint_u32!(*element)));
     }
     new_array
 }
@@ -54,26 +51,27 @@ fn compute_blake2s_func(
     memory: &mut Memory,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
-    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    let h = get_fixed_size_u64_array::<8>(
-        memory
-            .get_range(&output_ptr.sub_usize_mod(26, None)?, 8)
+    let h = get_fixed_size_u32_array::<8>(
+        &memory
+            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(26)?), 8)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
-    let message = get_fixed_size_u64_array::<16>(
-        memory
-            .get_range(&output_ptr.sub_usize_mod(18, None)?, 16)
+    let message = get_fixed_size_u32_array::<16>(
+        &memory
+            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(18)?), 16)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let t = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(2, None)?)?
-        .to_u64()
-        .ok_or(VirtualMachineError::BigintToU64Fail)?;
+        .get_integer(&output_rel.sub(2)?)?
+        .to_u32()
+        .ok_or(VirtualMachineError::BigintToU32Fail)?;
     let f = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None)?)?
-        .to_u64()
-        .ok_or(VirtualMachineError::BigintToU64Fail)?;
-    let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
+        .get_integer(&output_rel.sub(1)?)?
+        .to_u32()
+        .ok_or(VirtualMachineError::BigintToU32Fail)?;
+    let new_state =
+        get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
+    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     segments
         .load_data(memory, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -122,19 +120,19 @@ pub fn finalize_blake2s(
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
     let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", &ids, vm, hint_ap_tracking)?;
-    let message: [u64; 16] = [0; 16];
+    let message: [u32; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;
-    let output = blake2s_compress(modified_iv, message, 0, 0, 0xffffffff, 0);
+    let output = blake2s_compress(&modified_iv, &message, 0, 0, 0xffffffff, 0);
     let mut padding = modified_iv.to_vec();
     padding.extend(message);
     padding.extend([0, 0xffffffff]);
     padding.extend(output);
-    let mut full_padding = Vec::<u64>::new();
+    let mut full_padding = Vec::<u32>::new();
     for _ in 0..N_PACKED_INSTANCES - 1 {
         full_padding.extend(padding.clone());
     }
-    let data = get_maybe_relocatable_array_from_u64(full_padding);
+    let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm.segments
         .load_data(
             &mut vm.memory,
@@ -153,10 +151,7 @@ mod tests {
     use crate::{
         bigint, bigint_i128,
         types::instruction::Register,
-        vm::{
-            errors::memory_errors::MemoryError,
-            hints::execute_hint::{execute_hint, HintReference},
-        },
+        vm::hints::execute_hint::{execute_hint, HintReference},
     };
 
     #[test]
@@ -291,7 +286,7 @@ mod tests {
     }
 
     #[test]
-    fn compute_blake2s_output_input_bigger_than_u64() {
+    fn compute_blake2s_output_input_bigger_than_u32() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
         //Create vm
         let mut vm = VirtualMachine::new(
@@ -336,7 +331,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
-            Err(VirtualMachineError::BigintToU64Fail)
+            Err(VirtualMachineError::BigintToU32Fail)
         );
     }
 
@@ -389,167 +384,6 @@ mod tests {
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((4, 5))
             ))
-        );
-    }
-
-    #[test]
-    fn finalize_blake2s_valid() {
-        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
-        //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-        //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("blake2s_ptr_end"), bigint!(0));
-        //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-        //Execute the hint
-        assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
-            Ok(())
-        );
-        //Check the inserted data
-        let expected_data: [u64; 204] = [
-            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
-            1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
-            2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
-            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
-            1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
-            2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
-            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
-            1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
-            2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
-            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
-            1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
-            2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
-            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
-            1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
-            2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
-            1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
-            1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
-            2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
-        ];
-        //Get data from memory
-        let data = get_fixed_size_u64_array::<204>(
-            vm.memory
-                .get_range(&MaybeRelocatable::from((1, 0)), 204)
-                .unwrap(),
-        )
-        .unwrap();
-        assert_eq!(expected_data, data);
-    }
-
-    #[test]
-    fn finalize_blake2s_invalid_segment_taken() {
-        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
-        //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-        //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //Insert data into blake2s segment
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("blake2s_ptr_end"), bigint!(0));
-        //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-        //Execute the hint
-        assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
-            Err(VirtualMachineError::MemoryError(
-                MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint_u64!(1795745351))
-                )
-            ))
-        );
-    }
-
-    #[test]
-    fn finalize_blake2s_invalid_no_ids() {
-        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
-        //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-        //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-        //Execute the hint
-        assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
-            Err(VirtualMachineError::FailedToGetIds)
         );
     }
 }
