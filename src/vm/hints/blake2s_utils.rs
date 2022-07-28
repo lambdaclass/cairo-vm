@@ -7,6 +7,7 @@ use super::hint_utils::get_ptr_from_var_name;
 use crate::bigint_u64;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
+use crate::vm::hints::blake2s_hash::IV;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     types::relocatable::MaybeRelocatable,
@@ -90,6 +91,57 @@ pub fn compute_blake2s(
 ) -> Result<(), VirtualMachineError> {
     let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
     compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
+}
+
+/* Implements Hint:
+    # Add dummy pairs of input and output.
+    from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
+
+    _n_packed_instances = int(ids.N_PACKED_INSTANCES)
+    assert 0 <= _n_packed_instances < 20
+    _blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)
+    assert 0 <= _blake2s_input_chunk_size_felts < 100
+
+    message = [0] * _blake2s_input_chunk_size_felts
+    modified_iv = [IV[0] ^ 0x01010020] + IV[1:]
+    output = blake2s_compress(
+        message=message,
+        h=modified_iv,
+        t0=0,
+        t1=0,
+        f0=0xffffffff,
+        f1=0,
+    )
+    padding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)
+    segments.write_arg(ids.blake2s_ptr_end, padding)
+*/
+pub fn finalize_blake2s(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", &ids, vm, hint_ap_tracking)?;
+    const N_PACKED_INSTANCES: usize = 7;
+    let message: [u64; 16] = [0; 16];
+    let mut modified_iv = IV;
+    modified_iv[0] = IV[0] ^ 0x01010020;
+    let output = blake2s_compress(modified_iv, message, 0, 0, 0xffffffff, 0);
+    let mut padding = modified_iv.to_vec();
+    padding.extend(message);
+    padding.extend([0, 0xffffffff]);
+    padding.extend(output);
+    for _ in 0..N_PACKED_INSTANCES - 1 {
+        padding.extend(padding.clone());
+    }
+    let data = get_maybe_relocatable_array_from_u64(padding);
+    vm.segments
+        .load_data(
+            &mut vm.memory,
+            &MaybeRelocatable::RelocatableValue(blake2s_ptr_end),
+            data,
+        )
+        .map_err(VirtualMachineError::MemoryError)?;
+    Ok(())
 }
 
 #[cfg(test)]
