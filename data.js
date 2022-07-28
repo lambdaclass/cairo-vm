@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659044079189,
+  "lastUpdate": 1659045410833,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -10421,6 +10421,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 264978158,
             "range": "± 4128397",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7a903b4e71ca235589075ff34b43a829c0d7421b",
+          "message": "[HINTS]Add implementation for hints & utils for function blake2s (cairo_blake2s) (#317)\n\n* Start blake2s\r\n\r\n* Replace pow for <<\r\n\r\n* Add blake2s_compress\r\n\r\n* Add test for blake2s_compress\r\n\r\n* First batch of fixes\r\n\r\n* Last fixes for blake2s_compress\r\n\r\n* Add unit tests for blake2s\r\n\r\n* Rename files\r\n\r\n* Add function compute_blake2s_func\r\n\r\n* Add implementation for hint on blake2s_inner\r\n\r\n* Clippy Fix\r\n\r\n* Add integration test\r\n\r\n* Fix problems with references\r\n\r\n* Add unit tests for compute_blake2s\r\n\r\n* Remove leftover comment\r\n\r\n* Add more unit tests\r\n\r\n* Change integration test to use string literals instead of numbers\r\n\r\n* Replace pow result for constant in mix\r\n\r\n* Add references\r\n\r\n* Improve get_fixed_size_array\r\n\r\n* Improve get_maybe_relocatable_array_from_u64\r\n\r\n* Replaced MaybeRelocatable::sub_usize_mod for Relocatable::sub\r\n\r\n* Replace pow for shl on right_rot\r\n\r\n* Update src/vm/hints/blake2s_utils.rs\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\r\n\r\n* Remove unnecessary helper function\r\n\r\n* Add helper method get_int_ref\r\n\r\n* Change data type in blake2s_hash to u32\r\n\r\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2022-07-28T18:43:37-03:00",
+          "tree_id": "4a84a3d578769d9fd4220192d7d898d5563d2c9e",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/7a903b4e71ca235589075ff34b43a829c0d7421b"
+        },
+        "date": 1659045407875,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1994701877,
+            "range": "± 10265947",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 715709081,
+            "range": "± 2845202",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 350751900,
+            "range": "± 1618232",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1761570480,
+            "range": "± 7624382",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 263383721,
+            "range": "± 1650621",
             "unit": "ns/iter"
           }
         ]
