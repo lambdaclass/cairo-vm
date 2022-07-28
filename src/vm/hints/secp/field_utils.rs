@@ -1,5 +1,6 @@
 use crate::bigint_str;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
@@ -56,6 +57,38 @@ pub fn verify_zero(
     vm.memory
         .insert(&q_address, &MaybeRelocatable::from(q.mod_floor(&vm.prime)))
         .map_err(VirtualMachineError::MemoryError)
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    value = pack(ids.x, PRIME) % SECP_P
+%}
+*/
+pub fn reduce(
+    vm: &mut VirtualMachine,
+    ids: HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let x_reloc = get_relocatable_from_var_name("x", &ids, vm, hint_ap_tracking)?;
+
+    let x_d0 = get_integer_from_relocatable_plus_offset(&x_reloc, 0, vm)?;
+    let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
+    let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
+
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    let sec_p = bigint_str!(
+        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    );
+
+    let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&sec_p);
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value));
+
+    Ok(())
 }
 
 #[cfg(test)]
