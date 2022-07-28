@@ -1,5 +1,5 @@
 use crate::{
-    bigintusize,
+    bigintusize, relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
@@ -36,6 +36,16 @@ impl From<(usize, usize)> for MaybeRelocatable {
 impl From<BigInt> for MaybeRelocatable {
     fn from(num: BigInt) -> Self {
         MaybeRelocatable::Int(num)
+    }
+}
+
+impl Relocatable {
+    pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
+        if self.offset < other {
+            return Err(VirtualMachineError::CantSubOffset(self.offset, other));
+        }
+        let new_offset = self.offset - other;
+        Ok(relocatable!(self.segment_index, new_offset))
     }
 }
 
@@ -150,33 +160,6 @@ impl MaybeRelocatable {
                 )))
             }
             _ => Err(VirtualMachineError::NotImplemented),
-        }
-    }
-
-    ///Substracts a usize to self, then performs mod prime if prime is given
-    pub fn sub_usize_mod(
-        &self,
-        other: usize,
-        prime: Option<BigInt>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        match *self {
-            MaybeRelocatable::Int(ref value) => {
-                let mut num = value - other;
-                if let Some(num_prime) = prime {
-                    num = num.mod_floor(&num_prime);
-                }
-                Ok(MaybeRelocatable::Int(num))
-            }
-            MaybeRelocatable::RelocatableValue(ref rel) => {
-                if rel.offset < other {
-                    return Err(VirtualMachineError::CantSubOffset(rel.offset, other));
-                }
-                let new_offset = rel.offset - other;
-                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index,
-                    offset: new_offset,
-                }))
-            }
         }
     }
 

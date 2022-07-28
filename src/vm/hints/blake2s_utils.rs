@@ -53,27 +53,31 @@ fn compute_blake2s_func(
     memory: &mut Memory,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
-    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     let h = get_fixed_size_u64_array::<8>(
         &memory
-            .get_range(&output_ptr.sub_usize_mod(26, None)?, 8)
+            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(26)?), 8)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let message = get_fixed_size_u64_array::<16>(
         &memory
-            .get_range(&output_ptr.sub_usize_mod(18, None)?, 16)
+            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(18)?), 16)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let t = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(2, None)?)?
+        .get_integer_from_maybe_relocatable(&MaybeRelocatable::RelocatableValue(
+            output_rel.sub(2)?,
+        ))?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let f = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None)?)?
+        .get_integer_from_maybe_relocatable(&MaybeRelocatable::RelocatableValue(
+            output_rel.sub(1)?,
+        ))?
         .to_u64()
         .ok_or(VirtualMachineError::BigintToU64Fail)?;
     let new_state =
         get_maybe_relocatable_array_from_u64(&blake2s_compress(&h, &message, t, 0, f, 0));
+    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     segments
         .load_data(memory, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
