@@ -21,10 +21,11 @@ use std::collections::HashMap;
 pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let usort_max_size =
         get_int_from_scope(vm, "usort_max_size").map_or(PyValueType::None, PyValueType::BigInt);
-    Ok(vm.exec_scopes.enter_scope(HashMap::from([(
+    vm.exec_scopes.enter_scope(HashMap::from([(
         "usort_max_size".to_string(),
         usort_max_size,
-    )])))
+    )]));
+    Ok(())
 }
 
 pub fn usort_body(

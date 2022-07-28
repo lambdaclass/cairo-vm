@@ -195,6 +195,25 @@ fn cairo_run_search_sorted_lower() {
 }
 
 #[test]
+fn cairo_run_usort() {
+    cairo_run::cairo_run(Path::new("cairo_programs/usort.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_usort_bad() {
+    let err = cairo_run::cairo_run(
+        Path::new("cairo_programs/bad_programs/bad_usort.json"),
+        false,
+    );
+    assert!(err.is_err());
+    assert_eq!(
+        err.err().unwrap().to_string(),
+        "VM failure: unexpected verify multiplicity fail: positions length != 0"
+    );
+}
+
+#[test]
 fn cairo_run_dict_write_bad() {
     assert!(cairo_run::cairo_run(
         Path::new("cairo_programs/bad_programs/bad_dict_new.json"),
