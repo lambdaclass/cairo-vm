@@ -1,3 +1,5 @@
+use std::ops::Shl;
+
 pub const IV: [u64; 8] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
 ];
@@ -16,7 +18,7 @@ const SIGMA: [[usize; 16]; 10] = [
 ];
 
 fn right_rot(value: u64, n: u64) -> u64 {
-    (value >> n) | ((value & (2_u64.pow(n as u32) - 1)) << (32 - n))
+    (value >> n) | ((value & (1_u64.shl(n as u32) - 1)) << (32 - n))
 }
 
 fn mix(a: u64, b: u64, c: u64, d: u64, m0: u64, m1: u64) -> (u64, u64, u64, u64) {
