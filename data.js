@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659118217612,
+  "lastUpdate": 1659121422881,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -11379,6 +11379,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 222113908,
             "range": "± 803554",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d5f3747dc54f24208c8f85856168e05d476d06c",
+          "message": "[HINTS] Usort hints (#319)\n\n* Finished enter scope and body for usort\r\n\r\n* Add funcionality up to verify multiply\r\n\r\n* Finish logic on functions\r\n\r\n* Fix ids bug\r\n\r\n* Finish hint and add cairo programs\r\n\r\n* Add integration tests\r\n\r\n* Add unit test\r\n\r\n* Reduce cairo programs verbosity\r\n\r\n* Remove comments\r\n\r\n* Remove range check builtin retrieval\r\n\r\n* Change Option to Result\r\n\r\n* Implement Add trait for &Relocatable\r\n\r\n* Remove remaining range builtin calls\r\n\r\n* Remove range check import\r\n\r\n* Change Bigint to u64 in various locations\r\n\r\n* Remove unused function",
+          "timestamp": "2022-07-29T15:49:58-03:00",
+          "tree_id": "5dc766f8ec93bcdccc7fb768a972b84702faa79b",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/7d5f3747dc54f24208c8f85856168e05d476d06c"
+        },
+        "date": 1659121419963,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2092268015,
+            "range": "± 28241317",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 749261907,
+            "range": "± 9201570",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 367765913,
+            "range": "± 12227504",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1707635858,
+            "range": "± 37478799",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 263030470,
+            "range": "± 8029244",
             "unit": "ns/iter"
           }
         ]
