@@ -17,10 +17,10 @@ Implements hint:
 */
 pub fn nondet_bigint3(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", &ids, vm, hint_ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name("res", ids, vm, hint_ap_tracking)?;
 
     // get `value` variable from vm scope
     let value: &BigInt = match vm
@@ -37,7 +37,7 @@ pub fn nondet_bigint3(
         }
     };
 
-    let arg = split(value)?;
+    let arg: Vec<BigInt> = split(value)?.to_vec();
 
     vm.segments
         .write_arg(&mut vm.memory, &res_reloc, &arg, true, Some(&vm.prime))
