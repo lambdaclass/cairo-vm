@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659107495193,
+  "lastUpdate": 1659107685916,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -11025,6 +11025,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 220236580,
             "range": "± 443495",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d72d21cb995b5e75350c0ce28b47952aeaae5ee1",
+          "message": "[HINTS] Add implementation for hint on finalize_blake2s (cario_blake2s) (#323)\n\n* Start blake2s\r\n\r\n* Replace pow for <<\r\n\r\n* Add blake2s_compress\r\n\r\n* Add test for blake2s_compress\r\n\r\n* First batch of fixes\r\n\r\n* Last fixes for blake2s_compress\r\n\r\n* Add unit tests for blake2s\r\n\r\n* Rename files\r\n\r\n* Add function compute_blake2s_func\r\n\r\n* Add implementation for hint on blake2s_inner\r\n\r\n* Clippy Fix\r\n\r\n* Add integration test\r\n\r\n* Fix problems with references\r\n\r\n* Add unit tests for compute_blake2s\r\n\r\n* Remove leftover comment\r\n\r\n* Add more unit tests\r\n\r\n* Add implementation for hint on blake2s_finalize\r\n\r\n* Add integration test for finalize_blake2s\r\n\r\n* Fix hint implementation\r\n\r\n* Add unit tests\r\n\r\n* Remove clone\r\n\r\n* Remove residual helper methods\r\n\r\n* Fix tests\r\n\r\n* Improvements",
+          "timestamp": "2022-07-29T12:03:41-03:00",
+          "tree_id": "63ff1c0511a30451ed6afa0abf9b74498da91902",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/d72d21cb995b5e75350c0ce28b47952aeaae5ee1"
+        },
+        "date": 1659107684662,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1695824523,
+            "range": "± 3384148",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 603839884,
+            "range": "± 1437069",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 297216223,
+            "range": "± 709852",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1459208592,
+            "range": "± 1805406",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 221769261,
+            "range": "± 751883",
             "unit": "ns/iter"
           }
         ]
