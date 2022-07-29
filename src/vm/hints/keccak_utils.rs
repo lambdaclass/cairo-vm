@@ -156,13 +156,11 @@ pub fn unsafe_keccak_finalize(
     let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
 
-    let n_elems = match maybe_rel_end_ptr.sub(&maybe_rel_start_ptr, &vm.prime) {
-        Ok(MaybeRelocatable::Int(num)) => num
-            .to_usize()
-            .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        Err(e) => return Err(e),
-        _ => unreachable!(),
-    };
+    let n_elems = maybe_rel_end_ptr
+        .sub(&maybe_rel_start_ptr, &vm.prime)?
+        .get_int_ref()?
+        .to_usize()
+        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
     let mut keccak_input = Vec::new();
     let range = vm
