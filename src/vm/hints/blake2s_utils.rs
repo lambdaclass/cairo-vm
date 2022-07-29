@@ -4,7 +4,7 @@ use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
 use super::hint_utils::{get_ptr_from_var_name, get_relocatable_from_var_name};
-use crate::bigint_u64;
+use crate::bigint_u32;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::hints::blake2s_hash::IV;
@@ -19,28 +19,25 @@ use crate::{
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
-fn get_fixed_size_u64_array<const T: usize>(
-    h_range: Vec<Option<&MaybeRelocatable>>,
-) -> Result<[u64; T], VirtualMachineError> {
-    let mut u64_vec = Vec::<u64>::new();
+fn get_fixed_size_u32_array<const T: usize>(
+    h_range: &Vec<Option<&MaybeRelocatable>>,
+) -> Result<[u32; T], VirtualMachineError> {
+    let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for element in h_range {
-        let mayberel = element.ok_or(VirtualMachineError::UnexpectMemoryGap)?;
-        let num = if let MaybeRelocatable::Int(num) = mayberel {
-            num
-        } else {
-            return Err(VirtualMachineError::ExpectedInteger(mayberel.clone()));
-        };
-        u64_vec.push(num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)?);
+        let num = element
+            .ok_or(VirtualMachineError::UnexpectMemoryGap)?
+            .get_int_ref()?;
+        u32_vec.push(num.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)?);
     }
-    u64_vec
+    u32_vec
         .try_into()
         .map_err(|_| VirtualMachineError::FixedSizeArrayFail(T))
 }
 
-fn get_maybe_relocatable_array_from_u64(array: Vec<u64>) -> Vec<MaybeRelocatable> {
-    let mut new_array = Vec::<MaybeRelocatable>::new();
+fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
+    let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(bigint_u64!(element)));
+        new_array.push(MaybeRelocatable::from(bigint_u32!(*element)));
     }
     new_array
 }
@@ -62,26 +59,27 @@ fn compute_blake2s_func(
     memory: &mut Memory,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
-    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    let h = get_fixed_size_u64_array::<8>(
-        memory
-            .get_range(&output_ptr.sub_usize_mod(26, None)?, 8)
+    let h = get_fixed_size_u32_array::<8>(
+        &memory
+            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(26)?), 8)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
-    let message = get_fixed_size_u64_array::<16>(
-        memory
-            .get_range(&output_ptr.sub_usize_mod(18, None)?, 16)
+    let message = get_fixed_size_u32_array::<16>(
+        &memory
+            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(18)?), 16)
             .map_err(VirtualMachineError::MemoryError)?,
     )?;
     let t = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(2, None)?)?
-        .to_u64()
-        .ok_or(VirtualMachineError::BigintToU64Fail)?;
+        .get_integer(&output_rel.sub(2)?)?
+        .to_u32()
+        .ok_or(VirtualMachineError::BigintToU32Fail)?;
     let f = memory
-        .get_integer_from_maybe_relocatable(&output_ptr.sub_usize_mod(1, None)?)?
-        .to_u64()
-        .ok_or(VirtualMachineError::BigintToU64Fail)?;
-    let new_state = get_maybe_relocatable_array_from_u64(blake2s_compress(h, message, t, 0, f, 0));
+        .get_integer(&output_rel.sub(1)?)?
+        .to_u32()
+        .ok_or(VirtualMachineError::BigintToU32Fail)?;
+    let new_state =
+        get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
+    let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
     segments
         .load_data(memory, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -94,10 +92,10 @@ fn compute_blake2s_func(
 */
 pub fn compute_blake2s(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
+    let output = get_ptr_from_var_name("output", ids, vm, hint_ap_tracking)?;
     compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
 }
 
@@ -130,19 +128,20 @@ pub fn finalize_blake2s(
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
     let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", &ids, vm, hint_ap_tracking)?;
-    let message: [u64; 16] = [0; 16];
+    let message: [u32; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;
-    let output = blake2s_compress(modified_iv, message, 0, 0, 0xffffffff, 0);
+    let output = blake2s_compress(&modified_iv, &message, 0, 0, 0xffffffff, 0);
     let mut padding = modified_iv.to_vec();
     padding.extend(message);
     padding.extend([0, 0xffffffff]);
     padding.extend(output);
-    let mut full_padding = Vec::<u64>::new();
+    let padding = padding.as_slice();
+    let mut full_padding = Vec::<u32>::with_capacity(padding.len() * N_PACKED_INSTANCES);
     for _ in 0..N_PACKED_INSTANCES - 1 {
-        full_padding.extend(padding.clone());
+        full_padding.extend_from_slice(padding);
     }
-    let data = get_maybe_relocatable_array_from_u64(full_padding);
+    let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm.segments
         .load_data(
             &mut vm.memory,
@@ -191,7 +190,7 @@ pub fn blake2s_add_uint256(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((high >> (B * i)) & bigint_u64!(MASK));
+        inner_data.push((high >> (B * i)) & bigint_u32!(MASK));
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(inner_data);
@@ -224,12 +223,12 @@ pub fn blake2s_add_uint256_bigend(
     let high = &vm.memory.get_integer(&high_addr)?.clone();
     //Main logic
     //Declare constant
-    const MASK: u64 = u32::MAX as u64;
-    const B: u64 = 32;
+    const MASK: u32 = u32::MAX as u32;
+    const B: u32 = 32;
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((low >> (B * (3 - i))) & bigint_u64!(MASK));
+        inner_data.push((low >> (B * (3 - i))) & bigint_u32!(MASK));
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(inner_data);
@@ -243,7 +242,7 @@ pub fn blake2s_add_uint256_bigend(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((high >> (B * (3 - i))) & bigint_u64!(MASK));
+        inner_data.push((high >> (B * (3 - i))) & bigint_u32!(MASK));
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(inner_data);
@@ -403,7 +402,7 @@ mod tests {
     }
 
     #[test]
-    fn compute_blake2s_output_input_bigger_than_u64() {
+    fn compute_blake2s_output_input_bigger_than_u32() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
         //Create vm
         let mut vm = VirtualMachine::new(
@@ -448,7 +447,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
-            Err(VirtualMachineError::BigintToU64Fail)
+            Err(VirtualMachineError::BigintToU32Fail)
         );
     }
 
@@ -546,7 +545,7 @@ mod tests {
             Ok(())
         );
         //Check the inserted data
-        let expected_data: [u64; 204] = [
+        let expected_data: [u32; 204] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
             1541459225, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 813310313,
             2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
@@ -567,8 +566,8 @@ mod tests {
             2491453561, 3491828193, 2085238082, 1219908895, 514171180, 4245497115, 4193177630,
         ];
         //Get data from memory
-        let data = get_fixed_size_u64_array::<204>(
-            vm.memory
+        let data = get_fixed_size_u32_array::<204>(
+            &vm.memory
                 .get_range(&MaybeRelocatable::from((1, 0)), 204)
                 .unwrap(),
         )
@@ -626,7 +625,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint_u64!(1795745351))
+                    MaybeRelocatable::from(bigint_u32!(1795745351))
                 )
             ))
         );
