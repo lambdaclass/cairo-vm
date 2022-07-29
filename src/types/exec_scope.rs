@@ -13,6 +13,9 @@ pub enum PyValueType {
     List(Vec<BigInt>),
     Dictionary(HashMap<BigInt, BigInt>),
     KeyToListMap(HashMap<BigInt, Vec<BigInt>>),
+    U64(u64),
+    ListU64(Vec<u64>),
+    DictBigIntListU64(HashMap<BigInt, Vec<u64>>),
     None,
 }
 

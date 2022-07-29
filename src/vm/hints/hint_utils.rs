@@ -27,6 +27,29 @@ pub fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt>
     val
 }
 
+pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, VirtualMachineError> {
+    let mut val: Result<u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::U64(py_val)) = variables.get(name) {
+            val = Ok(*py_val);
+        }
+    }
+    val
+}
+
+pub fn get_u64_from_scope_ref<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Result<&'a u64, VirtualMachineError> {
+    let mut val: Result<&'a u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::U64(py_val)) = variables.get(name) {
+            val = Ok(py_val);
+        }
+    }
+    val
+}
+
 //Returns the value in the current execution scope that matches the name and is of type List
 pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
     let mut val: Option<Vec<BigInt>> = None;
@@ -38,39 +61,41 @@ pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<Bi
     val
 }
 
-pub fn get_list_from_scope_ref<'a>(
+pub fn get_list_u64_from_scope_ref<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
-) -> Option<&'a Vec<BigInt>> {
-    let mut val: Option<&'a Vec<BigInt>> = None;
+) -> Result<&'a Vec<u64>, VirtualMachineError> {
+    let mut val: Result<&'a Vec<u64>, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::List(py_val)) = variables.get(name) {
-            val = Some(py_val);
+        if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
+            val = Ok(py_val);
         }
     }
     val
 }
 
-pub fn get_list_from_scope_mut<'a>(
+pub fn get_list_u64_from_scope_mut<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
-) -> Option<&'a mut Vec<BigInt>> {
-    let mut val: Option<&'a mut Vec<BigInt>> = None;
+) -> Result<&'a mut Vec<u64>, VirtualMachineError> {
+    let mut val: Result<&'a mut Vec<u64>, VirtualMachineError> =
+        Err(VirtualMachineError::ScopeError);
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
-            val = Some(py_val);
+        if let Some(PyValueType::ListU64(py_val)) = variables.get_mut(name) {
+            val = Ok(py_val);
         }
     }
     val
 }
 
-pub fn get_key_to_list_map_from_scope_mut<'a>(
+pub fn get_dict_int_list_u64_from_scope_mut<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
-) -> Result<&'a mut HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
-    let mut val = Err(VirtualMachineError::ScopeError);
+) -> Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
+    let mut val: Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> =
+        Err(VirtualMachineError::ScopeError);
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::KeyToListMap(py_val)) = variables.get_mut(name) {
+        if let Some(PyValueType::DictBigIntListU64(py_val)) = variables.get_mut(name) {
             val = Ok(py_val);
         }
     }
@@ -287,6 +312,16 @@ pub fn get_integer_from_relocatable_plus_offset<'a>(
     vm: &'a VirtualMachine,
 ) -> Result<&'a BigInt, VirtualMachineError> {
     vm.memory.get_integer(&(relocatable + field_offset))
+}
+
+pub fn get_u64_from_relocatable_plus_offset(
+    relocatable: &Relocatable,
+    field_offset_u64: u64,
+    vm: &VirtualMachine,
+) -> Result<u64, VirtualMachineError> {
+    let field_offset: usize = field_offset_u64 as usize;
+    let int = vm.memory.get_integer(&(relocatable + field_offset))?;
+    int.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
 }
 
 pub fn insert_integer_at_relocatable_plus_offset(

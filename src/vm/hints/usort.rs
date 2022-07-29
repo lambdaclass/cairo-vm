@@ -1,13 +1,14 @@
 use crate::{
-    bigint, bigintusize,
+    bigint, bigint_u64, bigintusize,
     serde::deserialize_program::ApTracking,
     types::exec_scope::PyValueType,
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
-            get_int_from_scope, get_integer_from_relocatable_plus_offset,
-            get_integer_from_var_name, get_key_to_list_map_from_scope_mut, get_list_from_scope_mut,
-            get_list_from_scope_ref, get_relocatable_from_var_name,
+            get_dict_int_list_u64_from_scope_mut, get_int_from_scope,
+            get_integer_from_relocatable_plus_offset, get_integer_from_var_name,
+            get_list_u64_from_scope_mut, get_list_u64_from_scope_ref,
+            get_relocatable_from_var_name, get_u64_from_scope,
             insert_integer_at_relocatable_plus_offset, insert_integer_from_var_name,
             insert_relocatable_from_var_name,
         },
@@ -20,7 +21,7 @@ use std::collections::HashMap;
 
 pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let usort_max_size =
-        get_int_from_scope(vm, "usort_max_size").map_or(PyValueType::None, PyValueType::BigInt);
+        get_u64_from_scope(vm, "usort_max_size").map_or(PyValueType::None, PyValueType::U64);
     vm.exec_scopes.enter_scope(HashMap::from([(
         "usort_max_size".to_string(),
         usort_max_size,
@@ -35,14 +36,14 @@ pub fn usort_body(
 ) -> Result<(), VirtualMachineError> {
     let input_arr_start_ptr = get_relocatable_from_var_name("input", ids, vm, hint_ap_tracking)?;
     let input_ptr = vm.memory.get_relocatable(&input_arr_start_ptr)?.clone();
-    let usort_max_size = get_int_from_scope(vm, "usort_max_size");
+    let usort_max_size = get_u64_from_scope(vm, "usort_max_size");
     let input_len = get_integer_from_var_name("input_len", ids, vm, hint_ap_tracking)?;
-    let input_len_usize = input_len
-        .to_usize()
+    let input_len_u64 = input_len
+        .to_u64()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
-    if let Some(usort_max_size) = usort_max_size {
-        if input_len > &usort_max_size {
+    if let Ok(usort_max_size) = usort_max_size {
+        if input_len_u64 > usort_max_size {
             return Err(VirtualMachineError::UsortOutOfRange(
                 usort_max_size,
                 input_len.clone(),
@@ -50,26 +51,28 @@ pub fn usort_body(
         }
     }
 
-    let mut positions_dict: HashMap<BigInt, Vec<BigInt>> = HashMap::new();
+    let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
-    for i in 0..input_len_usize {
-        let val = get_integer_from_relocatable_plus_offset(&input_ptr, i, vm)?;
+    for i in 0..input_len_u64 {
+        let val = get_integer_from_relocatable_plus_offset(&input_ptr, i as usize, vm)?;
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
         positions_dict
             .entry(val.clone())
             .or_insert(Vec::new())
-            .push(bigintusize!(i));
+            .push(i);
     }
 
-    let mut multiplicities: Vec<BigInt> = Vec::new();
+    let mut multiplicities: Vec<usize> = Vec::new();
     for k in output.iter() {
-        multiplicities.push(bigintusize!(positions_dict[k].len()));
+        multiplicities.push(positions_dict[k].len());
     }
 
-    vm.exec_scopes
-        .assign_or_update_variable("positions_dict", PyValueType::KeyToListMap(positions_dict));
+    vm.exec_scopes.assign_or_update_variable(
+        "positions_dict",
+        PyValueType::DictBigIntListU64(positions_dict),
+    );
     let output_base = vm.segments.add(&mut vm.memory, Some(output.len()));
     let multiplicities_base = vm.segments.add(&mut vm.memory, Some(multiplicities.len()));
     let output_len = output.len();
@@ -79,7 +82,12 @@ pub fn usort_body(
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        insert_integer_at_relocatable_plus_offset(repetition_amount, &multiplicities_base, i, vm)?;
+        insert_integer_at_relocatable_plus_offset(
+            bigintusize!(repetition_amount),
+            &multiplicities_base,
+            i,
+            vm,
+        )?;
     }
 
     insert_integer_from_var_name(
@@ -107,7 +115,7 @@ pub fn verify_usort(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?.clone();
-    let positions: Vec<BigInt> = get_key_to_list_map_from_scope_mut(vm, "positions_dict")?
+    let positions: Vec<u64> = get_dict_int_list_u64_from_scope_mut(vm, "positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
         .into_iter()
@@ -115,7 +123,7 @@ pub fn verify_usort(
         .collect();
 
     vm.exec_scopes
-        .assign_or_update_variable("positions", PyValueType::List(positions));
+        .assign_or_update_variable("positions", PyValueType::ListU64(positions));
     vm.exec_scopes
         .assign_or_update_variable("last_pos", PyValueType::BigInt(bigint!(0)));
 
@@ -123,9 +131,7 @@ pub fn verify_usort(
 }
 
 pub fn verify_multiplicity_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let positions_len = get_list_from_scope_ref(vm, "positions")
-        .ok_or(VirtualMachineError::PositionsNotFound)?
-        .len();
+    let positions_len = get_list_u64_from_scope_ref(vm, "positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
@@ -138,21 +144,23 @@ pub fn verify_multiplicity_body(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let current_pos = get_list_from_scope_mut(vm, "positions")
-        .ok_or(VirtualMachineError::PositionsNotFound)?
+    let current_pos = get_list_u64_from_scope_mut(vm, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
 
-    let pos_diff = current_pos.clone()
+    let pos_diff = bigint_u64!(current_pos)
         - get_int_from_scope(vm, "last_pos").ok_or(VirtualMachineError::LastPosNotFound)?;
 
     insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
 
-    vm.exec_scopes
-        .assign_or_update_variable("last_pos", PyValueType::BigInt(current_pos + 1));
+    vm.exec_scopes.assign_or_update_variable(
+        "last_pos",
+        PyValueType::BigInt(bigint_u64!(current_pos + 1)),
+    );
 
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -214,11 +222,11 @@ mod tests {
         }
 
         vm.exec_scopes
-            .assign_or_update_variable("usort_max_size", PyValueType::BigInt(bigint!(1)));
+            .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 
         assert_eq!(
             execute_hint(&mut vm, hint, ids, &ApTracking::new()),
-            Err(VirtualMachineError::UsortOutOfRange(bigint!(1), bigint!(5)))
+            Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }
 }
