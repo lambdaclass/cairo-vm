@@ -153,30 +153,31 @@ pub fn finalize_blake2s(
     Ok(())
 }
 
-/* Implements Hint: B = 32
+/* Implements Hint:
+    B = 32
     MASK = 2 ** 32 - 1
     segments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])
     segments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", &ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", &ids, vm, hint_ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", &ids, vm, hint_ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
     let low = &vm.memory.get_integer(&low_addr)?.clone();
     let high = &vm.memory.get_integer(&high_addr)?.clone();
     //Main logic
-    //Decalre constant
-    const MASK: u64 = u32::MAX as u64;
-    const B: u64 = 32;
+    //Declare constant
+    const MASK: u32 = u32::MAX;
+    const B: u32 = 32;
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((low >> (B * i)) & bigint_u64!(MASK));
+        inner_data.push((low >> (B * i)) & bigint_u32!(MASK));
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(inner_data);
@@ -191,6 +192,58 @@ pub fn blake2s_add_uint256(
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
         inner_data.push((high >> (B * i)) & bigint_u64!(MASK));
+    }
+    //Insert second batch of data
+    let data = get_maybe_relocatable_array_from_bigint(inner_data);
+    vm.segments
+        .load_data(
+            &mut vm.memory,
+            &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
+            data,
+        )
+        .map_err(VirtualMachineError::MemoryError)?;
+    Ok(())
+}
+
+/* Implements Hint:
+    B = 32
+    MASK = 2 ** 32 - 1
+    segments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])
+    segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])
+*/
+pub fn blake2s_add_uint256_bigend(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //Get variables from ids
+    let data_ptr = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let low = &vm.memory.get_integer(&low_addr)?.clone();
+    let high = &vm.memory.get_integer(&high_addr)?.clone();
+    //Main logic
+    //Declare constant
+    const MASK: u64 = u32::MAX as u64;
+    const B: u64 = 32;
+    //Build first batch of data
+    let mut inner_data = Vec::<BigInt>::new();
+    for i in 0..4 {
+        inner_data.push((low >> (B * (3 - i))) & bigint_u64!(MASK));
+    }
+    //Insert first batch of data
+    let data = get_maybe_relocatable_array_from_bigint(inner_data);
+    vm.segments
+        .load_data(
+            &mut vm.memory,
+            &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
+            data,
+        )
+        .map_err(VirtualMachineError::MemoryError)?;
+    //Build second batch of data
+    let mut inner_data = Vec::<BigInt>::new();
+    for i in 0..4 {
+        inner_data.push((high >> (B * (3 - i))) & bigint_u64!(MASK));
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(inner_data);
