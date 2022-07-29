@@ -98,6 +98,7 @@ mod tests {
                 offset1: 5,
                 offset2: 0,
                 inner_dereference: false,
+                immediate: None,
                 ap_tracking_data: Some(ApTracking {
                     group: 0,
                     offset: 0,
@@ -172,6 +173,7 @@ mod tests {
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
+                immediate: None,
                 inner_dereference: false,
                 ap_tracking_data: Some(ApTracking {
                     group: 0,
@@ -230,6 +232,7 @@ mod tests {
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
+                immediate: None,
                 inner_dereference: false,
                 ap_tracking_data: Some(ApTracking {
                     group: 0,
