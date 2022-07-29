@@ -7,7 +7,7 @@ use crate::{
         hints::hint_utils::{
             get_int_from_scope, get_integer_from_relocatable_plus_offset,
             get_integer_from_var_name, get_key_to_list_map_from_scope_mut, get_list_from_scope_mut,
-            get_list_from_scope_ref, get_range_check_builtin, get_relocatable_from_var_name,
+            get_list_from_scope_ref, get_relocatable_from_var_name,
             insert_integer_at_relocatable_plus_offset, insert_integer_from_var_name,
             insert_relocatable_from_var_name,
         },
