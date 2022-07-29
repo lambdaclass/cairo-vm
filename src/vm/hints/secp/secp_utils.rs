@@ -39,7 +39,7 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
     unreduced_big_int_3
         .iter()
         .enumerate()
-        .map(|(idx, value)| as_int(value, prime) * (bigint!(1) << (idx * 86)))
+        .map(|(idx, value)| as_int(value, prime) << (idx * 86))
         .sum()
 }
 

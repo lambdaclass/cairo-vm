@@ -40,7 +40,7 @@ pub fn nondet_bigint3(
     let arg: Vec<BigInt> = split(value)?.to_vec();
 
     vm.segments
-        .write_arg(&mut vm.memory, &res_reloc, &arg, true, Some(&vm.prime))
+        .write_arg(&mut vm.memory, &res_reloc, &arg, Some(&vm.prime))
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())

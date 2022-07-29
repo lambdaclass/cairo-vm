@@ -75,20 +75,17 @@ impl MemorySegmentManager {
     pub fn gen_arg_vec_bigint(
         &self,
         arg: &[BigInt],
-        apply_modulo_to_args: bool,
         prime: Option<&BigInt>,
-    ) -> Result<Vec<MaybeRelocatable>, MemoryError> {
-        if apply_modulo_to_args {
-            let prime = prime.ok_or(MemoryError::WriteArg)?;
-            return Ok(arg
+    ) -> Vec<MaybeRelocatable> {
+        if let Some(prime) = prime {
+            return arg
                 .iter()
                 .map(|x| MaybeRelocatable::from(x.mod_floor(prime)))
-                .collect());
+                .collect();
         } else {
-            Ok(arg
-                .iter()
+            arg.iter()
                 .map(|x| MaybeRelocatable::from(x.clone()))
-                .collect())
+                .collect()
         }
     }
 
@@ -97,11 +94,10 @@ impl MemorySegmentManager {
         memory: &mut Memory,
         ptr: &Relocatable,
         arg: &dyn Any,
-        apply_modulo_to_args: bool,
         prime: Option<&BigInt>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<BigInt>>() {
-            let data = self.gen_arg_vec_bigint(vector, apply_modulo_to_args, prime)?;
+            let data = self.gen_arg_vec_bigint(vector, prime);
             self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
@@ -432,7 +428,7 @@ mod tests {
             segments.add(&mut memory, None);
         }
 
-        let exec = segments.write_arg(&mut memory, &ptr, &data, true, Some(&bigint!(5)));
+        let exec = segments.write_arg(&mut memory, &ptr, &data, Some(&bigint!(5)));
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
         assert_eq!(
@@ -452,7 +448,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory, None);
-        let exec = segments.write_arg(&mut memory, &ptr, &data, false, None);
+        let exec = segments.write_arg(&mut memory, &ptr, &data, None);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((0, 3))));
         assert_eq!(
