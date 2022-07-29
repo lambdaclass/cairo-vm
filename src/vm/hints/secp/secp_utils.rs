@@ -9,16 +9,16 @@ Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(integer: &BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
+pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
     let base = bigint!(1) << 86_usize;
     let base_max = base - bigint!(1);
     let mut num = integer.clone();
-    let mut canonical_repr: Vec<BigInt> = Vec::with_capacity(3);
-    for _i in 0..3 {
-        canonical_repr.push((&num & &base_max).to_owned());
+    let mut canonical_repr: [BigInt; 3] = Default::default();
+    for item in &mut canonical_repr {
+        *item = (&num & &base_max).to_owned();
         num >>= 86_usize;
     }
     if !num.is_zero() {
@@ -61,11 +61,11 @@ mod tests {
             b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
         ));
 
-        assert_eq!(array_1, Ok(vec![bigint!(0), bigint!(0), bigint!(0)]));
-        assert_eq!(array_2, Ok(vec![bigint!(999992), bigint!(0), bigint!(0)]));
+        assert_eq!(array_1, Ok([bigint!(0), bigint!(0), bigint!(0)]));
+        assert_eq!(array_2, Ok([bigint!(999992), bigint!(0), bigint!(0)]));
         assert_eq!(
             array_3,
-            Ok(vec![
+            Ok([
                 bigint_str!(b"773712524553362"),
                 bigint_str!(b"57408430697461422066401280"),
                 bigint_str!(b"1292469707114105")
