@@ -126,7 +126,7 @@ pub fn execute_hint(
         ) => uint256_add(vm, ids, None),
         Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
         Ok("from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)"
-        ) => compute_blake2s(vm, ids, Some(ap_tracking)),
+        ) => compute_blake2s(vm, &ids, Some(ap_tracking)),
         Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0"
         ) => uint256_sqrt(vm, ids, None),
         Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),

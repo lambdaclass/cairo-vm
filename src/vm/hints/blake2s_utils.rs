@@ -84,10 +84,10 @@ fn compute_blake2s_func(
 */
 pub fn compute_blake2s(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
+    let output = get_ptr_from_var_name("output", ids, vm, hint_ap_tracking)?;
     compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
 }
 
@@ -128,9 +128,10 @@ pub fn finalize_blake2s(
     padding.extend(message);
     padding.extend([0, 0xffffffff]);
     padding.extend(output);
-    let mut full_padding = Vec::<u32>::new();
+    let padding = padding.as_slice();
+    let mut full_padding = Vec::<u32>::with_capacity(padding.len() * N_PACKED_INSTANCES);
     for _ in 0..N_PACKED_INSTANCES - 1 {
-        full_padding.extend(padding.clone());
+        full_padding.extend_from_slice(padding);
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm.segments
