@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::math_utils::as_int;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, Zero};
@@ -25,6 +26,23 @@ pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
     }
     Ok(canonical_repr)
 }
+
+/*
+Takes an UnreducedBigInt3 struct which represents a triple of limbs (d0, d1, d2) of field
+elements and reconstructs the corresponding 256-bit integer (see split()).
+Note that the limbs do not have to be in the range [0, BASE).
+prime should be the Cairo field, and it is used to handle negative values of the limbs.
+*/
+pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
+    let unreduced_big_int_3 = vec![d0, d1, d2];
+
+    unreduced_big_int_3
+        .iter()
+        .enumerate()
+        .map(|(idx, value)| as_int(value, prime) * (bigint!(1) << (idx * 86)))
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -62,6 +80,26 @@ mod tests {
             Err(VirtualMachineError::SecpSplitutOfRange(bigint_str!(
                 b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
             )))
+        );
+    }
+
+    #[test]
+    fn secp_pack() {
+        let pack_1 = pack(&bigint!(10), &bigint!(10), &bigint!(10), &bigint!(160));
+        assert_eq!(
+            pack_1,
+            bigint_str!(b"59863107065073783529622931521771477038469668772249610")
+        );
+
+        let pack_2 = pack(
+            &bigint_str!(b"773712524553362"),
+            &bigint_str!(b"57408430697461422066401280"),
+            &bigint_str!(b"1292469707114105"),
+            &bigint_str!(b"1292469707114105"),
+        );
+        assert_eq!(
+            pack_2,
+            bigint_str!(b"4441762184457963985490320281689802156301430343378457")
         );
     }
 }
