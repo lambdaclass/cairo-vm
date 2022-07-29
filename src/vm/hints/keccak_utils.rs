@@ -1,6 +1,6 @@
 use super::hint_utils::{
-    get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
-    get_ptr_from_var_name, get_relocatable_from_var_name,
+    get_int_from_scope, get_integer_from_var_name, get_ptr_from_var_name,
+    get_relocatable_from_var_name,
 };
 use crate::types::relocatable::MaybeRelocatable;
 use crate::{
@@ -138,10 +138,9 @@ pub fn unsafe_keccak_finalize(
     ----------------------------- */
 
     let keccak_state_ptr =
-        match get_address_from_var_name("keccak_state", &ids, vm, hint_ap_tracking) {
-            Ok(MaybeRelocatable::RelocatableValue(relocatable)) => relocatable,
+        match get_relocatable_from_var_name("keccak_state", &ids, vm, hint_ap_tracking) {
+            Ok(relocatable) => relocatable,
             Err(e) => return Err(e),
-            _ => unreachable!(),
         };
 
     // as `keccak_state` is a struct, the pointer to the struct is the same as the pointer to the first element.
@@ -174,7 +173,7 @@ pub fn unsafe_keccak_finalize(
         .get_range(&maybe_rel_start_ptr, n_elems)
         .map_err(VirtualMachineError::MemoryError)?;
 
-    assert_no_nones_in_range(&range)?;
+    check_no_nones_in_range(&range)?;
 
     for maybe_reloc_word in range.iter() {
         let word = match maybe_reloc_word {
@@ -227,7 +226,7 @@ fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
     res
 }
 
-fn assert_no_nones_in_range<T>(range: &Vec<Option<T>>) -> Result<(), VirtualMachineError> {
+fn check_no_nones_in_range<T>(range: &Vec<Option<T>>) -> Result<(), VirtualMachineError> {
     for memory_cell in range {
         memory_cell
             .as_ref()
