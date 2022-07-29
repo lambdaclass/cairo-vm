@@ -6561,6 +6561,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -6571,6 +6572,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -6581,6 +6583,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -6660,6 +6663,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -6670,6 +6674,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -6680,6 +6685,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -6770,6 +6776,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -6780,6 +6787,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -6790,6 +6798,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
