@@ -5,6 +5,7 @@ use num_bigint::BigInt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::blake2s_utils::{compute_blake2s, finalize_blake2s};
 use crate::vm::hints::dict_hint_utils::{
     default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
     dict_update, dict_write,
@@ -16,6 +17,7 @@ use crate::vm::hints::hint_utils::{
     memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
+use crate::vm::hints::keccak_utils::unsafe_keccak;
 use crate::vm::hints::memset_utils::{memset_continue_loop, memset_enter_scope};
 use crate::vm::hints::pow_utils::pow;
 use crate::vm::hints::set::set_add;
@@ -33,6 +35,10 @@ use crate::vm::hints::secp::{
     bigint_utils::nondet_bigint3,
     field_utils::{reduce, verify_zero},
 };
+use crate::vm::hints::usort::{
+    usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
+    verify_usort,
+};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -42,6 +48,7 @@ pub struct HintReference {
     pub offset2: i32,
     pub inner_dereference: bool,
     pub ap_tracking_data: Option<ApTracking>,
+    pub immediate: Option<BigInt>,
 }
 
 pub fn execute_hint(
@@ -127,12 +134,29 @@ pub fn execute_hint(
         Ok("sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0"
         ) => uint256_add(vm, ids, None),
         Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
-        Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0") => uint256_sqrt(vm, ids, None),
+        Ok("vm_enter_scope(dict(__usort_max_size = globals().get('__usort_max_size')))"
+        ) => usort_enter_scope(vm),
+        Ok("from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])"
+        ) => usort_body(vm, &ids, None),
+        Ok("last_pos = 0\npositions = positions_dict[ids.value][::-1]"
+        ) => verify_usort(vm, &ids, None),
+        Ok("assert len(positions) == 0") => verify_multiplicity_assert(vm),
+        Ok("current_pos = positions.pop()\nids.next_item_index = current_pos - last_pos\nlast_pos = current_pos + 1"
+        ) => verify_multiplicity_body(vm, &ids, None),
+        Ok("from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)"
+        ) => compute_blake2s(vm, &ids, Some(ap_tracking)),
+        Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0"
+        ) => uint256_sqrt(vm, ids, None),
         Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),
-        Ok("a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128") => uint256_unsigned_div_rem(vm, ids, None),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))") => nondet_bigint3(vm, ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME") => verify_zero(vm, ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P") => reduce(vm, ids, None),
+        Ok("a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128"
+        ) => uint256_unsigned_div_rem(vm, ids, None),
+        Ok("# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)"
+        ) => finalize_blake2s(vm, ids, Some(ap_tracking)),
+        Ok("from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')"
+        ) => unsafe_keccak(vm, ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
@@ -144,6 +168,7 @@ mod tests {
     use std::ops::Shl;
 
     use crate::bigint_str;
+    use crate::bigint_u128;
     use crate::math_utils::as_int;
     use crate::relocatable;
     use crate::types::exec_scope::PyValueType;
@@ -289,6 +314,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -338,6 +364,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -392,6 +419,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -452,6 +480,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -522,6 +551,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -570,6 +600,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -635,6 +666,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -645,6 +677,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -655,6 +688,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -712,6 +746,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -722,6 +757,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -771,6 +807,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -781,6 +818,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -836,6 +874,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -846,6 +885,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -904,6 +944,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -914,6 +955,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -963,6 +1005,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1010,6 +1053,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1056,6 +1100,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1105,6 +1150,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1151,6 +1197,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1196,6 +1243,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1234,6 +1282,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1297,6 +1346,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1307,6 +1357,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1317,6 +1368,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1381,6 +1433,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1391,6 +1444,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1401,6 +1455,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1465,6 +1520,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1475,6 +1531,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1485,6 +1542,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1551,6 +1609,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1561,6 +1620,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1571,6 +1631,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1621,6 +1682,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1670,6 +1732,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -1722,6 +1785,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1732,6 +1796,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1787,6 +1852,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1797,6 +1863,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1853,6 +1920,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1863,6 +1931,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1920,6 +1989,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1930,6 +2000,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -1985,6 +2056,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -1995,6 +2067,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2047,6 +2120,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2057,6 +2131,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2112,6 +2187,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2122,6 +2198,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2153,6 +2230,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2195,6 +2273,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2237,6 +2316,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2282,6 +2362,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2324,6 +2405,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2368,6 +2450,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         vm.segments.add(&mut vm.memory, None);
@@ -2427,6 +2510,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -2469,6 +2553,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
         //Execute the hint
@@ -2537,6 +2622,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2547,6 +2633,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2557,6 +2644,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2567,6 +2655,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2640,6 +2729,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2650,6 +2740,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2660,6 +2751,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2670,6 +2762,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2720,6 +2813,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2730,6 +2824,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2783,6 +2878,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2793,6 +2889,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2849,6 +2946,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2859,6 +2957,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2917,6 +3016,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2927,6 +3027,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -2978,6 +3079,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -2988,6 +3090,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3038,6 +3141,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3048,6 +3152,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3102,6 +3207,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3112,6 +3218,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3174,6 +3281,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3184,6 +3292,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3194,6 +3303,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3204,6 +3314,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3265,6 +3376,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3275,6 +3387,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3285,6 +3398,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3295,6 +3409,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3351,6 +3466,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3361,6 +3477,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3371,6 +3488,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3381,6 +3499,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3443,6 +3562,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3453,6 +3573,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3463,6 +3584,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3473,6 +3595,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3535,6 +3658,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3545,6 +3669,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3555,6 +3680,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3565,6 +3691,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3629,6 +3756,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3639,6 +3767,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3649,6 +3778,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3659,6 +3789,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3669,6 +3800,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3679,6 +3811,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3748,6 +3881,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3758,6 +3892,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3768,6 +3903,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3778,6 +3914,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3788,6 +3925,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3798,6 +3936,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3867,6 +4006,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3877,6 +4017,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3887,6 +4028,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3897,6 +4039,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3907,6 +4050,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3917,6 +4061,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -3981,6 +4126,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -3991,6 +4137,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4001,6 +4148,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4011,6 +4159,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4021,6 +4170,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4031,6 +4181,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4101,6 +4252,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4111,6 +4263,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4121,6 +4274,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4131,6 +4285,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4141,6 +4296,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4151,6 +4307,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4221,6 +4378,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4231,6 +4389,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4241,6 +4400,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4251,6 +4411,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4261,6 +4422,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4271,6 +4433,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4317,6 +4480,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4327,6 +4491,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4337,6 +4502,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4394,6 +4560,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4404,6 +4571,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4414,6 +4582,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4478,6 +4647,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4488,6 +4658,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4498,6 +4669,7 @@ mod tests {
                     offset2: 1,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4570,6 +4742,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4580,6 +4753,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4590,6 +4764,7 @@ mod tests {
                     offset2: 1,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4659,6 +4834,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4669,6 +4845,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4679,6 +4856,7 @@ mod tests {
                     offset2: 1,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4741,6 +4919,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4751,6 +4930,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4761,6 +4941,7 @@ mod tests {
                     offset2: 1,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4838,6 +5019,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4848,6 +5030,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4858,6 +5041,7 @@ mod tests {
                     offset2: 1,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -4935,6 +5119,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4945,6 +5130,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -4955,6 +5141,7 @@ mod tests {
                     offset2: 1,
                     inner_dereference: true,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5019,6 +5206,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5029,6 +5217,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5091,6 +5280,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5101,6 +5291,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5162,6 +5353,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5172,6 +5364,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5238,6 +5431,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5248,6 +5442,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5310,6 +5505,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5320,6 +5516,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5384,6 +5581,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5394,6 +5592,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5458,6 +5657,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
             (
@@ -5468,6 +5668,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: None,
+                    immediate: None,
                 },
             ),
         ]);
@@ -5513,6 +5714,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 
@@ -5555,6 +5757,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 
@@ -5606,6 +5809,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 
@@ -5652,6 +5856,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 
@@ -5703,6 +5908,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 
@@ -5779,5 +5985,500 @@ mod tests {
         //Check exec_scopes
         let expected_scope = vec![HashMap::new(), HashMap::new()];
         assert_eq!(vm.exec_scopes.data, expected_scope)
+    }
+
+    #[test]
+    fn unsafe_keccak_valid() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        vm.exec_scopes
+            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(500)));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+    }
+
+    #[test]
+    fn unsafe_keccak_max_size() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(5)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        vm.exec_scopes
+            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
+        );
+    }
+
+    #[test]
+    fn unsafe_keccak_invalid_input_length() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint_u128!(18446744073709551616)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+
+        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_err());
+    }
+
+    #[test]
+    fn unsafe_keccak_invalid_word_size() {
+        let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        // initialize memory segments
+        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory, None);
+
+        // initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        // insert ids.len into memory
+        vm.memory
+            // length
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+
+        vm.memory
+            // data
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(-1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        vm.memory
+            // pointer to data
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        vm.memory
+            // we create a memory gap in (0, 3) and (0, 4)
+            .insert(
+                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("length"), bigint!(0));
+        ids.insert(String::from("data"), bigint!(1));
+        ids.insert(String::from("high"), bigint!(2));
+        ids.insert(String::from("low"), bigint!(3));
+
+        vm.exec_scopes
+            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(10)));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                3,
+                HintReference {
+                    register: Register::FP,
+                    offset1: 0,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
+        );
     }
 }

@@ -2,9 +2,7 @@ use crate::bigint;
 use crate::math_utils::as_int;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{FromPrimitive, Signed};
-use std::ops::Shl;
+use num_traits::{FromPrimitive, Signed, Zero};
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:
@@ -15,18 +13,17 @@ pub fn split(integer: &BigInt) -> Result<Vec<BigInt>, VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
-    let base = bigint!(1).shl(86);
+    let base = bigint!(1) << 86_usize;
+    let base_max = base - bigint!(1);
     let mut num = integer.clone();
-    let mut remainder: BigInt;
-    let mut canonical_repr = Vec::new();
-    for _n in 0..3 {
-        (num, remainder) = num.clone().div_rem(&base);
-        canonical_repr.push(remainder);
+    let mut canonical_repr: Vec<BigInt> = Vec::with_capacity(3);
+    for _i in 0..3 {
+        canonical_repr.push((&num & &base_max).to_owned());
+        num >>= 86_usize;
     }
-    if num != bigint!(0) {
+    if !num.is_zero() {
         return Err(VirtualMachineError::SecpSplitutOfRange(integer.clone()));
     }
-
     Ok(canonical_repr)
 }
 
@@ -38,7 +35,7 @@ prime should be the Cairo field, and it is used to handle negative values of the
 */
 pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
     let unreduced_big_int_3 = vec![d0, d1, d2];
-    let base: BigInt = bigint!(1).shl(86_usize);
+    let base: BigInt = bigint!(1) << 86_usize;
 
     unreduced_big_int_3
         .iter()

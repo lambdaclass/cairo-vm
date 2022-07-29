@@ -1,10 +1,11 @@
 use crate::{
-    bigintusize,
+    bigintusize, relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
@@ -36,6 +37,16 @@ impl From<(usize, usize)> for MaybeRelocatable {
 impl From<BigInt> for MaybeRelocatable {
     fn from(num: BigInt) -> Self {
         MaybeRelocatable::Int(num)
+    }
+}
+
+impl Relocatable {
+    pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
+        if self.offset < other {
+            return Err(VirtualMachineError::CantSubOffset(self.offset, other));
+        }
+        let new_offset = self.offset - other;
+        Ok(relocatable!(self.segment_index, new_offset))
     }
 }
 
@@ -173,6 +184,27 @@ impl MaybeRelocatable {
                 MaybeRelocatable::from(val.mod_floor(div)),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
+
+    //Returns reference to BigInt inside self if Int variant or Error if RelocatableValue variant
+    pub fn get_int_ref(&self) -> Result<&BigInt, VirtualMachineError> {
+        match self {
+            MaybeRelocatable::Int(num) => Ok(num),
+            MaybeRelocatable::RelocatableValue(_) => {
+                Err(VirtualMachineError::ExpectedInteger(self.clone()))
+            }
+        }
+    }
+}
+
+impl<'a> Add<usize> for &'a Relocatable {
+    type Output = Relocatable;
+
+    fn add(self, other: usize) -> Self::Output {
+        Relocatable {
+            segment_index: self.segment_index,
+            offset: self.offset + other,
         }
     }
 }

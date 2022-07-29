@@ -1,7 +1,7 @@
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::get_address_from_var_name;
+use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
 use crate::vm::hints::secp::secp_utils::split;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -20,7 +20,7 @@ pub fn nondet_bigint3(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let res_address = get_address_from_var_name("res", &ids, vm, hint_ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name("res", &ids, vm, hint_ap_tracking)?;
 
     // get `value` variable from vm scope
     let value: &BigInt = match vm
@@ -40,7 +40,7 @@ pub fn nondet_bigint3(
     let arg = split(value)?;
 
     vm.segments
-        .write_arg(&mut vm.memory, &res_address, &arg, true, &vm.prime)
+        .write_arg(&mut vm.memory, &res_reloc, &arg, true, Some(&vm.prime))
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -98,6 +98,7 @@ mod tests {
                 offset1: 5,
                 offset2: 0,
                 inner_dereference: false,
+                immediate: None,
                 ap_tracking_data: Some(ApTracking {
                     group: 0,
                     offset: 0,
@@ -172,6 +173,7 @@ mod tests {
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
+                immediate: None,
                 inner_dereference: false,
                 ap_tracking_data: Some(ApTracking {
                     group: 0,
@@ -230,6 +232,7 @@ mod tests {
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
+                immediate: None,
                 inner_dereference: false,
                 ap_tracking_data: Some(ApTracking {
                     group: 0,
