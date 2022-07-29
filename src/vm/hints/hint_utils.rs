@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
+use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
@@ -116,6 +117,39 @@ pub fn get_range_check_builtin(
         }
     }
     Err(VirtualMachineError::NoRangeCheckBuiltin)
+}
+
+pub fn get_ptr_from_var_name(
+    var_name: &str,
+    ids: &HashMap<String, BigInt>,
+    vm: &VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<Relocatable, VirtualMachineError> {
+    let var_addr = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    let value = vm.memory.get_relocatable(&var_addr)?;
+    //Add immediate if present in reference
+    let index = ids
+        .get(&String::from(var_name))
+        .ok_or(VirtualMachineError::FailedToGetIds)?;
+    let hint_reference = vm
+        .references
+        .get(
+            &index
+                .to_usize()
+                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+        )
+        .ok_or(VirtualMachineError::FailedToGetIds)?;
+    if let Some(immediate) = &hint_reference.immediate {
+        let modified_value = relocatable!(
+            value.segment_index,
+            value.offset
+                + immediate
+                    .to_usize()
+                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
+        );
+        return Ok(modified_value);
+    }
+    Ok(value.clone())
 }
 
 fn apply_ap_tracking_correction(
@@ -339,7 +373,7 @@ pub fn insert_integer_at_relocatable_plus_offset(
 }
 
 // Used for variables that hold pointers.
-pub fn get_ptr_from_var_name<'a>(
+pub fn get_ptr_from_var_name_ref<'a>(
     var_name: &str,
     ids: &HashMap<String, BigInt>,
     vm: &'a VirtualMachine,
@@ -1808,6 +1842,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 
@@ -1853,6 +1888,7 @@ mod tests {
                 offset2: 0,
                 inner_dereference: false,
                 ap_tracking_data: None,
+                immediate: None,
             },
         )]);
 

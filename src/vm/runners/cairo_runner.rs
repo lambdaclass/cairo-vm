@@ -236,6 +236,7 @@ impl CairoRunner {
                         offset1: reference.value_address.offset1,
                         offset2: reference.value_address.offset2,
                         inner_dereference: reference.value_address.inner_dereference,
+                        immediate: reference.value_address.immediate.clone(),
                         // only store `ap` tracking data if the reference is referred to it
                         ap_tracking_data: if register == &Register::FP {
                             None
