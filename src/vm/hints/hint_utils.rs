@@ -38,19 +38,6 @@ pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, Vi
     val
 }
 
-pub fn get_u64_from_scope_ref<'a>(
-    vm: &'a mut VirtualMachine,
-    name: &'a str,
-) -> Result<&'a u64, VirtualMachineError> {
-    let mut val: Result<&'a u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = vm.exec_scopes.get_local_variables() {
-        if let Some(PyValueType::U64(py_val)) = variables.get(name) {
-            val = Ok(py_val);
-        }
-    }
-    val
-}
-
 //Returns the value in the current execution scope that matches the name and is of type List
 pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
     let mut val: Option<Vec<BigInt>> = None;
