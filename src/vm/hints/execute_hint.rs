@@ -19,7 +19,7 @@ use crate::vm::hints::hint_utils::{
     memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
     split_int_assert_range, sqrt, unsigned_div_rem,
 };
-use crate::vm::hints::keccak_utils::{unsafe_keccak, unsafe_keccak_finalize};
+use crate::vm::hints::keccak_hints::unsafe_keccak;
 use crate::vm::hints::memset_utils::{memset_continue_loop, memset_enter_scope};
 use crate::vm::hints::pow_utils::pow;
 use crate::vm::hints::set::set_add;
