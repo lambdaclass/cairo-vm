@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659133409693,
+  "lastUpdate": 1659134040776,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -12137,6 +12137,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 264926960,
             "range": "± 599065",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3995681ce7a4d2c1c4446e24a67959a191dd74a5",
+          "message": "[HINTS] Add support for unsafe_keccak_finalize hint (#326)\n\n* Add implementation of unsafe_keccak hint\r\n\r\n* Fix bugs and add tests for unsafe_keccak\r\n\r\n* Remove repeated macro\r\n\r\n* Small refacator in unsafe_keccak\r\n\r\n* Remove unsafe_keccak_finalize function signature\r\n\r\n* Add implementation for unsafe_keccak_finalize\r\n\r\n* Add unit tests\r\n\r\n* Add integration test for unsafe_keccak_finalize\r\n\r\n* Fix utils\r\n\r\n* Add end of line in unsafe_keccak_finalize.cairo\r\n\r\n* Refactor map_err statement unnecesary closure\r\n\r\n* Small refactor in unsafe_keccak_finalize\r\n\r\n* Tidy up imports\r\n\r\n* Fix tests after merge\r\n\r\n* Remove unnecesary clone\r\n\r\n* Small refactor\r\n\r\n* Refactor n_elems to use get_int_ref",
+          "timestamp": "2022-07-29T19:22:52-03:00",
+          "tree_id": "5646046fc89e2621de3ab5f1b9c56c16e72ec03f",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/3995681ce7a4d2c1c4446e24a67959a191dd74a5"
+        },
+        "date": 1659134039021,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1634511270,
+            "range": "± 2471641",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 597012180,
+            "range": "± 718794",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 296020933,
+            "range": "± 533724",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1550689306,
+            "range": "± 5702627",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 217733864,
+            "range": "± 788463",
             "unit": "ns/iter"
           }
         ]
