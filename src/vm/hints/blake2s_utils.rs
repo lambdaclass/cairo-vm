@@ -663,4 +663,476 @@ mod tests {
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
+
+    #[test]
+    fn blake2s_add_uint256_valid_zero() {
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Insert ids into memory
+        //ids.data
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //ids.high
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //ids.low
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("data"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check data ptr
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+    }
+
+    #[test]
+    fn blake2s_add_uint256_valid_non_zero() {
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Insert ids into memory
+        //ids.data
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //ids.high
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(25)),
+            )
+            .unwrap();
+        //ids.low
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(20)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("data"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check data ptr
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(20))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(25))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+    }
+
+    #[test]
+    fn blake2s_add_uint256_bigend_valid_zero() {
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Insert ids into memory
+        //ids.data
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //ids.high
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //ids.low
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(0)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("data"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check data ptr
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+    }
+
+    #[test]
+    fn blake2s_add_uint256_bigend_valid_non_zero() {
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])".as_bytes();
+        //Create vm
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        //Insert ids into memory
+        //ids.data
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        //ids.high
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from(bigint!(25)),
+            )
+            .unwrap();
+        //ids.low
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from(bigint!(20)),
+            )
+            .unwrap();
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("data"), bigint!(0));
+        ids.insert(String::from("high"), bigint!(1));
+        ids.insert(String::from("low"), bigint!(2));
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -2,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            ),
+        ]);
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            Ok(())
+        );
+        //Check data ptr
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(25))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(20))))
+        );
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+    }
 }
