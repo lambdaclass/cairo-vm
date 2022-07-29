@@ -101,6 +101,8 @@ pub enum VirtualMachineError {
     KeccakMaxSize(BigInt, BigInt),
     InvalidWordSize(BigInt),
     InvalidKeccakInputLength(BigInt),
+    NoneInMemoryRange,
+    ExpectedIntAtRange(Option<MaybeRelocatable>),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -292,6 +294,8 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::KeccakMaxSize(length, keccak_max_size) => write!(f, "unsafe_keccak() can only be used with length<={:?}. Got: length={:?}", keccak_max_size, length),
             VirtualMachineError::InvalidWordSize(word) => write!(f, "Invalid word size: {:?}", word),
             VirtualMachineError::InvalidKeccakInputLength(length) => write!(f, "Invalid input length, Got: length={:?}", length),
+            VirtualMachineError::NoneInMemoryRange => write!(f, "None value was found in memory range cell"),
+            VirtualMachineError::ExpectedIntAtRange(maybe_relocatable) => write!(f, "Expected integer, found: {:?}", maybe_relocatable.as_ref().unwrap()),
         }
     }
 }
