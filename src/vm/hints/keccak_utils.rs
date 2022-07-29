@@ -2,17 +2,14 @@ use super::hint_utils::{
     get_int_from_scope, get_integer_from_var_name, get_ptr_from_var_name,
     get_relocatable_from_var_name,
 };
-use crate::types::relocatable::MaybeRelocatable;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    types::relocatable::Relocatable,
+    types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, Sign};
-use num_traits::FromPrimitive;
-use num_traits::Signed;
-use num_traits::ToPrimitive;
+use num_traits::{FromPrimitive, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};
 use std::{cmp, collections::HashMap, ops::Shl};
 
