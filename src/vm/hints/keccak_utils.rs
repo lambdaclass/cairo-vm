@@ -153,7 +153,7 @@ pub fn unsafe_keccak_finalize(
     })?;
 
     // this is not very nice code, we should consider adding the sub() method for Relocatable's
-    let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr.clone());
+    let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
 
     let n_elems = match maybe_rel_end_ptr.sub(&maybe_rel_start_ptr, &vm.prime) {
