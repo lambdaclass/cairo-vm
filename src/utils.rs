@@ -84,9 +84,19 @@ macro_rules! mayberelocatable {
         MaybeRelocatable::from((bigint!($val1)))
     };
 }
-
 #[macro_export]
 macro_rules! memory {
+    ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+    {
+        let mut memory = Memory::new();
+        memory.data.push(Vec::new());
+        memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
+    memory
+    }
+    };
+}
+#[macro_export]
+macro_rules! memory_from_memory {
     ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
         {
             $mem.data.push(Vec::new());
@@ -231,8 +241,7 @@ mod test {
                 &MaybeRelocatable::from((1, 0)),
             )
             .unwrap();
-        let mut mem = Memory::new();
-        memory!(mem, (((1, 2), 1), ((1, 1), (1, 0))));
+        let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
         assert_eq!(memory.data, mem.data);
     }
 }
