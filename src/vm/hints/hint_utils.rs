@@ -28,6 +28,16 @@ pub fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt>
     val
 }
 
+pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, VirtualMachineError> {
+    let mut val: Result<u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::U64(py_val)) = variables.get(name) {
+            val = Ok(*py_val);
+        }
+    }
+    val
+}
+
 //Returns the value in the current execution scope that matches the name and is of type List
 pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
     let mut val: Option<Vec<BigInt>> = None;
@@ -38,6 +48,48 @@ pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<Bi
     }
     val
 }
+
+pub fn get_list_u64_from_scope_ref<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Result<&'a Vec<u64>, VirtualMachineError> {
+    let mut val: Result<&'a Vec<u64>, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
+            val = Ok(py_val);
+        }
+    }
+    val
+}
+
+pub fn get_list_u64_from_scope_mut<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Result<&'a mut Vec<u64>, VirtualMachineError> {
+    let mut val: Result<&'a mut Vec<u64>, VirtualMachineError> =
+        Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::ListU64(py_val)) = variables.get_mut(name) {
+            val = Ok(py_val);
+        }
+    }
+    val
+}
+
+pub fn get_dict_int_list_u64_from_scope_mut<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
+    let mut val: Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> =
+        Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::DictBigIntListU64(py_val)) = variables.get_mut(name) {
+            val = Ok(py_val);
+        }
+    }
+    val
+}
+
 //Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
     vm: &VirtualMachine,
@@ -214,6 +266,35 @@ pub fn get_address_from_var_name(
     .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
+pub fn insert_integer_from_var_name(
+    var_name: &str,
+    int: BigInt,
+    ids: &HashMap<String, BigInt>,
+    vm: &mut VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory
+        .insert(&var_address, &MaybeRelocatable::Int(int))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+pub fn insert_relocatable_from_var_name(
+    var_name: &str,
+    relocatable: Relocatable,
+    ids: &HashMap<String, BigInt>,
+    vm: &mut VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory
+        .insert(
+            &var_address,
+            &MaybeRelocatable::RelocatableValue(relocatable),
+        )
+        .map_err(VirtualMachineError::MemoryError)
+}
+
 //Gets the address of a variable name.
 //If the address is an MaybeRelocatable::Relocatable(Relocatable) return Relocatable
 //else raises Err
@@ -251,10 +332,42 @@ pub fn get_integer_from_relocatable_plus_offset<'a>(
     field_offset: usize,
     vm: &'a VirtualMachine,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    vm.memory.get_integer(&Relocatable::from((
-        relocatable.segment_index,
-        relocatable.offset + field_offset,
-    )))
+    vm.memory.get_integer(&(relocatable + field_offset))
+}
+
+pub fn get_u64_from_relocatable_plus_offset(
+    relocatable: &Relocatable,
+    field_offset_u64: u64,
+    vm: &VirtualMachine,
+) -> Result<u64, VirtualMachineError> {
+    let field_offset: usize = field_offset_u64 as usize;
+    let int = vm.memory.get_integer(&(relocatable + field_offset))?;
+    int.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
+}
+
+pub fn insert_integer_at_relocatable_plus_offset(
+    int: BigInt,
+    relocatable: &Relocatable,
+    field_offset: usize,
+    vm: &mut VirtualMachine,
+) -> Result<(), VirtualMachineError> {
+    vm.memory
+        .insert(
+            &MaybeRelocatable::RelocatableValue(relocatable + field_offset),
+            &MaybeRelocatable::from(int),
+        )
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+// Used for variables that hold pointers.
+pub fn get_ptr_from_var_name_ref<'a>(
+    var_name: &str,
+    ids: &HashMap<String, BigInt>,
+    vm: &'a VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<&'a Relocatable, VirtualMachineError> {
+    let var_addr = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    vm.memory.get_relocatable(&var_addr)
 }
 
 ///Implements hint: memory[ap] = segments.add()
