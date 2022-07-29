@@ -2216,7 +2216,7 @@ mod tests {
         let mem_arr = vec![
             (
                 MaybeRelocatable::from((0, 0)),
-                MaybeRelocatable::Int(bigint!(0x206800180018001)),
+                MaybeRelocatable::Int(bigint!(0x206800180018001_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
@@ -2268,7 +2268,7 @@ mod tests {
 
         let mem_arr = vec![(
             MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::Int(bigint!(0x206800180018001)),
+            MaybeRelocatable::Int(bigint!(0x206800180018001_i64)),
         )];
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
@@ -2802,7 +2802,7 @@ mod tests {
         let mem_arr = vec![
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 0)),
-                MaybeRelocatable::Int(bigint!(0x400680017fff8000)),
+                MaybeRelocatable::Int(bigint!(0x400680017fff8000_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
@@ -2810,7 +2810,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 2)),
-                MaybeRelocatable::Int(bigint!(0x40780017fff7fff)),
+                MaybeRelocatable::Int(bigint!(0x40780017fff7fff_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 3)),
@@ -2818,7 +2818,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 4)),
-                MaybeRelocatable::Int(bigint!(0x480680017fff8000)),
+                MaybeRelocatable::Int(bigint!(0x480680017fff8000_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 5)),
@@ -2826,11 +2826,11 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 6)),
-                MaybeRelocatable::Int(bigint!(0x40507ffe7fff8000)),
+                MaybeRelocatable::Int(bigint!(0x40507ffe7fff8000_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 7)),
-                MaybeRelocatable::Int(bigint!(0x208b7fff7fff7ffe)),
+                MaybeRelocatable::Int(bigint!(0x208b7fff7fff7ffe_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
@@ -3609,7 +3609,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(290341444919459839)),
+                &MaybeRelocatable::from(bigint!(290341444919459839_i64)),
             )
             .unwrap();
         vm.memory
@@ -3621,13 +3621,13 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(2345108766317314046)),
+                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             )
             .unwrap();
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from(bigint!(1226245742482522112)),
+                &MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
             )
             .unwrap();
         vm.memory
@@ -3641,7 +3641,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::from(bigint!(5189976364521848832)),
+                &MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
             )
             .unwrap();
         vm.memory
@@ -3653,13 +3653,13 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 7)),
-                &MaybeRelocatable::from(bigint!(4611826758063128575)),
+                &MaybeRelocatable::from(bigint!(4611826758063128575_i64)),
             )
             .unwrap();
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 8)),
-                &MaybeRelocatable::from(bigint!(2345108766317314046)),
+                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             )
             .unwrap();
         vm.memory

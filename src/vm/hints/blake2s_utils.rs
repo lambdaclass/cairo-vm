@@ -313,7 +313,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(7842562439562793675803603603688959)),
+                &MaybeRelocatable::from(bigint!(7842562439562793675803603603688959_i128)),
             )
             .unwrap();
         //Create ids

@@ -6234,7 +6234,7 @@ mod tests {
             // length
             .insert(
                 &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(18446744073709551616)),
+                &MaybeRelocatable::from(bigint!(18446744073709551616_i128)),
             )
             .unwrap();
 

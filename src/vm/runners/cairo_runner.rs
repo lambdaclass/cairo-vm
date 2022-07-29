@@ -2924,7 +2924,7 @@ mod tests {
             .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(4613515612218425347)),
+                &MaybeRelocatable::from(bigint!(4613515612218425347_i64)),
             )
             .unwrap();
         cairo_runner
@@ -2940,7 +2940,7 @@ mod tests {
             .memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(2345108766317314046)),
+                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             )
             .unwrap();
         cairo_runner
@@ -2980,12 +2980,12 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(bigint!(4613515612218425347))
+            Some(bigint!(4613515612218425347_i64))
         );
         assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(5)));
         assert_eq!(
             cairo_runner.relocated_memory[3],
-            Some(bigint!(2345108766317314046))
+            Some(bigint!(2345108766317314046_i64))
         );
         assert_eq!(cairo_runner.relocated_memory[4], Some(bigint!(10)));
         assert_eq!(cairo_runner.relocated_memory[5], Some(bigint!(10)));
@@ -3043,24 +3043,24 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
+                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
+                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
+                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
                 MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
                 MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             ],
             main: Some(4),
             hints: HashMap::new(),
@@ -3086,29 +3086,29 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(bigint!(4612671182993129469))
+            Some(bigint!(4612671182993129469_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[2],
-            Some(bigint!(5198983563776393216))
+            Some(bigint!(5198983563776393216_i64))
         );
         assert_eq!(cairo_runner.relocated_memory[3], Some(bigint!(1)));
         assert_eq!(
             cairo_runner.relocated_memory[4],
-            Some(bigint!(2345108766317314046))
+            Some(bigint!(2345108766317314046_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[5],
-            Some(bigint!(5191102247248822272))
+            Some(bigint!(5191102247248822272_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[6],
-            Some(bigint!(5189976364521848832))
+            Some(bigint!(5189976364521848832_i64))
         );
         assert_eq!(cairo_runner.relocated_memory[7], Some(bigint!(1)));
         assert_eq!(
             cairo_runner.relocated_memory[8],
-            Some(bigint!(1226245742482522112))
+            Some(bigint!(1226245742482522112_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[9],
@@ -3118,12 +3118,12 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.relocated_memory[10],
-            Some(bigint!(5189976364521848832))
+            Some(bigint!(5189976364521848832_i64))
         );
         assert_eq!(cairo_runner.relocated_memory[11], Some(bigint!(17)));
         assert_eq!(
             cairo_runner.relocated_memory[12],
-            Some(bigint!(1226245742482522112))
+            Some(bigint!(1226245742482522112_i64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[13],
@@ -3133,7 +3133,7 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.relocated_memory[14],
-            Some(bigint!(2345108766317314046))
+            Some(bigint!(2345108766317314046_i64))
         );
         assert_eq!(cairo_runner.relocated_memory[15], Some(bigint!(27)));
         assert_eq!(cairo_runner.relocated_memory[16], Some(bigint!(29)));
@@ -3179,24 +3179,24 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
+                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
+                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
+                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
                 MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
                 MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             ],
             main: Some(4),
             hints: HashMap::new(),
