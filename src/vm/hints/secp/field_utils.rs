@@ -404,4 +404,146 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn run_reduce_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 25));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("x"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -5,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: Some(ApTracking {
+                    group: 2,
+                    offset: 0,
+                }),
+            },
+        )]);
+
+        //Insert ids.x.d0 into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 20)),
+                &MaybeRelocatable::from(bigint_str!(b"132181232131231239112312312313213083892150")),
+            )
+            .unwrap();
+
+        //Insert ids.x.d1 into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 21)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+
+        //Insert ids.x.d2 into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 22)),
+                &MaybeRelocatable::from(bigint!(10)),
+            )
+            .unwrap();
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"59863107065205964761754162760883789350782881856141750"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_reduce_error() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 25));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("x"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -5,
+                offset2: 0,
+                inner_dereference: false,
+                ap_tracking_data: Some(ApTracking {
+                    group: 2,
+                    offset: 0,
+                }),
+            },
+        )]);
+
+        //Skip ids.x values insert so the hint fails.
+        // vm.memory
+        //     .insert(
+        //         &MaybeRelocatable::from((1, 20)),
+        //         &MaybeRelocatable::from(bigint_str!(b"132181232131231239112312312313213083892150")),
+        //     )
+        //     .unwrap();
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 20))
+            ))
+        );
+    }
 }
