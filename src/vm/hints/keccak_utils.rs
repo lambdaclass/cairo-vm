@@ -123,7 +123,7 @@ Implements hint:
  */
 pub fn unsafe_keccak_finalize(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     /* -----------------------------
@@ -135,7 +135,7 @@ pub fn unsafe_keccak_finalize(
     ----------------------------- */
 
     let keccak_state_ptr =
-        match get_relocatable_from_var_name("keccak_state", &ids, vm, hint_ap_tracking) {
+        match get_relocatable_from_var_name("keccak_state", ids, vm, hint_ap_tracking) {
             Ok(relocatable) => relocatable,
             Err(e) => return Err(e),
         };
@@ -143,7 +143,7 @@ pub fn unsafe_keccak_finalize(
     // as `keccak_state` is a struct, the pointer to the struct is the same as the pointer to the first element.
     // this is why to get the pointer stored in the field `start_ptr` it is enough to pass the variable name as
     // `keccak_state`, which is the one that appears in the reference manager of the compiled JSON.
-    let start_ptr = get_ptr_from_var_name("keccak_state", &ids, vm, hint_ap_tracking)?;
+    let start_ptr = get_ptr_from_var_name("keccak_state", ids, vm, hint_ap_tracking)?;
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
@@ -173,14 +173,11 @@ pub fn unsafe_keccak_finalize(
     check_no_nones_in_range(&range)?;
 
     for maybe_reloc_word in range.iter() {
-        let word = match maybe_reloc_word {
-            Some(MaybeRelocatable::Int(num)) => num,
-            _ => {
-                return Err(VirtualMachineError::ExpectedIntAtRange(
-                    maybe_reloc_word.cloned(),
-                ))
-            }
-        };
+        let word = maybe_reloc_word
+            .ok_or(VirtualMachineError::ExpectedIntAtRange(
+                maybe_reloc_word.cloned(),
+            ))?
+            .get_int_ref()?;
 
         let (_, mut bytes) = word.to_bytes_be();
         let mut bytes = {
@@ -195,8 +192,8 @@ pub fn unsafe_keccak_finalize(
 
     let hashed = hasher.finalize();
 
-    let high_addr = get_relocatable_from_var_name("high", &ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", &ids, vm, hint_ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
 
     let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
