@@ -35,12 +35,11 @@ prime should be the Cairo field, and it is used to handle negative values of the
 */
 pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
     let unreduced_big_int_3 = vec![d0, d1, d2];
-    let base: BigInt = bigint!(1) << 86_usize;
 
     unreduced_big_int_3
         .iter()
         .enumerate()
-        .map(|(idx, value)| as_int(value, prime) * base.pow(idx as u32))
+        .map(|(idx, value)| as_int(value, prime) * (bigint!(1) << (idx * 86)))
         .sum()
 }
 

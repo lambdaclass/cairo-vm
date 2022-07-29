@@ -27,11 +27,11 @@ Implements hint:
 */
 pub fn verify_zero(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let q_address = get_address_from_var_name("q", &ids, vm, hint_ap_tracking)?;
-    let val_reloc = get_relocatable_from_var_name("val", &ids, vm, hint_ap_tracking)?;
+    let q_address = get_address_from_var_name("q", ids, vm, hint_ap_tracking)?;
+    let val_reloc = get_relocatable_from_var_name("val", ids, vm, hint_ap_tracking)?;
 
     let val_d0 = get_integer_from_relocatable_plus_offset(&val_reloc, 0, vm)?;
     let val_d1 = get_integer_from_relocatable_plus_offset(&val_reloc, 1, vm)?;
@@ -69,10 +69,10 @@ Implements hint:
 */
 pub fn reduce(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", &ids, vm, hint_ap_tracking)?;
+    let x_reloc = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
 
     let x_d0 = get_integer_from_relocatable_plus_offset(&x_reloc, 0, vm)?;
     let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
