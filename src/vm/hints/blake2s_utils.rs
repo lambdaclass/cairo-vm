@@ -42,12 +42,11 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
     new_array
 }
 
-fn get_maybe_relocatable_array_from_bigint(array: Vec<BigInt>) -> Vec<MaybeRelocatable> {
-    let mut new_array = Vec::<MaybeRelocatable>::new();
-    for element in array {
-        new_array.push(MaybeRelocatable::from(element));
-    }
-    new_array
+fn get_maybe_relocatable_array_from_bigint(array: &Vec<BigInt>) -> Vec<MaybeRelocatable> {
+    array
+        .iter()
+        .map(|x| MaybeRelocatable::from(x.clone()))
+        .collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
 Computes the blake2s compress function and fills the value in the right position.
@@ -173,13 +172,15 @@ pub fn blake2s_add_uint256(
     //Declare constant
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
+    //Convert MASK to bigint
+    let mask = bigint_u32!(MASK);
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((low >> (B * i)) & bigint_u32!(MASK));
+        inner_data.push((low >> (B * i)) & &mask);
     }
     //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_bigint(inner_data);
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm.segments
         .load_data(
             &mut vm.memory,
@@ -190,10 +191,10 @@ pub fn blake2s_add_uint256(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((high >> (B * i)) & bigint_u32!(MASK));
+        inner_data.push((high >> (B * i)) & &mask);
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_bigint(inner_data);
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm.segments
         .load_data(
             &mut vm.memory,
@@ -225,13 +226,15 @@ pub fn blake2s_add_uint256_bigend(
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
     const B: u32 = 32;
+    //Convert MASK to bigint
+    let mask = bigint_u32!(MASK);
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((high >> (B * (3 - i))) & bigint_u32!(MASK));
+        inner_data.push((high >> (B * (3 - i))) & &mask);
     }
     //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_bigint(inner_data);
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm.segments
         .load_data(
             &mut vm.memory,
@@ -242,10 +245,10 @@ pub fn blake2s_add_uint256_bigend(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((low >> (B * (3 - i))) & bigint_u32!(MASK));
+        inner_data.push((low >> (B * (3 - i))) & &mask);
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_bigint(inner_data);
+    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm.segments
         .load_data(
             &mut vm.memory,
