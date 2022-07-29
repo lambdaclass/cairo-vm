@@ -139,6 +139,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    immediate: None,
                     ap_tracking_data: Some(ApTracking {
                         group: 1,
                         offset: 0,
@@ -152,6 +153,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    immediate: None,
                     ap_tracking_data: Some(ApTracking {
                         group: 1,
                         offset: 0,
@@ -236,6 +238,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    immediate: None,
                     ap_tracking_data: Some(ApTracking {
                         group: 1,
                         offset: 0,
@@ -249,6 +252,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    immediate: None,
                     ap_tracking_data: Some(ApTracking {
                         group: 1,
                         offset: 0,
@@ -333,6 +337,7 @@ mod tests {
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
+                    immediate: None,
                     ap_tracking_data: Some(ApTracking {
                         group: 1,
                         offset: 0,
@@ -346,6 +351,7 @@ mod tests {
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
+                    immediate: None,
                     ap_tracking_data: Some(ApTracking {
                         group: 1,
                         offset: 0,
@@ -435,6 +441,7 @@ mod tests {
                 offset1: -5,
                 offset2: 0,
                 inner_dereference: false,
+                immediate: None,
                 ap_tracking_data: Some(ApTracking {
                     group: 2,
                     offset: 0,
@@ -517,6 +524,7 @@ mod tests {
                 offset1: -5,
                 offset2: 0,
                 inner_dereference: false,
+                immediate: None,
                 ap_tracking_data: Some(ApTracking {
                     group: 2,
                     offset: 0,
