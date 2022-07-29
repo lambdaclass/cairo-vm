@@ -4,7 +4,7 @@ use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
 use super::hint_utils::get_ptr_from_var_name;
-use crate::bigint_u32;
+use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::hints::blake2s_hash::IV;
@@ -17,7 +17,6 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 
 fn get_fixed_size_u32_array<const T: usize>(
     h_range: &Vec<Option<&MaybeRelocatable>>,
@@ -37,7 +36,7 @@ fn get_fixed_size_u32_array<const T: usize>(
 fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(bigint_u32!(*element)));
+        new_array.push(MaybeRelocatable::from(bigint!(*element)));
     }
     new_array
 }
@@ -150,7 +149,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        bigint, bigint_i128,
+        bigint,
         types::instruction::Register,
         vm::{
             errors::memory_errors::MemoryError,
@@ -314,7 +313,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint_i128!(7842562439562793675803603603688959)),
+                &MaybeRelocatable::from(bigint!(7842562439562793675803603603688959)),
             )
             .unwrap();
         //Create ids
@@ -513,7 +512,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint_u32!(1795745351))
+                    MaybeRelocatable::from(bigint!(1795745351))
                 )
             ))
         );

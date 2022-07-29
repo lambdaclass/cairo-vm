@@ -1,5 +1,4 @@
 use crate::bigint;
-use crate::bigintusize;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::{exec_scope::PyValueType, relocatable::MaybeRelocatable};
 use crate::vm::{
@@ -12,7 +11,7 @@ use crate::vm::{
     vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 pub fn find_element(
@@ -213,7 +212,7 @@ pub fn search_sorted_lower(
         if value >= key {
             return vm
                 .memory
-                .insert(&index_addr, &MaybeRelocatable::Int(bigintusize!(i)))
+                .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
                 .map_err(VirtualMachineError::MemoryError);
         }
         array_iter.offset += elm_size_usize;
@@ -228,7 +227,6 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigintusize;
     use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::OutputBuiltinRunner;
@@ -317,7 +315,7 @@ mod tests {
             .iter()
             .enumerate()
         {
-            ids.insert(s.to_string(), bigintusize!(i));
+            ids.insert(s.to_string(), bigint!(i));
         }
 
         (vm, ids)

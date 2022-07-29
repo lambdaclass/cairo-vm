@@ -9,55 +9,6 @@ macro_rules! bigint {
 }
 
 #[macro_export]
-macro_rules! bigint32 {
-    ($val : expr) => {
-        BigInt::from_i32($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint64 {
-    ($val : expr) => {
-        BigInt::from_i64($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u32 {
-    ($val : expr) => {
-        BigInt::from_u32($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u64 {
-    ($val : expr) => {
-        BigInt::from_u64($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u128 {
-    ($val : expr) => {
-        BigInt::from_u128($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigintusize {
-    ($val : expr) => {
-        BigInt::from_usize($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_i128 {
-    ($val : expr) => {
-        BigInt::from_i128($val).unwrap()
-    };
-}
-
-#[macro_export]
 macro_rules! bigint_str {
     ($val: expr) => {
         //BigInt::from_bytes_be(Sign::Plus, $val.chars().map(|c| c.to_digit(10).unwrap()).collect())

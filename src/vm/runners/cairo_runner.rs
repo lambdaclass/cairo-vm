@@ -429,7 +429,7 @@ mod tests {
     use super::*;
     use crate::serde::deserialize_program::ReferenceManager;
     use crate::vm::trace::trace_entry::TraceEntry;
-    use crate::{bigint64, bigint_str, relocatable};
+    use crate::{bigint_str, relocatable};
     use std::collections::HashMap;
 
     #[test]
@@ -2924,7 +2924,7 @@ mod tests {
             .memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint64!(4613515612218425347)),
+                &MaybeRelocatable::from(bigint!(4613515612218425347)),
             )
             .unwrap();
         cairo_runner
@@ -2940,7 +2940,7 @@ mod tests {
             .memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint64!(2345108766317314046)),
+                &MaybeRelocatable::from(bigint!(2345108766317314046)),
             )
             .unwrap();
         cairo_runner
@@ -2980,12 +2980,12 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(bigint64!(4613515612218425347))
+            Some(bigint!(4613515612218425347))
         );
         assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(5)));
         assert_eq!(
             cairo_runner.relocated_memory[3],
-            Some(bigint64!(2345108766317314046))
+            Some(bigint!(2345108766317314046))
         );
         assert_eq!(cairo_runner.relocated_memory[4], Some(bigint!(10)));
         assert_eq!(cairo_runner.relocated_memory[5], Some(bigint!(10)));
@@ -3086,29 +3086,29 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(bigint64!(4612671182993129469))
+            Some(bigint!(4612671182993129469))
         );
         assert_eq!(
             cairo_runner.relocated_memory[2],
-            Some(bigint64!(5198983563776393216))
+            Some(bigint!(5198983563776393216))
         );
         assert_eq!(cairo_runner.relocated_memory[3], Some(bigint!(1)));
         assert_eq!(
             cairo_runner.relocated_memory[4],
-            Some(bigint64!(2345108766317314046))
+            Some(bigint!(2345108766317314046))
         );
         assert_eq!(
             cairo_runner.relocated_memory[5],
-            Some(bigint64!(5191102247248822272))
+            Some(bigint!(5191102247248822272))
         );
         assert_eq!(
             cairo_runner.relocated_memory[6],
-            Some(bigint64!(5189976364521848832))
+            Some(bigint!(5189976364521848832))
         );
         assert_eq!(cairo_runner.relocated_memory[7], Some(bigint!(1)));
         assert_eq!(
             cairo_runner.relocated_memory[8],
-            Some(bigint64!(1226245742482522112))
+            Some(bigint!(1226245742482522112))
         );
         assert_eq!(
             cairo_runner.relocated_memory[9],
@@ -3118,12 +3118,12 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.relocated_memory[10],
-            Some(bigint64!(5189976364521848832))
+            Some(bigint!(5189976364521848832))
         );
         assert_eq!(cairo_runner.relocated_memory[11], Some(bigint!(17)));
         assert_eq!(
             cairo_runner.relocated_memory[12],
-            Some(bigint64!(1226245742482522112))
+            Some(bigint!(1226245742482522112))
         );
         assert_eq!(
             cairo_runner.relocated_memory[13],
@@ -3133,7 +3133,7 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.relocated_memory[14],
-            Some(bigint64!(2345108766317314046))
+            Some(bigint!(2345108766317314046))
         );
         assert_eq!(cairo_runner.relocated_memory[15], Some(bigint!(27)));
         assert_eq!(cairo_runner.relocated_memory[16], Some(bigint!(29)));
