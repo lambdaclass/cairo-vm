@@ -25,7 +25,7 @@ Implements hint:
 */
 pub fn uint256_add(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
@@ -76,7 +76,7 @@ Implements hint:
 */
 pub fn split_64(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
@@ -108,7 +108,7 @@ Implements hint:
 */
 pub fn uint256_sqrt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n_relocatable = get_relocatable_from_var_name("n", &ids, vm, hint_ap_tracking)?;
@@ -152,7 +152,7 @@ Implements hint:
 */
 pub fn uint256_signed_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
@@ -189,7 +189,7 @@ Implements hint:
 */
 pub fn uint256_unsigned_div_rem(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn run_uint256_add_ok() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0".as_bytes();
+        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -367,7 +367,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -384,7 +384,7 @@ mod tests {
 
     #[test]
     fn run_uint256_add_fail_inserts() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0".as_bytes();
+        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -494,7 +494,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -507,7 +507,7 @@ mod tests {
 
     #[test]
     fn run_split_64_ok() {
-        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64".as_bytes();
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -576,7 +576,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -599,7 +599,7 @@ mod tests {
 
     #[test]
     fn run_split_64_memory_error() {
-        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64".as_bytes();
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -676,7 +676,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -689,7 +689,7 @@ mod tests {
 
     #[test]
     fn run_uint256_sqrt_ok() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0".as_bytes();
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -754,7 +754,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -775,7 +775,7 @@ mod tests {
 
     #[test]
     fn run_uint256_sqrt_assert_error() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0".as_bytes();
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -840,7 +840,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -849,7 +849,7 @@ mod tests {
 
     #[test]
     fn run_uint256_invalid_memory_insert() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0".as_bytes();
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -922,7 +922,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -935,7 +935,7 @@ mod tests {
 
     #[test]
     fn run_signed_nn_ok_result_one() {
-        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -979,7 +979,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -993,7 +993,7 @@ mod tests {
 
     #[test]
     fn run_signed_nn_ok_result_zero() {
-        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -1037,7 +1037,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1051,7 +1051,7 @@ mod tests {
 
     #[test]
     fn run_signed_nn_ok_invalid_memory_insert() {
-        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -1099,7 +1099,7 @@ mod tests {
             .unwrap();
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -1112,7 +1112,7 @@ mod tests {
 
     #[test]
     fn run_unsigned_div_rem_ok() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128".as_bytes();
+        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -1214,7 +1214,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1243,7 +1243,7 @@ mod tests {
 
     #[test]
     fn run_unsigned_div_rem_invalid_memory_insert() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128".as_bytes();
+        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -1352,7 +1352,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),

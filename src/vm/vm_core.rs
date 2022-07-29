@@ -33,7 +33,7 @@ struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
 #[derive(Clone, Debug)]
 
 pub struct HintData {
-    pub hint_code: Vec<u8>,
+    pub hint_code: String,
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
     pub ap_tracking_data: ApTracking,
@@ -69,12 +69,12 @@ pub struct VirtualMachine {
 
 impl HintData {
     pub fn new(
-        hint_code: Vec<u8>,
+        hint_code: &str,
         ids: HashMap<String, BigInt>,
         ap_tracking_data: ApTracking,
     ) -> HintData {
         HintData {
-            hint_code,
+            hint_code: hint_code.to_string(),
             ids,
             ap_tracking_data,
         }
@@ -494,7 +494,7 @@ impl VirtualMachine {
                 execute_hint(
                     self,
                     &hint_data.hint_code,
-                    hint_data.ids.clone(),
+                    &hint_data.ids,
                     &hint_data.ap_tracking_data,
                 )?
             }
@@ -3590,7 +3590,7 @@ mod tests {
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
             vec![HintData::new(
-                "memory[ap] = segments.add()".as_bytes().to_vec(),
+                "memory[ap] = segments.add()",
                 HashMap::new(),
                 ApTracking::new(),
             )],

@@ -260,9 +260,9 @@ impl CairoRunner {
                 if let Some(hint_list) = hint_dictionary.get_mut(&key) {
                     //Add hint code to list of hints at given pc
                     hint_list.push(HintData::new(
-                        hint_data.code.clone(),
+                        &hint_data.code,
                         CairoRunner::remove_path_from_reference_ids(
-                            &hint_data.flow_tracking_data.reference_ids.clone(),
+                            &hint_data.flow_tracking_data.reference_ids,
                         )?,
                         hint_data.flow_tracking_data.ap_tracking.clone(),
                     ));
@@ -271,7 +271,7 @@ impl CairoRunner {
                     hint_dictionary.insert(
                         key,
                         vec![HintData::new(
-                            hint_data.code.clone(),
+                            &hint_data.code,
                             CairoRunner::remove_path_from_reference_ids(
                                 &hint_data.flow_tracking_data.reference_ids,
                             )?,

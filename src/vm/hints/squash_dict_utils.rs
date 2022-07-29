@@ -35,7 +35,7 @@ fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<Big
 */
 pub fn squash_dict_inner_first_iteration(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
@@ -82,7 +82,7 @@ pub fn squash_dict_inner_first_iteration(
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -114,7 +114,7 @@ pub fn squash_dict_inner_skip_loop(
 */
 pub fn squash_dict_inner_check_access_index(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
@@ -158,7 +158,7 @@ pub fn squash_dict_inner_check_access_index(
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -202,7 +202,7 @@ pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), Virtu
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
@@ -259,7 +259,7 @@ pub fn squash_dict_inner_assert_len_keys(
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -303,7 +303,7 @@ pub fn squash_dict_inner_next_key(
 */
 pub fn squash_dict(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
@@ -410,7 +410,10 @@ mod tests {
     use crate::serde::deserialize_program::ApTracking;
     use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::{
+        execute_hint::{execute_hint, HintReference},
+        hint_code,
+    };
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
@@ -431,7 +434,7 @@ mod tests {
     const SQUASH_DICT: &str ="dict_access_size = ids.DictAccess.SIZE\naddress = ids.dict_accesses.address_\nassert ids.ptr_diff % dict_access_size == 0, \\\n    'Accesses array size must be divisible by DictAccess.SIZE'\nn_accesses = ids.n_accesses\nif '__squash_dict_max_size' in globals():\n    assert n_accesses <= __squash_dict_max_size, \\\n        f'squash_dict() can only be used with n_accesses<={__squash_dict_max_size}. ' \\\n        f'Got: n_accesses={n_accesses}.'\n# A map from key to the list of indices accessing it.\naccess_indices = {}\nfor i in range(n_accesses):\n    key = memory[address + dict_access_size * i]\n    access_indices.setdefault(key, []).append(i)\n# Descending list of keys.\nkeys = sorted(access_indices.keys(), reverse=True)\n# Are the keys used bigger than range_check bound.\nids.big_keys = 1 if keys[0] >= range_check_builtin.bound else 0\nids.first_key = key = keys.pop()";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
-        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -476,7 +479,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -498,7 +501,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_first_iteration_empty_accessed_indices() {
-        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         //Leave current_accessed_indices empty
@@ -544,14 +547,14 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
 
     #[test]
     fn squash_dict_inner_first_iteration_no_local_variables() {
-        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //No scope variables
         //Create vm
         let mut vm = VirtualMachine::new(
@@ -588,7 +591,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::NoLocalVariable(String::from(
                 "access_indices"
             )))
@@ -597,7 +600,7 @@ mod tests {
 
     #[test]
     fn should_skip_loop_valid_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -633,7 +636,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -645,7 +648,7 @@ mod tests {
 
     #[test]
     fn should_skip_loop_valid_non_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(4), bigint!(7)];
         //Create vm
@@ -681,7 +684,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -693,7 +696,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_check_access_index_valid() {
-        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)];
         //Create vm
@@ -731,7 +734,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -756,7 +759,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_check_access_current_access_addr_empty() {
-        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -801,14 +804,14 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
 
     #[test]
     fn should_continue_loop_valid_non_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(4), bigint!(7)];
         //Create vm
@@ -844,7 +847,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -856,7 +859,7 @@ mod tests {
 
     #[test]
     fn should_continue_loop_valid_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -892,7 +895,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -904,7 +907,7 @@ mod tests {
 
     #[test]
     fn assert_current_indices_len_is_empty() {
-        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -921,14 +924,14 @@ mod tests {
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::default()),
             Ok(())
         );
     }
 
     #[test]
     fn assert_current_indices_len_is_empty_not() {
-        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(29)];
         //Create vm
@@ -945,14 +948,14 @@ mod tests {
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::default()),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }
 
     #[test]
     fn squash_dict_inner_uses_accesses_assert_valid() {
-        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -998,14 +1001,14 @@ mod tests {
         //Execute the hint
         //Hint would fail is assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
     }
 
     #[test]
     fn squash_dict_inner_uses_accesses_assert_wrong_used_access_number() {
-        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -1050,7 +1053,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -1061,7 +1064,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_uses_accesses_assert_used_access_number_relocatable() {
-        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -1106,7 +1109,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1115,7 +1118,7 @@ mod tests {
 
     #[test]
     fn squash_dict_assert_len_keys_empty() {
-        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Prepare scope variables
         let keys = vec![];
         //Create vm
@@ -1129,14 +1132,14 @@ mod tests {
             .assign_or_update_variable("keys", PyValueType::List(keys));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::default()),
             Ok(())
         );
     }
 
     #[test]
     fn squash_dict_assert_len_keys_not_empty() {
-        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Prepare scope variables
         let keys = vec![bigint!(3)];
         //Create vm
@@ -1150,14 +1153,14 @@ mod tests {
             .assign_or_update_variable("keys", PyValueType::List(keys));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::default()),
             Err(VirtualMachineError::KeysNotEmpty)
         );
     }
 
     #[test]
     fn squash_dict_assert_len_keys_no_keys() {
-        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1166,14 +1169,14 @@ mod tests {
         );
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::default()),
             Err(VirtualMachineError::NoLocalVariable(String::from("keys")))
         );
     }
 
     #[test]
     fn squash_dict_inner_next_key_keys_non_empty() {
-        let hint_code = SQUASH_DICT_INNER_NEXT_KEY.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Prepare scope variables
         let keys = vec![bigint!(1), bigint!(3)];
         //Create vm
@@ -1207,7 +1210,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.next_key
@@ -1225,7 +1228,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_next_key_keys_empty() {
-        let hint_code = SQUASH_DICT_INNER_NEXT_KEY.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Prepare scope variables
         let keys = vec![];
         //Create vm
@@ -1259,7 +1262,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -1267,7 +1270,7 @@ mod tests {
     #[test]
     fn squash_dict_valid_one_key_dict_no_max_size() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1416,7 +1419,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1447,7 +1450,8 @@ mod tests {
     #[test]
     fn squash_dict_valid_two_key_dict_no_max_size() {
         //Dict = {1: (1,1), 1: (1,2), 2: (10,10), 2: (10,20)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
+        assert_eq!(SQUASH_DICT, hint_code::SQUASH_DICT);
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1638,7 +1642,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1672,7 +1676,7 @@ mod tests {
     #[test]
     fn squash_dict_valid_one_key_dict_with_max_size() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1824,7 +1828,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1855,7 +1859,7 @@ mod tests {
     #[test]
     fn squash_dict_invalid_one_key_dict_with_max_size_exceeded() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2007,7 +2011,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -2018,7 +2022,7 @@ mod tests {
     #[test]
     fn squash_dict_invalid_one_key_dict_bad_ptr_diff() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2167,14 +2171,14 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
         );
     }
     #[test]
     fn squash_dict_invalid_one_key_dict_with_n_access_too_big() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2326,7 +2330,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::NAccessesTooBig(BigInt::new(
                 Sign::Plus,
                 vec![1, 0, 0, 0, 0, 0, 17, 134217728]
@@ -2337,7 +2341,7 @@ mod tests {
     #[test]
     fn squash_dict_valid_one_key_dict_no_max_size_big_keys() {
         //Dict = {(prime - 1): (1,1), (prime - 1): (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2492,7 +2496,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables

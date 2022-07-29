@@ -14,7 +14,7 @@ use std::collections::HashMap;
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n_addr = get_address_from_var_name("n", &ids, vm, hint_ap_tracking)?;
@@ -45,7 +45,7 @@ pub fn memset_enter_scope(
 */
 pub fn memset_continue_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let continue_loop_addr =
@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn memset_enter_scope_valid() {
-        let hint_code = "vm_enter_scope({'n': ids.n})".as_bytes();
+        let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -136,12 +136,12 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
     }
 
     #[test]
     fn memset_enter_scope_invalid() {
-        let hint_code = "vm_enter_scope({'n': ids.n})".as_bytes();
+        let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -180,7 +180,7 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_1() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -231,7 +231,7 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
 
         // assert ids.continue_loop = 0
         assert_eq!(
@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_5() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -284,7 +284,7 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
 
         // assert ids.continue_loop = 1
         assert_eq!(
@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_variable_not_in_scope_error() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -337,7 +337,7 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_insert_error() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -389,7 +389,7 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

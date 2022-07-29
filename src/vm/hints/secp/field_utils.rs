@@ -30,8 +30,8 @@ pub fn verify_zero(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let q_address = get_address_from_var_name("q", ids, vm, hint_ap_tracking)?;
-    let val_reloc = get_relocatable_from_var_name("val", ids, vm, hint_ap_tracking)?;
+    let q_address = get_address_from_var_name("q", &ids, vm, hint_ap_tracking)?;
+    let val_reloc = get_relocatable_from_var_name("val", &ids, vm, hint_ap_tracking)?;
 
     let val_d0 = get_integer_from_relocatable_plus_offset(&val_reloc, 0, vm)?;
     let val_d1 = get_integer_from_relocatable_plus_offset(&val_reloc, 1, vm)?;
@@ -72,7 +72,7 @@ pub fn reduce(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
+    let x_reloc = get_relocatable_from_var_name("x", &ids, vm, hint_ap_tracking)?;
 
     let x_d0 = get_integer_from_relocatable_plus_offset(&x_reloc, 0, vm)?;
     let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn run_verify_zero_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -193,7 +193,7 @@ mod tests {
             .unwrap();
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(execute_hint(&mut vm, hint_code, &ids, &ap_tracking), Ok(()));
 
         //Check hint memory inserts
         //ids.q
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn run_verify_zero_error() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -293,7 +293,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::SecpVerifyZero(
                 bigint!(0),
                 bigint!(0),
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn run_verify_zero_invalid_memory_insert() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -400,7 +400,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
@@ -413,7 +413,7 @@ mod tests {
 
     #[test]
     fn run_reduce_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -481,7 +481,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -496,7 +496,7 @@ mod tests {
 
     #[test]
     fn run_reduce_error() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -548,7 +548,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
             ))

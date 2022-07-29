@@ -56,7 +56,7 @@ is not available, an empty dict is created always
 */
 pub fn default_dict_new(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -66,7 +66,7 @@ pub fn default_dict_new(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("default_value")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -113,7 +113,7 @@ pub fn default_dict_new(
 */
 pub fn dict_read(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -131,7 +131,7 @@ pub fn dict_read(
                     String::from("value"),
                     String::from("dict_ptr"),
                 ],
-                ids.into_keys().collect(),
+                ids.keys().map(Clone::clone).collect(),
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
@@ -197,7 +197,7 @@ pub fn dict_read(
 */
 pub fn dict_write(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -215,7 +215,7 @@ pub fn dict_write(
                     String::from("new_value"),
                     String::from("dict_ptr"),
                 ],
-                ids.into_keys().collect(),
+                ids.keys().map(Clone::clone).collect(),
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
@@ -305,7 +305,7 @@ pub fn dict_write(
 */
 pub fn dict_update(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -325,7 +325,7 @@ pub fn dict_update(
                     String::from("new_value"),
                     String::from("dict_ptr"),
                 ],
-                ids.into_keys().collect(),
+                ids.keys().map(Clone::clone).collect(),
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
@@ -414,7 +414,7 @@ pub fn dict_update(
 */
 pub fn dict_squash_copy_dict(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end_addr =
@@ -454,7 +454,7 @@ pub fn dict_squash_copy_dict(
 */
 pub fn dict_squash_update_ptr(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get ids addresses from reference
@@ -514,7 +514,7 @@ mod tests {
     use super::*;
     #[test]
     fn run_dict_new_with_initial_dict_empty() {
-        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
@@ -525,7 +525,7 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new())
+        execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 1);
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn run_dict_new_with_no_initial_dict() {
-        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
@@ -553,14 +553,14 @@ mod tests {
         );
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
 
     #[test]
     fn run_dict_new_ap_is_taken() {
-        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
@@ -578,7 +578,7 @@ mod tests {
             .unwrap();
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -592,7 +592,7 @@ mod tests {
     #[test]
     fn run_dict_read_valid() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -672,7 +672,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that value variable (at address (0,1)) contains the proper value
@@ -690,7 +690,7 @@ mod tests {
     #[test]
     fn run_dict_read_invalid_key() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -770,14 +770,14 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
     #[test]
     fn run_dict_read_no_tracker() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -850,14 +850,14 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
 
     #[test]
     fn run_default_dict_new_valid() {
-        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
@@ -891,7 +891,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        execute_hint(&mut vm, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 3);
@@ -914,7 +914,7 @@ mod tests {
 
     #[test]
     fn run_default_dict_new_no_default_value() {
-        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)".as_bytes();
+        let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             //ap value is (0,0)
@@ -939,7 +939,7 @@ mod tests {
             },
         )]);
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -949,7 +949,7 @@ mod tests {
     #[test]
     fn run_dict_write_default_valid_empty_dict() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1036,7 +1036,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1064,7 +1064,7 @@ mod tests {
     #[test]
     fn run_dict_write_default_valid_overwrite_value() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1153,7 +1153,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1181,7 +1181,7 @@ mod tests {
     #[test]
     fn run_dict_write_simple_valid_overwrite_value() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1270,7 +1270,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1298,7 +1298,7 @@ mod tests {
     #[test]
     fn run_dict_write_simple_valid_cant_write_new_key() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1385,7 +1385,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -1393,7 +1393,7 @@ mod tests {
     #[test]
     fn run_dict_update_simple_valid() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1502,7 +1502,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1525,7 +1525,7 @@ mod tests {
     #[test]
     fn run_dict_update_simple_valid_no_change() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1634,7 +1634,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1657,7 +1657,7 @@ mod tests {
     #[test]
     fn run_dict_update_simple_invalid_wrong_prev_key() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1766,7 +1766,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 Some(bigint!(10)),
@@ -1778,7 +1778,7 @@ mod tests {
     #[test]
     fn run_dict_update_simple_invalid_wrong_key() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -1887,7 +1887,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 None,
@@ -1899,7 +1899,7 @@ mod tests {
     #[test]
     fn run_dict_update_default_valid() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2009,7 +2009,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2032,7 +2032,7 @@ mod tests {
     #[test]
     fn run_dict_update_default_valid_no_change() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2142,7 +2142,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2165,7 +2165,7 @@ mod tests {
     #[test]
     fn run_dict_update_default_invalid_wrong_prev_key() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2275,7 +2275,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 Some(bigint!(10)),
@@ -2287,7 +2287,7 @@ mod tests {
     #[test]
     fn run_dict_update_default_invalid_wrong_key() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2397,7 +2397,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 Some(bigint!(17)),
@@ -2409,7 +2409,7 @@ mod tests {
     #[test]
     fn run_dict_update_default_valid_no_key_prev_value_equals_default() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2517,7 +2517,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2540,7 +2540,7 @@ mod tests {
     #[test]
     fn run_dict_squash_copy_dict_valid_empty_dict() {
         let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2584,7 +2584,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -2601,7 +2601,7 @@ mod tests {
     #[test]
     fn run_dict_squash_copy_dict_valid_non_empty_dict() {
         let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2648,7 +2648,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -2669,7 +2669,7 @@ mod tests {
     #[test]
     fn run_dict_squash_copy_dict_invalid_no_dict() {
         let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2707,7 +2707,7 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -2715,7 +2715,7 @@ mod tests {
     #[test]
     fn run_dict_squash_update_ptr_no_tracker() {
         let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2774,7 +2774,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -2782,7 +2782,7 @@ mod tests {
     #[test]
     fn run_dict_squash_update_ptr_valid() {
         let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
-            .as_bytes();
+            ;
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2848,7 +2848,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check the updated pointer
@@ -2863,8 +2863,7 @@ mod tests {
 
     #[test]
     fn run_dict_squash_update_ptr_mismatched_dict_ptr() {
-        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
-            .as_bytes();
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
@@ -2930,7 +2929,7 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MismatchedDictPtr(
                 relocatable!(1, 0),
                 relocatable!(1, 3)

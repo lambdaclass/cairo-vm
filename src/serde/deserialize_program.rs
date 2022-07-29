@@ -22,8 +22,7 @@ pub struct ProgramJson {
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct HintParams {
-    #[serde(with = "serde_bytes")]
-    pub code: Vec<u8>,
+    pub code: String,
     pub accessible_scopes: Vec<String>,
     pub flow_tracking_data: FlowTrackingData,
 }
@@ -389,10 +388,7 @@ mod tests {
         hints.insert(
             0,
             vec![HintParams {
-                code: vec![
-                    109, 101, 109, 111, 114, 121, 91, 97, 112, 93, 32, 61, 32, 115, 101, 103, 109,
-                    101, 110, 116, 115, 46, 97, 100, 100, 40, 41,
-                ],
+                code: "memory[ap] = segments.add()".to_string(),
                 accessible_scopes: vec![
                     String::from("starkware.cairo.common.alloc"),
                     String::from("starkware.cairo.common.alloc.alloc"),
@@ -583,10 +579,7 @@ mod tests {
         hints.insert(
             0,
             vec![HintParams {
-                code: vec![
-                    109, 101, 109, 111, 114, 121, 91, 97, 112, 93, 32, 61, 32, 115, 101, 103, 109,
-                    101, 110, 116, 115, 46, 97, 100, 100, 40, 41,
-                ],
+                code: "memory[ap] = segments.add()".to_string(),
                 accessible_scopes: vec![
                     String::from("starkware.cairo.common.alloc"),
                     String::from("starkware.cairo.common.alloc.alloc"),
@@ -603,7 +596,7 @@ mod tests {
         hints.insert(
             46,
             vec![HintParams {
-                code: vec![105, 109, 112, 111, 114, 116, 32, 109, 97, 116, 104],
+                code: "import math".to_string(),
                 accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
                 flow_tracking_data: FlowTrackingData {
                     ap_tracking: ApTracking {

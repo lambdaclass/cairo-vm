@@ -20,7 +20,7 @@ pub fn nondet_bigint3(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", ids, vm, hint_ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name("res", &ids, vm, hint_ap_tracking)?;
 
     // get `value` variable from vm scope
     let value: &BigInt = match vm
@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn run_nondet_bigint3_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -113,7 +113,7 @@ mod tests {
         };
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(execute_hint(&mut vm, hint_code, &ids, &ap_tracking), Ok(()));
 
         //Check hint memory inserts
         assert_eq!(
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn run_nondet_bigint3_value_not_in_scope() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -189,7 +189,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))
@@ -198,7 +198,7 @@ mod tests {
 
     #[test]
     fn run_nondet_bigint3_split_error() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -248,7 +248,7 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }
