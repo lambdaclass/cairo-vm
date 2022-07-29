@@ -261,7 +261,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     #[test]
     fn run_uint256_add_ok() {

@@ -10,7 +10,6 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, Sign};
-use num_traits::FromPrimitive;
 use num_traits::Signed;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};

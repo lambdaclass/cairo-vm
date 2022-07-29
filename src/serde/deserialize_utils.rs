@@ -226,7 +226,6 @@ fn parse_reference_with_two_offsets(
 mod tests {
     use super::*;
     use crate::bigint;
-    use num_traits::FromPrimitive;
 
     #[test]
     fn parse_dereference_with_one_offset_test() {

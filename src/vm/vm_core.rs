@@ -15,7 +15,7 @@ use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 use super::hints::execute_hint::HintReference;
@@ -695,6 +695,7 @@ mod tests {
     use crate::{bigint64, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
+    use num_traits::FromPrimitive;
     use std::collections::HashSet;
 
     pub fn memory_from(

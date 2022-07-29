@@ -228,7 +228,6 @@ mod tests {
     use crate::relocatable;
     use num_bigint::BigInt;
     use num_bigint::Sign;
-    use num_traits::FromPrimitive;
 
     #[test]
     fn add_bigint_to_int() {

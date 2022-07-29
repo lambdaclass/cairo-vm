@@ -15,7 +15,6 @@ use crate::vm::runners::builtin_runner::{
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
 use crate::vm::vm_core::{HintData, VirtualMachine};
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::io;
 
@@ -425,6 +424,7 @@ impl CairoRunner {
 #[cfg(test)]
 mod tests {
     use num_bigint::Sign;
+    use num_traits::FromPrimitive;
 
     use super::*;
     use crate::serde::deserialize_program::ReferenceManager;

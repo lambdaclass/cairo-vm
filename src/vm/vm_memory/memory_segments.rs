@@ -79,7 +79,6 @@ impl Default for MemorySegmentManager {
 mod tests {
     use crate::{bigint, relocatable};
     use num_bigint::BigInt;
-    use num_traits::FromPrimitive;
 
     use super::*;
 

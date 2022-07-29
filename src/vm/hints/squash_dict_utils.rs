@@ -413,7 +413,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_bigint::Sign;
-    use num_traits::FromPrimitive;
 
     use super::*;
     //Hint code as consts

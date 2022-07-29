@@ -498,7 +498,6 @@ mod tests {
     use std::collections::HashMap;
 
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     use crate::types::instruction::Register;
     use crate::types::relocatable::Relocatable;

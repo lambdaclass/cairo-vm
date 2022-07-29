@@ -13,7 +13,7 @@ use crate::vm::{
 };
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
+use num_traits::{Signed, ToPrimitive, Zero};
 use std::collections::HashMap;
 use std::ops::{Neg, Shl, Shr};
 
