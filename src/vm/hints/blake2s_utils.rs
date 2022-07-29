@@ -42,7 +42,7 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
     new_array
 }
 
-fn get_maybe_relocatable_array_from_bigint(array: &Vec<BigInt>) -> Vec<MaybeRelocatable> {
+fn get_maybe_relocatable_array_from_bigint(array: &[BigInt]) -> Vec<MaybeRelocatable> {
     array
         .iter()
         .map(|x| MaybeRelocatable::from(x.clone()))
