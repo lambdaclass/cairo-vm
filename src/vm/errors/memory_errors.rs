@@ -11,6 +11,7 @@ pub enum MemoryError {
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
     EffectiveSizesNotCalled,
     Relocation,
+    WriteArg,
 }
 
 impl fmt::Display for MemoryError {
@@ -41,6 +42,7 @@ impl fmt::Display for MemoryError {
                 "compute_effective_sizes should be called before relocate_segments"
             ),
             MemoryError::Relocation => write!(f, "Inconsistent Relocation"),
+            MemoryError::WriteArg => write!(f, "Could not cast arguments"),
         }
     }
 }
