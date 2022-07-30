@@ -125,6 +125,7 @@ mod tests {
                         group: 4,
                         offset: 3,
                     }),
+                    immediate: None,
                 },
             ),
             (
@@ -138,6 +139,7 @@ mod tests {
                         group: 4,
                         offset: 3,
                     }),
+                    immediate: None,
                 },
             ),
         ]);
@@ -232,6 +234,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: Some(ApTracking::new()),
+                    immediate: None,
                 },
             ),
             // Incorrect reference, offset1 out of range
@@ -243,6 +246,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: Some(ApTracking::new()),
+                    immediate: None,
                 },
             ),
         ]);
@@ -289,6 +293,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: Some(ApTracking::new()),
+                    immediate: None,
                 },
             ),
             (
@@ -299,6 +304,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: Some(ApTracking::new()),
+                    immediate: None,
                 },
             ),
         ]);
@@ -355,6 +361,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: Some(ApTracking::new()),
+                    immediate: None,
                 },
             ),
             (
@@ -365,6 +372,7 @@ mod tests {
                     offset2: 0,
                     inner_dereference: false,
                     ap_tracking_data: Some(ApTracking::new()),
+                    immediate: None,
                 },
             ),
         ]);
