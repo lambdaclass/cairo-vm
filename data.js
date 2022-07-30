@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659134984611,
+  "lastUpdate": 1659218237345,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -12241,6 +12241,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 218153311,
             "range": "± 379200",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "041ff331169bd58e2b07350afa4a8a029043e299",
+          "message": "[HINTS]Add implementation for hints & utils for function nondet_bigint3 (cairo_secp/bigint.cairo ) (#322)\n\n* add SecpSplitutOfRange and SecpSplitNegative VirtualMachineErrors\r\n\r\n* add Scep::ScepUtils::split\r\n\r\n* add write_arg and gen_arg_vec_bigint functions\r\n\r\n* make fn split public\r\n\r\n* add nondet_bigint3 implementation + unit tests\r\n\r\n* cargo clippy\r\n\r\n* typos\r\n\r\n* add immediate to HintReference\r\n\r\n* review corrections\r\n\r\n* refactor split\r\n\r\n* review corrections\r\n\r\n* [HINTS]Add implementation for hints & utils of functions verify_zero and reduce (cairo_secp/field.cairo ) (#327)\r\n\r\n* add SecpUtils::pack fn\r\n\r\n* add SecpUtils::pack unit tests\r\n\r\n* add VirtualMachineError::SecpVerifyZero\r\n\r\n* add verify_zero hint implementation\r\n\r\n* add verify_zero unit tests\r\n\r\n* add run_verify_zero_invalid_memory_insert unit tests\r\n\r\n* add reduce hint implementation\r\n\r\n* add draft integration test\r\n\r\n* add reduce unit tests\r\n\r\n* update integration test\r\n\r\n* update cairo_run_test.rs\r\n\r\n* add doc to integration test\r\n\r\n* add immediate to HintReference\r\n\r\n* review corrections\r\n\r\n* remove bool from gen_arg_vec_bigint",
+          "timestamp": "2022-07-30T18:44:35-03:00",
+          "tree_id": "25f0e0708993f70f6c741a041a5e64703fc308c9",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/041ff331169bd58e2b07350afa4a8a029043e299"
+        },
+        "date": 1659218235539,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1945170979,
+            "range": "± 33585547",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 706135614,
+            "range": "± 11365532",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 346660930,
+            "range": "± 6944602",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1666594271,
+            "range": "± 28094460",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 254905370,
+            "range": "± 5808895",
             "unit": "ns/iter"
           }
         ]
