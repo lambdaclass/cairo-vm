@@ -10,7 +10,6 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, bigint_str};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::FromPrimitive;
 use num_traits::Zero;
 use std::collections::HashMap;
 
@@ -191,15 +190,16 @@ pub fn is_zero_assign_x_inv(vm: &mut VirtualMachine) -> Result<(), VirtualMachin
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::Sign;
-
     use super::*;
     use crate::bigint;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::Sign;
 
     #[test]
     fn run_verify_zero_ok() {
@@ -648,6 +648,120 @@ mod tests {
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_is_zero_pack_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("x"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -5,
+                offset2: 0,
+                inner_dereference: false,
+                immediate: None,
+                ap_tracking_data: Some(ApTracking {
+                    group: 2,
+                    offset: 0,
+                }),
+            },
+        )]);
+
+        //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
+        vm.memory = memory![
+            ((1, 10), 232113757366008801543585_i128),
+            ((1, 11), 232113757366008801543585_i128),
+            ((1, 12), 232113757366008801543585_i128)
+        ];
+
+        //Check 'x' is not defined in the vm scope
+        assert_eq!(vm.exec_scopes.get_local_variables().unwrap().get("x"), None);
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check 'x' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("x"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"1389505070847794345082847096905107459917719328738389700703952672838091425185"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_is_zero_pack_error() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("x"), bigint!(0));
+
+        //Create references
+        vm.references = HashMap::from([(
+            0,
+            HintReference {
+                register: Register::FP,
+                offset1: -5,
+                offset2: 0,
+                inner_dereference: false,
+                immediate: None,
+                ap_tracking_data: Some(ApTracking {
+                    group: 2,
+                    offset: 0,
+                }),
+            },
+        )]);
+
+        //Skip ids.x.d0, ids.x.d1, ids.x.d2 inserts so the hints fails
+        // vm.memory = memory![
+        //     ((1, 10), 232113757366008801543585_i128),
+        //     ((1, 11), 232113757366008801543585_i128),
+        //     ((1, 12), 232113757366008801543585_i128)
+        // ];
+
+        //Check 'x' is not defined in the vm scope
+        assert_eq!(vm.exec_scopes.get_local_variables().unwrap().get("x"), None);
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 10))
             ))
         );
     }
