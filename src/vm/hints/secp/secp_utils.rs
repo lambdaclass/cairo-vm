@@ -1,9 +1,25 @@
 use crate::bigint;
+use crate::bigint_str;
 use crate::math_utils::as_int;
+use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::hint_utils::get_integer_from_relocatable_plus_offset;
+use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
+use crate::vm::vm_core::VirtualMachine;
+use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, Zero};
+use std::collections::HashMap;
 
+lazy_static! {
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    pub static ref SECP_P:BigInt = bigint_str!(
+        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    );
+    pub static ref N:BigInt = bigint_str!(
+        b"115792089237316195423570985008687907852837564279074904382605163141518161494337"
+    );
+}
 /*
 Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
@@ -41,6 +57,21 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
         .enumerate()
         .map(|(idx, value)| as_int(value, prime) << (idx * 86))
         .sum()
+}
+
+pub fn pack_from_var_name(
+    name: &str,
+    ids: &HashMap<String, BigInt>,
+    vm: &mut VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<BigInt, VirtualMachineError> {
+    let to_pack = get_relocatable_from_var_name(name, ids, vm, hint_ap_tracking)?;
+
+    let d0 = get_integer_from_relocatable_plus_offset(&to_pack, 0, vm)?;
+    let d1 = get_integer_from_relocatable_plus_offset(&to_pack, 1, vm)?;
+    let d2 = get_integer_from_relocatable_plus_offset(&to_pack, 2, vm)?;
+
+    Ok(pack(d0, d1, d2, &vm.prime))
 }
 
 #[cfg(test)]

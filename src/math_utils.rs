@@ -78,10 +78,10 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
     }
 }
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
-fn div_mod(n: BigInt, m: BigInt, p: BigInt) -> BigInt {
+pub fn div_mod(n: BigInt, m: BigInt, p: &BigInt) -> BigInt {
     let (a, _, c) = igcdex(m, p.clone());
     assert_eq!(c, bigint!(1));
-    (n * a).mod_floor(&p)
+    (n * a).mod_floor(p)
 }
 
 /// Gets two points on an elliptic curve mod p and returns their sum.
@@ -101,7 +101,7 @@ pub fn ec_add(
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
 pub fn line_slope(point_a: (BigInt, BigInt), point_b: (BigInt, BigInt), prime: &BigInt) -> BigInt {
     assert!((point_a.0.clone() - point_b.0.clone()) % prime != bigint!(0));
-    div_mod(point_a.1 - point_b.1, point_a.0 - point_b.0, prime.clone())
+    div_mod(point_a.1 - point_b.1, point_a.0 - point_b.0, prime)
 }
 
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
@@ -121,7 +121,7 @@ pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) 
     div_mod(
         bigint!(3) * point.0.clone() * point.0.clone() + alpha,
         bigint!(2) * point.1,
-        prime.clone(),
+        prime,
     )
 }
 
@@ -156,7 +156,7 @@ mod tests {
             bigint_str!(
                 b"2904750555256547440469454488220756360634457312540595732507835416669695939476"
             ),
-            div_mod(a, b, prime)
+            div_mod(a, b, &prime)
         );
     }
 
@@ -175,7 +175,7 @@ mod tests {
             bigint_str!(
                 b"3601388548860259779932034493250169083811722919049731683411013070523752439691"
             ),
-            div_mod(a, b, prime)
+            div_mod(a, b, &prime)
         );
     }
 
@@ -194,7 +194,7 @@ mod tests {
             bigint_str!(
                 b"1545825591488572374291664030703937603499513742109806697511239542787093258962"
             ),
-            div_mod(a, b, prime)
+            div_mod(a, b, &prime)
         );
     }
 
