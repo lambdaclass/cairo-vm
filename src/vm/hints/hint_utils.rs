@@ -819,13 +819,13 @@ pub fn memcpy_continue_copying(
     // get `n` variable from vm scope
     let n = get_int_ref_from_scope(vm, "n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - bigint!(1_i32);
+    let new_n = n - 1_i32;
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
-    if n.is_positive() {
-        insert_integer_from_var_name("continue_copying", bigint!(0), ids, vm, hint_ap_tracking)?;
-    } else {
+    if new_n.is_positive() {
         insert_integer_from_var_name("continue_copying", bigint!(1), ids, vm, hint_ap_tracking)?;
+    } else {
+        insert_integer_from_var_name("continue_copying", bigint!(0), ids, vm, hint_ap_tracking)?;
     }
     vm.exec_scopes
         .assign_or_update_variable("n", PyValueType::BigInt(new_n));
