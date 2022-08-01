@@ -45,5 +45,8 @@ func main{range_check_ptr: felt}():
     let (w) = is_zero(BigInt3(-10,-10,-10))
     assert w = 0
 
+    let (z) = is_zero(BigInt3(1833312543,67523423,8790312))
+    assert z = 0
+
     return()
 end
