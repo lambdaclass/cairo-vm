@@ -418,7 +418,7 @@ pub fn dict_squash_copy_dict(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end_addr =
-        get_address_from_var_name("dict_accesses_end", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("dict_accesses_end", ids, vm, hint_ap_tracking)?;
     let dict_access_end = if let MaybeRelocatable::RelocatableValue(rel) = vm
         .memory
         .get(&dict_accesses_end_addr)
@@ -459,9 +459,9 @@ pub fn dict_squash_update_ptr(
 ) -> Result<(), VirtualMachineError> {
     //Get ids addresses from reference
     let squashed_dict_start_addr =
-        get_address_from_var_name("squashed_dict_start", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("squashed_dict_start", ids, vm, hint_ap_tracking)?;
     let squashed_dict_end_addr =
-        get_address_from_var_name("squashed_dict_end", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("squashed_dict_end", ids, vm, hint_ap_tracking)?;
     //Get ids values from addresses
     let squashed_dict_start = if let MaybeRelocatable::RelocatableValue(rel) = vm
         .memory
@@ -501,15 +501,14 @@ mod tests {
     use num_traits::FromPrimitive;
 
     use crate::types::instruction::Register;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::dict_manager::{DictManager, Dictionary};
-    use crate::vm::hints::execute_hint::HintReference;
+    use crate::vm::hints::dict_manager::{DictManager, DictTracker, Dictionary};
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::{bigint, relocatable};
-    use crate::{
-        types::relocatable::MaybeRelocatable,
-        vm::hints::{dict_manager::DictTracker, execute_hint::execute_hint},
-    };
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     use super::*;
     #[test]
@@ -520,12 +519,14 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Store initial dict in scope
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 1);
@@ -550,10 +551,12 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
@@ -566,6 +569,7 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         vm.segments.add(&mut vm.memory, None);
         vm.exec_scopes
@@ -578,7 +582,8 @@ mod tests {
             .unwrap();
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -597,6 +602,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -672,7 +678,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that value variable (at address (0,1)) contains the proper value
@@ -695,6 +702,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -770,7 +778,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
@@ -782,6 +791,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -850,7 +860,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -863,6 +874,7 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -891,7 +903,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 3);
@@ -920,6 +933,7 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
@@ -939,7 +953,8 @@ mod tests {
             },
         )]);
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -954,6 +969,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1036,7 +1052,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1069,6 +1086,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1153,7 +1171,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1186,6 +1205,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1270,7 +1290,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1303,6 +1324,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1385,7 +1407,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -1398,6 +1421,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1502,7 +1526,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1530,6 +1555,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1634,7 +1660,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1662,6 +1689,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1766,7 +1794,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 Some(bigint!(10)),
@@ -1783,6 +1812,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1887,7 +1917,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 None,
@@ -1904,6 +1935,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2009,7 +2041,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2037,6 +2070,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2142,7 +2176,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2170,6 +2205,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2275,7 +2311,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 Some(bigint!(10)),
@@ -2292,6 +2329,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2397,7 +2435,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 Some(bigint!(17)),
@@ -2414,6 +2453,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2517,7 +2557,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2545,6 +2586,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2584,7 +2626,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -2606,6 +2649,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2648,7 +2692,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -2674,6 +2719,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2707,7 +2753,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -2720,6 +2767,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2774,7 +2822,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -2787,6 +2836,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2848,7 +2898,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check the updated pointer
@@ -2868,6 +2919,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2929,7 +2981,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MismatchedDictPtr(
                 relocatable!(1, 0),
                 relocatable!(1, 3)

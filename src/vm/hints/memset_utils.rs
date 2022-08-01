@@ -17,7 +17,7 @@ pub fn memset_enter_scope(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_addr = get_address_from_var_name("n", &ids, vm, hint_ap_tracking)?;
+    let n_addr = get_address_from_var_name("n", ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&n_addr) {
         Ok(Some(maybe_rel_n)) => {
@@ -48,8 +48,7 @@ pub fn memset_continue_loop(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let continue_loop_addr =
-        get_address_from_var_name("continue_loop", &ids, vm, hint_ap_tracking)?;
+    let continue_loop_addr = get_address_from_var_name("continue_loop", ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
 
@@ -92,10 +91,12 @@ mod tests {
         types::instruction::Register,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{execute_hint, HintReference},
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
         },
     };
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn memset_enter_scope_valid() {
@@ -104,6 +105,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -136,7 +138,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -146,6 +151,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -180,7 +186,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -194,6 +201,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -231,7 +239,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
 
         // assert ids.continue_loop = 0
         assert_eq!(
@@ -247,6 +258,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -284,7 +296,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
 
         // assert ids.continue_loop = 1
         assert_eq!(
@@ -300,6 +315,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -337,7 +353,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -351,6 +368,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -389,7 +407,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

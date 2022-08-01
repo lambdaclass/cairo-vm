@@ -30,10 +30,10 @@ pub fn uint256_add(
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let b_relocatable = get_relocatable_from_var_name("b", &ids, vm, hint_ap_tracking)?;
-    let carry_high_addr = get_address_from_var_name("carry_high", &ids, vm, hint_ap_tracking)?;
-    let carry_low_addr = get_address_from_var_name("carry_low", &ids, vm, hint_ap_tracking)?;
+    let a_relocatable = get_relocatable_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let b_relocatable = get_relocatable_from_var_name("b", ids, vm, hint_ap_tracking)?;
+    let carry_high_addr = get_address_from_var_name("carry_high", ids, vm, hint_ap_tracking)?;
+    let carry_low_addr = get_address_from_var_name("carry_low", ids, vm, hint_ap_tracking)?;
 
     let a_low = get_integer_from_relocatable_plus_offset(&a_relocatable, 0, vm)?;
     let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
@@ -79,9 +79,9 @@ pub fn split_64(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let high_addr = get_address_from_var_name("high", &ids, vm, hint_ap_tracking)?;
-    let low_addr = get_address_from_var_name("low", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let high_addr = get_address_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let low_addr = get_address_from_var_name("low", ids, vm, hint_ap_tracking)?;
 
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
@@ -111,9 +111,9 @@ pub fn uint256_sqrt(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_relocatable = get_relocatable_from_var_name("n", &ids, vm, hint_ap_tracking)?;
+    let n_relocatable = get_relocatable_from_var_name("n", ids, vm, hint_ap_tracking)?;
 
-    let root_addr = get_address_from_var_name("root", &ids, vm, hint_ap_tracking)?;
+    let root_addr = get_address_from_var_name("root", ids, vm, hint_ap_tracking)?;
     let n_low = get_integer_from_relocatable_plus_offset(&n_relocatable, 0, vm)?;
     let n_high = get_integer_from_relocatable_plus_offset(&n_relocatable, 1, vm)?;
 
@@ -155,7 +155,7 @@ pub fn uint256_signed_nn(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a_relocatable = get_relocatable_from_var_name("a", ids, vm, hint_ap_tracking)?;
 
     let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
 
@@ -192,10 +192,10 @@ pub fn uint256_unsigned_div_rem(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let div_relocatable = get_relocatable_from_var_name("div", &ids, vm, hint_ap_tracking)?;
-    let quotient_addr = get_address_from_var_name("quotient", &ids, vm, hint_ap_tracking)?;
-    let remainder_addr = get_address_from_var_name("remainder", &ids, vm, hint_ap_tracking)?;
+    let a_relocatable = get_relocatable_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let div_relocatable = get_relocatable_from_var_name("div", ids, vm, hint_ap_tracking)?;
+    let quotient_addr = get_address_from_var_name("quotient", ids, vm, hint_ap_tracking)?;
+    let remainder_addr = get_address_from_var_name("remainder", ids, vm, hint_ap_tracking)?;
 
     let a_low = get_integer_from_relocatable_plus_offset(&a_relocatable, 0, vm)?;
     let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
@@ -258,10 +258,12 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
     use num_traits::FromPrimitive;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn run_uint256_add_ok() {
@@ -273,6 +275,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -367,7 +370,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -392,6 +396,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -494,7 +499,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -515,6 +521,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -576,7 +583,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -607,6 +615,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -676,7 +685,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -697,6 +707,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -754,7 +765,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -783,6 +795,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -840,7 +853,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -857,6 +871,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -922,7 +937,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -943,6 +959,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -979,7 +996,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1001,6 +1019,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -1037,7 +1056,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1059,6 +1079,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -1099,7 +1120,8 @@ mod tests {
             .unwrap();
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -1120,6 +1142,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -1214,7 +1237,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1251,6 +1275,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -1352,7 +1377,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),

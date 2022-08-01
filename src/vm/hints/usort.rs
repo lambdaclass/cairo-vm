@@ -167,11 +167,13 @@ mod tests {
     use crate::{
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
-            hints::execute_hint::{execute_hint, HintReference},
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
             runners::builtin_runner::RangeCheckBuiltinRunner,
         },
     };
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn usort_out_of_range() {
@@ -183,6 +185,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         const FP_OFFSET_START: usize = 1;
@@ -226,7 +229,8 @@ mod tests {
             .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 
         assert_eq!(
-            execute_hint(&mut vm, hint, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint, &ids, &ApTracking::new()),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

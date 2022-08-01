@@ -1584,7 +1584,7 @@ pub fn memcpy_enter_scope(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len_addr = get_address_from_var_name("len", &ids, vm, hint_ap_tracking)?;
+    let len_addr = get_address_from_var_name("len", ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&len_addr) {
         Ok(Some(maybe_rel_len)) => {
@@ -1615,7 +1615,7 @@ pub fn memcpy_continue_copying(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let continue_copying_addr =
-        get_address_from_var_name("continue_copying", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
     let n = match vm.exec_scopes.get_local_variables() {
@@ -1805,7 +1805,10 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn get_integer_from_var_name_valid() {
@@ -1813,6 +1816,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1859,6 +1863,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1907,6 +1912,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1931,6 +1937,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);

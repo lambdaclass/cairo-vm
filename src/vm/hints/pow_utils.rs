@@ -82,12 +82,14 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
     use num_traits::FromPrimitive;
 
     use super::*;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn run_pow_ok() {
@@ -99,6 +101,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -158,7 +161,11 @@ mod tests {
         };
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, &ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -177,6 +184,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -193,7 +201,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("prev_locs"), String::from("locs")],
                 vec![String::from("locs")]
@@ -211,6 +220,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -255,7 +265,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -270,6 +281,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -321,7 +333,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -338,6 +351,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -397,7 +411,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),

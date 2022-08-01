@@ -20,7 +20,7 @@ pub fn nondet_bigint3(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", &ids, vm, hint_ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name("res", ids, vm, hint_ap_tracking)?;
 
     // get `value` variable from vm scope
     let value: &BigInt = match vm
@@ -52,10 +52,12 @@ mod tests {
     use super::*;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn run_nondet_bigint3_ok() {
@@ -67,6 +69,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -113,7 +116,11 @@ mod tests {
         };
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, &ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -146,6 +153,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -189,7 +197,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))
@@ -206,6 +215,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -248,7 +258,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::instruction::Register;
+use crate::types::{hint_executor::HintExecutor, instruction::Register};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::blake2s_utils::{
     blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
@@ -54,90 +54,100 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
-pub fn execute_hint(
-    vm: &mut VirtualMachine,
-    code: &str,
-    ids: &HashMap<String, BigInt>,
-    ap_tracking: &ApTracking,
-) -> Result<(), VirtualMachineError> {
-    match code {
-        hint_code::ADD_SEGMENT => add_segment(vm),
-        hint_code::IS_NN => is_nn(vm, ids, None),
-        hint_code::IS_NN_OUT_OF_RANGE => is_nn_out_of_range(vm, ids, None),
-        hint_code::IS_LE_FELT => is_le_felt(vm, ids, None),
-        hint_code::ASSERT_LE_FELT => assert_le_felt(vm, ids, None),
-        hint_code::ASSERT_250_BITS => assert_250_bit(vm, ids, None),
-        hint_code::IS_POSITIVE => is_positive(vm, ids, Some(ap_tracking)),
-        hint_code::SPLIT_INT_ASSERT_RANGE => split_int_assert_range(vm, ids, None),
-        hint_code::SPLIT_INT => split_int(vm, ids, None),
-        hint_code::ASSERT_NOT_EQUAL => assert_not_equal(vm, ids, None),
-        hint_code::ASSERT_NN => assert_nn(vm, ids, None),
-        hint_code::SQRT => sqrt(vm, ids, None),
-        hint_code::ASSERT_NOT_ZERO => assert_not_zero(vm, ids, None),
-        hint_code::VM_EXIT_SCOPE => exit_scope(vm),
-        hint_code::MEMCPY_ENTER_SCOPE => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
-        hint_code::MEMSET_ENTER_SCOPE => memset_enter_scope(vm, ids, Some(ap_tracking)),
-        hint_code::MEMCPY_CONTINUE_COPYING => memcpy_continue_copying(vm, ids, Some(ap_tracking)),
-        hint_code::MEMSET_CONTINUE_LOOP => memset_continue_loop(vm, ids, Some(ap_tracking)),
-        hint_code::SPLIT_FELT => split_felt(vm, ids, None),
-        hint_code::UNSIGNED_DIV_REM => unsigned_div_rem(vm, ids, None),
-        hint_code::SIGNED_DIV_REM => signed_div_rem(vm, ids, None),
-        hint_code::ASSERT_LT_FELT => assert_lt_felt(vm, ids, None),
-        hint_code::FIND_ELEMENT => find_element(vm, ids, None),
-        hint_code::SEARCH_SORTED_LOWER => search_sorted_lower(vm, ids, None),
-        hint_code::POW => pow(vm, ids, Some(ap_tracking)),
-        hint_code::SET_ADD => set_add(vm, ids, None),
-        hint_code::DICT_NEW => dict_new(vm),
-        hint_code::DICT_READ => dict_read(vm, ids, None),
-        hint_code::DICT_WRITE => dict_write(vm, ids, None),
-        hint_code::DEFAULT_DICT_NEW => default_dict_new(vm, ids, Some(ap_tracking)),
-        hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => {
-            squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking))
+pub struct BuiltinHintExecutor {}
+
+impl HintExecutor for BuiltinHintExecutor {
+    fn execute_hint(
+        &self,
+        vm: &mut VirtualMachine,
+        code: &str,
+        ids: &HashMap<String, BigInt>,
+        ap_tracking: &ApTracking,
+    ) -> Result<(), VirtualMachineError> {
+        match code {
+            hint_code::ADD_SEGMENT => add_segment(vm),
+            hint_code::IS_NN => is_nn(vm, ids, None),
+            hint_code::IS_NN_OUT_OF_RANGE => is_nn_out_of_range(vm, ids, None),
+            hint_code::IS_LE_FELT => is_le_felt(vm, ids, None),
+            hint_code::ASSERT_LE_FELT => assert_le_felt(vm, ids, None),
+            hint_code::ASSERT_250_BITS => assert_250_bit(vm, ids, None),
+            hint_code::IS_POSITIVE => is_positive(vm, ids, Some(ap_tracking)),
+            hint_code::SPLIT_INT_ASSERT_RANGE => split_int_assert_range(vm, ids, None),
+            hint_code::SPLIT_INT => split_int(vm, ids, None),
+            hint_code::ASSERT_NOT_EQUAL => assert_not_equal(vm, ids, None),
+            hint_code::ASSERT_NN => assert_nn(vm, ids, None),
+            hint_code::SQRT => sqrt(vm, ids, None),
+            hint_code::ASSERT_NOT_ZERO => assert_not_zero(vm, ids, None),
+            hint_code::VM_EXIT_SCOPE => exit_scope(vm),
+            hint_code::MEMCPY_ENTER_SCOPE => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
+            hint_code::MEMSET_ENTER_SCOPE => memset_enter_scope(vm, ids, Some(ap_tracking)),
+            hint_code::MEMCPY_CONTINUE_COPYING => {
+                memcpy_continue_copying(vm, ids, Some(ap_tracking))
+            }
+            hint_code::MEMSET_CONTINUE_LOOP => memset_continue_loop(vm, ids, Some(ap_tracking)),
+            hint_code::SPLIT_FELT => split_felt(vm, ids, None),
+            hint_code::UNSIGNED_DIV_REM => unsigned_div_rem(vm, ids, None),
+            hint_code::SIGNED_DIV_REM => signed_div_rem(vm, ids, None),
+            hint_code::ASSERT_LT_FELT => assert_lt_felt(vm, ids, None),
+            hint_code::FIND_ELEMENT => find_element(vm, ids, None),
+            hint_code::SEARCH_SORTED_LOWER => search_sorted_lower(vm, ids, None),
+            hint_code::POW => pow(vm, ids, Some(ap_tracking)),
+            hint_code::SET_ADD => set_add(vm, ids, None),
+            hint_code::DICT_NEW => dict_new(vm),
+            hint_code::DICT_READ => dict_read(vm, ids, None),
+            hint_code::DICT_WRITE => dict_write(vm, ids, None),
+            hint_code::DEFAULT_DICT_NEW => default_dict_new(vm, ids, Some(ap_tracking)),
+            hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => {
+                squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking))
+            }
+            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm),
+            hint_code::USORT_BODY => usort_body(vm, ids, None),
+            hint_code::USORT_VERIFY => verify_usort(vm, ids, None),
+            hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => verify_multiplicity_assert(vm),
+            hint_code::USORT_VERIFY_MULTIPLICITY_BODY => verify_multiplicity_body(vm, ids, None),
+            hint_code::BLAKE2S_COMPUTE => compute_blake2s(vm, ids, Some(ap_tracking)),
+            hint_code::VERIFY_ZERO => verify_zero(vm, ids, Some(ap_tracking)),
+            hint_code::NONDET_BIGINT3 => nondet_bigint3(vm, ids, Some(ap_tracking)),
+            hint_code::REDUCE => reduce(vm, ids, None),
+            hint_code::BLAKE2S_FINALIZE => finalize_blake2s(vm, ids, Some(ap_tracking)),
+            hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256(vm, ids, Some(ap_tracking)),
+            hint_code::BLAKE2S_ADD_UINT256_BIGEND => {
+                blake2s_add_uint256_bigend(vm, ids, Some(ap_tracking))
+            }
+            hint_code::UNSAFE_KECCAK => unsafe_keccak(vm, ids, None),
+            hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize(vm, ids, None),
+            hint_code::SQUASH_DICT_INNER_SKIP_LOOP => {
+                squash_dict_inner_skip_loop(vm, ids, Some(ap_tracking))
+            }
+            hint_code::SQUASH_DICT_INNER_CHECK_ACCESS_INDEX => {
+                squash_dict_inner_check_access_index(vm, ids, Some(ap_tracking))
+            }
+            hint_code::SQUASH_DICT_INNER_CONTINUE_LOOP => {
+                squash_dict_inner_continue_loop(vm, ids, Some(ap_tracking))
+            }
+            hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => squash_dict_inner_assert_len_keys(vm),
+            hint_code::SQUASH_DICT_INNER_LEN_ASSERT => squash_dict_inner_len_assert(vm),
+            hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
+                squash_dict_inner_used_accesses_assert(vm, ids, Some(ap_tracking))
+            }
+            hint_code::SQUASH_DICT_INNER_NEXT_KEY => {
+                squash_dict_inner_next_key(vm, ids, Some(ap_tracking))
+            }
+            hint_code::SQUASH_DICT => squash_dict(vm, ids, Some(ap_tracking)),
+            hint_code::VM_ENTER_SCOPE => enter_scope(vm),
+            hint_code::DICT_UPDATE => dict_update(vm, ids, None),
+            hint_code::DICT_SQUASH_COPY_DICT => dict_squash_copy_dict(vm, ids, Some(ap_tracking)),
+            hint_code::DICT_SQUASH_UPDATE_PTR => dict_squash_update_ptr(vm, ids, Some(ap_tracking)),
+            hint_code::UINT256_ADD => uint256_add(vm, ids, None),
+            hint_code::SPLIT_64 => split_64(vm, ids, None),
+            hint_code::UINT256_SQRT => uint256_sqrt(vm, ids, None),
+            hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm, ids, None),
+            hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm, ids, None),
+            code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
-        hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm),
-        hint_code::USORT_BODY => usort_body(vm, ids, None),
-        hint_code::USORT_VERIFY => verify_usort(vm, ids, None),
-        hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => verify_multiplicity_assert(vm),
-        hint_code::USORT_VERIFY_MULTIPLICITY_BODY => verify_multiplicity_body(vm, ids, None),
-        hint_code::BLAKE2S_COMPUTE => compute_blake2s(vm, ids, Some(ap_tracking)),
-        hint_code::VERIFY_ZERO => verify_zero(vm, ids, Some(ap_tracking)),
-        hint_code::NONDET_BIGINT3 => nondet_bigint3(vm, ids, Some(ap_tracking)),
-        hint_code::REDUCE => reduce(vm, &ids, None),
-        hint_code::BLAKE2S_FINALIZE => finalize_blake2s(vm, ids, Some(ap_tracking)),
-        hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256(vm, ids, Some(ap_tracking)),
-        hint_code::BLAKE2S_ADD_UINT256_BIGEND=> blake2s_add_uint256_bigend(vm, ids, Some(ap_tracking)),
-        hint_code::UNSAFE_KECCAK => unsafe_keccak(vm, ids, None),
-        hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize(vm, ids, None),
-        hint_code::SQUASH_DICT_INNER_SKIP_LOOP => {
-            squash_dict_inner_skip_loop(vm, ids, Some(ap_tracking))
-        }
-        hint_code::SQUASH_DICT_INNER_CHECK_ACCESS_INDEX => {
-            squash_dict_inner_check_access_index(vm, ids, Some(ap_tracking))
-        }
-        hint_code::SQUASH_DICT_INNER_CONTINUE_LOOP => {
-            squash_dict_inner_continue_loop(vm, ids, Some(ap_tracking))
-        }
-        hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => squash_dict_inner_assert_len_keys(vm),
-        hint_code::SQUASH_DICT_INNER_LEN_ASSERT => squash_dict_inner_len_assert(vm),
-        hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
-            squash_dict_inner_used_accesses_assert(vm, ids, Some(ap_tracking))
-        }
-        hint_code::SQUASH_DICT_INNER_NEXT_KEY => {
-            squash_dict_inner_next_key(vm, ids, Some(ap_tracking))
-        }
-        hint_code::SQUASH_DICT => squash_dict(vm, ids, Some(ap_tracking)),
-        hint_code::VM_ENTER_SCOPE => enter_scope(vm),
-        hint_code::DICT_UPDATE => dict_update(vm, ids, None),
-        hint_code::DICT_SQUASH_COPY_DICT => dict_squash_copy_dict(vm, ids, Some(ap_tracking)),
-        hint_code::DICT_SQUASH_UPDATE_PTR => dict_squash_update_ptr(vm, ids, Some(ap_tracking)),
-        hint_code::UINT256_ADD => uint256_add(vm, ids, None),
-        hint_code::SPLIT_64 => split_64(vm, ids, None),
-        hint_code::UINT256_SQRT => uint256_sqrt(vm, ids, None),
-        hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm, ids, None),
-        hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm, ids, None),
-        code => Err(VirtualMachineError::UnknownHint(code.to_string())),
     }
 }
+
 #[cfg(test)]
 mod tests {
     use std::ops::Shl;
@@ -156,6 +166,8 @@ mod tests {
 
     use super::*;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
@@ -164,9 +176,11 @@ mod tests {
             //ap value is (0,0)
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
             .expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 1);
@@ -184,6 +198,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Add 3 segments to the memory
         for _ in 0..3 {
@@ -191,7 +206,8 @@ mod tests {
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
         //ids and references are not needed for this test
-        execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
             .expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
@@ -209,6 +225,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Add 3 segments to the memory
         for _ in 0..3 {
@@ -224,7 +241,8 @@ mod tests {
             .unwrap();
         //ids and references are not needed for this test
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 6)),
@@ -242,10 +260,12 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
         );
     }
@@ -260,6 +280,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -290,7 +311,8 @@ mod tests {
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that ap now contains false (0)
         assert_eq!(
@@ -309,6 +331,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -339,7 +362,8 @@ mod tests {
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
@@ -360,6 +384,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -393,7 +418,8 @@ mod tests {
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
@@ -409,6 +435,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -440,7 +467,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -455,6 +483,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -466,7 +495,8 @@ mod tests {
         ids.insert(String::from("b"), bigint!(0));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a")],
                 vec![String::from("b")]
@@ -484,6 +514,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -509,7 +540,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryGet(MaybeRelocatable::from((
                 0, 0
             ))))
@@ -526,6 +558,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -557,7 +590,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -575,6 +609,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -646,7 +681,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -662,6 +698,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -714,7 +751,10 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -724,6 +764,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -777,7 +818,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -792,6 +834,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -843,7 +886,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -861,6 +905,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -915,7 +960,8 @@ mod tests {
         // Since the ids are a map, the order might not always match and so the error returned
         // sometimes might be different
         assert!(matches!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ));
     }
@@ -931,6 +977,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -962,7 +1009,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -979,6 +1027,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1010,7 +1059,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -1026,6 +1076,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1057,7 +1108,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a")],
                 vec![String::from("incorrect_id")],
@@ -1076,6 +1128,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1107,7 +1160,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1123,6 +1177,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1154,7 +1209,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1169,6 +1225,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1200,7 +1257,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -1216,6 +1274,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.segments.add(&mut vm.memory, None);
@@ -1239,7 +1298,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1255,6 +1315,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1326,7 +1387,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
@@ -1342,6 +1404,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1413,7 +1476,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1429,6 +1493,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1500,7 +1565,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1518,6 +1584,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1589,7 +1656,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -1607,6 +1675,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1637,7 +1706,8 @@ mod tests {
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -1656,6 +1726,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1686,7 +1757,8 @@ mod tests {
             },
         )]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -1701,6 +1773,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1752,7 +1825,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(1)),
                 MaybeRelocatable::from(bigint!(1))
@@ -1768,6 +1842,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1819,7 +1894,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -1832,6 +1908,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1887,7 +1964,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(-1)),
                 MaybeRelocatable::from(bigint_str!(
@@ -1904,6 +1982,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1955,7 +2034,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from((0, 0)),
                 MaybeRelocatable::from((0, 0))
@@ -1971,6 +2051,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2022,7 +2103,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -2034,6 +2116,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2085,7 +2168,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::DiffIndexComp(
                 relocatable!(1, 0),
                 relocatable!(0, 0)
@@ -2101,6 +2185,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2152,7 +2237,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::DiffTypeComparison(
                 MaybeRelocatable::from((1, 0)),
                 MaybeRelocatable::from(bigint!(1))
@@ -2168,6 +2254,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2198,7 +2285,8 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -2211,6 +2299,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2241,7 +2330,8 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotZero(bigint!(0), vm.prime))
         );
     }
@@ -2254,6 +2344,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2284,7 +2375,8 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotZero(
                 vm.prime.clone(),
                 vm.prime
@@ -2300,6 +2392,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2330,7 +2423,8 @@ mod tests {
         ids.insert(String::from("value"), bigint!(10));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetReference(bigint!(10)))
         );
     }
@@ -2343,6 +2437,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Create references
         vm.references = HashMap::from([(
@@ -2373,7 +2468,8 @@ mod tests {
         ids.insert(String::from("incorrect_id"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("value")],
                 vec![String::from("incorrect_id")],
@@ -2389,6 +2485,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         vm.references = HashMap::from([(
             0,
@@ -2418,7 +2515,8 @@ mod tests {
         ids.insert(String::from("value"), bigint!(0));
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -2432,6 +2530,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2463,7 +2562,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::SplitIntNotZero)
         );
     }
@@ -2475,6 +2575,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2506,7 +2607,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -2518,6 +2620,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -2609,7 +2712,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         assert_eq!(
@@ -2625,6 +2729,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -2716,7 +2821,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::SplitIntLimbOutOfRange(bigint!(100)))
         );
     }
@@ -2733,6 +2839,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2777,7 +2884,8 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that is_positive now contains 1 (true)
         assert_eq!(
@@ -2798,6 +2906,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2842,7 +2951,8 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        vm.hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that is_positive now contains 0 (false)
         assert_eq!(
@@ -2863,6 +2973,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2911,7 +3022,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutsideValidRange(as_int(
                 &BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
                 &vm.prime
@@ -2930,6 +3042,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2981,7 +3094,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -3000,6 +3114,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -3044,7 +3159,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that root (0,1) has the square root of 81
@@ -3062,6 +3178,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -3106,7 +3223,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutside250BitRange(bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
             )))
@@ -3121,6 +3239,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -3172,7 +3291,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -3193,6 +3313,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3267,7 +3388,10 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(2))))
@@ -3288,6 +3412,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3363,7 +3488,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -3378,6 +3504,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3453,7 +3580,8 @@ mod tests {
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -3468,6 +3596,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3549,7 +3678,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -3570,6 +3700,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -3645,7 +3776,8 @@ mod tests {
         ]);
         //Execute the hint
         assert!(matches!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ))
     }
@@ -3660,6 +3792,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3764,7 +3897,10 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
@@ -3785,6 +3921,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -3889,7 +4026,10 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(4))))
@@ -3910,6 +4050,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -4015,7 +4156,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -4030,6 +4172,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -4135,7 +4278,8 @@ mod tests {
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -4150,6 +4294,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -4261,7 +4406,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -4282,6 +4428,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..5 {
             vm.segments.add(&mut vm.memory, None);
@@ -4387,7 +4534,8 @@ mod tests {
         ]);
         //Execute the hint
         assert!(matches!(
-            execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(_, _))
         ))
     }
@@ -4399,6 +4547,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -4456,7 +4605,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -4479,6 +4629,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -4536,7 +4687,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutside250BitRange(
                 bigint!(1).shl(251i32)
             ))
@@ -4555,6 +4707,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4623,7 +4776,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -4652,6 +4806,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4718,7 +4873,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &incomplete_ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &incomplete_ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![
                     String::from("high"),
@@ -4741,6 +4897,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4810,7 +4967,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -4827,6 +4985,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -4904,7 +5063,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
@@ -4927,6 +5087,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -5004,7 +5165,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 1)),
@@ -5027,6 +5189,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -5095,7 +5258,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -5114,6 +5278,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5171,7 +5336,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -5188,6 +5354,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5245,7 +5412,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertLtFelt(bigint!(3), bigint!(2)))
         );
     }
@@ -5262,6 +5430,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5318,7 +5487,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("a"), String::from("b"),],
                 vec![String::from("a"),],
@@ -5338,6 +5508,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5396,7 +5567,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -5413,6 +5585,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5470,7 +5643,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -5489,6 +5663,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5546,7 +5721,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))
@@ -5565,6 +5741,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize memory segements
         for _ in 0..3 {
@@ -5622,7 +5799,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -5634,6 +5812,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -5666,7 +5845,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -5676,6 +5858,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -5710,7 +5893,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -5724,6 +5908,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -5761,7 +5946,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -5771,6 +5959,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -5809,7 +5998,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -5823,6 +6013,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -5861,7 +6052,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -5879,6 +6071,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // create new vm scope with dummy variable
@@ -5890,7 +6083,10 @@ mod tests {
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
 
-        assert!(execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -5900,6 +6096,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // new vm scope is not created so that the hint raises an error:
@@ -5909,7 +6106,8 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
@@ -5924,10 +6122,16 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check exec_scopes
@@ -5942,6 +6146,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6055,7 +6260,10 @@ mod tests {
             ),
         ]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -6065,6 +6273,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6179,7 +6388,8 @@ mod tests {
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
@@ -6191,6 +6401,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6301,7 +6512,10 @@ mod tests {
             ),
         ]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_err());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_err());
     }
 
     #[test]
@@ -6311,6 +6525,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6425,7 +6640,8 @@ mod tests {
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
         );
     }
@@ -6437,6 +6653,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6536,7 +6753,10 @@ mod tests {
             ),
         ]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
@@ -6546,6 +6766,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6639,7 +6860,8 @@ mod tests {
         ]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoneInMemoryRange)
         );
     }
@@ -6651,6 +6873,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -6751,6 +6974,9 @@ mod tests {
             ),
         ]);
 
-        assert!(execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()).is_err());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_err());
     }
 }
