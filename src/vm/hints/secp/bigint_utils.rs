@@ -76,7 +76,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        bigint_str,
+        bigint, bigint_str,
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
             hints::execute_hint::{execute_hint, HintReference},
