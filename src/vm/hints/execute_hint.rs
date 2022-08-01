@@ -87,7 +87,7 @@ pub fn execute_hint(
         Ok("vm_exit_scope()") => exit_scope(vm),
         Ok("vm_enter_scope({'n': ids.len})") => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
         Ok("vm_enter_scope({'n': ids.n})") => memset_enter_scope(vm, ids, Some(ap_tracking)),
-        Ok("n -= 1\nids.continue_copying = 1 if n > 0 else 0") => memcpy_continue_copying(vm, ids, Some(ap_tracking)),
+        Ok("n -= 1\nids.continue_copying = 1 if n > 0 else 0") => memcpy_continue_copying(vm, &ids, Some(ap_tracking)),
         Ok("n -= 1\nids.continue_loop = 1 if n > 0 else 0") => memset_continue_loop(vm, ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
         ) => split_felt(vm, ids, None),
@@ -521,10 +521,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("a")],
-                vec![String::from("b")]
-            ))
+            Err(VirtualMachineError::FailedToGetIds)
         );
     }
 
@@ -565,9 +562,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::MemoryGet(MaybeRelocatable::from((
-                0, 0
-            ))))
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
         );
     }
 
@@ -774,71 +771,6 @@ mod tests {
     }
 
     #[test]
-    fn run_is_le_felt_hint_no_range_check_builtin() {
-        let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .expect("Unexpected memroy insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .expect("Unexpected memroy insert fail");
-
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-
-        //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
-
-        //Execute the hint
-        assert_eq!(
-            execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
-        );
-    }
-
-    #[test]
     fn run_is_le_felt_hint_inconsistent_memory() {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1".as_bytes();
         let mut vm = VirtualMachine::new(
@@ -970,10 +902,10 @@ mod tests {
 
         // Since the ids are a map, the order might not always match and so the error returned
         // sometimes might be different
-        assert!(matches!(
+        assert_eq!(
             execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(_, _))
-        ));
+            Err(VirtualMachineError::FailedToGetIds)
+        );
     }
 
     #[test]
@@ -1114,10 +1046,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("a")],
-                vec![String::from("incorrect_id")],
-            ))
+            Err(VirtualMachineError::FailedToGetIds),
         );
     }
 
@@ -1148,7 +1077,7 @@ mod tests {
             .unwrap();
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        ids.insert(String::from("a"), bigint!(2));
         //Create references
         vm.references = HashMap::from([(
             0,
@@ -1296,7 +1225,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::FailedToGetIds)
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
         );
     }
 
@@ -1409,14 +1340,14 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(2)),
+                &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //ids.b
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
+                &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //ids.small_inputs (insert into memory, instead of leaving a gap for it (local var))
@@ -1470,7 +1401,13 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::FailedToGetIds)
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    MaybeRelocatable::from((0, 2)),
+                    MaybeRelocatable::from(bigint!(4)),
+                    MaybeRelocatable::from(bigint!(1))
+                )
+            ))
         );
     }
 
@@ -2434,10 +2371,7 @@ mod tests {
 
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(
-                vec![String::from("value")],
-                vec![String::from("incorrect_id")],
-            ))
+            Err(VirtualMachineError::FailedToGetIds)
         );
     }
 
@@ -3706,7 +3640,7 @@ mod tests {
         //Execute the hint
         assert!(matches!(
             execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(_, _))
+            Err(VirtualMachineError::FailedToGetIds)
         ))
     }
 
@@ -4448,7 +4382,7 @@ mod tests {
         //Execute the hint
         assert!(matches!(
             execute_hint(&mut vm, &hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(_, _))
+            Err(VirtualMachineError::FailedToGetIds)
         ))
     }
     #[test]
@@ -4779,14 +4713,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, incomplete_ids, &ApTracking::new()),
-            Err(VirtualMachineError::IncorrectIds(
-                vec![
-                    String::from("high"),
-                    String::from("low"),
-                    String::from("value"),
-                ],
-                vec![String::from("value"),],
-            ))
+            Err(VirtualMachineError::FailedToGetIds)
         );
     }
     #[test]
