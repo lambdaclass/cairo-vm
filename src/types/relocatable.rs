@@ -40,6 +40,12 @@ impl From<BigInt> for MaybeRelocatable {
     }
 }
 
+impl From<Relocatable> for MaybeRelocatable {
+    fn from(rel: Relocatable) -> Self {
+        MaybeRelocatable::RelocatableValue(rel)
+    }
+}
+
 impl Relocatable {
     pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
         if self.offset < other {
@@ -47,6 +53,23 @@ impl Relocatable {
         }
         let new_offset = self.offset - other;
         Ok(relocatable!(self.segment_index, new_offset))
+    }
+
+    pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {
+        if self.segment_index != other.segment_index {
+            return Err(VirtualMachineError::DiffIndexSub);
+        }
+        if self.offset < other.offset {
+            return Err(VirtualMachineError::CantSubOffset(
+                self.offset,
+                other.offset,
+            ));
+        }
+        let result = self.offset - other.offset;
+        Ok(result)
+    }
+    pub fn add_usize(&self, num: usize) -> Self {
+        relocatable!(self.segment_index, self.offset + num)
     }
 }
 

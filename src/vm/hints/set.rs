@@ -1,120 +1,81 @@
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::hints::hint_utils::get_address_from_var_name;
-use crate::vm::{
-    errors::vm_errors::VirtualMachineError, runners::builtin_runner::RangeCheckBuiltinRunner,
-    vm_core::VirtualMachine,
-};
+use crate::vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine};
 use crate::{bigint, bigintusize};
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use std::collections::HashMap;
+
+use super::hint_utils::{
+    get_integer_from_var_name, get_ptr_from_var_name, insert_integer_from_var_name,
+};
 
 pub fn set_add(
     vm: &mut VirtualMachine,
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let is_elm_in_set_addr =
-        get_address_from_var_name("is_elm_in_set", &ids, vm, hint_ap_tracking)?;
-    let index_addr = get_address_from_var_name("index", &ids, vm, hint_ap_tracking)?;
-    let set_ptr_addr = get_address_from_var_name("set_ptr", &ids, vm, hint_ap_tracking)?;
-    let elm_size_addr = get_address_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
-    let elm_ptr_addr = get_address_from_var_name("elm_ptr", &ids, vm, hint_ap_tracking)?;
-    let set_end_ptr_addr = get_address_from_var_name("set_end_ptr", &ids, vm, hint_ap_tracking)?;
+    let set_ptr = get_ptr_from_var_name("set_ptr", &ids, vm, hint_ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?
+        .to_usize()
+        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", &ids, vm, hint_ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", &ids, vm, hint_ap_tracking)?;
 
-    match (
-        vm.memory.get(&is_elm_in_set_addr),
-        vm.memory.get(&index_addr),
-        vm.memory.get(&set_ptr_addr),
-        vm.memory.get(&elm_size_addr),
-        vm.memory.get(&elm_ptr_addr),
-        vm.memory.get(&set_end_ptr_addr),
-    ) {
-        (
-            Ok(_),
-            Ok(_),
-            Ok(Some(set_ptr)),
-            Ok(Some(maybe_rel_elm_size)),
-            Ok(Some(elm_ptr)),
-            Ok(Some(set_end_ptr)),
-        ) => {
-            let _ = vm
-                .builtin_runners
-                .iter()
-                .find(|(name, _)| name.as_str() == "range_check")
-                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?
-                .1
-                .as_any()
-                .downcast_ref::<RangeCheckBuiltinRunner>()
-                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
-
-            let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                if elm_size.is_zero() {
-                    return Err(VirtualMachineError::ValueNotPositive(elm_size.clone()));
-                }
-                elm_size
-                    .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(
-                    maybe_rel_elm_size.clone(),
-                ));
-            };
-
-            let elm = vm
-                .memory
-                .get_range(elm_ptr, elm_size)
-                .map_err(VirtualMachineError::MemoryError)?;
-
-            if set_ptr > set_end_ptr {
-                return Err(VirtualMachineError::InvalidSetRange(
-                    set_ptr.clone(),
-                    set_end_ptr.clone(),
-                ));
-            }
-
-            let set_span = set_end_ptr.sub(set_ptr, &vm.prime)?;
-            // sub method always returns a MaybeRelocatable::Int
-            let range_limit = if let MaybeRelocatable::Int(ref range_limit) = set_span {
-                range_limit
-                    .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(set_span));
-            };
-
-            for i in (0..range_limit).step_by(elm_size) {
-                let set_iter = vm
-                    .memory
-                    .get_range(&set_ptr.add_usize_mod(i as usize, None), elm_size)
-                    .map_err(VirtualMachineError::MemoryError)?;
-
-                if set_iter == elm {
-                    vm.memory
-                        .insert(
-                            &index_addr,
-                            &MaybeRelocatable::Int(bigintusize!(i / elm_size)),
-                        )
-                        .map_err(VirtualMachineError::MemoryError)?;
-                    return vm
-                        .memory
-                        .insert(&is_elm_in_set_addr, &MaybeRelocatable::Int(bigint!(1)))
-                        .map_err(VirtualMachineError::MemoryError);
-                }
-            }
-            vm.memory
-                .insert(&is_elm_in_set_addr, &MaybeRelocatable::Int(bigint!(0)))
-                .map_err(VirtualMachineError::MemoryError)
-        }
-        _ => Err(VirtualMachineError::FailedToGetIds),
+    if elm_size.is_zero() {
+        return Err(VirtualMachineError::ValueNotPositive(bigintusize!(
+            elm_size
+        )));
     }
+
+    let elm = vm
+        .memory
+        .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
+        .map_err(VirtualMachineError::MemoryError)?;
+
+    if set_ptr > set_end_ptr {
+        return Err(VirtualMachineError::InvalidSetRange(
+            MaybeRelocatable::from(set_ptr.clone()),
+            MaybeRelocatable::from(set_end_ptr.clone()),
+        ));
+    }
+
+    let range_limit = set_end_ptr.sub_rel(&set_ptr)?;
+
+    for i in (0..range_limit).step_by(elm_size) {
+        let set_iter = vm
+            .memory
+            .get_range(
+                &MaybeRelocatable::from(set_ptr.add_usize(i as usize)),
+                elm_size,
+            )
+            .map_err(VirtualMachineError::MemoryError)?;
+
+        if set_iter == elm {
+            insert_integer_from_var_name(
+                "index",
+                bigintusize!(i / elm_size),
+                &ids,
+                vm,
+                hint_ap_tracking,
+            )?;
+            return insert_integer_from_var_name(
+                "is_elm_in_set",
+                bigint!(1),
+                &ids,
+                vm,
+                hint_ap_tracking,
+            );
+        }
+    }
+    insert_integer_from_var_name("is_elm_in_set", bigint!(0), &ids, vm, hint_ap_tracking)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::types::instruction::Register;
+    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::{
         hints::execute_hint::{execute_hint, HintReference},
         runners::builtin_runner::OutputBuiltinRunner,
@@ -344,7 +305,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((7, 8))
+                MaybeRelocatable::from((0, 3))
             ))
         );
     }
@@ -403,32 +364,6 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
-        );
-    }
-
-    #[test]
-    fn builtin_is_none() {
-        let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        _ = vm.builtin_runners.pop();
-
-        assert_eq!(
-            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
-        );
-    }
-
-    #[test]
-    fn range_check_not_present() {
-        let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        _ = vm.builtin_runners.pop();
-        vm.builtin_runners.push((
-            "output".to_string(),
-            Box::new(OutputBuiltinRunner::new(true)),
-        ));
-
-        assert_eq!(
-            execute_hint(&mut vm, HINT_CODE, ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
 
