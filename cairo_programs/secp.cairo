@@ -6,7 +6,8 @@ from starkware.cairo.common.cairo_secp.bigint import (
 from starkware.cairo.common.cairo_secp.field import (
     verify_zero,
     UnreducedBigInt3,
-    reduce
+    reduce,
+    is_zero
 )
 func main{range_check_ptr: felt}():
     #verify_zero
@@ -34,6 +35,12 @@ func main{range_check_ptr: felt}():
 
     let r: BigInt3 = reduce(UnreducedBigInt3(-10,-56,-111))
     assert r = BigInt3(77371252455336262886226981,77371252455336267181195207, 19342813113834066795298704)
+
+    # is_zero
+    let (u) = is_zero(BigInt3(0,0,0))
+    assert u = 1
+    let (v) = is_zero(BigInt3(232113757366008801543585,232113757366008801543585,232113757366008801543585))
+    assert v = 0
 
     return()
 end
