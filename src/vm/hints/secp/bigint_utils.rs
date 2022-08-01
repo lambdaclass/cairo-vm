@@ -1,9 +1,17 @@
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::PyValueType;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
-use crate::vm::hints::secp::secp_utils::split;
-use crate::vm::vm_core::VirtualMachine;
+use crate::{
+    bigint,
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::PyValueType,
+    vm::{
+        errors::vm_errors::VirtualMachineError,
+        hints::{
+            hint_utils::{get_relocatable_from_var_name, insert_integer_from_var_name},
+            secp::secp_utils::{split, BASE_86},
+        },
+        vm_core::VirtualMachine,
+    },
+};
+
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
@@ -15,6 +23,7 @@ Implements hint:
     segments.write_arg(ids.res.address_, split(value))
 %}
 */
+
 pub fn nondet_bigint3(
     vm: &mut VirtualMachine,
     ids: &HashMap<String, BigInt>,
@@ -45,16 +54,35 @@ pub fn nondet_bigint3(
 
     Ok(())
 }
+
+// Implements hint
+// %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
+pub fn bigint_to_uint256(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let x_struct = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
+    let d0 = vm.memory.get_integer(&x_struct)?;
+    let d1 = vm.memory.get_integer(&(&x_struct + 1))?;
+    let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
+    insert_integer_from_var_name("low", low, ids, vm, hint_ap_tracking)
+}
+
 #[cfg(test)]
 mod tests {
     use num_bigint::Sign;
 
     use super::*;
-    use crate::types::instruction::Register;
-    use crate::types::relocatable::MaybeRelocatable;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
-    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use crate::{bigint, bigint_str};
+    use crate::{
+        bigint, bigint_str,
+        types::{instruction::Register, relocatable::MaybeRelocatable},
+        vm::{
+            hints::execute_hint::{execute_hint, HintReference},
+            runners::builtin_runner::RangeCheckBuiltinRunner,
+        },
+    };
+
     #[test]
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
@@ -103,6 +131,14 @@ mod tests {
                 }),
             },
         )]);
+
+        //Create AP tracking
+        let _ap_tracking = ApTracking {
+            group: 0,
+            offset: 0,
+        };
+
+        //Execute the hint
 
         //Create AP tracking
         let ap_tracking = ApTracking {
@@ -212,14 +248,6 @@ mod tests {
         // initialize vm scope with variable `n`
         vm.exec_scopes
             .assign_or_update_variable("value", PyValueType::BigInt(bigint!(-1)));
-
-        //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 6));
-
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 6));
-
-        //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("res"), bigint!(0));
 
