@@ -359,17 +359,6 @@ pub fn insert_integer_at_relocatable_plus_offset(
         .map_err(VirtualMachineError::MemoryError)
 }
 
-// Used for variables that hold pointers.
-pub fn get_ptr_from_var_name_ref<'a>(
-    var_name: &str,
-    ids: &HashMap<String, BigInt>,
-    vm: &'a VirtualMachine,
-    hint_ap_tracking: Option<&ApTracking>,
-) -> Result<&'a Relocatable, VirtualMachineError> {
-    let var_addr = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    vm.memory.get_relocatable(&var_addr)
-}
-
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let new_segment_base =
