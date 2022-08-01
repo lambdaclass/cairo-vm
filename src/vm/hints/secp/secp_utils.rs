@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::math_utils::as_int;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, Zero};
+use num_traits::{Signed, Zero};
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:

@@ -55,8 +55,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::{bigint, bigint_str};
-    use num_traits::FromPrimitive;
-
     #[test]
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
