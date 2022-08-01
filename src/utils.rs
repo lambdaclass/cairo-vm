@@ -26,62 +26,6 @@ macro_rules! relocatable {
     };
 }
 
-#[macro_export]
-macro_rules! mayberelocatable {
-    ($val1 : expr, $val2 : expr) => {
-        MaybeRelocatable::from(($val1, $val2))
-    };
-    ($val1 : expr) => {
-        MaybeRelocatable::from((bigint!($val1)))
-    };
-}
-#[macro_export]
-macro_rules! memory {
-    ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
-    {
-        let mut memory = Memory::new();
-        memory.data.push(Vec::new());
-        memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
-    memory
-    }
-    };
-}
-#[macro_export]
-macro_rules! memory_from_memory {
-    ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
-        {
-            $mem.data.push(Vec::new());
-            $(
-                memory_inner!($mem, ($si, $off), $val);
-            )*
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! memory_inner {
-    ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
-        let mut res = $mem.insert(
-            &mayberelocatable!($si, $off),
-            &mayberelocatable!($sival, $offval),
-        );
-        while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
-            $mem.data.push(Vec::new());
-            res = $mem.insert(
-                &mayberelocatable!($si, $off),
-                &mayberelocatable!($sival, $offval),
-            );
-        }
-    };
-    ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
-        let mut res = $mem.insert(&mayberelocatable!($si, $off), &mayberelocatable!($val));
-        while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
-            $mem.data.push(Vec::new());
-            res = $mem.insert(&mayberelocatable!($si, $off), &mayberelocatable!($val));
-        }
-    };
-}
-
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
     for search in subsequence {
         if let Some(index) = sequence.iter().position(|element| search == element) {
@@ -102,6 +46,68 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
     let half_prime = prime.clone() / bigint!(2);
     ((num + half_prime.clone()) % prime) - half_prime
+}
+
+#[cfg(test)]
+#[macro_use]
+pub mod test_utils {
+    macro_rules! memory {
+        ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        {
+            let mut memory = Memory::new();
+            memory.data.push(Vec::new());
+            memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
+        memory
+        }
+        };
+    }
+    pub(crate) use memory;
+
+    macro_rules! memory_from_memory {
+        ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
+            {
+                $mem.data.push(Vec::new());
+                $(
+                    memory_inner!($mem, ($si, $off), $val);
+                )*
+            }
+        };
+    }
+    pub(crate) use memory_from_memory;
+
+    macro_rules! memory_inner {
+        ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
+            let mut res = $mem.insert(
+                &mayberelocatable!($si, $off),
+                &mayberelocatable!($sival, $offval),
+            );
+            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+                $mem.data.push(Vec::new());
+                res = $mem.insert(
+                    &mayberelocatable!($si, $off),
+                    &mayberelocatable!($sival, $offval),
+                );
+            }
+        };
+        ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
+            let mut res = $mem.insert(&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+                $mem.data.push(Vec::new());
+                res = $mem.insert(&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            }
+        };
+    }
+    pub(crate) use memory_inner;
+
+    macro_rules! mayberelocatable {
+        ($val1 : expr, $val2 : expr) => {
+            MaybeRelocatable::from(($val1, $val2))
+        };
+        ($val1 : expr) => {
+            MaybeRelocatable::from((bigint!($val1)))
+        };
+    }
+    pub(crate) use mayberelocatable;
 }
 
 #[cfg(test)]

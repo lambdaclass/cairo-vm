@@ -145,9 +145,8 @@ pub fn finalize_blake2s(
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::Sign;
-
     use super::*;
+    use crate::utils::test_utils::*;
     use crate::{
         bigint,
         types::instruction::Register,
@@ -156,6 +155,7 @@ mod tests {
             hints::execute_hint::{execute_hint, HintReference},
         },
     };
+    use num_bigint::Sign;
 
     #[test]
     fn compute_blake2s_output_offset_zero() {
@@ -297,28 +297,16 @@ mod tests {
             Vec::new(),
             false,
         );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
         //Initialize fp
+        //Insert ids into memory
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 26)),
-            )
-            .unwrap();
-        //Insert big number into output_ptr segment
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(7842562439562793675803603603688959_i128)),
-            )
-            .unwrap();
+        vm.memory = memory![
+            ((0, 0), (1, 26)),
+            ((1, 0), 7842562439562793675803603603688959_i128)
+        ];
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0));
+        ids.insert(String::from("output"), bigint!(0_i32));
         //Create references
         vm.references = HashMap::from([(
             0,
