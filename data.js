@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659379361807,
+  "lastUpdate": 1659379420343,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -12745,6 +12745,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 221534391,
             "range": "± 510711",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "faaee6dca8c6a0ee60ac97332c90497cdf2f3ded",
+          "message": "Add macros memory and generic version of bigint (#328)\n\n* Add macros memory! and generic bigint!\r\n\r\n* Improve memory! macro\r\n\r\n* Replace bigint macros for bigint!\r\n\r\n* Fix int types\r\n\r\n* Fix macro imports for memory macro\r\n\r\n* Remove unused module\r\n\r\n* Improve memory macro",
+          "timestamp": "2022-08-01T15:32:25-03:00",
+          "tree_id": "d967741a8f4b38f8f2592dfdfaee485409685752",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/faaee6dca8c6a0ee60ac97332c90497cdf2f3ded"
+        },
+        "date": 1659379419065,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1710994384,
+            "range": "± 4683186",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 612710731,
+            "range": "± 938803",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 301463024,
+            "range": "± 773429",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1488415898,
+            "range": "± 1503658",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 225296411,
+            "range": "± 1219311",
             "unit": "ns/iter"
           }
         ]
