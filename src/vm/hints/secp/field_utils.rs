@@ -493,7 +493,7 @@ mod tests {
             )
             .unwrap();
 
-        // Insert ids.val.d2  before the hint execution, so the hint memory.insert fails
+        // Insert ids.val.d2  before the hint execution, so the hint memory insert fails
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 9)),
@@ -768,6 +768,170 @@ mod tests {
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
+            ))
+        );
+    }
+
+    #[test]
+    fn run_is_zero_nondet_ok_true() {
+        let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Initialize memory
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+
+        //Initialize vm scope with variable `x`
+        vm.exec_scopes
+            .assign_or_update_variable("x", PyValueType::BigInt(bigint!(0)));
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Ok(())
+        );
+
+        //Check hint memory insert
+        //memory[ap] = to_felt_or_relocatable(x == 0)
+        assert_eq!(
+            vm.memory.get(&vm.run_context.ap),
+            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
+        );
+    }
+
+    #[test]
+    fn run_is_zero_nondet_ok_false() {
+        let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Initialize memory
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+
+        //Initialize vm scope with variable `x`
+        vm.exec_scopes
+            .assign_or_update_variable("x", PyValueType::BigInt(bigint!(123890)));
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Ok(())
+        );
+
+        //Check hint memory insert
+        //memory[ap] = to_felt_or_relocatable(x == 0)
+        assert_eq!(
+            vm.memory.get(&vm.run_context.ap),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
+        );
+    }
+
+    #[test]
+    fn run_is_zero_nondet_scope_error() {
+        let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Initialize memory
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+
+        //Skip `x` assignment
+        // vm.exec_scopes
+        //     .assign_or_update_variable("x", PyValueType::BigInt(bigint!(123890)));
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "x".to_string()
+            ))
+        );
+    }
+
+    #[test]
+    fn run_is_zero_nondet_invalid_memory_insert() {
+        let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Insert a value in ap before the hint execution, so the hint memory insert fails
+        vm.memory = memory![((1, 15), 55)];
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+
+        //Initialize vm scope with variable `x`
+        vm.exec_scopes
+            .assign_or_update_variable("x", PyValueType::BigInt(bigint!(0)));
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::InconsistentMemory(
+                    vm.run_context.ap,
+                    MaybeRelocatable::from(bigint!(55)),
+                    MaybeRelocatable::from(bigint!(1))
+                )
             ))
         );
     }
