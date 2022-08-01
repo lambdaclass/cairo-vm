@@ -74,6 +74,34 @@ pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<Bi
     val
 }
 
+//Returns a reference value in the current execution scope that matches the name and is of type List
+pub fn get_list_ref_from_scope<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Option<&'a Vec<BigInt>> {
+    let mut val: Option<&Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
+//Returns a reference value in the current execution scope that matches the name and is of type List
+pub fn get_mut_list_ref_from_scope<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Option<&'a mut Vec<BigInt>> {
+    let mut val: Option<&mut Vec<BigInt>> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
 pub fn get_list_u64_from_scope_ref<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
