@@ -8,11 +8,13 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::hint_utils::{get_address_from_reference, get_address_from_var_name};
+use super::hint_utils::{
+    get_integer_from_var_name, get_ptr_from_var_name, insert_integer_from_var_name,
+};
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn get_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
+fn copy_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
         if let Some(PyValueType::Dictionary(py_initial_dict)) = variables.get("initial_dict") {
@@ -35,7 +37,7 @@ is not available
 */
 pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
-    let initial_dict = get_initial_dict(vm).ok_or(VirtualMachineError::NoInitialDict)?;
+    let initial_dict = copy_initial_dict(vm).ok_or(VirtualMachineError::NoInitialDict)?;
     let base = vm
         .dict_manager
         .new_dict(&mut vm.segments, &mut vm.memory, initial_dict)?;
@@ -60,40 +62,10 @@ pub fn default_dict_new(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let default_value_ref = if let Some(default_value_ref) = ids.get(&String::from("default_value"))
-    {
-        default_value_ref
-    } else {
-        return Err(VirtualMachineError::IncorrectIds(
-            vec![String::from("default_value")],
-            ids.into_keys().collect(),
-        ));
-    };
-    //Check that each reference id corresponds to a value in the reference manager
-    let default_value_addr = if let Ok(Some(default_value_addr)) = get_address_from_reference(
-        default_value_ref,
-        &vm.references,
-        &vm.run_context,
-        vm,
-        hint_ap_tracking,
-    ) {
-        default_value_addr
-    } else {
-        return Err(VirtualMachineError::FailedToGetReference(
-            default_value_ref.clone(),
-        ));
-    };
-    //Check that ids.default_value is an Int value
-    let default_value = if let Ok(Some(&MaybeRelocatable::Int(ref default_value))) =
-        vm.memory.get(&default_value_addr)
-    {
-        default_value.clone()
-    } else {
-        return Err(VirtualMachineError::ExpectedInteger(default_value_addr));
-    };
-
+    let default_value =
+        get_integer_from_var_name("default_value", &ids, vm, hint_ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
-    let initial_dict = get_initial_dict(vm);
+    let initial_dict = copy_initial_dict(vm);
 
     let base = vm.dict_manager.new_default_dict(
         &mut vm.segments,
@@ -116,77 +88,16 @@ pub fn dict_read(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that ids contains the reference id for each variable used by the hint
-    let (key_ref, value_ref, dict_ptr_ref) =
-        if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
-            ids.get(&String::from("key")),
-            ids.get(&String::from("value")),
-            ids.get(&String::from("dict_ptr")),
-        ) {
-            (key_ref, value_ref, dict_ptr_ref)
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![
-                    String::from("key"),
-                    String::from("value"),
-                    String::from("dict_ptr"),
-                ],
-                ids.into_keys().collect(),
-            ));
-        };
-    //Check that each reference id corresponds to a value in the reference manager
-    let (key_addr, value_addr, dict_ptr_addr) =
-        if let (Ok(Some(key_addr)), Ok(Some(value_addr)), Ok(Some(dict_ptr_addr))) = (
-            get_address_from_reference(
-                key_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                value_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                dict_ptr_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-        ) {
-            (key_addr, value_addr, dict_ptr_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
-    //Check that these addresses point to the data types needed
-    match (
-        vm.memory.get(&key_addr),
-        vm.memory.get(&value_addr),
-        vm.memory.get(&dict_ptr_addr),
-    ) {
-        (
-            Ok(Some(MaybeRelocatable::Int(key))),
-            Ok(_),
-            Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
-        ) => {
-            let tracker = vm.dict_manager.get_tracker(dict_ptr)?;
-            tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-            let value = if let Some(value) = tracker.data.get(key) {
-                value
-            } else {
-                return Err(VirtualMachineError::NoValueForKey(key.clone()));
-            };
-            vm.memory
-                .insert(&value_addr, &MaybeRelocatable::from(value.clone()))
-                .map_err(VirtualMachineError::MemoryError)
-        }
-        _ => Err(VirtualMachineError::FailedToGetIds),
-    }
+    let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?.clone();
+    let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
+    tracker.current_ptr.offset += DICT_ACCESS_SIZE;
+    let value = if let Some(value) = tracker.data.get(&key) {
+        value
+    } else {
+        return Err(VirtualMachineError::NoValueForKey(key.clone()));
+    };
+    insert_integer_from_var_name("value", value.clone(), &ids, vm, hint_ap_tracking)
 }
 
 /* Implements hint:
@@ -200,73 +111,11 @@ pub fn dict_write(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that ids contains the reference id for each variable used by the hint
-    let (key_ref, value_ref, dict_ptr_ref) =
-        if let (Some(key_ref), Some(value_ref), Some(dict_ptr_ref)) = (
-            ids.get(&String::from("key")),
-            ids.get(&String::from("new_value")),
-            ids.get(&String::from("dict_ptr")),
-        ) {
-            (key_ref, value_ref, dict_ptr_ref)
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![
-                    String::from("key"),
-                    String::from("new_value"),
-                    String::from("dict_ptr"),
-                ],
-                ids.into_keys().collect(),
-            ));
-        };
-    //Check that each reference id corresponds to a value in the reference manager
-    let (key_addr, value_addr, dict_ptr_addr) =
-        if let (Ok(Some(key_addr)), Ok(Some(value_addr)), Ok(Some(dict_ptr_addr))) = (
-            get_address_from_reference(
-                key_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                value_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                dict_ptr_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-        ) {
-            (key_addr, value_addr, dict_ptr_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
-    //Check that these addresses point to the data types needed
-    let (key, new_value, dict_ptr) = if let (
-        Ok(Some(MaybeRelocatable::Int(ref key))),
-        Ok(Some(MaybeRelocatable::Int(new_value))),
-        Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
-    ) = (
-        vm.memory.get(&key_addr),
-        vm.memory.get(&value_addr),
-        vm.memory.get(&dict_ptr_addr),
-    ) {
-        (key, new_value, dict_ptr)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
-    //Auxiliary copy values
-    let key_copy = key.clone();
-    let value_copy = new_value.clone();
-
+    let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?.clone();
+    let new_value = get_integer_from_var_name("new_value", &ids, vm, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?.clone();
     //Get tracker for dictionary
-    let tracker = vm.dict_manager.get_tracker(dict_ptr)?;
+    let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value =
@@ -274,7 +123,7 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = if let Some(value) = tracker.data.get(key) {
+    let prev_value = if let Some(value) = tracker.data.get(&key) {
         value
     } else {
         return Err(VirtualMachineError::NoValueForKey(key.clone()));
@@ -288,7 +137,7 @@ pub fn dict_write(
         )
         .map_err(VirtualMachineError::MemoryError)?;
     //Insert new value into tracker
-    tracker.data.insert(&key_copy, &value_copy);
+    tracker.data.insert(&key, &new_value);
     Ok(())
 }
 
@@ -308,88 +157,16 @@ pub fn dict_update(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that ids contains the reference id for each variable used by the hint
-    let (key_ref, prev_value_ref, new_value_ref, dict_ptr_ref) =
-        if let (Some(key_ref), Some(prev_value_ref), Some(new_value_ref), Some(dict_ptr_ref)) = (
-            ids.get(&String::from("key")),
-            ids.get(&String::from("prev_value")),
-            ids.get(&String::from("new_value")),
-            ids.get(&String::from("dict_ptr")),
-        ) {
-            (key_ref, prev_value_ref, new_value_ref, dict_ptr_ref)
-        } else {
-            return Err(VirtualMachineError::IncorrectIds(
-                vec![
-                    String::from("key"),
-                    String::from("prev_value"),
-                    String::from("new_value"),
-                    String::from("dict_ptr"),
-                ],
-                ids.into_keys().collect(),
-            ));
-        };
-    //Check that each reference id corresponds to a value in the reference manager
-    let (key_addr, prev_value_addr, new_value_addr, dict_ptr_addr) = if let (
-        Ok(Some(key_addr)),
-        Ok(Some(prev_value_addr)),
-        Ok(Some(new_value_addr)),
-        Ok(Some(dict_ptr_addr)),
-    ) = (
-        get_address_from_reference(
-            key_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            prev_value_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            new_value_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-        get_address_from_reference(
-            dict_ptr_ref,
-            &vm.references,
-            &vm.run_context,
-            vm,
-            hint_ap_tracking,
-        ),
-    ) {
-        (key_addr, prev_value_addr, new_value_addr, dict_ptr_addr)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
-    //Check that these addresses point to the data types needed
-    let (key, prev_value, new_value, dict_ptr) = if let (
-        Ok(Some(MaybeRelocatable::Int(ref key))),
-        Ok(Some(MaybeRelocatable::Int(prev_value))),
-        Ok(Some(MaybeRelocatable::Int(new_value))),
-        Ok(Some(MaybeRelocatable::RelocatableValue(dict_ptr))),
-    ) = (
-        vm.memory.get(&key_addr),
-        vm.memory.get(&prev_value_addr),
-        vm.memory.get(&new_value_addr),
-        vm.memory.get(&dict_ptr_addr),
-    ) {
-        (key, prev_value, new_value, dict_ptr)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
+    let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?.clone();
+    let prev_value = get_integer_from_var_name("prev_value", &ids, vm, hint_ap_tracking)?.clone();
+    let new_value = get_integer_from_var_name("new_value", &ids, vm, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?;
 
     //Get tracker for dictionary
-    let tracker = vm.dict_manager.get_tracker(dict_ptr)?;
+    let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.data.get(key);
-    if current_value != Some(prev_value) {
+    let current_value = tracker.data.get(&key);
+    if current_value != Some(&prev_value) {
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value.clone(),
             current_value.cloned(),
@@ -397,7 +174,7 @@ pub fn dict_update(
         ));
     }
     //Update Value
-    tracker.data.insert(key, new_value);
+    tracker.data.insert(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
@@ -417,27 +194,11 @@ pub fn dict_squash_copy_dict(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let dict_accesses_end_addr =
-        get_address_from_var_name("dict_accesses_end", &ids, vm, hint_ap_tracking)?;
-    let dict_access_end = if let MaybeRelocatable::RelocatableValue(rel) = vm
-        .memory
-        .get(&dict_accesses_end_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(dict_accesses_end_addr.clone()))?
-    {
-        rel
-    } else {
-        return Err(VirtualMachineError::ExpectedRelocatableAtAddr(
-            dict_accesses_end_addr,
-        ));
-    };
+    let dict_access_end =
+        get_ptr_from_var_name("dict_access_end", &ids, vm, hint_ap_tracking)?.clone();
     let dict_copy = vm
         .dict_manager
-        .trackers
-        .get(&dict_access_end.segment_index)
-        .ok_or(VirtualMachineError::NoDictTracker(
-            dict_access_end.segment_index,
-        ))?
+        .get_tracker(&dict_access_end)?
         .get_dictionary_copy();
 
     vm.exec_scopes.enter_scope(HashMap::from([(
@@ -457,38 +218,12 @@ pub fn dict_squash_update_ptr(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Get ids addresses from reference
-    let squashed_dict_start_addr =
-        get_address_from_var_name("squashed_dict_start", &ids, vm, hint_ap_tracking)?;
-    let squashed_dict_end_addr =
-        get_address_from_var_name("squashed_dict_end", &ids, vm, hint_ap_tracking)?;
-    //Get ids values from addresses
-    let squashed_dict_start = if let MaybeRelocatable::RelocatableValue(rel) = vm
-        .memory
-        .get(&squashed_dict_start_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(squashed_dict_start_addr.clone()))?
-    {
-        rel
-    } else {
-        return Err(VirtualMachineError::ExpectedRelocatableAtAddr(
-            squashed_dict_start_addr,
-        ));
-    };
-    let squashed_dict_end = if let MaybeRelocatable::RelocatableValue(rel) = vm
-        .memory
-        .get(&squashed_dict_end_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(squashed_dict_end_addr.clone()))?
-    {
-        rel
-    } else {
-        return Err(VirtualMachineError::ExpectedRelocatableAtAddr(
-            squashed_dict_end_addr,
-        ));
-    };
+    let squashed_dict_start =
+        get_ptr_from_var_name("squashed_dict_start", &ids, vm, hint_ap_tracking)?.clone();
+    let squashed_dict_end =
+        get_ptr_from_var_name("squashed_dict_end", &ids, vm, hint_ap_tracking)?.clone();
     vm.dict_manager
-        .get_tracker(squashed_dict_start)?
+        .get_tracker(&squashed_dict_start)?
         .current_ptr = squashed_dict_end.clone();
     Ok(())
 }
