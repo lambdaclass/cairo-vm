@@ -1,8 +1,13 @@
 use crate::bigint;
 use crate::math_utils::as_int;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, Zero};
+
+lazy_static! {
+    pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
+}
 
 /*
 Takes a 256-bit integer and returns its canonical representation as:
@@ -13,8 +18,7 @@ pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
-    let base = bigint!(1) << 86_usize;
-    let base_max = base - bigint!(1);
+    let base_max = &*BASE_86 - bigint!(1);
     let mut num = integer.clone();
     let mut canonical_repr: [BigInt; 3] = Default::default();
     for item in &mut canonical_repr {
