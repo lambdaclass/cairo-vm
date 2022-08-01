@@ -3,7 +3,7 @@ use std::ops::Shr;
 use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{abs, FromPrimitive, Signed};
+use num_traits::{abs, FromPrimitive, Signed, Zero};
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -23,6 +23,15 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
         return Err(VirtualMachineError::FailedToGetSqrt(n.clone()));
     };
     Ok(x)
+}
+
+/// Performs integer division between x and y; fails if x is not divisible by y.
+pub fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
+    if !(x % y).is_zero() {
+        Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()))
+    } else {
+        Ok(x / y)
+    }
 }
 
 /// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
@@ -186,6 +195,23 @@ mod tests {
                 b"1545825591488572374291664030703937603499513742109806697511239542787093258962"
             ),
             div_mod(a, b, prime)
+        );
+    }
+
+    #[test]
+    fn compute_safe_div() {
+        let x = bigint!(26);
+        let y = bigint!(13);
+        assert_eq!(safe_div(&x, &y), Ok(bigint!(2)));
+    }
+
+    #[test]
+    fn compute_safe_div_fail() {
+        let x = bigint!(25);
+        let y = bigint!(4);
+        assert_eq!(
+            safe_div(&x, &y),
+            Err(VirtualMachineError::SafeDivFail(bigint!(25), bigint!(4)))
         );
     }
 
