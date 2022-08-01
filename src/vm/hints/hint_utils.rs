@@ -28,6 +28,31 @@ pub fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt>
     val
 }
 
+//Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
+pub fn get_mut_int_ref_from_scope<'a>(
+    vm: &'a mut VirtualMachine,
+    name: &'a str,
+) -> Option<&'a mut BigInt> {
+    let mut val: Option<&mut BigInt> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::BigInt(py_val)) = variables.get_mut(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
+//Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
+pub fn get_int_ref_from_scope<'a>(vm: &'a mut VirtualMachine, name: &'a str) -> Option<&'a BigInt> {
+    let mut val: Option<&BigInt> = None;
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+            val = Some(py_val);
+        }
+    }
+    val
+}
+
 pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, VirtualMachineError> {
     let mut val: Result<u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
