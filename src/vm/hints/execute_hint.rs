@@ -35,7 +35,7 @@ use crate::vm::hints::uint256_utils::{
 
 use crate::vm::hints::secp::{
     bigint_utils::nondet_bigint3,
-    field_utils::{reduce, verify_zero},
+    field_utils::{is_zero_assign_x_inv, is_zero_nondet, is_zero_pack, reduce, verify_zero},
 };
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
@@ -165,6 +165,12 @@ pub fn execute_hint(
         ) => unsafe_keccak(vm, ids, None),
         Ok("from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')"
         ) => unsafe_keccak_finalize(vm, &ids, None),
+        Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P"
+        ) => is_zero_pack(vm, &ids, None),
+        Ok("memory[ap] = to_felt_or_relocatable(x == 0)"
+        ) => is_zero_nondet(vm),
+        Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)"
+        ) => is_zero_assign_x_inv(vm),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

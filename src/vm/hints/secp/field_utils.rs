@@ -1,4 +1,3 @@
-use crate::bigint_str;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
@@ -8,11 +7,14 @@ use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
+use crate::{bigint, bigint_str};
 use num_bigint::BigInt;
 use num_integer::Integer;
+use num_traits::FromPrimitive;
 use num_traits::Zero;
 use std::collections::HashMap;
 
+use crate::math_utils::div_mod;
 use crate::vm::hints::secp::secp_utils::pack;
 
 /*
@@ -87,6 +89,102 @@ pub fn reduce(
 
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    x = pack(ids.x, PRIME) % SECP_P
+%}
+*/
+pub fn is_zero_pack(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let x_reloc = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
+
+    let x_d0 = get_integer_from_relocatable_plus_offset(&x_reloc, 0, vm)?;
+    let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
+    let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
+
+    let x = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&vm.prime);
+
+    vm.exec_scopes
+        .assign_or_update_variable("x", PyValueType::BigInt(x));
+
+    Ok(())
+}
+/*
+Implements hint:
+in .cairo program
+if nondet %{ x == 0 %} != 0:
+
+On .json compiled program
+"memory[ap] = to_felt_or_relocatable(x == 0)"
+*/
+pub fn is_zero_nondet(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    // get `value` variable from vm scope
+    let x: &BigInt = match vm
+        .exec_scopes
+        .get_local_variables()
+        .ok_or(VirtualMachineError::ScopeError)?
+        .get("x")
+    {
+        Some(PyValueType::BigInt(x)) => x,
+        _ => {
+            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                "x",
+            )))
+        }
+    };
+
+    let value = if x.is_zero() { bigint!(1) } else { bigint!(0) };
+
+    vm.memory
+        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    x = pack(ids.x, PRIME) % SECP_P
+%}
+*/
+pub fn is_zero_assign_x_inv(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    let x: &BigInt = match vm
+        .exec_scopes
+        .get_local_variables()
+        .ok_or(VirtualMachineError::ScopeError)?
+        .get("x")
+    {
+        Some(PyValueType::BigInt(x)) => x,
+        _ => {
+            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                "x",
+            )))
+        }
+    };
+
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    let secp_p = bigint_str!(
+        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    );
+
+    let value = div_mod(bigint!(1), x.clone(), secp_p);
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("x_inv", PyValueType::BigInt(value));
 
     Ok(())
 }
