@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659376274380,
+  "lastUpdate": 1659378817445,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -12645,6 +12645,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 267509688,
             "range": "± 376172",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "d5a0f7c6d8ed6c43db69527a58a365287f3f5689",
+          "message": "Add macros memory and generic version of bigint",
+          "timestamp": "2022-08-01T09:26:55Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/328/commits/d5a0f7c6d8ed6c43db69527a58a365287f3f5689"
+        },
+        "date": 1659378815717,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1688492412,
+            "range": "± 1663782",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 610085995,
+            "range": "± 948182",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 300662948,
+            "range": "± 420704",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1483857392,
+            "range": "± 1201502",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 221847692,
+            "range": "± 622469",
             "unit": "ns/iter"
           }
         ]
