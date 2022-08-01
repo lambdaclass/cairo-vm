@@ -89,7 +89,7 @@ pub fn dict_read(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?;
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = if let Some(value) = tracker.data.get(&key) {
@@ -113,7 +113,7 @@ pub fn dict_write(
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?.clone();
     let new_value = get_integer_from_var_name("new_value", &ids, vm, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &ids, vm, hint_ap_tracking)?;
     //Get tracker for dictionary
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
@@ -168,7 +168,7 @@ pub fn dict_update(
     let current_value = tracker.data.get(&key);
     if current_value != Some(&prev_value) {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
+            prev_value,
             current_value.cloned(),
             key.clone(),
         ));
@@ -194,11 +194,10 @@ pub fn dict_squash_copy_dict(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let dict_access_end =
-        get_ptr_from_var_name("dict_access_end", &ids, vm, hint_ap_tracking)?.clone();
+    let dict_accesses_end = get_ptr_from_var_name("dict_accesses_end", &ids, vm, hint_ap_tracking)?;
     let dict_copy = vm
         .dict_manager
-        .get_tracker(&dict_access_end)?
+        .get_tracker(&dict_accesses_end)?
         .get_dictionary_copy();
 
     vm.exec_scopes.enter_scope(HashMap::from([(
@@ -219,12 +218,11 @@ pub fn dict_squash_update_ptr(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let squashed_dict_start =
-        get_ptr_from_var_name("squashed_dict_start", &ids, vm, hint_ap_tracking)?.clone();
-    let squashed_dict_end =
-        get_ptr_from_var_name("squashed_dict_end", &ids, vm, hint_ap_tracking)?.clone();
+        get_ptr_from_var_name("squashed_dict_start", &ids, vm, hint_ap_tracking)?;
+    let squashed_dict_end = get_ptr_from_var_name("squashed_dict_end", &ids, vm, hint_ap_tracking)?;
     vm.dict_manager
         .get_tracker(&squashed_dict_start)?
-        .current_ptr = squashed_dict_end.clone();
+        .current_ptr = squashed_dict_end;
     Ok(())
 }
 

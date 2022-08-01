@@ -1,14 +1,16 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::get_address_from_var_name;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use num_traits::Signed;
 use std::collections::HashMap;
+
+use super::hint_utils::get_int_ref_from_scope;
+use super::hint_utils::get_integer_from_var_name;
+use super::hint_utils::insert_integer_from_var_name;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -17,24 +19,10 @@ pub fn memset_enter_scope(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_addr = get_address_from_var_name("n", &ids, vm, hint_ap_tracking)?;
-
-    match vm.memory.get(&n_addr) {
-        Ok(Some(maybe_rel_n)) => {
-            let n = if let MaybeRelocatable::Int(n) = maybe_rel_n {
-                n
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(n_addr.clone()));
-            };
-            vm.exec_scopes.enter_scope(HashMap::from([(
-                String::from("n"),
-                PyValueType::BigInt(n.clone()),
-            )]));
-
-            Ok(())
-        }
-        _ => Err(VirtualMachineError::FailedToGetIds),
-    }
+    let n = get_integer_from_var_name("n", &ids, vm, hint_ap_tracking)?.clone();
+    vm.exec_scopes
+        .enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
+    Ok(())
 }
 
 /* Implements hint:
@@ -48,36 +36,14 @@ pub fn memset_continue_loop(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let continue_loop_addr =
-        get_address_from_var_name("continue_loop", &ids, vm, hint_ap_tracking)?;
-
     // get `n` variable from vm scope
-
-    // get `n` variable from vm scope
-    let n = match vm
-        .exec_scopes
-        .get_local_variables()
-        .ok_or(VirtualMachineError::ScopeError)?
-        .get("n")
-    {
-        Some(PyValueType::BigInt(n)) => n,
-        _ => {
-            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "n",
-            )))
-        }
-    };
-
+    let n = get_int_ref_from_scope(vm, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
-
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = bigint!(new_n.is_positive() as i32);
-    vm.memory
-        .insert(&continue_loop_addr, &MaybeRelocatable::Int(should_continue))
-        .map_err(VirtualMachineError::MemoryError)?;
-
+    insert_integer_from_var_name("continue_loop", should_continue, &ids, vm, hint_ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
     vm.exec_scopes
@@ -89,7 +55,7 @@ pub fn memset_continue_loop(
 mod tests {
     use super::*;
     use crate::{
-        types::instruction::Register,
+        types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
             errors::memory_errors::MemoryError,
             hints::execute_hint::{execute_hint, HintReference},
