@@ -193,7 +193,7 @@ pub fn search_sorted_lower(
         return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
     }
 
-    if let Some(find_element_max_size) = find_element_max_size {
+    if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms > &find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
                 find_element_max_size,

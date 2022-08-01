@@ -41,8 +41,7 @@ pub fn squash_dict_inner_first_iteration(
     //Check that access_indices and key are in scope
     let access_indices = get_access_indices(vm)
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
-    let key = get_int_from_scope(vm, "key")
-        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
+    let key = get_int_from_scope(vm, "key")?;
     //Get addr for ids variables
     let range_check_ptr_addr =
         get_address_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
@@ -86,10 +85,7 @@ pub fn squash_dict_inner_skip_loop(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
-            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
-        })?;
+    let current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
     //Get addr for ids variables
     let should_skip_loop_addr =
         get_address_from_var_name("should_skip_loop", &ids, vm, hint_ap_tracking)?;
@@ -118,13 +114,8 @@ pub fn squash_dict_inner_check_access_index(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let mut current_access_indices =
-        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
-            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
-        })?;
-    let current_access_index = get_int_from_scope(vm, "current_access_index").ok_or_else(|| {
-        VirtualMachineError::NoLocalVariable(String::from("current_access_index"))
-    })?;
+    let mut current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
+    let current_access_index = get_int_from_scope(vm, "current_access_index")?;
     //Get addr for ids variables
     let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
     //Main Logic
@@ -162,10 +153,7 @@ pub fn squash_dict_inner_continue_loop(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
-            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
-        })?;
+    let current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
     let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
@@ -189,10 +177,7 @@ pub fn squash_dict_inner_continue_loop(
 // Implements Hint: assert len(current_access_indices) == 0
 pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_from_scope(vm, "current_access_indices").ok_or_else(|| {
-            VirtualMachineError::NoLocalVariable(String::from("current_access_indices"))
-        })?;
+    let current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -208,8 +193,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     //Check that access_indices and key are in scope
     let access_indices = get_access_indices(vm)
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
-    let key = get_int_from_scope(vm, "key")
-        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
+    let key = get_int_from_scope(vm, "key")?;
     //Get addr for ids variables
     let n_used_accesses_addr =
         get_address_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?;
@@ -246,8 +230,7 @@ pub fn squash_dict_inner_assert_len_keys(
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_list_from_scope(vm, "keys")
-        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("keys")))?;
+    let keys = get_list_from_scope(vm, "keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -263,8 +246,7 @@ pub fn squash_dict_inner_next_key(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let mut keys = get_list_from_scope(vm, "keys")
-        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("keys")))?;
+    let mut keys = get_list_from_scope(vm, "keys")?;
     //Get addr for ids variables
     let next_key_addr = get_address_from_var_name("next_key", &ids, vm, hint_ap_tracking)?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
@@ -348,7 +330,7 @@ pub fn squash_dict(
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
     let squash_dict_max_size = get_int_from_scope(vm, "__squash_dict_max_size");
-    if let Some(max_size) = squash_dict_max_size {
+    if let Ok(max_size) = squash_dict_max_size {
         if n_accesses > max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 max_size, n_accesses,
@@ -1167,7 +1149,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
-            Err(VirtualMachineError::NoLocalVariable(String::from("keys")))
+            Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                "keys"
+            )))
         );
     }
 

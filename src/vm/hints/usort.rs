@@ -148,8 +148,7 @@ pub fn verify_multiplicity_body(
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
 
-    let pos_diff = bigint_u64!(current_pos)
-        - get_int_from_scope(vm, "last_pos").ok_or(VirtualMachineError::LastPosNotFound)?;
+    let pos_diff = bigint_u64!(current_pos) - get_int_from_scope(vm, "last_pos")?;
 
     insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
 

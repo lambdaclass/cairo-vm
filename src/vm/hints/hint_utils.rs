@@ -28,7 +28,7 @@ pub fn get_int_from_scope(
             val = Some(py_val.clone());
         }
     }
-    val.ok_or_else(|| VirtualMachineError::NoLocalVariable(name.to_string()))
+    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
 }
 
 //Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
@@ -42,7 +42,7 @@ pub fn get_mut_int_ref_from_scope<'a>(
             val = Some(py_val);
         }
     }
-    val.ok_or_else(|| VirtualMachineError::NoLocalVariable(name.to_string()))
+    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
 }
 
 //Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
@@ -56,7 +56,7 @@ pub fn get_int_ref_from_scope<'a>(
             val = Some(py_val);
         }
     }
-    val.ok_or_else(|| VirtualMachineError::NoLocalVariable(name.to_string()))
+    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
 }
 
 pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, VirtualMachineError> {
@@ -80,7 +80,7 @@ pub fn get_list_from_scope(
             val = Some(py_val.clone());
         }
     }
-    val.ok_or_else(|| VirtualMachineError::NoLocalVariable(name.to_string()))
+    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
 }
 
 //Returns a reference value in the current execution scope that matches the name and is of type List
@@ -94,7 +94,7 @@ pub fn get_list_ref_from_scope<'a>(
             val = Some(py_val);
         }
     }
-    val.ok_or_else(|| VirtualMachineError::NoLocalVariable(name.to_string()))
+    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
 }
 
 //Returns a reference value in the current execution scope that matches the name and is of type List
@@ -108,7 +108,7 @@ pub fn get_mut_list_ref_from_scope<'a>(
             val = Some(py_val);
         }
     }
-    val.ok_or_else(|| VirtualMachineError::NoLocalVariable(name.to_string()))
+    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
 }
 
 pub fn get_list_u64_from_scope_ref<'a>(
@@ -632,12 +632,18 @@ pub fn split_int(
     let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
     let base = get_integer_from_var_name("base", &ids, vm, hint_ap_tracking)?;
     let bound = get_integer_from_var_name("bound", &ids, vm, hint_ap_tracking)?;
+    let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
     //Main Logic
     let res = (value.mod_floor(&vm.prime)).mod_floor(base);
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
-    insert_integer_from_var_name("output", res, &ids, vm, hint_ap_tracking)
+    vm.memory
+        .insert(
+            &MaybeRelocatable::RelocatableValue(output),
+            &MaybeRelocatable::from(res),
+        )
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 //from starkware.cairo.common.math_utils import is_positive
@@ -817,9 +823,9 @@ pub fn memcpy_continue_copying(
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if n.is_positive() {
-        insert_integer_from_var_name("continue_copying", bigint!(1), ids, vm, hint_ap_tracking)?;
-    } else {
         insert_integer_from_var_name("continue_copying", bigint!(0), ids, vm, hint_ap_tracking)?;
+    } else {
+        insert_integer_from_var_name("continue_copying", bigint!(1), ids, vm, hint_ap_tracking)?;
     }
     vm.exec_scopes
         .assign_or_update_variable("n", PyValueType::BigInt(new_n));
@@ -848,7 +854,7 @@ pub fn assert_250_bit(
     }
     let (high, low) = int_value.div_rem(&shift);
     insert_integer_from_var_name("high", high, &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("low", high, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("low", low, &ids, vm, hint_ap_tracking)
 }
 
 /*
