@@ -35,7 +35,9 @@ use crate::vm::hints::uint256_utils::{
 
 use crate::vm::hints::secp::{
     bigint_utils::nondet_bigint3,
-    field_utils::{is_zero_assign_x_inv, is_zero_nondet, is_zero_pack, reduce, verify_zero},
+    field_utils::{
+        is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
+    },
 };
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
@@ -170,7 +172,7 @@ pub fn execute_hint(
         Ok("memory[ap] = to_felt_or_relocatable(x == 0)"
         ) => is_zero_nondet(vm),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)"
-        ) => is_zero_assign_x_inv(vm),
+        ) => is_zero_assign_scope_variables(vm),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

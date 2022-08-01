@@ -163,7 +163,7 @@ Implements hint:
     value = x_inv = div_mod(1, x, SECP_P)
 %}
 */
-pub fn is_zero_assign_x_inv(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let x: &BigInt = match vm
         .exec_scopes
         .get_local_variables()
@@ -184,7 +184,6 @@ pub fn is_zero_assign_x_inv(vm: &mut VirtualMachine) -> Result<(), VirtualMachin
     );
 
     let value = div_mod(bigint!(1), x.clone(), secp_p);
-
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
@@ -932,6 +931,84 @@ mod tests {
                     MaybeRelocatable::from(bigint!(55)),
                     MaybeRelocatable::from(bigint!(1))
                 )
+            ))
+        );
+    }
+
+    #[test]
+    fn is_zero_assign_scope_variables_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Initialize vm scope with variable `x`
+        vm.exec_scopes.assign_or_update_variable(
+            "x",
+            PyValueType::BigInt(bigint_str!(
+                b"52621538839140286024584685587354966255185961783273479086367"
+            )),
+        );
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
+            )))
+        );
+
+        //Check 'x_inv' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("x_inv"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
+            )))
+        );
+    }
+
+    #[test]
+    fn is_zero_assign_scope_variables_scope_error() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Skip `x` assignment
+        // vm.exec_scopes
+        //     .assign_or_update_variable("x", PyValueType::BigInt(bigint_str!(b"52621538839140286024584685587354966255185961783273479086367")));
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Err(VirtualMachineError::VariableNotInScopeError(
+                "x".to_string()
             ))
         );
     }
