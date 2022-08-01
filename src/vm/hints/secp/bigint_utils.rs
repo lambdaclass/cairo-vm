@@ -1,5 +1,5 @@
 use crate::{
-    bigint,
+    bigint_u128,
     serde::deserialize_program::ApTracking,
     types::exec_scope::PyValueType,
     vm::{
@@ -66,7 +66,7 @@ pub fn bigint_to_uint256(
     let x_struct = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
     let d0 = vm.memory.get_integer(&x_struct)?;
     let d1 = vm.memory.get_integer(&(&x_struct + 1))?;
-    let low = (d0 + d1 * &*BASE_86) & ((bigint!(1) << 128_usize) - 1_usize);
+    let low = (d0 + d1 * &*BASE_86) & bigint_u128!(u128::MAX);
     insert_integer_from_var_name("low", low, ids, vm, hint_ap_tracking)
 }
 

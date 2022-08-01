@@ -7,6 +7,7 @@ use num_traits::{FromPrimitive, Signed, Zero};
 
 lazy_static! {
     pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
+    pub static ref BASE_86_MAX: BigInt = &*BASE_86 - bigint!(1);
 }
 
 /*
@@ -18,11 +19,11 @@ pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
-    let base_max = &*BASE_86 - bigint!(1);
+
     let mut num = integer.clone();
     let mut canonical_repr: [BigInt; 3] = Default::default();
     for item in &mut canonical_repr {
-        *item = (&num & &base_max).to_owned();
+        *item = (&num & &*BASE_86_MAX).to_owned();
         num >>= 86_usize;
     }
     if !num.is_zero() {
