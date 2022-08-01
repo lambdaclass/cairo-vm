@@ -111,7 +111,12 @@ pub fn is_zero_pack(
     let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
     let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
 
-    let x = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&vm.prime);
+    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
+    let secp_p = bigint_str!(
+        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
+    );
+
+    let x = (pack(x_d0, x_d1, x_d2, &vm.prime)).mod_floor(&secp_p);
 
     vm.exec_scopes
         .assign_or_update_variable("x", PyValueType::BigInt(x));
@@ -152,9 +157,10 @@ pub fn is_zero_nondet(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError
 /*
 Implements hint:
 %{
-    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P
+    from starkware.python.math_utils import div_mod
 
-    x = pack(ids.x, PRIME) % SECP_P
+    value = x_inv = div_mod(1, x, SECP_P)
 %}
 */
 pub fn is_zero_assign_x_inv(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
