@@ -1,8 +1,7 @@
-use crate::bigint64;
+use crate::bigint;
 use crate::types::instruction;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 
 //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
@@ -119,9 +118,9 @@ pub fn decode_instruction(
     };
 
     Ok(instruction::Instruction {
-        off0: bigint64!(off0),
-        off1: bigint64!(off1),
-        off2: bigint64!(off2),
+        off0: bigint!(off0),
+        off1: bigint!(off1),
+        off2: bigint!(off2),
         imm,
         dst_register,
         op0_register,

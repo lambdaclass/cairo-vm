@@ -172,7 +172,6 @@ mod memory_tests {
 
     use super::*;
     use num_bigint::BigInt;
-    use num_traits::FromPrimitive;
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,

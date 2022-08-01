@@ -102,7 +102,6 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use num_traits::FromPrimitive;
 
     #[test]
     fn run_verify_zero_ok() {

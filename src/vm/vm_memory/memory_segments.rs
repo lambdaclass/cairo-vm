@@ -120,7 +120,6 @@ mod tests {
     use super::*;
     use crate::{bigint, relocatable};
     use num_bigint::BigInt;
-    use num_traits::FromPrimitive;
     use std::vec;
 
     #[test]

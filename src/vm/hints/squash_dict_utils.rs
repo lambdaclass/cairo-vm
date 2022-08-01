@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::ToPrimitive;
 
 use crate::{
-    bigint, bigintusize,
+    bigint,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
@@ -231,7 +231,7 @@ pub fn squash_dict_inner_used_accesses_assert(
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    if *n_used_accesses != bigintusize!(access_indices_at_key.len()) {
+    if *n_used_accesses != bigint!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
             n_used_accesses.clone(),
             access_indices_at_key.len(),
@@ -361,7 +361,7 @@ pub fn squash_dict(
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
-        let key_addr = address.add_int_mod(&(DICT_ACCESS_SIZE * bigintusize!(i)), &vm.prime)?;
+        let key_addr = address.add_int_mod(&(DICT_ACCESS_SIZE * bigint!(i)), &vm.prime)?;
         let key = if let MaybeRelocatable::Int(key) = vm
             .memory
             .get(&key_addr)
@@ -375,7 +375,7 @@ pub fn squash_dict(
         access_indices
             .entry(key.clone())
             .or_insert(vec![])
-            .push(bigintusize!(i));
+            .push(bigint!(i));
     }
     //Descending list of keys.
     let mut keys: Vec<BigInt> = access_indices.keys().cloned().collect();
@@ -413,7 +413,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_bigint::Sign;
-    use num_traits::FromPrimitive;
 
     use super::*;
     //Hint code as consts

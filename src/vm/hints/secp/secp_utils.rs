@@ -3,7 +3,7 @@ use crate::math_utils::as_int;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, Zero};
+use num_traits::{Signed, Zero};
 
 lazy_static! {
     pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
