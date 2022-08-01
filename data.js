@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659365926030,
+  "lastUpdate": 1659366010473,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -12495,6 +12495,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 286608049,
             "range": "± 13464720",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "2a617968a03cd02690f20096c721c1f524cabba9",
+          "message": "Add macros memory and generic version of bigint",
+          "timestamp": "2022-08-01T09:26:55Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/328/commits/2a617968a03cd02690f20096c721c1f524cabba9"
+        },
+        "date": 1659366008045,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1694347400,
+            "range": "± 5731584",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 620064408,
+            "range": "± 1353945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 303879536,
+            "range": "± 631455",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1490539735,
+            "range": "± 4170357",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 224291416,
+            "range": "± 807494",
             "unit": "ns/iter"
           }
         ]
