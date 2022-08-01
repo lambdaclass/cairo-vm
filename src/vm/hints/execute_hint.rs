@@ -14,12 +14,10 @@ use crate::vm::hints::dict_hint_utils::{
 };
 use crate::vm::hints::find_element_hint::{find_element, search_sorted_lower};
 use crate::vm::hints::hint_utils::{
-    add_segment, assert_250_bit, assert_le_felt, assert_lt_felt, assert_nn, assert_not_equal,
-    assert_not_zero, enter_scope, exit_scope, is_le_felt, is_nn, is_nn_out_of_range, is_positive,
-    memcpy_continue_copying, memcpy_enter_scope, signed_div_rem, split_felt, split_int,
-    split_int_assert_range, sqrt, unsigned_div_rem,
+    add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
 };
 use crate::vm::hints::keccak_utils::{unsafe_keccak, unsafe_keccak_finalize};
+use crate::vm::hints::math_utils::*;
 use crate::vm::hints::memset_utils::{memset_continue_loop, memset_enter_scope};
 use crate::vm::hints::pow_utils::pow;
 use crate::vm::hints::set::set_add;
