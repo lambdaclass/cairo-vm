@@ -87,8 +87,8 @@ pub fn get_list_from_scope(
 pub fn get_list_ref_from_scope<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
-) -> Option<&'a Vec<BigInt>> {
-    let mut val: Result<&Vec<BigInt>, VirtualMachineError> = None;
+) -> Result<&'a Vec<BigInt>, VirtualMachineError> {
+    let mut val: Option<&'a Vec<BigInt>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
         if let Some(PyValueType::List(py_val)) = variables.get(name) {
             val = Some(py_val);
@@ -101,8 +101,8 @@ pub fn get_list_ref_from_scope<'a>(
 pub fn get_mut_list_ref_from_scope<'a>(
     vm: &'a mut VirtualMachine,
     name: &'a str,
-) -> Option<&'a mut Vec<BigInt>> {
-    let mut val: Result<&mut Vec<BigInt>, VirtualMachineError> = None;
+) -> Result<&'a mut Vec<BigInt>, VirtualMachineError> {
+    let mut val: Option<&'a mut Vec<BigInt>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
         if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
             val = Some(py_val);
@@ -840,80 +840,15 @@ pub fn assert_250_bit(
     //Declare constant values
     let upper_bound = bigint!(1).shl(250_i32);
     let shift = bigint!(1).shl(128_i32);
-    //Check that ids contains the reference id for each variable used by the hint
-    let (value_ref, high_ref, low_ref) = if let (Some(value_ref), Some(high_ref), Some(low_ref)) = (
-        ids.get(&String::from("value")),
-        ids.get(&String::from("high")),
-        ids.get(&String::from("low")),
-    ) {
-        (value_ref, high_ref, low_ref)
-    } else {
-        return Err(VirtualMachineError::IncorrectIds(
-            vec![
-                String::from("value"),
-                String::from("high"),
-                String::from("low"),
-            ],
-            ids.into_keys().collect(),
-        ));
-    };
-    //Check that each reference id corresponds to a value in the reference manager
-    let (value_addr, high_addr, low_addr) =
-        if let (Ok(Some(value_addr)), Ok(Some(high_addr)), Ok(Some(low_addr))) = (
-            get_address_from_reference(
-                value_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                high_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-            get_address_from_reference(
-                low_ref,
-                &vm.references,
-                &vm.run_context,
-                vm,
-                hint_ap_tracking,
-            ),
-        ) {
-            (value_addr, high_addr, low_addr)
-        } else {
-            return Err(VirtualMachineError::FailedToGetIds);
-        };
-    //Check that the ids.value is in memory
-    match vm.memory.get(&value_addr) {
-        Ok(Some(maybe_rel_value)) => {
-            //Check that ids.value is an Int value
-            let value = if let &MaybeRelocatable::Int(ref value) = maybe_rel_value {
-                value
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(value_addr.clone()));
-            };
-            //Main logic
-            let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
-            if int_value > upper_bound {
-                return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
-            }
-
-            //Insert values into ids.high and ids.low
-            let (high, low) = int_value.div_rem(&shift);
-            vm.memory
-                .insert(&high_addr, &MaybeRelocatable::from(high))
-                .map_err(VirtualMachineError::MemoryError)?;
-            vm.memory
-                .insert(&low_addr, &MaybeRelocatable::from(low))
-                .map_err(VirtualMachineError::MemoryError)?;
-            Ok(())
-        }
-        Ok(None) => Err(VirtualMachineError::MemoryGet(value_addr)),
-        Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    //Main logic
+    let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
+    if int_value > upper_bound {
+        return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
+    let (high, low) = int_value.div_rem(&shift);
+    insert_integer_from_var_name("high", high, &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("low", high, &ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -931,49 +866,17 @@ pub fn assert_lt_felt(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that ids contains the reference id for each variable used by the hint
-    let (a_ref, b_ref) = if let (Some(a_ref), Some(b_ref)) =
-        (ids.get(&String::from("a")), ids.get(&String::from("b")))
-    {
-        (a_ref, b_ref)
-    } else {
-        return Err(VirtualMachineError::IncorrectIds(
-            vec![String::from("a"), String::from("b")],
-            ids.into_keys().collect(),
-        ));
+    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let b = get_integer_from_var_name("b", &ids, vm, hint_ap_tracking)?;
+    // Main logic
+    // assert_integer(ids.a)
+    // assert_integer(ids.b)
+    // assert (ids.a % PRIME) < (ids.b % PRIME), \
+    //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
+    if a.mod_floor(&vm.prime) >= b.mod_floor(&vm.prime) {
+        return Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()));
     };
-    //Check that each reference id corresponds to a value in the reference manager
-    let (a_addr, b_addr) = if let (Ok(Some(a_addr)), Ok(Some(b_addr))) = (
-        get_address_from_reference(a_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
-        get_address_from_reference(b_ref, &vm.references, &vm.run_context, vm, hint_ap_tracking),
-    ) {
-        (a_addr, b_addr)
-    } else {
-        return Err(VirtualMachineError::FailedToGetIds);
-    };
-
-    match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
-        (Ok(Some(MaybeRelocatable::Int(ref a))), Ok(Some(MaybeRelocatable::Int(ref b)))) => {
-            // main logic
-            // assert_integer(ids.a)
-            // assert_integer(ids.b)
-            // assert (ids.a % PRIME) < (ids.b % PRIME), \
-            //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-            if a.mod_floor(&vm.prime) < b.mod_floor(&vm.prime) {
-                Ok(())
-            } else {
-                Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()))
-            }
-        }
-        (Ok(Some(MaybeRelocatable::RelocatableValue(_))), _) => {
-            Err(VirtualMachineError::ExpectedInteger(a_addr.clone()))
-        }
-        (_, Ok(Some(MaybeRelocatable::RelocatableValue(_)))) => {
-            Err(VirtualMachineError::ExpectedInteger(b_addr.clone()))
-        }
-
-        _ => Err(VirtualMachineError::FailedToGetIds),
-    }
+    Ok(())
 }
 
 #[cfg(test)]
