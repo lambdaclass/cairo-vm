@@ -55,7 +55,6 @@ pub mod test_utils {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
         {
             let mut memory = Memory::new();
-            memory.data.push(Vec::new());
             memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
         memory
         }
@@ -66,7 +65,6 @@ pub mod test_utils {
     macro_rules! memory_from_memory {
         ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
             {
-                $mem.data.push(Vec::new());
                 $(
                     memory_inner!($mem, ($si, $off), $val);
                 )*
@@ -77,23 +75,22 @@ pub mod test_utils {
 
     macro_rules! memory_inner {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
-            let mut res = $mem.insert(
+            let (k, v) = (
                 &mayberelocatable!($si, $off),
                 &mayberelocatable!($sival, $offval),
             );
+            let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 $mem.data.push(Vec::new());
-                res = $mem.insert(
-                    &mayberelocatable!($si, $off),
-                    &mayberelocatable!($sival, $offval),
-                );
+                res = $mem.insert(k, v);
             }
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
-            let mut res = $mem.insert(&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            let (k, v) = (&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            let mut res = $mem.insert(k, v);
             while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
                 $mem.data.push(Vec::new());
-                res = $mem.insert(&mayberelocatable!($si, $off), &mayberelocatable!($val));
+                res = $mem.insert(k, v);
             }
         };
     }
