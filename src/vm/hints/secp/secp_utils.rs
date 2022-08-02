@@ -8,9 +8,8 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::vm_core::VirtualMachine;
 use lazy_static::lazy_static;
-use lazy_static::lazy_static;
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, Zero};
+use num_traits::{Signed, Zero};
 use std::collections::HashMap;
 
 lazy_static! {
