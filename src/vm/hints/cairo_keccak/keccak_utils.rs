@@ -4,7 +4,7 @@ use crate::bigintusize;
 use num_bigint::{BigInt, Sign};
 use num_integer::div_ceil;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::FromPrimitive;
 use std::collections::HashSet;
 use std::ops::Shl;
 
@@ -16,44 +16,13 @@ pub enum KeccakError {
     BigIntMaxSize(BigInt),
 }
 
-/*
-
-def rot_left(x, n, w):
-    """
-    Rotates a w-bit number n bits to the left.
-    """
-    return ((x << n) & (2**w - 1)) | (x >> (w - n))
-
-*/
-pub fn rot_left(x: usize, n: usize, w: usize) -> usize {
+pub fn rot_left(x: &BigInt, n: usize, w: usize) -> BigInt {
     /*
     Rotates a w-bit number n bits to the left.
     */
-    ((x << n) & ((2_u128).pow(w as u32) - 1) as usize) | ((x as u128 >> (w - n)) as usize)
+    ((x << n) & (bigint!(1).shl(w) - 1_i32)) | (x >> (w - n))
 }
 
-/*
-
-def precompute_rho_offsets(w: int, u: int, alpha: int, beta: int) -> List[List[int]]:
-    """
-    Precomputes the offsets of the rotation in the Rho phase.
-    Returns a matrix with the rotation offset of each lane.
-    """)
-    x, y = 1, 0
-    xy_pairs = set()
-    offset = 0
-    result = [[0] * u for _ in range(u)]
-    for t in range(1, u**2):
-        xy_pairs.add((x, y))
-        offset = (offset + t) % w
-        result[x][y] = offset
-        # The official definition is (alpha, beta) = (3, 2) for u = 5. Any other u has no official
-        # definition, but the iteration must go over each (x, y) != (0, 0) pair exactly once.
-        x, y = y, (beta * x + alpha * y) % u
-    assert len(xy_pairs) == u**2 - 1
-    return result
-
-*/
 pub fn precompute_rho_offsets(
     w: usize,
     u: usize,
@@ -86,24 +55,7 @@ pub fn precompute_rho_offsets(
     Ok(result)
 }
 
-/*
-def precompute_rc(ell: int, rounds: Optional[int] = None) -> Iterable[int]:
-    """
-    Precomputes the round constants in the Iota phase.
-    Returns a sequence of keys to be xored in each round to lane [0, 0].
-    """
-    x = 1
-    if rounds is None:
-        rounds = 12 + 2 * ell
-    for _ in range(rounds):
-        rc = 0
-        for m in range(ell + 1):
-            rc += (x & 1) << (2**m - 1)
-            x <<= 1
-            x ^= 0x171 * (x >> 8)
-        yield rc
-*/
-pub fn precompute_rc(ell: usize, mut rounds: Option<usize>) -> Result<Vec<usize>, KeccakError> {
+pub fn precompute_rc(ell: usize, mut rounds: Option<usize>) -> Result<Vec<BigInt>, KeccakError> {
     /*
     Precomputes the round constants in the Iota phase.
     Returns a sequence of keys to be xored in each round to lane [0, 0].
@@ -134,201 +86,114 @@ pub fn precompute_rc(ell: usize, mut rounds: Option<usize>) -> Result<Vec<usize>
             x ^= 0x171 * (x >> 8);
         }
 
-        rc.push(rc_elem);
+        rc.push(bigintusize!(rc_elem));
     }
 
     Ok(rc)
 }
 
-/*
-
-def keccak_round(
-    a: List[List[int]], rho_offsets: List[List[int]], rc: int, w: int, u: int, alpha: int, beta: int
-) -> List[List[int]]:
-    """
-    Performs one keccak round on a matrix of uxu w-bit integers.
-    rc is the round constant.
-    """
-    c = [reduce(operator.xor, a[x]) for x in range(u)]
-    print("C: ", c)
-    d = [c[(x - 1) % u] ^ rot_left(c[(x + 1) % u], 1, w) for x in range(u)]
-    print("D: ", d)
-    a = [[a[x][y] ^ d[x] for y in range(u)] for x in range(u)]
-    print("A: ", a)
-    b = [a[x][:] for x in range(u)]
-    print("B: ", b)
-    for x in range(u):
-        for y in range(u):
-            b[y][(beta * x + alpha * y) % u] = rot_left(a[x][y], rho_offsets[x][y], w)
-    a = [[b[x][y] ^ ((~b[(x + 1) % u][y]) & b[(x + 2) % u][y]) for y in range(u)] for x in range(u)]
-    a[0][0] ^= rc
-    return a
-
- */
 pub fn keccak_round(
-    a: Vec<Vec<usize>>,
+    a: Vec<Vec<BigInt>>,
     rho_offsets: &Vec<Vec<usize>>,
-    rc: usize,
+    rc: BigInt,
     w: usize,
     u: usize,
     alpha: usize,
     beta: usize,
-) -> Vec<Vec<usize>> {
+) -> Vec<Vec<BigInt>> {
     /*
     Performs one keccak round on a matrix of uxu w-bit integers.
     rc is the round constant.
     */
-    let mut b: Vec<Vec<usize>> = Vec::new();
+    let mut b = Vec::new();
     let mut c = Vec::new();
-    let mut d: Vec<usize> = Vec::new();
-    let mut a_tmp: Vec<Vec<usize>> = Vec::new();
+    let mut d = Vec::new();
+    let mut a_tmp = Vec::new();
 
     for x in 0..u {
-        let c_elem = a[x].iter().fold(0, |acc, n| acc ^ *n);
+        let c_elem = a[x].iter().fold(bigint!(0), |acc, n| acc ^ n);
         c.push(c_elem);
     }
 
     for x in 0..u {
-        // FIXME casts
-        let foo = rot_left(c[(x + 1).mod_floor(&u)], 1, w);
+        let left_xor = &c[(x as i32 - 1).mod_floor(&(u as i32)) as usize];
+        let right_xor = rot_left(&c[(x + 1).mod_floor(&u)], 1, w);
+        let d_elem = left_xor ^ right_xor;
 
-        let d_elem = c[(x as i32 - 1).mod_floor(&(u as i32)) as usize] ^ foo;
         d.push(d_elem);
     }
 
     for x in 0..u {
         let mut a_tmp_elem = Vec::new();
         for y in 0..u {
-            a_tmp_elem.push(a[x][y] ^ d[x]);
+            a_tmp_elem.push(&a[x][y] ^ &d[x]);
         }
         a_tmp.push(a_tmp_elem);
     }
 
     for x in 0..u {
-        // FIXME clone
         b.push(a_tmp[x].clone());
     }
 
     for x in 0..u {
         for y in 0..u {
             b[y][(beta * x + alpha * y).mod_floor(&u)] =
-                rot_left(a_tmp[x][y], rho_offsets[x][y], w);
+                rot_left(&a_tmp[x][y], rho_offsets[x][y], w);
         }
     }
 
-    let mut a_new: Vec<Vec<usize>> = Vec::new();
     for x in 0..u {
-        let mut a_new_tmp = Vec::new();
         for y in 0..u {
-            let a_new_tmp_elem =
-                b[x][y] ^ ((!b[(x + 1).mod_floor(&u)][y]) & b[(x + 2).mod_floor(&u)][y]);
-            a_new_tmp.push(a_new_tmp_elem);
+            a_tmp[x][y] =
+                &b[x][y] ^ ((!&b[(x + 1).mod_floor(&u)][y]) & &b[(x + 2).mod_floor(&u)][y]);
         }
-        a_new.push(a_new_tmp);
     }
 
-    a_new[0][0] ^= rc;
+    a_tmp[0][0] ^= rc;
 
-    a_new
+    a_tmp
 }
 
-/*
-
-def keccak_func(
-    values: List[int],
-    ell: int = 6,
-    u: int = 5,
-    alpha: int = 3,
-    beta: int = 2,
-    rounds: Optional[int] = None,
-) -> List[int]:
-    """
-    Computes the keccak block permutation on u**2 2**ell-bit integers.
-    """
-    # Reshape values to a matrix.
-    value_matrix = [[values[u * y + x] for y in range(u)] for x in range(u)]
-    w = 2**ell
-    rho_offsets = precompute_rho_offsets(w, u, alpha, beta)
-    for rc in precompute_rc(ell, rounds):
-        value_matrix = keccak_round(a=value_matrix, rho_offsets=rho_offsets, rc=rc, w=w, u=u, alpha=alpha, beta=beta)
-    # Reshape values to a flat list.
-    values = [value_matrix[y][x] for x in range(u) for y in range(u)]
-
-    return values
-
-*/
 fn keccak_func(
-    values: Vec<usize>,
+    values: Vec<BigInt>,
     ell: u32,
     u: usize,
     alpha: usize,
     beta: usize,
     rounds: Option<usize>,
-) -> Result<Vec<usize>, KeccakError> {
+) -> Result<Vec<BigInt>, KeccakError> {
     /*
     Computes the keccak block permutation on u**2 2**ell-bit integers.
     */
     // Reshape values to a matrix
-    let mut value_matrix: Vec<Vec<usize>> = Vec::new();
+    let mut value_matrix = Vec::new();
 
     for x in 0..u {
-        let mut row: Vec<usize> = Vec::new();
+        let mut row = Vec::new();
         for y in 0..u {
-            row.push(values[u * y + x])
+            row.push(values[u * y + x].clone())
         }
         value_matrix.push(row);
     }
 
     let w = 2_usize.pow(ell);
 
-    println!("llegue 1");
     let rho_offsets = precompute_rho_offsets(w, u, alpha, beta)?;
 
-    println!("llegue 2");
-    // el error tiene que estar acá
     for rc in precompute_rc(ell as usize, rounds)?.iter() {
-        println!("entre");
-        value_matrix = keccak_round(value_matrix, &rho_offsets, *rc, w, u, alpha, beta);
-        //println!("value_matrix2: {:?}", value_matrix);
+        value_matrix = keccak_round(value_matrix, &rho_offsets, rc.clone(), w, u, alpha, beta);
     }
-    println!("llegue 3");
 
-    let mut values_res: Vec<usize> = Vec::new();
+    let mut values_res = Vec::new();
     for x in 0..u {
         for y in 0..u {
-            values_res.push(value_matrix[y][x]);
+            values_res.push(value_matrix[y][x].clone());
         }
     }
 
     Ok(values_res)
 }
 
-/*
-
-def keccak_f(
-    message: bytes,
-    ell: int = 6,
-    u: int = 5,
-    alpha: int = 3,
-    beta: int = 2,
-    rounds: Optional[int] = None,
-) -> bytes:
-    """
-    Computes the keccak block permutation on a u**2*2**ell-bit message (pads with zeros).
-    """
-    w = 2**ell
-    assert len(message) <= div_ceil(u * u * w, 8)
-    as_bigint = from_bytes(message, byte_order="little")
-    assert as_bigint < 2 ** (u * u * w)
-    as_integers = [(as_bigint >> (i * w)) & (2**w - 1) for i in range(u**2)]
-    result = keccak_func(values=as_integers, ell=ell, u=u, alpha=alpha, beta=beta, rounds=rounds)
-    return to_bytes(
-        sum(x << (i * w) for i, x in enumerate(result)),
-        length=(u**2 * w + 7) // 8,
-        byte_order="little",
-    )
-
-*/
 #[allow(dead_code)]
 fn keccak_f(
     message: Vec<u8>,
@@ -357,26 +222,20 @@ fn keccak_f(
         return Err(KeccakError::BigIntMaxSize(as_bigint));
     }
 
-    let mut as_integers: Vec<usize> = Vec::new();
+    let mut as_integers = Vec::new();
     for i in 0..(u * u) {
-        // FIXME unwrap
-        let integer = ((as_bigint.clone() >> (i * w)) & (bigint_u128!(2_u128.pow(w as u32) - 1)))
-            .to_usize()
-            .unwrap();
+        let integer = (as_bigint.clone() >> (i * w)) & (bigint_u128!(2_u128.pow(w as u32) - 1));
         as_integers.push(integer);
     }
 
-    let result: Vec<BigInt> = keccak_func(
+    let result = keccak_func(
         as_integers,
         ell as u32,
         u,
         alpha as usize,
         beta as usize,
         rounds,
-    )?
-    .iter()
-    .map(|n| bigintusize!(*n))
-    .collect();
+    )?;
 
     let mut sum_vec = Vec::new();
     for (i, x) in result.iter().enumerate() {
@@ -396,12 +255,13 @@ fn keccak_f(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint_u64;
 
     #[test]
     fn rot_left_test() {
-        let res = rot_left(5, 2, 32);
+        let res = rot_left(&bigint!(5), 2, 32);
 
-        assert_eq!(res, 20);
+        assert_eq!(res, bigint!(20));
     }
 
     #[test]
@@ -430,18 +290,41 @@ mod tests {
         assert_eq!(
             res,
             Ok(vec![
-                1, 2147516424, 2147516544, 9, 2147516554, 2147483659, 32768, 2147516545,
-                2147483779, 2147516546, 2147483648, 32769, 137, 32771, 2147516555, 32906,
-                2147516426, 32905, 2147483778, 32776, 2147483656, 32778
+                bigint_u64!(1),
+                bigint_u64!(2147516424),
+                bigint_u64!(2147516544),
+                bigint_u64!(9),
+                bigint_u64!(2147516554),
+                bigint_u64!(2147483659),
+                bigint_u64!(32768),
+                bigint_u64!(2147516545),
+                bigint_u64!(2147483779),
+                bigint_u64!(2147516546),
+                bigint_u64!(2147483648),
+                bigint_u64!(32769),
+                bigint_u64!(137),
+                bigint_u64!(32771),
+                bigint_u64!(2147516555),
+                bigint_u64!(32906),
+                bigint_u64!(2147516426),
+                bigint_u64!(32905),
+                bigint_u64!(2147483778),
+                bigint_u64!(32776),
+                bigint_u64!(2147483656),
+                bigint_u64!(32778)
             ])
         );
     }
 
     #[test]
     fn keccak_round_test() {
-        let a = vec![vec![1, 2, 3], vec![4, 5, 6], vec![6, 7, 8]];
+        let a = vec![
+            vec![bigint!(1), bigint!(2), bigint!(3)],
+            vec![bigint!(4), bigint!(5), bigint!(6)],
+            vec![bigint!(6), bigint!(7), bigint!(8)],
+        ];
         let rho_offsets = vec![vec![1, 2, 3], vec![4, 5, 6], vec![6, 7, 8]];
-        let rc = 2;
+        let rc = bigint!(2);
         let w = 32;
         let u = 2;
         let alpha = 3;
@@ -450,12 +333,15 @@ mod tests {
         let res = keccak_round(a, &rho_offsets, rc, w, u, alpha, beta);
 
         // Python version result: [[2, 0], [0, 0]]
-        assert_eq!(res, vec![vec![2, 0], vec![0, 0]]);
+        assert_eq!(
+            res,
+            vec![vec![bigint!(2), bigint!(0)], vec![bigint!(0), bigint!(0)]]
+        );
     }
 
     #[test]
     fn keccak_func_test() {
-        let values = vec![0; 25];
+        let values = vec![bigint!(0); 25];
         let ell = 6;
         let u = 5;
         let alpha = 3;
@@ -467,31 +353,31 @@ mod tests {
         assert_eq!(
             res,
             Ok(vec![
-                17376452488221285863,
-                9571781953733019530,
-                15391093639620504046,
-                13624874521033984333,
-                10027350355371872343,
-                18417369716475457492,
-                10448040663659726788,
-                10113917136857017974,
-                12479658147685402012,
-                3500241080921619556,
-                16959053435453822517,
-                12224711289652453635,
-                9342009439668884831,
-                4879704952849025062,
-                140226327413610143,
-                424854978622500449,
-                7259519967065370866,
-                7004910057750291985,
-                13293599522548616907,
-                10105770293752443592,
-                10668034807192757780,
-                1747952066141424100,
-                1654286879329379778,
-                8500057116360352059,
-                16929593379567477321
+                bigint_u64!(17376452488221285863),
+                bigint_u64!(9571781953733019530),
+                bigint_u64!(15391093639620504046),
+                bigint_u64!(13624874521033984333),
+                bigint_u64!(10027350355371872343),
+                bigint_u64!(18417369716475457492),
+                bigint_u64!(10448040663659726788),
+                bigint_u64!(10113917136857017974),
+                bigint_u64!(12479658147685402012),
+                bigint_u64!(3500241080921619556),
+                bigint_u64!(16959053435453822517),
+                bigint_u64!(12224711289652453635),
+                bigint_u64!(9342009439668884831),
+                bigint_u64!(4879704952849025062),
+                bigint_u64!(140226327413610143),
+                bigint_u64!(424854978622500449),
+                bigint_u64!(7259519967065370866),
+                bigint_u64!(7004910057750291985),
+                bigint_u64!(13293599522548616907),
+                bigint_u64!(10105770293752443592),
+                bigint_u64!(10668034807192757780),
+                bigint_u64!(1747952066141424100),
+                bigint_u64!(1654286879329379778),
+                bigint_u64!(8500057116360352059),
+                bigint_u64!(16929593379567477321)
             ])
         )
     }
