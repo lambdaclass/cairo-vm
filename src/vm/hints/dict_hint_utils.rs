@@ -144,8 +144,7 @@ pub fn dict_write(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     let new_value = get_integer_from_var_name(
         "new_value",
         ids,
@@ -153,8 +152,7 @@ pub fn dict_write(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     let dict_ptr = get_ptr_from_var_name(
         "dict_ptr",
         ids,
@@ -171,13 +169,12 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(&key)?;
-    //Insert previous value into dict_ptr.prev_value
-    //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm.memory
-        .insert_integer(&dict_ptr_prev_value, prev_value.clone())?;
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
     tracker.insert_value(&key, &new_value);
+    //Insert previous value into dict_ptr.prev_value
+    //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
+    vm.memory.insert_integer(&dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 
