@@ -59,81 +59,81 @@ pub fn execute_hint(
 ) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
-        Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => is_nn(vm, ids, None),
+        Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => is_nn(vm, &ids, None),
         Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1") => {
-            is_nn_out_of_range(vm, ids, None)
+            is_nn_out_of_range(vm, &ids, None)
         }
-        Ok("memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1") => is_le_felt(vm, ids, None),
+        Ok("memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1") => is_le_felt(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)",
-        ) => assert_le_felt(vm, ids, None),
+        ) => assert_le_felt(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)",
-        ) => assert_250_bit(vm, ids, None),
+        ) => assert_250_bit(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0"
-        ) => is_positive(vm, ids, Some(ap_tracking)),
+        ) => is_positive(vm, &ids, Some(ap_tracking)),
         Ok("assert ids.value == 0, 'split_int(): value is out of range.'"
-        ) => split_int_assert_range(vm, ids, None),
+        ) => split_int_assert_range(vm, &ids, None),
         Ok("memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'"
-        ) => split_int(vm, ids, None),
+        ) => split_int(vm, &ids, None),
         Ok("from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"
-        ) => assert_not_equal(vm, ids, None),
+        ) => assert_not_equal(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'"
-        ) => assert_nn(vm, ids, None),
+        ) => assert_nn(vm, &ids, None),
         Ok("from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)"
-        ) => sqrt(vm, ids, None),
+        ) => sqrt(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"
-        ) => assert_not_zero(vm, ids, None),
+        ) => assert_not_zero(vm, &ids, None),
         Ok("vm_exit_scope()") => exit_scope(vm),
-        Ok("vm_enter_scope({'n': ids.len})") => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
-        Ok("vm_enter_scope({'n': ids.n})") => memset_enter_scope(vm, ids, Some(ap_tracking)),
+        Ok("vm_enter_scope({'n': ids.len})") => memcpy_enter_scope(vm, &ids, Some(ap_tracking)),
+        Ok("vm_enter_scope({'n': ids.n})") => memset_enter_scope(vm, &ids, Some(ap_tracking)),
         Ok("n -= 1\nids.continue_copying = 1 if n > 0 else 0") => memcpy_continue_copying(vm, &ids, Some(ap_tracking)),
-        Ok("n -= 1\nids.continue_loop = 1 if n > 0 else 0") => memset_continue_loop(vm, ids, Some(ap_tracking)),
+        Ok("n -= 1\nids.continue_loop = 1 if n > 0 else 0") => memset_continue_loop(vm, &ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128"
-        ) => split_felt(vm, ids, None),
+        ) => split_felt(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)"
-        ) => unsigned_div_rem(vm, ids, None),
+        ) => unsigned_div_rem(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound"
-        ) => signed_div_rem(vm, ids, None),
+        ) => signed_div_rem(vm, &ids, None),
         Ok("from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
-        ) => assert_lt_felt(vm, ids, None),
+        ) => assert_lt_felt(vm, &ids, None),
         Ok("array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\nkey = ids.key\n\nif '__find_element_index' in globals():\n    ids.index = __find_element_index\n    found_key = memory[array_ptr + elm_size * __find_element_index]\n    assert found_key == key, \\\n        f'Invalid index found in __find_element_index. index: {__find_element_index}, ' \\\n        f'expected key {key}, found key: {found_key}.'\n    # Delete __find_element_index to make sure it's not used for the next calls.\n    del __find_element_index\nelse:\n    n_elms = ids.n_elms\n    assert isinstance(n_elms, int) and n_elms >= 0, \\\n        f'Invalid value for n_elms. Got: {n_elms}.'\n    if '__find_element_max_size' in globals():\n        assert n_elms <= __find_element_max_size, \\\n            f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n            f'Got: n_elms={n_elms}.'\n\n    for i in range(n_elms):\n        if memory[array_ptr + elm_size * i] == key:\n            ids.index = i\n            break\n    else:\n        raise ValueError(f'Key {key} was not found.')"
-        ) => find_element(vm, ids, None),
+        ) => find_element(vm, &ids, None),
         Ok("array_ptr = ids.array_ptr\nelm_size = ids.elm_size\nassert isinstance(elm_size, int) and elm_size > 0, \\\n    f'Invalid value for elm_size. Got: {elm_size}.'\n\nn_elms = ids.n_elms\nassert isinstance(n_elms, int) and n_elms >= 0, \\\n    f'Invalid value for n_elms. Got: {n_elms}.'\nif '__find_element_max_size' in globals():\n    assert n_elms <= __find_element_max_size, \\\n        f'find_element() can only be used with n_elms<={__find_element_max_size}. ' \\\n        f'Got: n_elms={n_elms}.'\n\nfor i in range(n_elms):\n    if memory[array_ptr + elm_size * i] >= ids.key:\n        ids.index = i\n        break\nelse:\n    ids.index = n_elms"
-        ) => search_sorted_lower(vm, ids, None),
-        Ok("ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1") => pow(vm, ids, Some(ap_tracking)),
-        Ok("assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0") => set_add(vm, ids, None),
+        ) => search_sorted_lower(vm, &ids, None),
+        Ok("ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1") => pow(vm, &ids, Some(ap_tracking)),
+        Ok("assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0") => set_add(vm, &ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict"
         ) => dict_new(vm),
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-        ) => dict_read(vm, ids, None),
+        ) => dict_read(vm, &ids, None),
         Ok("dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-        ) => dict_write(vm, ids, None),
+        ) => dict_write(vm, &ids, None),
         Ok("if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)"
-        ) => default_dict_new(vm, ids, Some(ap_tracking)),
+        ) => default_dict_new(vm, &ids, Some(ap_tracking)),
         Ok("current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index"
-        ) => squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking)),
+        ) => squash_dict_inner_first_iteration(vm, &ids, Some(ap_tracking)),
         Ok("ids.should_skip_loop = 0 if current_access_indices else 1"
-        ) => squash_dict_inner_skip_loop(vm, ids, Some(ap_tracking)),
+        ) => squash_dict_inner_skip_loop(vm, &ids, Some(ap_tracking)),
         Ok("new_access_index = current_access_indices.pop()\nids.loop_temps.index_delta_minus1 = new_access_index - current_access_index - 1\ncurrent_access_index = new_access_index"
-        ) => squash_dict_inner_check_access_index(vm, ids, Some(ap_tracking)),
+        ) => squash_dict_inner_check_access_index(vm, &ids, Some(ap_tracking)),
         Ok("ids.loop_temps.should_continue = 1 if current_access_indices else 0"
-        ) => squash_dict_inner_continue_loop(vm, ids, Some(ap_tracking)),
+        ) => squash_dict_inner_continue_loop(vm, &ids, Some(ap_tracking)),
         Ok("assert len(keys) == 0") => squash_dict_inner_assert_len_keys(vm),
         Ok("assert len(current_access_indices) == 0") => squash_dict_inner_len_assert(vm),
-        Ok("assert ids.n_used_accesses == len(access_indices[key])") => squash_dict_inner_used_accesses_assert(vm, ids, Some(ap_tracking)),
+        Ok("assert ids.n_used_accesses == len(access_indices[key])") => squash_dict_inner_used_accesses_assert(vm, &ids, Some(ap_tracking)),
         Ok("assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\nids.next_key = key = keys.pop()"
-        ) => squash_dict_inner_next_key(vm, ids, Some(ap_tracking)),
+        ) => squash_dict_inner_next_key(vm, &ids, Some(ap_tracking)),
         Ok("dict_access_size = ids.DictAccess.SIZE\naddress = ids.dict_accesses.address_\nassert ids.ptr_diff % dict_access_size == 0, \\\n    'Accesses array size must be divisible by DictAccess.SIZE'\nn_accesses = ids.n_accesses\nif '__squash_dict_max_size' in globals():\n    assert n_accesses <= __squash_dict_max_size, \\\n        f'squash_dict() can only be used with n_accesses<={__squash_dict_max_size}. ' \\\n        f'Got: n_accesses={n_accesses}.'\n# A map from key to the list of indices accessing it.\naccess_indices = {}\nfor i in range(n_accesses):\n    key = memory[address + dict_access_size * i]\n    access_indices.setdefault(key, []).append(i)\n# Descending list of keys.\nkeys = sorted(access_indices.keys(), reverse=True)\n# Are the keys used bigger than range_check bound.\nids.big_keys = 1 if keys[0] >= range_check_builtin.bound else 0\nids.first_key = key = keys.pop()"
-        ) => squash_dict(vm, ids, Some(ap_tracking)),
+        ) => squash_dict(vm, &ids, Some(ap_tracking)),
         Ok("vm_enter_scope()") => enter_scope(vm),
         Ok("# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-        ) => dict_update(vm, ids, None),
+        ) => dict_update(vm, &ids, None),
         Ok("# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-        ) => dict_squash_copy_dict(vm, ids, Some(ap_tracking)),
+        ) => dict_squash_copy_dict(vm, &ids, Some(ap_tracking)),
         Ok("# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
-        ) => dict_squash_update_ptr(vm, ids, Some(ap_tracking)),
+        ) => dict_squash_update_ptr(vm, &ids, Some(ap_tracking)),
         Ok("sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0"
-        ) => uint256_add(vm, ids, None),
-        Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, ids, None),
+        ) => uint256_add(vm, &ids, None),
+        Ok("ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64") => split_64(vm, &ids, None),
         Ok("vm_enter_scope(dict(__usort_max_size = globals().get('__usort_max_size')))"
         ) => usort_enter_scope(vm),
         Ok("from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])"
@@ -146,21 +146,21 @@ pub fn execute_hint(
         Ok("from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)"
         ) => compute_blake2s(vm, &ids, Some(ap_tracking)),
         Ok("from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0"
-        ) => uint256_sqrt(vm, ids, None),
-        Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, ids, None),
+        ) => uint256_sqrt(vm, &ids, None),
+        Ok("memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0") => uint256_signed_nn(vm, &ids, None),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))") => nondet_bigint3(vm, &ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME") => verify_zero(vm, &ids, Some(ap_tracking)),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P") => reduce(vm, &ids, None),
         Ok("a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128"
-        ) => uint256_unsigned_div_rem(vm, ids, None),
+        ) => uint256_unsigned_div_rem(vm, &ids, None),
         Ok("# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)"
-        ) => finalize_blake2s(vm, ids, Some(ap_tracking)),
+        ) => finalize_blake2s(vm, &ids, Some(ap_tracking)),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]"
         ) => blake2s_add_uint256(vm, &ids, Some(ap_tracking)),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])"
         ) => blake2s_add_uint256_bigend(vm, &ids, Some(ap_tracking)),
         Ok("from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')"
-        ) => unsafe_keccak(vm, ids, None),
+        ) => unsafe_keccak(vm, &ids, None),
         Ok("from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')"
         ) => unsafe_keccak_finalize(vm, &ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),

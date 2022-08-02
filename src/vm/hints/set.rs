@@ -12,15 +12,15 @@ use super::hint_utils::{
 
 pub fn set_add(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let set_ptr = get_ptr_from_var_name("set_ptr", &ids, vm, hint_ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?
+    let set_ptr = get_ptr_from_var_name("set_ptr", ids, vm, hint_ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", ids, vm, hint_ap_tracking)?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-    let elm_ptr = get_ptr_from_var_name("elm_ptr", &ids, vm, hint_ap_tracking)?;
-    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", &ids, vm, hint_ap_tracking)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", ids, vm, hint_ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", ids, vm, hint_ap_tracking)?;
 
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigintusize!(
@@ -55,20 +55,20 @@ pub fn set_add(
             insert_integer_from_var_name(
                 "index",
                 bigintusize!(i / elm_size),
-                &ids,
+                ids,
                 vm,
                 hint_ap_tracking,
             )?;
             return insert_integer_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
-                &ids,
+                ids,
                 vm,
                 hint_ap_tracking,
             );
         }
     }
-    insert_integer_from_var_name("is_elm_in_set", bigint!(0), &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("is_elm_in_set", bigint!(0), ids, vm, hint_ap_tracking)
 }
 
 #[cfg(test)]

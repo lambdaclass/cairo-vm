@@ -463,10 +463,10 @@ pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len = get_integer_from_var_name("len", &ids, vm, hint_ap_tracking)?.clone();
+    let len = get_integer_from_var_name("len", ids, vm, hint_ap_tracking)?.clone();
     vm.exec_scopes.enter_scope(HashMap::from([(
         String::from("n"),
         PyValueType::BigInt(len),

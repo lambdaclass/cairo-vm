@@ -122,11 +122,11 @@ pub fn compute_blake2s(
 */
 pub fn finalize_blake2s(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
-    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", &ids, vm, hint_ap_tracking)?;
+    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", ids, vm, hint_ap_tracking)?;
     let message: [u32; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;

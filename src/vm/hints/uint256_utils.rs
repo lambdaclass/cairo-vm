@@ -23,13 +23,13 @@ Implements hint:
 */
 pub fn uint256_add(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let b_relocatable = get_relocatable_from_var_name("b", &ids, vm, hint_ap_tracking)?;
+    let a_relocatable = get_relocatable_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let b_relocatable = get_relocatable_from_var_name("b", ids, vm, hint_ap_tracking)?;
     let a_low = vm.memory.get_integer(&a_relocatable)?;
     let a_high = vm.memory.get_integer(&(a_relocatable + 1))?;
     let b_low = vm.memory.get_integer(&b_relocatable)?;
@@ -52,8 +52,8 @@ pub fn uint256_add(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name("carry_high", carry_high, &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("carry_low", carry_low, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("carry_high", carry_high, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("carry_low", carry_low, ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -65,15 +65,15 @@ Implements hint:
 */
 pub fn split_64(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
     let high = digits.next().unwrap_or(0u64);
-    insert_integer_from_var_name("high", bigint_u64!(high), &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("low", bigint_u64!(low), &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("high", bigint_u64!(high), ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("low", bigint_u64!(low), ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -89,11 +89,11 @@ Implements hint:
 */
 pub fn uint256_sqrt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_addr = get_relocatable_from_var_name("n", &ids, vm, hint_ap_tracking)?;
-    let root_addr = get_relocatable_from_var_name("root", &ids, vm, hint_ap_tracking)?;
+    let n_addr = get_relocatable_from_var_name("n", ids, vm, hint_ap_tracking)?;
+    let root_addr = get_relocatable_from_var_name("root", ids, vm, hint_ap_tracking)?;
     let n_low = vm.memory.get_integer(&n_addr)?;
     let n_high = vm.memory.get_integer(&(n_addr + 1))?;
 
@@ -123,10 +123,10 @@ Implements hint:
 */
 pub fn uint256_signed_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a_addr = get_relocatable_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let a_high = vm.memory.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
@@ -154,13 +154,13 @@ Implements hint:
 */
 pub fn uint256_unsigned_div_rem(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let div_addr = get_relocatable_from_var_name("div", &ids, vm, hint_ap_tracking)?;
-    let quotient_addr = get_relocatable_from_var_name("quotient", &ids, vm, hint_ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", &ids, vm, hint_ap_tracking)?;
+    let a_addr = get_relocatable_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let div_addr = get_relocatable_from_var_name("div", ids, vm, hint_ap_tracking)?;
+    let quotient_addr = get_relocatable_from_var_name("quotient", ids, vm, hint_ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", ids, vm, hint_ap_tracking)?;
 
     let a_low = vm.memory.get_integer(&a_addr)?;
     let a_high = vm.memory.get_integer(&(a_addr + 1))?;

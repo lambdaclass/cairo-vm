@@ -41,12 +41,12 @@ fn get_access_indices(
 */
 pub fn squash_dict_inner_first_iteration(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
     let key = get_int_from_scope(&vm.exec_scopes, "key")?;
-    let range_check_ptr = get_ptr_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
+    let range_check_ptr = get_ptr_from_var_name("range_check_ptr", ids, vm, hint_ap_tracking)?;
     let access_indices = get_access_indices(vm)?;
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
@@ -77,7 +77,7 @@ pub fn squash_dict_inner_first_iteration(
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -91,7 +91,7 @@ pub fn squash_dict_inner_skip_loop(
     insert_integer_from_var_name(
         "should_skip_loop",
         should_skip_loop,
-        &ids,
+        ids,
         vm,
         hint_ap_tracking,
     )
@@ -104,7 +104,7 @@ pub fn squash_dict_inner_skip_loop(
 */
 pub fn squash_dict_inner_check_access_index(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
@@ -118,7 +118,7 @@ pub fn squash_dict_inner_check_access_index(
     let index_delta_minus1 = new_access_index.clone() - current_access_index - bigint!(1);
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    insert_integer_from_var_name("loop_temps", index_delta_minus1, &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("loop_temps", index_delta_minus1, ids, vm, hint_ap_tracking)?;
     insert_int_into_scope(
         &mut vm.exec_scopes,
         "new_access_index",
@@ -135,12 +135,12 @@ pub fn squash_dict_inner_check_access_index(
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
-    let loop_temps_addr = get_relocatable_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
+    let loop_temps_addr = get_relocatable_from_var_name("loop_temps", ids, vm, hint_ap_tracking)?;
     //Check that current_access_indices is in scope
     let current_access_indices =
         get_list_ref_from_scope(&vm.exec_scopes, "current_access_indices")?;
@@ -171,12 +171,12 @@ pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), Virtu
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let key = get_int_from_scope(&vm.exec_scopes, "key")?;
     let n_used_accesses =
-        get_integer_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?.clone();
+        get_integer_from_var_name("n_used_accesses", ids, vm, hint_ap_tracking)?.clone();
     let access_indices = get_access_indices(vm)?;
     //Main Logic
     let access_indices_at_key = access_indices
@@ -210,14 +210,14 @@ pub fn squash_dict_inner_assert_len_keys(
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let keys = get_mut_list_ref_from_scope(&mut vm.exec_scopes, "keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
-    insert_integer_from_var_name("next_key", next_key.clone(), &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("next_key", next_key.clone(), ids, vm, hint_ap_tracking)?;
     //Update local variables
     insert_int_into_scope(&mut vm.exec_scopes, "key", next_key);
     Ok(())
@@ -246,13 +246,13 @@ pub fn squash_dict_inner_next_key(
 */
 pub fn squash_dict(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let address = get_ptr_from_var_name("dict_accesses", &ids, vm, hint_ap_tracking)?;
-    let ptr_diff = get_integer_from_var_name("ptr_diff", &ids, vm, hint_ap_tracking)?;
-    let n_accesses = get_integer_from_var_name("n_accesses", &ids, vm, hint_ap_tracking)?.clone();
+    let address = get_ptr_from_var_name("dict_accesses", ids, vm, hint_ap_tracking)?;
+    let ptr_diff = get_integer_from_var_name("ptr_diff", ids, vm, hint_ap_tracking)?;
+    let n_accesses = get_integer_from_var_name("n_accesses", ids, vm, hint_ap_tracking)?.clone();
     //Get range_check_builtin
     let range_check_builtin = get_range_check_builtin(vm)?;
     let range_check_bound = range_check_builtin._bound.clone();
@@ -294,9 +294,9 @@ pub fn squash_dict(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name("big_keys", big_keys, &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("big_keys", big_keys, ids, vm, hint_ap_tracking)?;
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
-    insert_integer_from_var_name("first_key", key.clone(), &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("first_key", key.clone(), ids, vm, hint_ap_tracking)?;
     //Insert local variables into scope
     vm.exec_scopes
         .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));

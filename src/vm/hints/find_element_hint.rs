@@ -19,13 +19,13 @@ use super::hint_utils::insert_integer_from_var_name;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?;
-    let elm_size_bigint = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
-    let n_elms = get_integer_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
-    let array_start = get_ptr_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", ids, vm, hint_ap_tracking)?;
+    let elm_size_bigint = get_integer_from_var_name("elm_size", ids, vm, hint_ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", ids, vm, hint_ap_tracking)?;
+    let array_start = get_ptr_from_var_name("array_ptr", ids, vm, hint_ap_tracking)?;
     let find_element_index = get_int_from_scope(&vm.exec_scopes, "find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
@@ -50,13 +50,7 @@ pub fn find_element(
                 found_key.clone(),
             ));
         }
-        insert_integer_from_var_name(
-            "index",
-            find_element_index_value,
-            &ids,
-            vm,
-            hint_ap_tracking,
-        )?;
+        insert_integer_from_var_name("index", find_element_index_value, ids, vm, hint_ap_tracking)?;
         vm.exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
@@ -88,7 +82,7 @@ pub fn find_element(
                 return insert_integer_from_var_name(
                     "index",
                     bigint!(i),
-                    &ids,
+                    ids,
                     vm,
                     hint_ap_tracking,
                 );
@@ -101,14 +95,14 @@ pub fn find_element(
 
 pub fn search_sorted_lower(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let find_element_max_size = get_int_from_scope(&vm.exec_scopes, "find_element_max_size");
-    let n_elms = get_integer_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
-    let rel_array_ptr = get_relocatable_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
-    let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", ids, vm, hint_ap_tracking)?;
+    let rel_array_ptr = get_relocatable_from_var_name("array_ptr", ids, vm, hint_ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", ids, vm, hint_ap_tracking)?;
 
     if !elm_size.is_positive() {
         return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
@@ -139,14 +133,14 @@ pub fn search_sorted_lower(
             return insert_integer_from_var_name(
                 "index",
                 bigintusize!(i),
-                &ids,
+                ids,
                 vm,
                 hint_ap_tracking,
             );
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_integer_from_var_name("index", n_elms.clone(), &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("index", n_elms.clone(), ids, vm, hint_ap_tracking)
 }
 
 #[cfg(test)]

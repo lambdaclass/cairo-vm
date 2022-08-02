@@ -22,10 +22,10 @@ use crate::{
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm)?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if a.mod_floor(&vm.prime) >= bigint!(0)
@@ -41,10 +41,10 @@ pub fn is_nn(
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm)?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if (-a.clone() - 1usize).mod_floor(&vm.prime) < range_check_builtin._bound {
@@ -64,11 +64,11 @@ pub fn is_nn_out_of_range(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let b = get_integer_from_var_name("b", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let b = get_integer_from_var_name("b", ids, vm, hint_ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm)?;
     //Assert a <= b
     if a.mod_floor(&vm.prime) > b.mod_floor(&vm.prime) {
@@ -80,18 +80,18 @@ pub fn assert_le_felt(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name("small_inputs", value, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("small_inputs", value, ids, vm, hint_ap_tracking)
 }
 
 //Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_mod = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?.mod_floor(&vm.prime);
-    let b_mod = get_integer_from_var_name("b", &ids, vm, hint_ap_tracking)?.mod_floor(&vm.prime);
+    let a_mod = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?.mod_floor(&vm.prime);
+    let b_mod = get_integer_from_var_name("b", ids, vm, hint_ap_tracking)?.mod_floor(&vm.prime);
     let value = if a_mod > b_mod {
         bigint!(1)
     } else {
@@ -110,11 +110,11 @@ pub fn is_le_felt(
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_address_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let b_addr = get_address_from_var_name("b", &ids, vm, hint_ap_tracking)?;
+    let a_addr = get_address_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let b_addr = get_address_from_var_name("b", ids, vm, hint_ap_tracking)?;
     //Check that the ids are in memory
     match (vm.memory.get(&a_addr), vm.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
@@ -156,10 +156,10 @@ pub fn assert_not_equal(
 // %}
 pub fn assert_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm)?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
@@ -177,10 +177,10 @@ pub fn assert_nn(
 // %}
 pub fn assert_not_zero(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     if value.is_multiple_of(&vm.prime) {
         return Err(VirtualMachineError::AssertNotZero(
             value.clone(),
@@ -193,10 +193,10 @@ pub fn assert_not_zero(
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     //Main logic (assert value == 0)
     if !value.is_zero() {
         return Err(VirtualMachineError::SplitIntNotZero);
@@ -208,13 +208,13 @@ pub fn split_int_assert_range(
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
-    let base = get_integer_from_var_name("base", &ids, vm, hint_ap_tracking)?;
-    let bound = get_integer_from_var_name("bound", &ids, vm, hint_ap_tracking)?;
-    let output = get_ptr_from_var_name("output", &ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
+    let base = get_integer_from_var_name("base", ids, vm, hint_ap_tracking)?;
+    let bound = get_integer_from_var_name("bound", ids, vm, hint_ap_tracking)?;
+    let output = get_ptr_from_var_name("output", ids, vm, hint_ap_tracking)?;
     //Main Logic
     let res = (value.mod_floor(&vm.prime)).mod_floor(base);
     if res > *bound {
@@ -228,10 +228,10 @@ pub fn split_int(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm)?;
     //Main logic (assert a is positive)
     let int_value = as_int(value, &vm.prime);
@@ -243,7 +243,7 @@ pub fn is_positive(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name("is_positive", result, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("is_positive", result, ids, vm, hint_ap_tracking)
 }
 
 //Implements hint:
@@ -257,18 +257,18 @@ pub fn is_positive(
 // %}
 pub fn split_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     //Main logic
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
     let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
     let high: BigInt = value.shr(128_u8);
-    insert_integer_from_var_name("high", high, &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("low", low, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("high", high, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("low", low, ids, vm, hint_ap_tracking)
 }
 
 //Implements hint: from starkware.python.math_utils import isqrt
@@ -278,26 +278,26 @@ pub fn split_felt(
 //        ids.root = isqrt(value)
 pub fn sqrt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let mod_value =
-        get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?.mod_floor(&vm.prime);
+        get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?.mod_floor(&vm.prime);
     //This is equal to mod_value > bigint!(2).pow(250)
     if (&mod_value).shr(250_i32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
     }
-    insert_integer_from_var_name("root", isqrt(&mod_value)?, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("root", isqrt(&mod_value)?, ids, vm, hint_ap_tracking)
 }
 
 pub fn signed_div_rem(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let div = get_integer_from_var_name("div", &ids, vm, hint_ap_tracking)?;
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
-    let bound = get_integer_from_var_name("bound", &ids, vm, hint_ap_tracking)?;
+    let div = get_integer_from_var_name("div", ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
+    let bound = get_integer_from_var_name("bound", ids, vm, hint_ap_tracking)?;
     let builtin = get_range_check_builtin(vm)?;
     // Main logic
     if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
@@ -320,8 +320,8 @@ pub fn signed_div_rem(
         return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
     }
     let biased_q = q + bound;
-    insert_integer_from_var_name("r", r, &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("biased_q", biased_q, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("r", r, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("biased_q", biased_q, ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -335,11 +335,11 @@ ids.q, ids.r = divmod(ids.value, ids.div)
 */
 pub fn unsigned_div_rem(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let div = get_integer_from_var_name("div", &ids, vm, hint_ap_tracking)?;
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    let div = get_integer_from_var_name("div", ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     let builtin = get_range_check_builtin(vm)?;
     // Main logic
     if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
@@ -349,8 +349,8 @@ pub fn unsigned_div_rem(
         ));
     }
     let (q, r) = value.div_mod_floor(div);
-    insert_integer_from_var_name("r", r, &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("q", q, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("r", r, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("q", q, ids, vm, hint_ap_tracking)
 }
 
 //Implements hint: from starkware.cairo.common.math_utils import as_int
@@ -361,21 +361,21 @@ pub fn unsigned_div_rem(
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Declare constant values
     let upper_bound = bigint!(1).shl(250_i32);
     let shift = bigint!(1).shl(128_i32);
-    let value = get_integer_from_var_name("value", &ids, vm, hint_ap_tracking)?;
+    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     //Main logic
     let int_value = as_int(value, &vm.prime).mod_floor(&vm.prime);
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
     let (high, low) = int_value.div_rem(&shift);
-    insert_integer_from_var_name("high", high, &ids, vm, hint_ap_tracking)?;
-    insert_integer_from_var_name("low", low, &ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name("high", high, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("low", low, ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -390,11 +390,11 @@ Implements hint:
 */
 pub fn assert_lt_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let b = get_integer_from_var_name("b", &ids, vm, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
+    let b = get_integer_from_var_name("b", ids, vm, hint_ap_tracking)?;
     // Main logic
     // assert_integer(ids.a)
     // assert_integer(ids.b)
