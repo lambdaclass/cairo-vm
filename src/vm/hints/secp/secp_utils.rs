@@ -64,7 +64,7 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
 pub fn pack_from_var_name(
     name: &str,
     ids: &HashMap<String, BigInt>,
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<BigInt, VirtualMachineError> {
     let to_pack = get_relocatable_from_var_name(name, ids, vm, hint_ap_tracking)?;
