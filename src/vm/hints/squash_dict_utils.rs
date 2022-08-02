@@ -13,9 +13,9 @@ use crate::{
 use super::{
     dict_hint_utils::DICT_ACCESS_SIZE,
     hint_utils::{
-        get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
-        get_list_from_scope, get_list_ref_from_scope, get_mut_list_ref_from_scope,
-        get_ptr_from_var_name, get_range_check_builtin, insert_int_into_scope,
+        get_int_from_scope, get_integer_from_var_name, get_list_from_scope,
+        get_list_ref_from_scope, get_mut_list_ref_from_scope, get_ptr_from_var_name,
+        get_range_check_builtin, get_relocatable_from_var_name, insert_int_into_scope,
         insert_integer_from_var_name, insert_list_into_scope,
     },
 };
@@ -139,7 +139,7 @@ pub fn squash_dict_inner_continue_loop(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
-    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
+    let loop_temps_addr = get_relocatable_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
     //Check that current_access_indices is in scope
     let current_access_indices = get_list_ref_from_scope(vm, "current_access_indices")?;
     //Main Logic
@@ -150,13 +150,9 @@ pub fn squash_dict_inner_continue_loop(
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    let should_continue_addr = loop_temps_addr.add_usize_mod(3, None);
+    let should_continue_addr = loop_temps_addr.add_usize(3);
     vm.memory
-        .insert(
-            &should_continue_addr,
-            &MaybeRelocatable::from(should_continue),
-        )
-        .map_err(VirtualMachineError::MemoryError)
+        .insert_integer(&should_continue_addr, &should_continue)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0

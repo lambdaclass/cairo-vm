@@ -115,7 +115,7 @@ impl Memory {
         key: &Relocatable,
         val: &Relocatable,
     ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(*key), &MaybeRelocatable::from(*val))
+        self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
             .map_err(VirtualMachineError::MemoryError)
     }
 
@@ -124,7 +124,7 @@ impl Memory {
         key: &Relocatable,
         val: &BigInt,
     ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(*key), &MaybeRelocatable::from(*val))
+        self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
             .map_err(VirtualMachineError::MemoryError)
     }
 

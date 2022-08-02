@@ -40,6 +40,18 @@ impl From<BigInt> for MaybeRelocatable {
     }
 }
 
+impl From<&Relocatable> for MaybeRelocatable {
+    fn from(rel: &Relocatable) -> Self {
+        MaybeRelocatable::RelocatableValue(rel.clone())
+    }
+}
+
+impl From<&BigInt> for MaybeRelocatable {
+    fn from(val: &BigInt) -> Self {
+        MaybeRelocatable::Int(val.clone())
+    }
+}
+
 impl From<Relocatable> for MaybeRelocatable {
     fn from(rel: Relocatable) -> Self {
         MaybeRelocatable::RelocatableValue(rel)
