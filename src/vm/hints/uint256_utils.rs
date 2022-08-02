@@ -210,7 +210,7 @@ pub fn uint256_signed_nn(
         } else {
             bigint!(0)
         };
-    insert_int_into_ap(vm, result)
+    insert_int_into_ap(&mut vm.memory, &vm.run_context, result)
 }
 
 /*

@@ -25,11 +25,12 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
 
 //Inserts value into ap
 pub fn insert_int_into_ap(
-    vm: &mut VirtualMachine,
+    memory: &mut Memory,
+    run_context: &RunContext,
     value: BigInt,
 ) -> Result<(), VirtualMachineError> {
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+    memory
+        .insert(&run_context.ap, &MaybeRelocatable::from(value))
         .map_err(VirtualMachineError::MemoryError)
 }
 
