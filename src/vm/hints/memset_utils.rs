@@ -20,7 +20,15 @@ pub fn memset_enter_scope(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n = get_integer_from_var_name("n", ids, vm, hint_ap_tracking)?.clone();
+    let n = get_integer_from_var_name(
+        "n",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
     vm.exec_scopes
         .enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
     Ok(())
@@ -44,7 +52,15 @@ pub fn memset_continue_loop(
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = bigint!(new_n.is_positive() as i32);
-    insert_integer_from_var_name("continue_loop", should_continue, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name(
+        "continue_loop",
+        should_continue,
+        ids,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
     insert_int_into_scope(&mut vm.exec_scopes, "n", new_n);

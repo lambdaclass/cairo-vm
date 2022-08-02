@@ -62,8 +62,15 @@ pub fn default_dict_new(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let default_value =
-        get_integer_from_var_name("default_value", ids, vm, hint_ap_tracking)?.clone();
+    let default_value = get_integer_from_var_name(
+        "default_value",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(vm);
 
@@ -88,8 +95,23 @@ pub fn dict_read(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name(
+        "key",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
+    let dict_ptr = get_ptr_from_var_name(
+        "dict_ptr",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = if let Some(value) = tracker.data.get(&key) {
@@ -97,7 +119,15 @@ pub fn dict_read(
     } else {
         return Err(VirtualMachineError::NoValueForKey(key.clone()));
     };
-    insert_integer_from_var_name("value", value.clone(), ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name(
+        "value",
+        value.clone(),
+        ids,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )
 }
 
 /* Implements hint:
@@ -111,9 +141,32 @@ pub fn dict_write(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm, hint_ap_tracking)?.clone();
-    let new_value = get_integer_from_var_name("new_value", ids, vm, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name(
+        "key",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
+    let new_value = get_integer_from_var_name(
+        "new_value",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
+    let dict_ptr = get_ptr_from_var_name(
+        "dict_ptr",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     //Get tracker for dictionary
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
@@ -152,10 +205,41 @@ pub fn dict_update(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm, hint_ap_tracking)?.clone();
-    let prev_value = get_integer_from_var_name("prev_value", ids, vm, hint_ap_tracking)?.clone();
-    let new_value = get_integer_from_var_name("new_value", ids, vm, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name(
+        "key",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
+    let prev_value = get_integer_from_var_name(
+        "prev_value",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
+    let new_value = get_integer_from_var_name(
+        "new_value",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
+    let dict_ptr = get_ptr_from_var_name(
+        "dict_ptr",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     //Get tracker for dictionary
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
@@ -189,7 +273,14 @@ pub fn dict_squash_copy_dict(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let dict_accesses_end = get_ptr_from_var_name("dict_accesses_end", ids, vm, hint_ap_tracking)?;
+    let dict_accesses_end = get_ptr_from_var_name(
+        "dict_accesses_end",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let dict_copy = vm
         .dict_manager
         .get_tracker(&dict_accesses_end)?
@@ -212,9 +303,22 @@ pub fn dict_squash_update_ptr(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let squashed_dict_start =
-        get_ptr_from_var_name("squashed_dict_start", ids, vm, hint_ap_tracking)?;
-    let squashed_dict_end = get_ptr_from_var_name("squashed_dict_end", ids, vm, hint_ap_tracking)?;
+    let squashed_dict_start = get_ptr_from_var_name(
+        "squashed_dict_start",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let squashed_dict_end = get_ptr_from_var_name(
+        "squashed_dict_end",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     vm.dict_manager
         .get_tracker(&squashed_dict_start)?
         .current_ptr = squashed_dict_end;

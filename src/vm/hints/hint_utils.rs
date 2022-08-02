@@ -6,6 +6,7 @@ use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
+use crate::vm::vm_memory::memory::Memory;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
     hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -199,17 +200,25 @@ pub fn get_range_check_builtin(
 pub fn get_ptr_from_var_name(
     var_name: &str,
     ids: &HashMap<String, BigInt>,
-    vm: &VirtualMachine,
+    memory: &Memory,
+    references: &HashMap<usize, HintReference>,
+    run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let var_addr = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    let value = vm.memory.get_relocatable(&var_addr)?;
+    let var_addr = get_relocatable_from_var_name(
+        var_name,
+        ids,
+        memory,
+        references,
+        run_context,
+        hint_ap_tracking,
+    )?;
+    let value = memory.get_relocatable(&var_addr)?;
     //Add immediate if present in reference
     let index = ids
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
-    let hint_reference = vm
-        .references
+    let hint_reference = references
         .get(
             &index
                 .to_usize()
@@ -219,10 +228,7 @@ pub fn get_ptr_from_var_name(
     if let Some(immediate) = &hint_reference.immediate {
         let modified_value = relocatable!(
             value.segment_index,
-            value.offset
-                + immediate
-                    .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
+            value.offset + bigint_to_usize(immediate)?
         );
         return Ok(modified_value);
     }
@@ -253,7 +259,7 @@ fn apply_ap_tracking_correction(
 pub fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
-    vm: &VirtualMachine,
+    memory: &Memory,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     let base_addr = match hint_reference.register {
@@ -297,7 +303,7 @@ pub fn compute_addr_from_reference(
                 (relocatable.offset as i32 + hint_reference.offset1) as usize,
             ));
 
-            match vm.memory.get(&addr) {
+            match memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
                     return Ok(Some(MaybeRelocatable::from((
                         dereferenced_addr.segment_index,
@@ -318,7 +324,7 @@ pub fn get_address_from_reference(
     reference_id: &BigInt,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
-    vm: &VirtualMachine,
+    memory: &Memory,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     if let Some(index) = reference_id.to_usize() {
@@ -327,7 +333,7 @@ pub fn get_address_from_reference(
                 return compute_addr_from_reference(
                     hint_reference,
                     run_context,
-                    vm,
+                    memory,
                     hint_ap_tracking,
                 );
             }
@@ -339,32 +345,37 @@ pub fn get_address_from_reference(
 pub fn get_address_from_var_name(
     var_name: &str,
     ids: &HashMap<String, BigInt>,
-    vm: &VirtualMachine,
+    memory: &Memory,
+    references: &HashMap<usize, HintReference>,
+    run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
     let var_ref = ids
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
-    get_address_from_reference(
-        var_ref,
-        &vm.references,
-        &vm.run_context,
-        vm,
-        hint_ap_tracking,
-    )
-    .map_err(|_| VirtualMachineError::FailedToGetIds)?
-    .ok_or(VirtualMachineError::FailedToGetIds)
+    get_address_from_reference(var_ref, references, run_context, memory, hint_ap_tracking)
+        .map_err(|_| VirtualMachineError::FailedToGetIds)?
+        .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
 pub fn insert_integer_from_var_name(
     var_name: &str,
     int: BigInt,
     ids: &HashMap<String, BigInt>,
-    vm: &mut VirtualMachine,
+    memory: &mut Memory,
+    references: &HashMap<usize, HintReference>,
+    run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    vm.memory
+    let var_address = get_address_from_var_name(
+        var_name,
+        ids,
+        memory,
+        references,
+        run_context,
+        hint_ap_tracking,
+    )?;
+    memory
         .insert(&var_address, &MaybeRelocatable::Int(int))
         .map_err(VirtualMachineError::MemoryError)
 }
@@ -373,16 +384,20 @@ pub fn insert_relocatable_from_var_name(
     var_name: &str,
     relocatable: Relocatable,
     ids: &HashMap<String, BigInt>,
-    vm: &mut VirtualMachine,
+    memory: &mut Memory,
+    references: &HashMap<usize, HintReference>,
+    run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let var_address = get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    vm.memory
-        .insert(
-            &var_address,
-            &MaybeRelocatable::RelocatableValue(relocatable),
-        )
-        .map_err(VirtualMachineError::MemoryError)
+    let var_address = get_relocatable_from_var_name(
+        var_name,
+        ids,
+        memory,
+        references,
+        run_context,
+        hint_ap_tracking,
+    )?;
+    memory.insert_relocatable(&var_address, &relocatable)
 }
 
 //Gets the address of a variable name.
@@ -391,10 +406,19 @@ pub fn insert_relocatable_from_var_name(
 pub fn get_relocatable_from_var_name(
     var_name: &str,
     ids: &HashMap<String, BigInt>,
-    vm: &VirtualMachine,
+    memory: &Memory,
+    references: &HashMap<usize, HintReference>,
+    run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
-    match get_address_from_var_name(var_name, ids, vm, hint_ap_tracking)? {
+    match get_address_from_var_name(
+        var_name,
+        ids,
+        memory,
+        references,
+        run_context,
+        hint_ap_tracking,
+    )? {
         MaybeRelocatable::RelocatableValue(relocatable) => Ok(relocatable),
         address => Err(VirtualMachineError::ExpectedRelocatable(address)),
     }
@@ -406,11 +430,20 @@ pub fn get_relocatable_from_var_name(
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
     ids: &HashMap<String, BigInt>,
-    vm: &'a VirtualMachine,
+    memory: &'a Memory,
+    references: &HashMap<usize, HintReference>,
+    run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    let relocatable = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    vm.memory.get_integer(&relocatable)
+    let relocatable = get_relocatable_from_var_name(
+        var_name,
+        ids,
+        memory,
+        references,
+        run_context,
+        hint_ap_tracking,
+    )?;
+    memory.get_integer(&relocatable)
 }
 
 pub fn get_u64_from_relocatable_plus_offset(
@@ -467,7 +500,15 @@ pub fn memcpy_enter_scope(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len = get_integer_from_var_name("len", ids, vm, hint_ap_tracking)?.clone();
+    let len = get_integer_from_var_name(
+        "len",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
     vm.exec_scopes.enter_scope(HashMap::from([(
         String::from("n"),
         PyValueType::BigInt(len),
@@ -493,9 +534,25 @@ pub fn memcpy_continue_copying(
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
-        insert_integer_from_var_name("continue_copying", bigint!(1), ids, vm, hint_ap_tracking)?;
+        insert_integer_from_var_name(
+            "continue_copying",
+            bigint!(1),
+            ids,
+            &mut vm.memory,
+            &vm.references,
+            &vm.run_context,
+            hint_ap_tracking,
+        )?;
     } else {
-        insert_integer_from_var_name("continue_copying", bigint!(0), ids, vm, hint_ap_tracking)?;
+        insert_integer_from_var_name(
+            "continue_copying",
+            bigint!(0),
+            ids,
+            &mut vm.memory,
+            &vm.references,
+            &vm.run_context,
+            hint_ap_tracking,
+        )?;
     }
     vm.exec_scopes
         .assign_or_update_variable("n", PyValueType::BigInt(new_n));
@@ -548,7 +605,14 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            get_integer_from_var_name(var_name, &ids, &vm, None),
+            get_integer_from_var_name(
+                var_name,
+                &ids,
+                &vm.memory,
+                &vm.references,
+                &vm.run_context,
+                None
+            ),
             Ok(&bigint!(10))
         );
     }
@@ -594,7 +658,14 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            get_integer_from_var_name(var_name, &ids, &vm, None),
+            get_integer_from_var_name(
+                var_name,
+                &ids,
+                &vm.memory,
+                &vm.references,
+                &vm.run_context,
+                None
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))

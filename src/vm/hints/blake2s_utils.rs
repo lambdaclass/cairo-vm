@@ -94,7 +94,14 @@ pub fn compute_blake2s(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let output = get_ptr_from_var_name("output", ids, vm, hint_ap_tracking)?;
+    let output = get_ptr_from_var_name(
+        "output",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
 }
 
@@ -126,7 +133,14 @@ pub fn finalize_blake2s(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
-    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", ids, vm, hint_ap_tracking)?;
+    let blake2s_ptr_end = get_ptr_from_var_name(
+        "blake2s_ptr_end",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let message: [u32; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;
@@ -163,9 +177,30 @@ pub fn blake2s_add_uint256(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name(
+        "data",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let low_addr = get_relocatable_from_var_name(
+        "low",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let high_addr = get_relocatable_from_var_name(
+        "high",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let low = &vm.memory.get_integer(&low_addr)?.clone();
     let high = &vm.memory.get_integer(&high_addr)?.clone();
     //Main logic
@@ -217,9 +252,30 @@ pub fn blake2s_add_uint256_bigend(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name(
+        "data",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let low_addr = get_relocatable_from_var_name(
+        "low",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let high_addr = get_relocatable_from_var_name(
+        "high",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let low = &vm.memory.get_integer(&low_addr)?.clone();
     let high = &vm.memory.get_integer(&high_addr)?.clone();
     //Main logic

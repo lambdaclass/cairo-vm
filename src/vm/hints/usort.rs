@@ -34,10 +34,24 @@ pub fn usort_body(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let input_arr_start_ptr = get_relocatable_from_var_name("input", ids, vm, hint_ap_tracking)?;
+    let input_arr_start_ptr = get_relocatable_from_var_name(
+        "input",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let input_ptr = vm.memory.get_relocatable(&input_arr_start_ptr)?.clone();
     let usort_max_size = get_u64_from_scope(&vm.exec_scopes, "usort_max_size");
-    let input_len = get_integer_from_var_name("input_len", ids, vm, hint_ap_tracking)?;
+    let input_len = get_integer_from_var_name(
+        "input_len",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let input_len_u64 = input_len
         .to_u64()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
@@ -93,15 +107,27 @@ pub fn usort_body(
         "output_len",
         bigintusize!(output_len),
         ids,
-        vm,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_relocatable_from_var_name("output", output_base, ids, vm, hint_ap_tracking)?;
+    insert_relocatable_from_var_name(
+        "output",
+        output_base,
+        ids,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     insert_relocatable_from_var_name(
         "multiplicities",
         multiplicities_base,
         ids,
-        vm,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
         hint_ap_tracking,
     )
 }
@@ -111,7 +137,15 @@ pub fn verify_usort(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?.clone();
+    let value = get_integer_from_var_name(
+        "value",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .clone();
     let positions: Vec<u64> =
         get_dict_int_list_u64_from_scope_mut(&mut vm.exec_scopes, "positions_dict")?
             .remove(&value)
@@ -144,7 +178,15 @@ pub fn verify_multiplicity_body(
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint_u64!(current_pos) - get_int_from_scope(&vm.exec_scopes, "last_pos")?;
-    insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name(
+        "next_item_index",
+        pos_diff,
+        ids,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     insert_int_into_scope(
         &mut vm.exec_scopes,
         "last_pos",

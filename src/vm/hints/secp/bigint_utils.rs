@@ -19,7 +19,14 @@ pub fn nondet_bigint3(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", ids, vm, hint_ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name(
+        "res",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let value = get_int_ref_from_scope(&vm.exec_scopes, "value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm.segments

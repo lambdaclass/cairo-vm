@@ -27,7 +27,14 @@ pub fn verify_zero(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let val_reloc = get_relocatable_from_var_name("val", ids, vm, hint_ap_tracking)?;
+    let val_reloc = get_relocatable_from_var_name(
+        "val",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let val_d0 = vm.memory.get_integer(&val_reloc)?;
     let val_d1 = vm.memory.get_integer(&(val_reloc.clone() + 1))?;
@@ -49,7 +56,15 @@ pub fn verify_zero(
             val_d2.clone(),
         ));
     }
-    insert_integer_from_var_name("q", q.mod_floor(&vm.prime), ids, vm, hint_ap_tracking)
+    insert_integer_from_var_name(
+        "q",
+        q.mod_floor(&vm.prime),
+        ids,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )
 }
 
 /*
@@ -65,7 +80,14 @@ pub fn reduce(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
+    let x_reloc = get_relocatable_from_var_name(
+        "x",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let x_d0 = vm.memory.get_integer(&x_reloc)?;
     let x_d1 = vm.memory.get_integer(&(x_reloc.clone() + 1))?;
