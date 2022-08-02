@@ -1,10 +1,10 @@
 use crate::bigint;
-use crate::bigint_u128;
-use crate::bigintusize;
+//use crate::bigint_u128;
+//use crate::bigintusize;
 use num_bigint::{BigInt, Sign};
 use num_integer::div_ceil;
 use num_integer::Integer;
-use num_traits::FromPrimitive;
+//use num_traits::FromPrimitive;
 use std::collections::HashSet;
 use std::ops::Shl;
 
@@ -86,7 +86,7 @@ pub fn precompute_rc(ell: usize, mut rounds: Option<usize>) -> Result<Vec<BigInt
             x ^= 0x171 * (x >> 8);
         }
 
-        rc.push(bigintusize!(rc_elem));
+        rc.push(bigint!(rc_elem));
     }
 
     Ok(rc)
@@ -218,13 +218,13 @@ fn keccak_f(
     let as_bigint: BigInt = BigInt::from_bytes_le(Sign::Plus, &message);
 
     //if as_bigint >= bigint_u128!(2_u128.pow((u * u * w))) {
-    if as_bigint >= bigint!(1).shl(u * u * w) {
+    if as_bigint >= bigint!(1_i32).shl(u * u * w) {
         return Err(KeccakError::BigIntMaxSize(as_bigint));
     }
 
     let mut as_integers = Vec::new();
     for i in 0..(u * u) {
-        let integer = (as_bigint.clone() >> (i * w)) & (bigint_u128!(2_u128.pow(w as u32) - 1));
+        let integer = (as_bigint.clone() >> (i * w)) & (bigint!(2_u128.pow(w as u32) - 1));
         as_integers.push(integer);
     }
 
@@ -255,7 +255,7 @@ fn keccak_f(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint_u64;
+    use crate::bigint;
 
     #[test]
     fn rot_left_test() {
@@ -290,28 +290,28 @@ mod tests {
         assert_eq!(
             res,
             Ok(vec![
-                bigint_u64!(1),
-                bigint_u64!(2147516424),
-                bigint_u64!(2147516544),
-                bigint_u64!(9),
-                bigint_u64!(2147516554),
-                bigint_u64!(2147483659),
-                bigint_u64!(32768),
-                bigint_u64!(2147516545),
-                bigint_u64!(2147483779),
-                bigint_u64!(2147516546),
-                bigint_u64!(2147483648),
-                bigint_u64!(32769),
-                bigint_u64!(137),
-                bigint_u64!(32771),
-                bigint_u64!(2147516555),
-                bigint_u64!(32906),
-                bigint_u64!(2147516426),
-                bigint_u64!(32905),
-                bigint_u64!(2147483778),
-                bigint_u64!(32776),
-                bigint_u64!(2147483656),
-                bigint_u64!(32778)
+                bigint!(1),
+                bigint!(2147516424_u32),
+                bigint!(2147516544_u32),
+                bigint!(9),
+                bigint!(2147516554_u32),
+                bigint!(2147483659_u32),
+                bigint!(32768),
+                bigint!(2147516545_u32),
+                bigint!(2147483779_u32),
+                bigint!(2147516546_u32),
+                bigint!(2147483648_u32),
+                bigint!(32769),
+                bigint!(137),
+                bigint!(32771),
+                bigint!(2147516555_u32),
+                bigint!(32906),
+                bigint!(2147516426_u32),
+                bigint!(32905),
+                bigint!(2147483778_u32),
+                bigint!(32776),
+                bigint!(2147483656_u32),
+                bigint!(32778)
             ])
         );
     }
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn keccak_func_test() {
-        let values = vec![bigint!(0); 25];
+        let values = vec![bigint!(0_usize); 25];
         let ell = 6;
         let u = 5;
         let alpha = 3;
@@ -353,31 +353,31 @@ mod tests {
         assert_eq!(
             res,
             Ok(vec![
-                bigint_u64!(17376452488221285863),
-                bigint_u64!(9571781953733019530),
-                bigint_u64!(15391093639620504046),
-                bigint_u64!(13624874521033984333),
-                bigint_u64!(10027350355371872343),
-                bigint_u64!(18417369716475457492),
-                bigint_u64!(10448040663659726788),
-                bigint_u64!(10113917136857017974),
-                bigint_u64!(12479658147685402012),
-                bigint_u64!(3500241080921619556),
-                bigint_u64!(16959053435453822517),
-                bigint_u64!(12224711289652453635),
-                bigint_u64!(9342009439668884831),
-                bigint_u64!(4879704952849025062),
-                bigint_u64!(140226327413610143),
-                bigint_u64!(424854978622500449),
-                bigint_u64!(7259519967065370866),
-                bigint_u64!(7004910057750291985),
-                bigint_u64!(13293599522548616907),
-                bigint_u64!(10105770293752443592),
-                bigint_u64!(10668034807192757780),
-                bigint_u64!(1747952066141424100),
-                bigint_u64!(1654286879329379778),
-                bigint_u64!(8500057116360352059),
-                bigint_u64!(16929593379567477321)
+                bigint!(17376452488221285863_i128),
+                bigint!(9571781953733019530_i128),
+                bigint!(15391093639620504046_i128),
+                bigint!(13624874521033984333_i128),
+                bigint!(10027350355371872343_i128),
+                bigint!(18417369716475457492_i128),
+                bigint!(10448040663659726788_i128),
+                bigint!(10113917136857017974_i128),
+                bigint!(12479658147685402012_i128),
+                bigint!(3500241080921619556_i128),
+                bigint!(16959053435453822517_i128),
+                bigint!(12224711289652453635_i128),
+                bigint!(9342009439668884831_i128),
+                bigint!(4879704952849025062_i128),
+                bigint!(140226327413610143_i128),
+                bigint!(424854978622500449_i128),
+                bigint!(7259519967065370866_i128),
+                bigint!(7004910057750291985_i128),
+                bigint!(13293599522548616907_i128),
+                bigint!(10105770293752443592_i128),
+                bigint!(10668034807192757780_i128),
+                bigint!(1747952066141424100_i128),
+                bigint!(1654286879329379778_i128),
+                bigint!(8500057116360352059_i128),
+                bigint!(16929593379567477321_i128)
             ])
         )
     }
