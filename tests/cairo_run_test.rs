@@ -274,6 +274,12 @@ fn cairo_run_secp() {
 }
 
 #[test]
+fn cairo_run_secp_ec() {
+    cairo_run::cairo_run(Path::new("cairo_programs/secp_ec.json"), false)
+        .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_blake2s_hello_world_hash() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/blake2s_hello_world_hash.json"),
