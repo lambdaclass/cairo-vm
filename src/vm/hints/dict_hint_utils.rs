@@ -113,7 +113,7 @@ pub fn dict_read(
     )?;
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(&key)?;
+    let value = tracker.get_value(key)?;
     insert_integer_from_var_name(
         "value",
         value.clone(),
@@ -229,7 +229,7 @@ pub fn dict_update(
     //Get tracker for dictionary
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(&key)?;
+    let current_value = tracker.get_value(key)?;
     if current_value != prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value.clone(),
@@ -238,7 +238,7 @@ pub fn dict_update(
         ));
     }
     //Update Value
-    tracker.insert_value(&key, &new_value);
+    tracker.insert_value(key, new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }

@@ -90,9 +90,7 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or(VirtualMachineError::InvalidKeccakInputLength(
-            length.clone(),
-        ))?;
+        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.clone()))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
