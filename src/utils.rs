@@ -17,6 +17,17 @@ macro_rules! bigint_str {
 }
 
 #[macro_export]
+macro_rules! vm_prime {
+    () => {
+        BigInt::parse_bytes(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap()
+    };
+}
+
+#[macro_export]
 macro_rules! relocatable {
     ($val1 : expr, $val2 : expr) => {
         Relocatable {
