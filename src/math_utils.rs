@@ -3,7 +3,7 @@ use std::ops::Shr;
 use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{abs, FromPrimitive, Signed};
+use num_traits::{abs, Signed};
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.

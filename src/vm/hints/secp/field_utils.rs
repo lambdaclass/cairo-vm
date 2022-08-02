@@ -102,7 +102,6 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-    use num_traits::FromPrimitive;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 

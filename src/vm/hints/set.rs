@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::hints::hint_utils::get_address_from_var_name;
@@ -5,9 +6,8 @@ use crate::vm::{
     errors::vm_errors::VirtualMachineError, runners::builtin_runner::RangeCheckBuiltinRunner,
     vm_core::VirtualMachine,
 };
-use crate::{bigint, bigintusize};
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
 pub fn set_add(
@@ -91,10 +91,7 @@ pub fn set_add(
 
                 if set_iter == elm {
                     vm.memory
-                        .insert(
-                            &index_addr,
-                            &MaybeRelocatable::Int(bigintusize!(i / elm_size)),
-                        )
+                        .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i / elm_size)))
                         .map_err(VirtualMachineError::MemoryError)?;
                     return vm
                         .memory

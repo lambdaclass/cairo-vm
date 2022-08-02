@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
@@ -7,10 +8,9 @@ use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, bigint_i128, bigint_u128, bigint_u64};
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
-use num_traits::{FromPrimitive, Signed};
+use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
@@ -88,10 +88,10 @@ pub fn split_64(
     let high = digits.next().unwrap_or(0u64);
 
     vm.memory
-        .insert(&low_addr, &MaybeRelocatable::from(bigint_u64!(low)))
+        .insert(&low_addr, &MaybeRelocatable::from(bigint!(low)))
         .map_err(VirtualMachineError::MemoryError)?;
     vm.memory
-        .insert(&high_addr, &MaybeRelocatable::from(bigint_u64!(high)))
+        .insert(&high_addr, &MaybeRelocatable::from(bigint!(high)))
         .map_err(VirtualMachineError::MemoryError)
 }
 
@@ -163,7 +163,7 @@ pub fn uint256_signed_nn(
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
 
     let result: BigInt =
-        if !a_high.is_negative() && (a_high.mod_floor(&vm.prime)) <= bigint_i128!(i128::MAX) {
+        if !a_high.is_negative() && (a_high.mod_floor(&vm.prime)) <= bigint!(i128::MAX) {
             bigint!(1)
         } else {
             bigint!(0)
@@ -218,10 +218,10 @@ pub fn uint256_unsigned_div_rem(
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
 
-    let quotient_low = &quotient & bigint_u128!(u128::MAX);
+    let quotient_low = &quotient & bigint!(u128::MAX);
     let quotient_high = quotient.shr(128_usize);
 
-    let remainder_low = &remainder & bigint_u128!(u128::MAX);
+    let remainder_low = &remainder & bigint!(u128::MAX);
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
@@ -261,7 +261,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 

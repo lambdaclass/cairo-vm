@@ -6,7 +6,6 @@ use crate::vm::hints::hint_utils::get_address_from_reference;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
 /*
@@ -85,7 +84,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     use super::*;
 

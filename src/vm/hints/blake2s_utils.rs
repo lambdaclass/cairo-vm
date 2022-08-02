@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
-use super::hint_utils::{get_ptr_from_var_name, get_relocatable_from_var_name};
-use crate::bigint_u32;
+use super::hint_utils::get_ptr_from_var_name;
+use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::hints::blake2s_hash::IV;
+use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     types::relocatable::MaybeRelocatable,
@@ -17,7 +18,6 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 
 fn get_fixed_size_u32_array<const T: usize>(
     h_range: &Vec<Option<&MaybeRelocatable>>,
@@ -37,7 +37,7 @@ fn get_fixed_size_u32_array<const T: usize>(
 fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(bigint_u32!(*element)));
+        new_array.push(MaybeRelocatable::from(bigint!(*element)));
     }
     new_array
 }
@@ -173,7 +173,7 @@ pub fn blake2s_add_uint256(
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
     //Convert MASK to bigint
-    let mask = bigint_u32!(MASK);
+    let mask = bigint!(MASK);
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
@@ -227,7 +227,7 @@ pub fn blake2s_add_uint256_bigend(
     const MASK: u32 = u32::MAX as u32;
     const B: u32 = 32;
     //Convert MASK to bigint
-    let mask = bigint_u32!(MASK);
+    let mask = bigint!(MASK);
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
@@ -261,17 +261,17 @@ pub fn blake2s_add_uint256_bigend(
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::Sign;
-
     use super::*;
+    use crate::utils::test_utils::*;
     use crate::{
-        bigint, bigint_i128,
+        bigint,
         types::instruction::Register,
         vm::{
             errors::memory_errors::MemoryError,
             hints::execute_hint::{BuiltinHintExecutor, HintReference},
         },
     };
+    use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
@@ -422,28 +422,16 @@ mod tests {
             false,
             &HINT_EXECUTOR,
         );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
         //Initialize fp
+        //Insert ids into memory
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 26)),
-            )
-            .unwrap();
-        //Insert big number into output_ptr segment
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint_i128!(7842562439562793675803603603688959)),
-            )
-            .unwrap();
+        vm.memory = memory![
+            ((0, 0), (1, 26)),
+            ((1, 0), 7842562439562793675803603603688959_i128)
+        ];
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0));
+        ids.insert(String::from("output"), bigint!(0_i32));
         //Create references
         vm.references = HashMap::from([(
             0,
@@ -644,7 +632,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from(bigint_u32!(1795745351))
+                    MaybeRelocatable::from(bigint!(1795745351))
                 )
             ))
         );

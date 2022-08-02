@@ -35,7 +35,7 @@ use crate::vm::hints::uint256_utils::{
 };
 
 use crate::vm::hints::secp::{
-    bigint_utils::nondet_bigint3,
+    bigint_utils::{bigint_to_uint256, nondet_bigint3},
     field_utils::{reduce, verify_zero},
 };
 use crate::vm::hints::usort::{
@@ -143,6 +143,7 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::UINT256_SQRT => uint256_sqrt(vm, ids, None),
             hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm, ids, None),
             hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm, ids, None),
+            hint_code::BIGINT_TO_UINT256 => bigint_to_uint256(vm, &ids, None),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }
@@ -153,7 +154,6 @@ mod tests {
     use std::ops::Shl;
 
     use crate::bigint_str;
-    use crate::bigint_u128;
     use crate::math_utils::as_int;
     use crate::relocatable;
     use crate::types::exec_scope::PyValueType;
@@ -162,7 +162,6 @@ mod tests {
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     use super::*;
 
@@ -6416,7 +6415,7 @@ mod tests {
             // length
             .insert(
                 &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint_u128!(18446744073709551616)),
+                &MaybeRelocatable::from(bigint!(18446744073709551616_i128)),
             )
             .unwrap();
 

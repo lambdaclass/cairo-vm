@@ -218,6 +218,7 @@ dependencies = [
  "clap 3.2.6",
  "criterion",
  "hex",
+ "lazy_static",
  "mimalloc",
  "num-bigint",
  "num-integer",

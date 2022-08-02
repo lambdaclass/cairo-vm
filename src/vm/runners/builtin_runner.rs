@@ -8,7 +8,7 @@ use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
-use num_traits::{FromPrimitive, One, Zero};
+use num_traits::{One, Zero};
 use starknet_crypto::{pedersen_hash, FieldElement};
 use std::ops::Shl;
 

@@ -255,6 +255,8 @@ pub(crate) const DICT_SQUASH_UPDATE_PTR: &str = r#"# Update the DictTracker's cu
 __dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \
     ids.squashed_dict_end.address_"#;
 
+pub(crate) const BIGINT_TO_UINT256: &str =
+    "ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1)";
 pub(crate) const UINT256_ADD: &str = r#"sum_low = ids.a.low + ids.b.low
 ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
 sum_high = ids.a.high + ids.b.high + ids.carry_low

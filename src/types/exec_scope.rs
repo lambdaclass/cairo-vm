@@ -66,7 +66,6 @@ impl Default for ExecutionScopes {
 mod tests {
     use super::*;
     use crate::bigint;
-    use num_traits::FromPrimitive;
 
     #[test]
     fn initialize_execution_scopes() {

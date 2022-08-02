@@ -1,5 +1,5 @@
 use crate::{
-    bigint, bigint_u64, bigintusize,
+    bigint,
     serde::deserialize_program::ApTracking,
     types::exec_scope::PyValueType,
     vm::{
@@ -16,7 +16,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
@@ -83,20 +83,14 @@ pub fn usort_body(
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
         insert_integer_at_relocatable_plus_offset(
-            bigintusize!(repetition_amount),
+            bigint!(repetition_amount),
             &multiplicities_base,
             i,
             vm,
         )?;
     }
 
-    insert_integer_from_var_name(
-        "output_len",
-        bigintusize!(output_len),
-        ids,
-        vm,
-        hint_ap_tracking,
-    )?;
+    insert_integer_from_var_name("output_len", bigint!(output_len), ids, vm, hint_ap_tracking)?;
 
     insert_relocatable_from_var_name("output", output_base, ids, vm, hint_ap_tracking)?;
 
@@ -148,15 +142,13 @@ pub fn verify_multiplicity_body(
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
 
-    let pos_diff = bigint_u64!(current_pos)
+    let pos_diff = bigint!(current_pos)
         - get_int_from_scope(vm, "last_pos").ok_or(VirtualMachineError::LastPosNotFound)?;
 
     insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
 
-    vm.exec_scopes.assign_or_update_variable(
-        "last_pos",
-        PyValueType::BigInt(bigint_u64!(current_pos + 1)),
-    );
+    vm.exec_scopes
+        .assign_or_update_variable("last_pos", PyValueType::BigInt(bigint!(current_pos + 1)));
 
     Ok(())
 }
@@ -222,7 +214,7 @@ mod tests {
 
         let mut ids = HashMap::<String, BigInt>::new();
         for (i, s) in ["input", "input_len"].iter().enumerate() {
-            ids.insert(s.to_string(), bigintusize!(i));
+            ids.insert(s.to_string(), bigint!(i));
         }
 
         vm.exec_scopes
