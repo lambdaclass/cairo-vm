@@ -96,7 +96,7 @@ pub fn ec_add(
     point_b: (BigInt, BigInt),
     prime: &BigInt,
 ) -> (BigInt, BigInt) {
-    let m = line_slope(point_a.clone(), point_b.clone(), prime);
+    let m = line_slope(&point_a, &point_b, prime);
     let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0).mod_floor(prime);
     let y = (m * (point_a.0 - x.clone()) - point_a.1).mod_floor(prime);
     (x, y)
@@ -104,9 +104,17 @@ pub fn ec_add(
 
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
-pub fn line_slope(point_a: (BigInt, BigInt), point_b: (BigInt, BigInt), prime: &BigInt) -> BigInt {
+pub fn line_slope(
+    point_a: &(BigInt, BigInt),
+    point_b: &(BigInt, BigInt),
+    prime: &BigInt,
+) -> BigInt {
     assert!((point_a.0.clone() - point_b.0.clone()) % prime != bigint!(0_i32));
-    div_mod(&(point_a.1 - point_b.1), &(point_a.0 - point_b.0), prime)
+    div_mod(
+        &(&point_a.1 - &point_b.1),
+        &(&point_a.0 - &point_b.0),
+        prime,
+    )
 }
 
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
