@@ -61,7 +61,7 @@ pub fn is_nn_out_of_range(
     )?;
     let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if (-a.clone() - 1usize).mod_floor(&vm.prime) < range_check_builtin._bound {
+    let value = if (-a - 1usize).mod_floor(&vm.prime) < range_check_builtin._bound {
         bigint!(0)
     } else {
         bigint!(1)

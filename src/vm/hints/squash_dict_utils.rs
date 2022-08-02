@@ -312,8 +312,7 @@ pub fn squash_dict(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     //Get range_check_builtin
     let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();
@@ -323,9 +322,10 @@ pub fn squash_dict(
     }
     let squash_dict_max_size = get_int_from_scope(&vm.exec_scopes, "__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
-        if n_accesses > max_size {
+        if n_accesses > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
-                max_size, n_accesses,
+                max_size,
+                n_accesses.clone(),
             ));
         };
     };

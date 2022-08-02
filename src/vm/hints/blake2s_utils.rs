@@ -40,10 +40,7 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
 }
 
 fn get_maybe_relocatable_array_from_bigint(array: &[BigInt]) -> Vec<MaybeRelocatable> {
-    array
-        .iter()
-        .map(|x| MaybeRelocatable::from(x.clone()))
-        .collect()
+    array.iter().map(|x| MaybeRelocatable::from(x)).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
 Computes the blake2s compress function and fills the value in the right position.

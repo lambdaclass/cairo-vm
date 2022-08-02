@@ -49,12 +49,14 @@ pub fn unsafe_keccak(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
 
     if let Ok(keccak_max_size) = get_int_from_scope(&vm.exec_scopes, "__keccak_max_size") {
-        if length > keccak_max_size {
-            return Err(VirtualMachineError::KeccakMaxSize(length, keccak_max_size));
+        if length > &keccak_max_size {
+            return Err(VirtualMachineError::KeccakMaxSize(
+                length.clone(),
+                keccak_max_size,
+            ));
         }
     }
 
@@ -88,7 +90,9 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or(VirtualMachineError::InvalidKeccakInputLength(length))?;
+        .ok_or(VirtualMachineError::InvalidKeccakInputLength(
+            length.clone(),
+        ))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {

@@ -102,8 +102,7 @@ pub fn dict_read(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     let dict_ptr = get_ptr_from_var_name(
         "dict_ptr",
         ids,
@@ -201,8 +200,7 @@ pub fn dict_update(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     let prev_value = get_integer_from_var_name(
         "prev_value",
         ids,
@@ -210,8 +208,7 @@ pub fn dict_update(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     let new_value = get_integer_from_var_name(
         "new_value",
         ids,
@@ -219,8 +216,7 @@ pub fn dict_update(
         &vm.references,
         &vm.run_context,
         hint_ap_tracking,
-    )?
-    .clone();
+    )?;
     let dict_ptr = get_ptr_from_var_name(
         "dict_ptr",
         ids,
@@ -234,9 +230,9 @@ pub fn dict_update(
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
-    if current_value != &prev_value {
+    if current_value != prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value,
+            prev_value.clone(),
             current_value.clone(),
             key.clone(),
         ));
