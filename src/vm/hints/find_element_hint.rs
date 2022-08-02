@@ -27,12 +27,16 @@ pub fn find_element(
     let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?;
     let elm_size_bigint = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
-    let array_start = get_ptr_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)
-        .map_err(|_| VirtualMachineError::KeyNotFound)?;
+    let array_start = get_ptr_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
     let find_element_index = get_int_from_scope(&vm.exec_scopes, "find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
+    if elm_size == 0 {
+        return Err(VirtualMachineError::ValueOutOfRange(
+            elm_size_bigint.clone(),
+        ));
+    }
 
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
@@ -372,7 +376,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, FIND_ELEMENT_HINT, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((7, 8))
+                MaybeRelocatable::from((0, 1))
             ))
         );
     }
@@ -405,7 +409,7 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let relocatable = MaybeRelocatable::from((1, 2));
+        let relocatable = MaybeRelocatable::from((0, 2));
         let (mut vm, ids) =
             init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
 
@@ -453,7 +457,7 @@ mod tests {
 
     #[test]
     fn find_elm_key_not_int() {
-        let relocatable = MaybeRelocatable::from((1, 2));
+        let relocatable = MaybeRelocatable::from((0, 4));
         let (mut vm, ids) = init_vm_ids(HashMap::from([("key".to_string(), relocatable.clone())]));
 
         assert_eq!(
