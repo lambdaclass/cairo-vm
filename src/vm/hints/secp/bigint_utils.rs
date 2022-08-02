@@ -1,7 +1,6 @@
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
+use crate::vm::hints::hint_utils::{get_int_ref_from_scope, get_relocatable_from_var_name};
 use crate::vm::hints::secp::secp_utils::split;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -21,28 +20,11 @@ pub fn nondet_bigint3(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", ids, vm, hint_ap_tracking)?;
-
-    // get `value` variable from vm scope
-    let value: &BigInt = match vm
-        .exec_scopes
-        .get_local_variables()
-        .ok_or(VirtualMachineError::ScopeError)?
-        .get("value")
-    {
-        Some(PyValueType::BigInt(value)) => value,
-        _ => {
-            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "value",
-            )))
-        }
-    };
-
+    let value = get_int_ref_from_scope(vm, "value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
-
     vm.segments
         .write_arg(&mut vm.memory, &res_reloc, &arg, Some(&vm.prime))
         .map_err(VirtualMachineError::MemoryError)?;
-
     Ok(())
 }
 #[cfg(test)]
@@ -50,6 +32,7 @@ mod tests {
     use num_bigint::Sign;
 
     use super::*;
+    use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};

@@ -1,9 +1,9 @@
 use crate::bigint_str;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::PyValueType;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{get_address_from_var_name, get_relocatable_from_var_name};
+use crate::vm::hints::hint_utils::{
+    get_relocatable_from_var_name, insert_int_into_scope, insert_integer_from_var_name,
+};
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -27,7 +27,6 @@ pub fn verify_zero(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let q_address = get_address_from_var_name("q", ids, vm, hint_ap_tracking)?;
     let val_reloc = get_relocatable_from_var_name("val", ids, vm, hint_ap_tracking)?;
 
     let val_d0 = vm.memory.get_integer(&val_reloc)?;
@@ -50,10 +49,7 @@ pub fn verify_zero(
             val_d2.clone(),
         ));
     }
-
-    vm.memory
-        .insert(&q_address, &MaybeRelocatable::from(q.mod_floor(&vm.prime)))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_integer_from_var_name("q", q.mod_floor(&vm.prime), ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -81,10 +77,7 @@ pub fn reduce(
     );
 
     let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&sec_p);
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -94,6 +87,7 @@ mod tests {
 
     use super::*;
     use crate::bigint;
+    use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
