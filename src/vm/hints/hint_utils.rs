@@ -368,7 +368,7 @@ pub fn insert_integer_from_var_name(
     run_context: &RunContext,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let var_address = get_address_from_var_name(
+    let var_address = get_relocatable_from_var_name(
         var_name,
         ids,
         memory,
@@ -376,9 +376,7 @@ pub fn insert_integer_from_var_name(
         run_context,
         hint_ap_tracking,
     )?;
-    memory
-        .insert(&var_address, &MaybeRelocatable::Int(int))
-        .map_err(VirtualMachineError::MemoryError)
+    memory.insert_integer(&var_address, int)
 }
 
 pub fn insert_relocatable_from_var_name(
@@ -445,30 +443,6 @@ pub fn get_integer_from_var_name<'a>(
         hint_ap_tracking,
     )?;
     memory.get_integer(&relocatable)
-}
-
-pub fn get_u64_from_relocatable_plus_offset(
-    relocatable: &Relocatable,
-    field_offset_u64: u64,
-    vm: &VirtualMachine,
-) -> Result<u64, VirtualMachineError> {
-    let field_offset: usize = field_offset_u64 as usize;
-    let int = vm.memory.get_integer(&(relocatable + field_offset))?;
-    int.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-}
-
-pub fn insert_integer_at_relocatable_plus_offset(
-    int: BigInt,
-    relocatable: &Relocatable,
-    field_offset: usize,
-    vm: &mut VirtualMachine,
-) -> Result<(), VirtualMachineError> {
-    vm.memory
-        .insert(
-            &MaybeRelocatable::RelocatableValue(relocatable + field_offset),
-            &MaybeRelocatable::from(int),
-        )
-        .map_err(VirtualMachineError::MemoryError)
 }
 
 ///Implements hint: memory[ap] = segments.add()
