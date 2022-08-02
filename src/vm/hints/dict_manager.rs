@@ -36,7 +36,7 @@ pub enum Dictionary {
 }
 
 impl Dictionary {
-    pub fn get(&mut self, key: &BigInt) -> Option<&BigInt> {
+    fn get(&mut self, key: &BigInt) -> Option<&BigInt> {
         match self {
             Self::SimpleDictionary(dict) => dict.get(key),
             Self::DefaultDictionary {
@@ -49,7 +49,7 @@ impl Dictionary {
         }
     }
 
-    pub fn insert(&mut self, key: &BigInt, value: &BigInt) {
+    fn insert(&mut self, key: &BigInt, value: &BigInt) {
         let dict = match self {
             Self::SimpleDictionary(dict) => dict,
             Self::DefaultDictionary {
@@ -177,6 +177,16 @@ impl DictTracker {
                 default_value: _,
             } => dict.clone(),
         }
+    }
+
+    pub fn get_value(&self, key: &BigInt) -> Result<&BigInt, VirtualMachineError> {
+        self.data
+            .get(key)
+            .ok_or_else(|| VirtualMachineError::NoValueForKey(key.clone()))
+    }
+
+    pub fn insert_value(&mut self, key: &BigInt, val: &BigInt) {
+        self.data.insert(key, val)
     }
 }
 

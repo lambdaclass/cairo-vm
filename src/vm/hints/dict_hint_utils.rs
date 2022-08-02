@@ -114,11 +114,7 @@ pub fn dict_read(
     )?;
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = if let Some(value) = tracker.data.get(&key) {
-        value
-    } else {
-        return Err(VirtualMachineError::NoValueForKey(key.clone()));
-    };
+    let value = tracker.get_value(&key)?;
     insert_integer_from_var_name(
         "value",
         value.clone(),
@@ -175,17 +171,13 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = if let Some(value) = tracker.data.get(&key) {
-        value
-    } else {
-        return Err(VirtualMachineError::NoValueForKey(key.clone()));
-    };
+    let prev_value = tracker.get_value(&key)?;
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm.memory
         .insert_integer(&dict_ptr_prev_value, prev_value.clone())?;
     //Insert new value into tracker
-    tracker.data.insert(&key, &new_value);
+    tracker.insert_value(&key, &new_value);
     Ok(())
 }
 
@@ -244,16 +236,16 @@ pub fn dict_update(
     //Get tracker for dictionary
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.data.get(&key);
-    if current_value != Some(&prev_value) {
+    let current_value = tracker.get_value(&key)?;
+    if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value,
-            current_value.cloned(),
+            current_value.clone(),
             key.clone(),
         ));
     }
     //Update Value
-    tracker.data.insert(&key, &new_value);
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
@@ -434,12 +426,9 @@ mod tests {
         }
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
-        //Initialize dictionary
-        let mut dictionary = Dictionary::SimpleDictionary(HashMap::<BigInt, BigInt>::new());
-        dictionary.insert(&bigint!(5), &bigint!(12));
         //Create tracker
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
-        tracker.data = dictionary;
+        tracker.insert_value(&bigint!(5_i32), &bigint!(12_i32));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -876,9 +865,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(17))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(17))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -910,7 +898,7 @@ mod tests {
         //current_ptr = dict_ptr = (1, 0)
         let mut tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2), None);
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5_i32), &bigint!(10_i32));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -993,9 +981,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(17))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(17))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -1027,7 +1014,7 @@ mod tests {
         //current_ptr = dict_ptr = (1, 0)
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1110,9 +1097,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(17))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(17))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -1239,7 +1225,7 @@ mod tests {
         //current_ptr = dict_ptr = (1, 0)
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1342,9 +1328,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(20))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(20))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -1371,7 +1356,7 @@ mod tests {
         //current_ptr = dict_ptr = (1, 0)
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1474,9 +1459,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(10))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(10))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -1503,7 +1487,7 @@ mod tests {
         //current_ptr = dict_ptr = (1, 0)
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1600,7 +1584,7 @@ mod tests {
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
-                Some(bigint!(10)),
+                bigint!(10),
                 bigint!(5)
             ))
         );
@@ -1624,7 +1608,7 @@ mod tests {
         //current_ptr = dict_ptr = (1, 0)
         let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1719,11 +1703,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::WrongPrevValue(
-                bigint!(10),
-                None,
-                bigint!(6)
-            ))
+            Err(VirtualMachineError::NoValueForKey(bigint!(10),))
         );
     }
 
@@ -1746,7 +1726,7 @@ mod tests {
         let mut tracker =
             DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1849,9 +1829,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(20))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(20))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -1879,7 +1858,7 @@ mod tests {
         let mut tracker =
             DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -1982,9 +1961,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(10))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(10))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
@@ -2012,7 +1990,7 @@ mod tests {
         let mut tracker =
             DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -2109,7 +2087,7 @@ mod tests {
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
-                Some(bigint!(10)),
+                bigint!(10),
                 bigint!(5)
             ))
         );
@@ -2134,7 +2112,7 @@ mod tests {
         let mut tracker =
             DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
-        tracker.data.insert(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
@@ -2231,7 +2209,7 @@ mod tests {
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
-                Some(bigint!(17)),
+                bigint!(17),
                 bigint!(6)
             ))
         );
@@ -2357,9 +2335,8 @@ mod tests {
                 .trackers
                 .get_mut(&1)
                 .unwrap()
-                .data
-                .get(&bigint!(5)),
-            Some(&bigint!(20))
+                .get_value(&bigint!(5)),
+            Ok(&bigint!(20))
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(

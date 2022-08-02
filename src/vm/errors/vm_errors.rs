@@ -75,7 +75,7 @@ pub enum VirtualMachineError {
     EmptyAccessIndices,
     EmptyCurrentAccessIndices,
     CurrentAccessIndicesNotEmpty,
-    WrongPrevValue(BigInt, Option<BigInt>, BigInt),
+    WrongPrevValue(BigInt, BigInt, BigInt),
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
     KeysNotEmpty,
     EmptyKeys,
