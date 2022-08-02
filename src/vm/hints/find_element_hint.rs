@@ -1,12 +1,10 @@
 use crate::bigint;
 use crate::bigintusize;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::{
     errors::vm_errors::VirtualMachineError,
     hints::hint_utils::{
-        get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
-        get_relocatable_from_var_name,
+        get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
     },
     vm_core::VirtualMachine,
 };
@@ -110,7 +108,6 @@ pub fn search_sorted_lower(
     let n_elms = get_integer_from_var_name("n_elms", &ids, vm, hint_ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", &ids, vm, hint_ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", &ids, vm, hint_ap_tracking)?;
-    let index_addr = get_address_from_var_name("index", &ids, vm, hint_ap_tracking)?;
     let key = get_integer_from_var_name("key", &ids, vm, hint_ap_tracking)?;
 
     if !elm_size.is_positive() {
@@ -139,18 +136,17 @@ pub fn search_sorted_lower(
     for i in 0..n_elms_usize {
         let value = vm.memory.get_integer(&array_iter)?;
         if value >= key {
-            return vm
-                .memory
-                .insert(&index_addr, &MaybeRelocatable::Int(bigintusize!(i)))
-                .map_err(VirtualMachineError::MemoryError);
+            return insert_integer_from_var_name(
+                "index",
+                bigintusize!(i),
+                &ids,
+                vm,
+                hint_ap_tracking,
+            );
         }
         array_iter.offset += elm_size_usize;
     }
-
-    let index_value = MaybeRelocatable::Int(n_elms.clone());
-    vm.memory
-        .insert(&index_addr, &index_value)
-        .map_err(VirtualMachineError::MemoryError)
+    insert_integer_from_var_name("index", n_elms.clone(), &ids, vm, hint_ap_tracking)
 }
 
 #[cfg(test)]
@@ -158,6 +154,7 @@ mod tests {
     use super::*;
     use crate::bigintusize;
     use crate::types::exec_scope::PyValueType;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use num_bigint::Sign;
