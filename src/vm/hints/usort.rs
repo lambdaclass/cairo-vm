@@ -5,11 +5,9 @@ use crate::{
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
-            get_dict_int_list_u64_from_scope_mut, get_int_from_scope,
-            get_integer_from_relocatable_plus_offset, get_integer_from_var_name,
+            get_dict_int_list_u64_from_scope_mut, get_int_from_scope, get_integer_from_var_name,
             get_list_u64_from_scope_mut, get_list_u64_from_scope_ref,
-            get_relocatable_from_var_name, get_u64_from_scope,
-            insert_integer_at_relocatable_plus_offset, insert_integer_from_var_name,
+            get_relocatable_from_var_name, get_u64_from_scope, insert_integer_from_var_name,
             insert_relocatable_from_var_name,
         },
         vm_core::VirtualMachine,
@@ -54,7 +52,7 @@ pub fn usort_body(
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = get_integer_from_relocatable_plus_offset(&input_ptr, i as usize, vm)?;
+        let val = vm.memory.get_integer(&(input_ptr.clone() + i as usize))?;
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
@@ -78,15 +76,14 @@ pub fn usort_body(
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
-        insert_integer_at_relocatable_plus_offset(sorted_element, &output_base, i, vm)?;
+        vm.memory
+            .insert_integer(&(output_base.clone() + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        insert_integer_at_relocatable_plus_offset(
+        vm.memory.insert_integer(
+            &(multiplicities_base.clone() + i),
             bigintusize!(repetition_amount),
-            &multiplicities_base,
-            i,
-            vm,
         )?;
     }
 
@@ -97,9 +94,7 @@ pub fn usort_body(
         vm,
         hint_ap_tracking,
     )?;
-
     insert_relocatable_from_var_name("output", output_base, ids, vm, hint_ap_tracking)?;
-
     insert_relocatable_from_var_name(
         "multiplicities",
         multiplicities_base,

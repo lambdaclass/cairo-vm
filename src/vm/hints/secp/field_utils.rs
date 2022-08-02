@@ -3,10 +3,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_integer_from_relocatable_plus_offset,
-    get_relocatable_from_var_name,
-};
+use crate::vm::hints::hint_utils::{get_address_from_var_name, get_relocatable_from_var_name};
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -33,9 +30,9 @@ pub fn verify_zero(
     let q_address = get_address_from_var_name("q", ids, vm, hint_ap_tracking)?;
     let val_reloc = get_relocatable_from_var_name("val", ids, vm, hint_ap_tracking)?;
 
-    let val_d0 = get_integer_from_relocatable_plus_offset(&val_reloc, 0, vm)?;
-    let val_d1 = get_integer_from_relocatable_plus_offset(&val_reloc, 1, vm)?;
-    let val_d2 = get_integer_from_relocatable_plus_offset(&val_reloc, 2, vm)?;
+    let val_d0 = vm.memory.get_integer(&val_reloc)?;
+    let val_d1 = vm.memory.get_integer(&(val_reloc.clone() + 1))?;
+    let val_d2 = vm.memory.get_integer(&(val_reloc + 2))?;
 
     let pack = pack(val_d0, val_d1, val_d2, &vm.prime);
 
@@ -74,9 +71,9 @@ pub fn reduce(
 ) -> Result<(), VirtualMachineError> {
     let x_reloc = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
 
-    let x_d0 = get_integer_from_relocatable_plus_offset(&x_reloc, 0, vm)?;
-    let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
-    let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
+    let x_d0 = vm.memory.get_integer(&x_reloc)?;
+    let x_d1 = vm.memory.get_integer(&(x_reloc.clone() + 1))?;
+    let x_d2 = vm.memory.get_integer(&(x_reloc + 2))?;
 
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     let sec_p = bigint_str!(

@@ -402,18 +402,6 @@ pub fn get_integer_from_var_name<'a>(
     vm.memory.get_integer(&relocatable)
 }
 
-// Given a memory address and an offset
-// Gets the value of the address + offset
-//If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
-//else raises Err
-pub fn get_integer_from_relocatable_plus_offset<'a>(
-    relocatable: &Relocatable,
-    field_offset: usize,
-    vm: &'a VirtualMachine,
-) -> Result<&'a BigInt, VirtualMachineError> {
-    vm.memory.get_integer(&(relocatable + field_offset))
-}
-
 pub fn get_u64_from_relocatable_plus_offset(
     relocatable: &Relocatable,
     field_offset_u64: u64,
@@ -598,48 +586,6 @@ mod tests {
             get_integer_from_var_name(var_name, &ids, &vm, None),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
-            ))
-        );
-    }
-
-    #[test]
-    fn get_integer_from_relocatable_plus_offset_valid() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
-        //Insert value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-
-        assert_eq!(
-            get_integer_from_relocatable_plus_offset(&Relocatable::from((0, 0)), 1, &vm),
-            Ok(&bigint!(10))
-        );
-    }
-
-    #[test]
-    fn get_integer_from_relocatable_plus_offset_invalid_expectected_integer() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
-        assert_eq!(
-            get_integer_from_relocatable_plus_offset(&Relocatable::from((0, 0)), 1, &vm),
-            Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
             ))
         );
     }
