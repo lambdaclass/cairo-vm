@@ -58,6 +58,13 @@ impl From<Relocatable> for MaybeRelocatable {
     }
 }
 
+impl Add<usize> for Relocatable {
+    type Output = Relocatable;
+    fn add(self, other: usize) -> Self {
+        relocatable!(self.segment_index, self.offset + other)
+    }
+}
+
 impl Relocatable {
     pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
         if self.offset < other {
@@ -79,9 +86,6 @@ impl Relocatable {
         }
         let result = self.offset - other.offset;
         Ok(result)
-    }
-    pub fn add_usize(&self, num: usize) -> Self {
-        relocatable!(self.segment_index, self.offset + num)
     }
 }
 

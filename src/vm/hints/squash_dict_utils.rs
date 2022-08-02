@@ -150,7 +150,7 @@ pub fn squash_dict_inner_continue_loop(
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    let should_continue_addr = loop_temps_addr.add_usize(3);
+    let should_continue_addr = loop_temps_addr + 3;
     vm.memory
         .insert_integer(&should_continue_addr, &should_continue)
 }
@@ -182,7 +182,7 @@ pub fn squash_dict_inner_used_accesses_assert(
 
     if n_used_accesses != bigintusize!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
-            n_used_accesses.clone(),
+            n_used_accesses,
             access_indices_at_key.len(),
             key,
         ));
@@ -267,11 +267,11 @@ pub fn squash_dict(
     };
     let n_accesses_usize = n_accesses
         .to_usize()
-        .ok_or(VirtualMachineError::NAccessesTooBig(n_accesses.clone()))?;
+        .ok_or_else(|| VirtualMachineError::NAccessesTooBig(n_accesses.clone()))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
-        let key_addr = address.add_usize(DICT_ACCESS_SIZE * i);
+        let key_addr = address.clone() + DICT_ACCESS_SIZE * i;
         let key = vm
             .memory
             .get_integer(&key_addr)

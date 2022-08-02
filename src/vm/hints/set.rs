@@ -35,8 +35,8 @@ pub fn set_add(
 
     if set_ptr > set_end_ptr {
         return Err(VirtualMachineError::InvalidSetRange(
-            MaybeRelocatable::from(set_ptr.clone()),
-            MaybeRelocatable::from(set_end_ptr.clone()),
+            MaybeRelocatable::from(set_ptr),
+            MaybeRelocatable::from(set_end_ptr),
         ));
     }
 
@@ -46,7 +46,7 @@ pub fn set_add(
         let set_iter = vm
             .memory
             .get_range(
-                &MaybeRelocatable::from(set_ptr.add_usize(i as usize)),
+                &MaybeRelocatable::from(set_ptr.clone() + i as usize),
                 elm_size,
             )
             .map_err(VirtualMachineError::MemoryError)?;

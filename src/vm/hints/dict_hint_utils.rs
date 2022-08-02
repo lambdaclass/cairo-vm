@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::{
     serde::deserialize_program::ApTracking,
-    types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
+    types::exec_scope::PyValueType,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
@@ -118,8 +118,7 @@ pub fn dict_write(
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
-    let dict_ptr_prev_value =
-        MaybeRelocatable::RelocatableValue(dict_ptr.clone()).add_usize_mod(1, None);
+    let dict_ptr_prev_value = dict_ptr + 1;
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
@@ -130,12 +129,7 @@ pub fn dict_write(
     };
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm.memory
-        .insert(
-            &dict_ptr_prev_value,
-            &MaybeRelocatable::from(prev_value.clone()),
-        )
-        .map_err(VirtualMachineError::MemoryError)?;
+    vm.memory.insert_integer(&dict_ptr_prev_value, prev_value)?;
     //Insert new value into tracker
     tracker.data.insert(&key, &new_value);
     Ok(())
