@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659451834942,
+  "lastUpdate": 1659451976787,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -13057,6 +13057,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 223114582,
             "range": "± 678012",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fb80d99d968c1dd67d15793a615e8a7cc36cc0dc",
+          "message": "Fix compat with Python 3.7 for memory_comparator.py (#321)\n\nThe current script used a shorthand format for printing that was\r\nsupported since 3.8, breaking under older versions.\r\nWhile 3.7 is EOL, it's our reference interpreter, so it needs to work\r\ncorrectly.",
+          "timestamp": "2022-08-02T11:38:58-03:00",
+          "tree_id": "e165ef0dfc86e2ded5af4eae2085876b4e328c11",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/fb80d99d968c1dd67d15793a615e8a7cc36cc0dc"
+        },
+        "date": 1659451975318,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2088044619,
+            "range": "± 78402464",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 781920612,
+            "range": "± 19837766",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 375228953,
+            "range": "± 11015568",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1785920034,
+            "range": "± 48714100",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 258515449,
+            "range": "± 11422037",
             "unit": "ns/iter"
           }
         ]
