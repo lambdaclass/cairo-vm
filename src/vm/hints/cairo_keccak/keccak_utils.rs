@@ -29,7 +29,7 @@ pub fn rot_left(x: usize, n: usize, w: usize) -> usize {
     /*
     Rotates a w-bit number n bits to the left.
     */
-    ((x << n) & (2_u128).pow(w as u32 - 1) as usize) | (x >> (w - n))
+    ((x << n) & ((2_u128).pow(w as u32) - 1) as usize) | ((x as u128 >> (w - n)) as usize)
 }
 
 /*
@@ -38,7 +38,7 @@ def precompute_rho_offsets(w: int, u: int, alpha: int, beta: int) -> List[List[i
     """
     Precomputes the offsets of the rotation in the Rho phase.
     Returns a matrix with the rotation offset of each lane.
-    """
+    """)
     x, y = 1, 0
     xy_pairs = set()
     offset = 0
@@ -281,13 +281,17 @@ fn keccak_func(
 
     let w = 2_usize.pow(ell);
 
+    println!("llegue 1");
     let rho_offsets = precompute_rho_offsets(w, u, alpha, beta)?;
 
+    println!("llegue 2");
     // el error tiene que estar acá
     for rc in precompute_rc(ell as usize, rounds)?.iter() {
+        println!("entre");
         value_matrix = keccak_round(value_matrix, &rho_offsets, *rc, w, u, alpha, beta);
         //println!("value_matrix2: {:?}", value_matrix);
     }
+    println!("llegue 3");
 
     let mut values_res: Vec<usize> = Vec::new();
     for x in 0..u {
