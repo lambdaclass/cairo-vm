@@ -3,15 +3,19 @@ use crate::bigint_str;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::get_integer_from_relocatable_plus_offset;
-use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
+use crate::vm::hints::hint_utils::{
+    get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
+};
 use crate::vm::vm_core::VirtualMachine;
+use lazy_static::lazy_static;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, Zero};
 use std::collections::HashMap;
 
 lazy_static! {
+    pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
+    pub static ref BASE_86_MAX: BigInt = &*BASE_86 - bigint!(1);
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     pub static ref SECP_P:BigInt = bigint_str!(
         b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
@@ -29,12 +33,11 @@ pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
-    let base = bigint!(1) << 86_usize;
-    let base_max = base - bigint!(1);
+
     let mut num = integer.clone();
     let mut canonical_repr: [BigInt; 3] = Default::default();
     for item in &mut canonical_repr {
-        *item = (&num & &base_max).to_owned();
+        *item = (&num & &*BASE_86_MAX).to_owned();
         num >>= 86_usize;
     }
     if !num.is_zero() {

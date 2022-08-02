@@ -184,7 +184,6 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{bigint, relocatable};
-    use num_traits::FromPrimitive;
 
     #[test]
     fn create_dict_manager() {
