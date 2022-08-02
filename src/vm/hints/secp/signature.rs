@@ -30,7 +30,7 @@ pub fn div_mod_n_packed_divmod(
     let a = pack_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let b = pack_from_var_name("b", ids, vm, hint_ap_tracking)?;
 
-    let value = div_mod(a.clone(), b.clone(), &*N);
+    let value = div_mod(&a, &b, &*N);
 
     vm.exec_scopes
         .assign_or_update_variable("a", PyValueType::BigInt(a));

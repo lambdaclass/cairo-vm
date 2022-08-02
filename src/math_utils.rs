@@ -51,25 +51,30 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
     let x_sign: i32;
     let y_sign: i32;
     match (a.clone(), b.clone()) {
-        (a, b) if a == b && a == bigint!(0) => (bigint!(0), bigint!(1), bigint!(0)),
-        (a, _) if a == bigint!(0) => (bigint!(0), b.div_floor(&abs(b.clone())), abs(b)),
-        (_, b) if b == bigint!(0) => (a.div_floor(&a), bigint!(0), abs(a)),
+        (a, b) if a == b && a == bigint!(0_i32) => (bigint!(0_i32), bigint!(1_i32), bigint!(0_i32)),
+        (a, _) if a == bigint!(0_i32) => (bigint!(0_i32), b.div_floor(&abs(b.clone())), abs(b)),
+        (_, b) if b == bigint!(0_i32) => (a.div_floor(&a), bigint!(0_i32), abs(a)),
         _ => {
-            if a < bigint!(0) {
+            if a < bigint!(0_i32) {
                 a = -a;
                 x_sign = -1;
             } else {
                 x_sign = 1;
             }
-            if b < bigint!(0) {
+            if b < bigint!(0_i32) {
                 b = -b;
                 y_sign = -1;
             } else {
                 y_sign = 1;
             }
-            let (mut x, mut y, mut r, mut s) = (bigint!(1), bigint!(0), bigint!(0), bigint!(1));
+            let (mut x, mut y, mut r, mut s) = (
+                bigint!(1_i32),
+                bigint!(0_i32),
+                bigint!(0_i32),
+                bigint!(1_i32),
+            );
             let (mut c, mut q);
-            while b != bigint!(0) {
+            while b != bigint!(0_i32) {
                 (c, q) = (a.clone() % b.clone(), a.div_floor(&b.clone()));
                 (a, b, r, s, x, y) = (b, c, x - q.clone() * r.clone(), y - q * s.clone(), r, s)
             }
@@ -78,9 +83,9 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
     }
 }
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
-pub fn div_mod(n: BigInt, m: BigInt, p: &BigInt) -> BigInt {
-    let (a, _, c) = igcdex(m, p.clone());
-    assert_eq!(c, bigint!(1));
+pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
+    let (a, _, c) = igcdex(m.clone(), p.clone());
+    assert_eq!(c, bigint!(1_i32));
     (n * a).mod_floor(p)
 }
 
@@ -100,8 +105,8 @@ pub fn ec_add(
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
 /// Assumes the points are given in affine form (x, y) and have different x coordinates.
 pub fn line_slope(point_a: (BigInt, BigInt), point_b: (BigInt, BigInt), prime: &BigInt) -> BigInt {
-    assert!((point_a.0.clone() - point_b.0.clone()) % prime != bigint!(0));
-    div_mod(point_a.1 - point_b.1, point_a.0 - point_b.0, prime)
+    assert!((point_a.0.clone() - point_b.0.clone()) % prime != bigint!(0_i32));
+    div_mod(&(point_a.1 - point_b.1), &(point_a.0 - point_b.0), prime)
 }
 
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
@@ -117,10 +122,10 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    assert!(point.1.clone() % prime != bigint!(0));
+    assert!(point.1.clone() % prime != bigint!(0_i32));
     div_mod(
-        bigint!(3) * point.0.clone() * point.0.clone() + alpha,
-        bigint!(2) * point.1,
+        &(bigint!(3_i32) * point.0.clone() * point.0.clone() + alpha),
+        &(bigint!(2_i32) * point.1),
         prime,
     )
 }
