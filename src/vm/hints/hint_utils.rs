@@ -5,6 +5,7 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
+use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
     hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -181,9 +182,9 @@ pub fn get_dict_int_list_u64_from_scope_mut<'a>(
 
 //Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
-    vm: &VirtualMachine,
+    builtin_runners: &Vec<(String, Box<dyn BuiltinRunner>)>,
 ) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
-    for (name, builtin) in &vm.builtin_runners {
+    for (name, builtin) in builtin_runners {
         if name == &String::from("range_check") {
             if let Some(range_check_builtin) =
                 builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()

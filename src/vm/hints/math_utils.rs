@@ -26,7 +26,7 @@ pub fn is_nn(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm)?;
+    let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if a.mod_floor(&vm.prime) >= bigint!(0)
         && a.mod_floor(&vm.prime) < range_check_builtin._bound
@@ -45,7 +45,7 @@ pub fn is_nn_out_of_range(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm)?;
+    let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if (-a.clone() - 1usize).mod_floor(&vm.prime) < range_check_builtin._bound {
         bigint!(0)
@@ -69,7 +69,7 @@ pub fn assert_le_felt(
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let b = get_integer_from_var_name("b", ids, vm, hint_ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm)?;
+    let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     //Assert a <= b
     if a.mod_floor(&vm.prime) > b.mod_floor(&vm.prime) {
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
@@ -160,7 +160,7 @@ pub fn assert_nn(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm, hint_ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm)?;
+    let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
     if a.mod_floor(&vm.prime) >= range_check_builtin._bound {
@@ -232,7 +232,7 @@ pub fn is_positive(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm)?;
+    let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     //Main logic (assert a is positive)
     let int_value = as_int(value, &vm.prime);
     if int_value.abs() > range_check_builtin._bound {
@@ -298,7 +298,7 @@ pub fn signed_div_rem(
     let div = get_integer_from_var_name("div", ids, vm, hint_ap_tracking)?;
     let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
     let bound = get_integer_from_var_name("bound", ids, vm, hint_ap_tracking)?;
-    let builtin = get_range_check_builtin(vm)?;
+    let builtin = get_range_check_builtin(&vm.builtin_runners)?;
     // Main logic
     if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
@@ -340,7 +340,7 @@ pub fn unsigned_div_rem(
 ) -> Result<(), VirtualMachineError> {
     let div = get_integer_from_var_name("div", ids, vm, hint_ap_tracking)?;
     let value = get_integer_from_var_name("value", ids, vm, hint_ap_tracking)?;
-    let builtin = get_range_check_builtin(vm)?;
+    let builtin = get_range_check_builtin(&vm.builtin_runners)?;
     // Main logic
     if !div.is_positive() || div > &(&vm.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(

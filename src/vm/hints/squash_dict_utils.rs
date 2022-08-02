@@ -254,7 +254,7 @@ pub fn squash_dict(
     let ptr_diff = get_integer_from_var_name("ptr_diff", ids, vm, hint_ap_tracking)?;
     let n_accesses = get_integer_from_var_name("n_accesses", ids, vm, hint_ap_tracking)?.clone();
     //Get range_check_builtin
-    let range_check_builtin = get_range_check_builtin(vm)?;
+    let range_check_builtin = get_range_check_builtin(&vm.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
     if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
