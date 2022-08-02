@@ -132,7 +132,7 @@ pub fn is_zero_nondet(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError
         }
     };
 
-    let value = if x.is_zero() { bigint!(1) } else { bigint!(0) };
+    let value = bigint!(x.is_zero() as usize);
 
     vm.memory
         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))

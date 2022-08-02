@@ -8,7 +8,7 @@ use num_traits::{Signed, Zero};
 lazy_static! {
     pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
     pub static ref BASE_86_MAX: BigInt = &*BASE_86 - bigint!(1);
-    pub static ref SECP_P: BigInt = (bigint!(2) << (255))
+    pub static ref SECP_P: BigInt = (bigint!(1) << (256))
         - (1_i64 << 32)
         - (1 << 9)
         - (1 << 8)
