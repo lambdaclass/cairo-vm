@@ -163,7 +163,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
         }
     };
 
-    let value = div_mod(bigint!(1), x.clone(), SECP_P.clone());
+    let value = div_mod(bigint!(1), x.clone(), &SECP_P);
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
