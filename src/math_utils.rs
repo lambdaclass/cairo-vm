@@ -27,7 +27,7 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
-    if !(x % y).is_zero() {
+    if !(x % y).is_zero() || y.is_zero() {
         Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()))
     } else {
         Ok(x / y)
