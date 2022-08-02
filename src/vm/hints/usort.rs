@@ -17,6 +17,8 @@ use num_bigint::BigInt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 
+use super::hint_utils::insert_int_into_scope;
+
 pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let usort_max_size =
         get_u64_from_scope(vm, "usort_max_size").map_or(PyValueType::None, PyValueType::U64);
@@ -119,9 +121,7 @@ pub fn verify_usort(
 
     vm.exec_scopes
         .assign_or_update_variable("positions", PyValueType::ListU64(positions));
-    vm.exec_scopes
-        .assign_or_update_variable("last_pos", PyValueType::BigInt(bigint!(0)));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "last_pos", bigint!(0));
     Ok(())
 }
 
@@ -142,16 +142,13 @@ pub fn verify_multiplicity_body(
     let current_pos = get_list_u64_from_scope_mut(vm, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-
     let pos_diff = bigint_u64!(current_pos) - get_int_from_scope(vm, "last_pos")?;
-
     insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
-
-    vm.exec_scopes.assign_or_update_variable(
+    insert_int_into_scope(
+        &mut vm.exec_scopes,
         "last_pos",
-        PyValueType::BigInt(bigint_u64!(current_pos + 1)),
+        bigint_u64!(current_pos + 1),
     );
-
     Ok(())
 }
 
