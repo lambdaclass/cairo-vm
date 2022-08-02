@@ -176,6 +176,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint_str;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
@@ -183,13 +184,12 @@ mod tests {
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint_str, vm_prime};
 
     #[test]
     fn run_verify_zero_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -288,7 +288,7 @@ mod tests {
     fn run_verify_zero_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -387,7 +387,7 @@ mod tests {
     fn run_verify_zero_invalid_memory_insert() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -496,7 +496,7 @@ mod tests {
     fn run_reduce_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -579,7 +579,7 @@ mod tests {
     fn run_reduce_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -640,7 +640,7 @@ mod tests {
     fn run_is_zero_pack_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -700,7 +700,7 @@ mod tests {
     fn run_is_zero_pack_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -754,7 +754,7 @@ mod tests {
     fn run_is_zero_nondet_ok_true() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -797,7 +797,7 @@ mod tests {
     fn run_is_zero_nondet_ok_false() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -840,7 +840,7 @@ mod tests {
     fn run_is_zero_nondet_scope_error() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -878,7 +878,7 @@ mod tests {
     fn run_is_zero_nondet_invalid_memory_insert() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -918,7 +918,7 @@ mod tests {
     fn is_zero_assign_scope_variables_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
@@ -966,7 +966,7 @@ mod tests {
     fn is_zero_assign_scope_variables_scope_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)".as_bytes();
         let mut vm = VirtualMachine::new(
-            vm_prime!(),
+            VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
