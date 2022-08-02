@@ -62,7 +62,7 @@ pub fn precompute_rc(ell: usize, mut rounds: Option<usize>) -> Result<Vec<BigInt
     */
     let mut x = 1;
 
-    if let None = rounds {
+    if rounds.is_none() {
         rounds = Some(12 + 2 * ell);
     }
 
@@ -94,7 +94,7 @@ pub fn precompute_rc(ell: usize, mut rounds: Option<usize>) -> Result<Vec<BigInt
 
 pub fn keccak_round(
     a: Vec<Vec<BigInt>>,
-    rho_offsets: &Vec<Vec<usize>>,
+    rho_offsets: &[Vec<usize>],
     rc: BigInt,
     w: usize,
     u: usize,
@@ -110,9 +110,14 @@ pub fn keccak_round(
     let mut d = Vec::new();
     let mut a_tmp = Vec::new();
 
-    for x in 0..u {
-        let c_elem = a[x].iter().fold(bigint!(0), |acc, n| acc ^ n);
-        c.push(c_elem);
+    // for x in 0..u {
+    //     let c_elem = a[x].iter().fold(bigint!(0), |acc, n| acc ^ n);
+    //     c.push(c_elem);
+    // }
+
+    for a_row in a.iter().take(u) {
+        let c_elem = a_row.iter().fold(bigint!(0), |acc, n| acc ^ n);
+        c.push(c_elem)
     }
 
     for x in 0..u {
@@ -131,13 +136,13 @@ pub fn keccak_round(
         a_tmp.push(a_tmp_elem);
     }
 
-    for x in 0..u {
-        b.push(a_tmp[x].clone());
+    for a_tmp_row in a_tmp.iter().take(u) {
+        b.push(a_tmp_row.clone())
     }
 
     for x in 0..u {
-        for y in 0..u {
-            b[y][(beta * x + alpha * y).mod_floor(&u)] =
+        for (y, b_row) in b.iter_mut().enumerate().take(u) {
+            b_row[(beta * x + alpha * y).mod_floor(&u)] =
                 rot_left(&a_tmp[x][y], rho_offsets[x][y], w);
         }
     }
@@ -186,14 +191,18 @@ fn keccak_func(
 
     let mut values_res = Vec::new();
     for x in 0..u {
-        for y in 0..u {
-            values_res.push(value_matrix[y][x].clone());
+        // for y in 0..u {
+        //     values_res.push(value_matrix[y][x].clone());
+        // }
+        for value_matrix_row in value_matrix.iter().take(u) {
+            values_res.push(value_matrix_row[x].clone());
         }
     }
 
     Ok(values_res)
 }
 
+// this function is not being called nowhere for the moment, when it is this macro should be removed
 #[allow(dead_code)]
 fn keccak_f(
     message: Vec<u8>,
