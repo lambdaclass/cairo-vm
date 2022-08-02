@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
@@ -6,15 +7,14 @@ use crate::vm::hints::hint_utils::{
     get_address_from_var_name, get_integer_from_relocatable_plus_offset,
     get_relocatable_from_var_name,
 };
+use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, bigint_str};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
 
 use crate::math_utils::div_mod;
-use crate::vm::hints::secp::secp_utils::pack;
 
 /*
 Implements hint:
@@ -40,12 +40,7 @@ pub fn verify_zero(
 
     let pack = pack(val_d0, val_d1, val_d2, &vm.prime);
 
-    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
-    let sec_p = bigint_str!(
-        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
-    );
-
-    let (q, r) = pack.div_rem(&sec_p);
+    let (q, r) = pack.div_rem(&SECP_P);
 
     if !r.is_zero() {
         return Err(VirtualMachineError::SecpVerifyZero(
@@ -79,12 +74,7 @@ pub fn reduce(
     let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
     let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
 
-    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
-    let sec_p = bigint_str!(
-        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
-    );
-
-    let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&sec_p);
+    let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&SECP_P);
 
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));
@@ -111,12 +101,7 @@ pub fn is_zero_pack(
     let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
     let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
 
-    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
-    let secp_p = bigint_str!(
-        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
-    );
-
-    let x = (pack(x_d0, x_d1, x_d2, &vm.prime)).mod_floor(&secp_p);
+    let x = (pack(x_d0, x_d1, x_d2, &vm.prime)).mod_floor(&SECP_P);
 
     vm.exec_scopes
         .assign_or_update_variable("x", PyValueType::BigInt(x));
@@ -178,12 +163,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
         }
     };
 
-    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
-    let secp_p = bigint_str!(
-        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
-    );
-
-    let value = div_mod(bigint!(1), x.clone(), secp_p);
+    let value = div_mod(bigint!(1), x.clone(), SECP_P.clone());
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
@@ -196,7 +176,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
+    use crate::bigint_str;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
