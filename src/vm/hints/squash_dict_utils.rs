@@ -71,7 +71,7 @@ pub fn squash_dict_inner_first_iteration(
         first_val.clone(),
     );
     //Insert current_accesss_index into range_check_ptr
-    vm.memory.insert_integer(&range_check_ptr, &first_val)
+    vm.memory.insert_integer(&range_check_ptr, first_val)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -152,7 +152,7 @@ pub fn squash_dict_inner_continue_loop(
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3;
     vm.memory
-        .insert_integer(&should_continue_addr, &should_continue)
+        .insert_integer(&should_continue_addr, should_continue)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0

@@ -14,6 +14,16 @@ use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
 use std::collections::HashMap;
 
+//Inserts value into ap
+pub fn insert_int_into_ap(
+    vm: &mut VirtualMachine,
+    value: BigInt,
+) -> Result<(), VirtualMachineError> {
+    vm.memory
+        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
+        .map_err(VirtualMachineError::MemoryError)
+}
+
 //Inserts the value in scope as a BigInt value type
 pub fn insert_int_into_scope(exec_scopes: &mut ExecutionScopes, name: &str, value: BigInt) {
     exec_scopes.assign_or_update_variable(name, PyValueType::BigInt(value));

@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_integer_from_var_name;
+use super::hint_utils::insert_int_into_scope;
 use super::hint_utils::insert_integer_from_var_name;
 
 //  Implements hint:
@@ -46,9 +47,7 @@ pub fn memset_continue_loop(
     insert_integer_from_var_name("continue_loop", should_continue, &ids, vm, hint_ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    vm.exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(new_n));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "n", new_n);
     Ok(())
 }
 #[cfg(test)]

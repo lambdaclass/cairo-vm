@@ -9,7 +9,7 @@ use num_traits::{FromPrimitive, Signed, Zero};
 
 use super::hint_utils::{
     get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-    get_range_check_builtin, insert_integer_from_var_name,
+    get_range_check_builtin, insert_int_into_ap, insert_integer_from_var_name,
 };
 use crate::{
     bigint,
@@ -35,9 +35,7 @@ pub fn is_nn(
     } else {
         bigint!(1)
     };
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_int_into_ap(vm, value)
 }
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
@@ -54,9 +52,7 @@ pub fn is_nn_out_of_range(
     } else {
         bigint!(1)
     };
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_int_into_ap(vm, value)
 }
 //Implements hint:from starkware.cairo.common.math_utils import assert_integer
 //        assert_integer(ids.a)
@@ -101,9 +97,7 @@ pub fn is_le_felt(
     } else {
         bigint!(0)
     };
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_int_into_ap(vm, value)
 }
 
 //Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
@@ -226,12 +220,7 @@ pub fn split_int(
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
-    vm.memory
-        .insert(
-            &MaybeRelocatable::RelocatableValue(output),
-            &MaybeRelocatable::from(res),
-        )
-        .map_err(VirtualMachineError::MemoryError)
+    vm.memory.insert_integer(&output, res)
 }
 
 //from starkware.cairo.common.math_utils import is_positive

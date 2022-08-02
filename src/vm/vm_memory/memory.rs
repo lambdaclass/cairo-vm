@@ -122,7 +122,7 @@ impl Memory {
     pub fn insert_integer(
         &mut self,
         key: &Relocatable,
-        val: &BigInt,
+        val: BigInt,
     ) -> Result<(), VirtualMachineError> {
         self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
             .map_err(VirtualMachineError::MemoryError)

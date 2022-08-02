@@ -1,11 +1,7 @@
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_integer_from_relocatable_plus_offset, get_integer_from_var_name,
-    get_relocatable_from_var_name,
-};
+use crate::vm::hints::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name};
 use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, bigint_i128, bigint_u128, bigint_u64};
 use num_bigint::BigInt;
@@ -13,6 +9,8 @@ use num_integer::{div_rem, Integer};
 use num_traits::{FromPrimitive, Signed};
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
+
+use super::hint_utils::{insert_int_into_ap, insert_integer_from_var_name};
 
 /*
 Implements hint:
@@ -32,13 +30,10 @@ pub fn uint256_add(
 
     let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", &ids, vm, hint_ap_tracking)?;
-    let carry_high_addr = get_address_from_var_name("carry_high", &ids, vm, hint_ap_tracking)?;
-    let carry_low_addr = get_address_from_var_name("carry_low", &ids, vm, hint_ap_tracking)?;
-
-    let a_low = get_integer_from_relocatable_plus_offset(&a_relocatable, 0, vm)?;
-    let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
-    let b_low = get_integer_from_relocatable_plus_offset(&b_relocatable, 0, vm)?;
-    let b_high = get_integer_from_relocatable_plus_offset(&b_relocatable, 1, vm)?;
+    let a_low = vm.memory.get_integer(&a_relocatable)?;
+    let a_high = vm.memory.get_integer(&(a_relocatable + 1))?;
+    let b_low = vm.memory.get_integer(&b_relocatable)?;
+    let b_high = vm.memory.get_integer(&(b_relocatable + 1))?;
 
     //Main logic
     //sum_low = ids.a.low + ids.b.low
@@ -57,14 +52,8 @@ pub fn uint256_add(
     } else {
         bigint!(0)
     };
-
-    vm.memory
-        .insert(&carry_high_addr, &MaybeRelocatable::from(carry_high))
-        .map_err(VirtualMachineError::MemoryError)?;
-
-    vm.memory
-        .insert(&carry_low_addr, &MaybeRelocatable::from(carry_low))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_integer_from_var_name("carry_high", carry_high, &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("carry_low", carry_low, &ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -80,19 +69,11 @@ pub fn split_64(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let high_addr = get_address_from_var_name("high", &ids, vm, hint_ap_tracking)?;
-    let low_addr = get_address_from_var_name("low", &ids, vm, hint_ap_tracking)?;
-
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
     let high = digits.next().unwrap_or(0u64);
-
-    vm.memory
-        .insert(&low_addr, &MaybeRelocatable::from(bigint_u64!(low)))
-        .map_err(VirtualMachineError::MemoryError)?;
-    vm.memory
-        .insert(&high_addr, &MaybeRelocatable::from(bigint_u64!(high)))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_integer_from_var_name("high", bigint_u64!(high), &ids, vm, hint_ap_tracking)?;
+    insert_integer_from_var_name("low", bigint_u64!(low), &ids, vm, hint_ap_tracking)
 }
 
 /*
@@ -111,11 +92,10 @@ pub fn uint256_sqrt(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_relocatable = get_relocatable_from_var_name("n", &ids, vm, hint_ap_tracking)?;
-
-    let root_addr = get_address_from_var_name("root", &ids, vm, hint_ap_tracking)?;
-    let n_low = get_integer_from_relocatable_plus_offset(&n_relocatable, 0, vm)?;
-    let n_high = get_integer_from_relocatable_plus_offset(&n_relocatable, 1, vm)?;
+    let n_addr = get_relocatable_from_var_name("n", &ids, vm, hint_ap_tracking)?;
+    let root_addr = get_relocatable_from_var_name("root", &ids, vm, hint_ap_tracking)?;
+    let n_low = vm.memory.get_integer(&n_addr)?;
+    let n_high = vm.memory.get_integer(&(n_addr + 1))?;
 
     //Main logic
     //from starkware.python.math_utils import isqrt
@@ -133,17 +113,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-
-    vm.memory
-        .insert(&root_addr, &MaybeRelocatable::from(root))
-        .map_err(VirtualMachineError::MemoryError)?;
-
-    vm.memory
-        .insert(
-            &root_addr.add_usize_mod(1, None),
-            &MaybeRelocatable::from(bigint!(0)),
-        )
-        .map_err(VirtualMachineError::MemoryError)
+    vm.memory.insert_integer(&root_addr, root)?;
+    vm.memory.insert_integer(&(root_addr + 1), bigint!(0))
 }
 
 /*
@@ -155,23 +126,17 @@ pub fn uint256_signed_nn(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-
-    let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
-
+    let a_addr = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let a_high = vm.memory.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-
     let result: BigInt =
         if !a_high.is_negative() && (a_high.mod_floor(&vm.prime)) <= bigint_i128!(i128::MAX) {
             bigint!(1)
         } else {
             bigint!(0)
         };
-
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(result))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_int_into_ap(vm, result)
 }
 
 /*
@@ -192,15 +157,15 @@ pub fn uint256_unsigned_div_rem(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_relocatable = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
-    let div_relocatable = get_relocatable_from_var_name("div", &ids, vm, hint_ap_tracking)?;
-    let quotient_addr = get_address_from_var_name("quotient", &ids, vm, hint_ap_tracking)?;
-    let remainder_addr = get_address_from_var_name("remainder", &ids, vm, hint_ap_tracking)?;
+    let a_addr = get_relocatable_from_var_name("a", &ids, vm, hint_ap_tracking)?;
+    let div_addr = get_relocatable_from_var_name("div", &ids, vm, hint_ap_tracking)?;
+    let quotient_addr = get_relocatable_from_var_name("quotient", &ids, vm, hint_ap_tracking)?;
+    let remainder_addr = get_relocatable_from_var_name("remainder", &ids, vm, hint_ap_tracking)?;
 
-    let a_low = get_integer_from_relocatable_plus_offset(&a_relocatable, 0, vm)?;
-    let a_high = get_integer_from_relocatable_plus_offset(&a_relocatable, 1, vm)?;
-    let div_low = get_integer_from_relocatable_plus_offset(&div_relocatable, 0, vm)?;
-    let div_high = get_integer_from_relocatable_plus_offset(&div_relocatable, 1, vm)?;
+    let a_low = vm.memory.get_integer(&a_addr)?;
+    let a_high = vm.memory.get_integer(&(a_addr + 1))?;
+    let div_low = vm.memory.get_integer(&div_addr)?;
+    let div_high = vm.memory.get_integer(&(div_addr + 1))?;
 
     //Main logic
     //a = (ids.a.high << 128) + ids.a.low
@@ -225,30 +190,15 @@ pub fn uint256_unsigned_div_rem(
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
-    vm.memory
-        .insert(&quotient_addr, &MaybeRelocatable::from(quotient_low))
-        .map_err(VirtualMachineError::MemoryError)?;
-
+    vm.memory.insert_integer(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
     vm.memory
-        .insert(
-            &quotient_addr.add_usize_mod(1, None),
-            &MaybeRelocatable::from(quotient_high),
-        )
-        .map_err(VirtualMachineError::MemoryError)?;
-
+        .insert_integer(&(quotient_addr + 1), quotient_high)?;
     //Insert ids.remainder.low
-    vm.memory
-        .insert(&remainder_addr, &MaybeRelocatable::from(remainder_low))
-        .map_err(VirtualMachineError::MemoryError)?;
-
+    vm.memory.insert_integer(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
     vm.memory
-        .insert(
-            &remainder_addr.add_usize_mod(1, None),
-            &MaybeRelocatable::from(remainder_high),
-        )
-        .map_err(VirtualMachineError::MemoryError)
+        .insert_integer(&(remainder_addr + 1), remainder_high)
 }
 
 #[cfg(test)]

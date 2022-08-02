@@ -129,7 +129,8 @@ pub fn dict_write(
     };
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm.memory.insert_integer(&dict_ptr_prev_value, prev_value)?;
+    vm.memory
+        .insert_integer(&dict_ptr_prev_value, prev_value.clone())?;
     //Insert new value into tracker
     tracker.data.insert(&key, &new_value);
     Ok(())
