@@ -13,19 +13,25 @@ use crate::{
 use super::{
     dict_hint_utils::DICT_ACCESS_SIZE,
     hint_utils::{
-        get_address_from_var_name, get_int_from_scope, get_list_from_scope, get_range_check_builtin,
+        get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
+        get_list_from_scope, get_list_ref_from_scope, get_mut_list_ref_from_scope,
+        get_ptr_from_var_name, get_range_check_builtin, insert_int_into_scope,
+        insert_integer_from_var_name, insert_list_into_scope,
     },
 };
 
-fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<BigInt>>> {
-    let mut access_indices: Option<HashMap<BigInt, Vec<BigInt>>> = None;
+fn get_access_indices(
+    vm: &mut VirtualMachine,
+) -> Result<&HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
+    let mut access_indices: Option<&HashMap<BigInt, Vec<BigInt>>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
         if let Some(PyValueType::KeyToListMap(py_access_indices)) = variables.get("access_indices")
         {
-            access_indices = Some(py_access_indices.clone());
+            access_indices = Some(py_access_indices);
         }
     }
     access_indices
+        .ok_or_else(|| VirtualMachineError::VariableNotInScopeError("access_indices".to_string()))
 }
 
 /*Implements hint:
@@ -39,18 +45,9 @@ pub fn squash_dict_inner_first_iteration(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let access_indices = get_access_indices(vm)
-        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
     let key = get_int_from_scope(vm, "key")?;
-    //Get addr for ids variables
-    let range_check_ptr_addr =
-        get_address_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
-    //Get ids from memory
-    let range_check_ptr = vm
-        .memory
-        .get(&range_check_ptr_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or(VirtualMachineError::MemoryGet(range_check_ptr_addr))?;
+    let range_check_ptr = get_ptr_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
+    let access_indices = get_access_indices(vm)?;
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
@@ -63,19 +60,18 @@ pub fn squash_dict_inner_first_iteration(
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
-    vm.exec_scopes.assign_or_update_variable(
+    insert_list_into_scope(
+        &mut vm.exec_scopes,
         "current_access_indices",
-        PyValueType::List(current_access_indices),
+        current_access_indices,
     );
-    vm.exec_scopes.assign_or_update_variable(
+    insert_int_into_scope(
+        &mut vm.exec_scopes,
         "current_access_index",
-        PyValueType::BigInt(first_val.clone()),
+        first_val.clone(),
     );
     //Insert current_accesss_index into range_check_ptr
-    let range_check_ptr_copy = range_check_ptr.clone();
-    vm.memory
-        .insert(&range_check_ptr_copy, &MaybeRelocatable::from(first_val))
-        .map_err(VirtualMachineError::MemoryError)
+    vm.memory.insert_integer(&range_check_ptr, &first_val)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -86,21 +82,19 @@ pub fn squash_dict_inner_skip_loop(
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
-    //Get addr for ids variables
-    let should_skip_loop_addr =
-        get_address_from_var_name("should_skip_loop", &ids, vm, hint_ap_tracking)?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
     } else {
         bigint!(0)
     };
-    vm.memory
-        .insert(
-            &should_skip_loop_addr,
-            &MaybeRelocatable::from(should_skip_loop),
-        )
-        .map_err(VirtualMachineError::MemoryError)
+    insert_integer_from_var_name(
+        "should_skip_loop",
+        should_skip_loop,
+        &ids,
+        vm,
+        hint_ap_tracking,
+    )
 }
 
 /*Implements Hint:
@@ -114,34 +108,25 @@ pub fn squash_dict_inner_check_access_index(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let mut current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
     let current_access_index = get_int_from_scope(vm, "current_access_index")?;
-    //Get addr for ids variables
-    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
+    let current_access_indices = get_mut_list_ref_from_scope(vm, "current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
-    vm.exec_scopes.assign_or_update_variable(
-        "new_access_index",
-        PyValueType::BigInt(new_access_index.clone()),
-    );
-    vm.exec_scopes.assign_or_update_variable(
-        "current_access_indices",
-        PyValueType::List(current_access_indices),
-    );
     let index_delta_minus1 = new_access_index.clone() - current_access_index - bigint!(1);
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    vm.memory
-        .insert(
-            &loop_temps_addr,
-            &MaybeRelocatable::from(index_delta_minus1),
-        )
-        .map_err(VirtualMachineError::MemoryError)?;
-    vm.exec_scopes.assign_or_update_variable(
+    insert_integer_from_var_name("loop_temps", index_delta_minus1, &ids, vm, hint_ap_tracking)?;
+    insert_int_into_scope(
+        &mut vm.exec_scopes,
+        "new_access_index",
+        new_access_index.clone(),
+    );
+    insert_int_into_scope(
+        &mut vm.exec_scopes,
         "current_access_index",
-        PyValueType::BigInt(new_access_index),
+        new_access_index,
     );
     Ok(())
 }
@@ -152,11 +137,11 @@ pub fn squash_dict_inner_continue_loop(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that current_access_indices is in scope
-    let current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
     let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
+    //Check that current_access_indices is in scope
+    let current_access_indices = get_list_ref_from_scope(vm, "current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -177,7 +162,7 @@ pub fn squash_dict_inner_continue_loop(
 // Implements Hint: assert len(current_access_indices) == 0
 pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = get_list_from_scope(vm, "current_access_indices")?;
+    let current_access_indices = get_list_ref_from_scope(vm, "current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -190,32 +175,16 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    //Check that access_indices and key are in scope
-    let access_indices = get_access_indices(vm)
-        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("access_indices")))?;
     let key = get_int_from_scope(vm, "key")?;
-    //Get addr for ids variables
-    let n_used_accesses_addr =
-        get_address_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?;
-    //Get n_used_accesses from memory
-    let maybe_rel_n_used_accesses = vm
-        .memory
-        .get(&n_used_accesses_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(n_used_accesses_addr.clone()))?;
-    //Check that n_used_accesses is an int value
-    let n_used_accesses = if let MaybeRelocatable::Int(n_used_accesses) = maybe_rel_n_used_accesses
-    {
-        n_used_accesses
-    } else {
-        return Err(VirtualMachineError::ExpectedInteger(n_used_accesses_addr));
-    };
+    let n_used_accesses =
+        get_integer_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?.clone();
+    let access_indices = get_access_indices(vm)?;
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    if *n_used_accesses != bigintusize!(access_indices_at_key.len()) {
+    if n_used_accesses != bigintusize!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
             n_used_accesses.clone(),
             access_indices_at_key.len(),
@@ -230,7 +199,7 @@ pub fn squash_dict_inner_assert_len_keys(
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_list_from_scope(vm, "keys")?;
+    let keys = get_list_ref_from_scope(vm, "keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -246,19 +215,12 @@ pub fn squash_dict_inner_next_key(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let mut keys = get_list_from_scope(vm, "keys")?;
-    //Get addr for ids variables
-    let next_key_addr = get_address_from_var_name("next_key", &ids, vm, hint_ap_tracking)?;
+    let keys = get_mut_list_ref_from_scope(vm, "keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
-    vm.memory
-        .insert(&next_key_addr, &MaybeRelocatable::from(next_key.clone()))
-        .map_err(VirtualMachineError::MemoryError)?;
+    insert_integer_from_var_name("next_key", next_key.clone(), &ids, vm, hint_ap_tracking)?;
     //Update local variables
-    vm.exec_scopes
-        .assign_or_update_variable("keys", PyValueType::List(keys));
-    vm.exec_scopes
-        .assign_or_update_variable("key", PyValueType::BigInt(next_key));
+    insert_int_into_scope(&mut vm.exec_scopes, "key", next_key);
     Ok(())
 }
 
@@ -289,39 +251,9 @@ pub fn squash_dict(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let dict_accesses_addr =
-        get_address_from_var_name("dict_accesses", &ids, vm, hint_ap_tracking)?;
-    let ptr_diff_addr = get_address_from_var_name("ptr_diff", &ids, vm, hint_ap_tracking)?;
-    let n_accesses_addr = get_address_from_var_name("n_accesses", &ids, vm, hint_ap_tracking)?;
-    let big_keys_addr = get_address_from_var_name("big_keys", &ids, vm, hint_ap_tracking)?;
-    let first_key_addr = get_address_from_var_name("first_key", &ids, vm, hint_ap_tracking)?;
-    //Get ids variables from memory
-    let ptr_diff = if let MaybeRelocatable::Int(ptr_diff) = vm
-        .memory
-        .get(&ptr_diff_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(ptr_diff_addr.clone()))?
-    {
-        ptr_diff
-    } else {
-        return Err(VirtualMachineError::ExpectedInteger(ptr_diff_addr));
-    };
-    let n_accesses = if let MaybeRelocatable::Int(n_accesses) = vm
-        .memory
-        .get(&n_accesses_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(n_accesses_addr.clone()))?
-    {
-        n_accesses.clone()
-    } else {
-        return Err(VirtualMachineError::ExpectedInteger(n_accesses_addr));
-    };
-    let address = vm
-        .memory
-        .get(&dict_accesses_addr)
-        .map_err(VirtualMachineError::MemoryError)?
-        .ok_or_else(|| VirtualMachineError::MemoryGet(n_accesses_addr.clone()))?
-        .clone();
+    let address = get_ptr_from_var_name("dict_accesses", &ids, vm, hint_ap_tracking)?;
+    let ptr_diff = get_integer_from_var_name("ptr_diff", &ids, vm, hint_ap_tracking)?;
+    let n_accesses = get_integer_from_var_name("n_accesses", &ids, vm, hint_ap_tracking)?.clone();
     //Get range_check_builtin
     let range_check_builtin = get_range_check_builtin(vm)?;
     let range_check_bound = range_check_builtin._bound.clone();
@@ -339,21 +271,15 @@ pub fn squash_dict(
     };
     let n_accesses_usize = n_accesses
         .to_usize()
-        .ok_or(VirtualMachineError::NAccessesTooBig(n_accesses))?;
+        .ok_or(VirtualMachineError::NAccessesTooBig(n_accesses.clone()))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
-        let key_addr = address.add_int_mod(&(DICT_ACCESS_SIZE * bigintusize!(i)), &vm.prime)?;
-        let key = if let MaybeRelocatable::Int(key) = vm
+        let key_addr = address.add_usize(DICT_ACCESS_SIZE * i);
+        let key = vm
             .memory
-            .get(&key_addr)
-            .map_err(VirtualMachineError::MemoryError)?
-            .ok_or_else(|| VirtualMachineError::MemoryGet(key_addr.clone()))?
-        {
-            key
-        } else {
-            return Err(VirtualMachineError::ExpectedInteger(key_addr));
-        };
+            .get_integer(&key_addr)
+            .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
             .entry(key.clone())
             .or_insert(vec![])
@@ -369,20 +295,14 @@ pub fn squash_dict(
     } else {
         bigint!(0)
     };
-    vm.memory
-        .insert(&big_keys_addr, &MaybeRelocatable::from(big_keys))
-        .map_err(VirtualMachineError::MemoryError)?;
+    insert_integer_from_var_name("big_keys", big_keys, &ids, vm, hint_ap_tracking)?;
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
-    vm.memory
-        .insert(&first_key_addr, &MaybeRelocatable::from(key.clone()))
-        .map_err(VirtualMachineError::MemoryError)?;
+    insert_integer_from_var_name("first_key", key.clone(), &ids, vm, hint_ap_tracking)?;
     //Insert local variables into scope
     vm.exec_scopes
         .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-    vm.exec_scopes
-        .assign_or_update_variable("keys", PyValueType::List(keys));
-    vm.exec_scopes
-        .assign_or_update_variable("key", PyValueType::BigInt(key));
+    insert_list_into_scope(&mut vm.exec_scopes, "keys", keys);
+    insert_int_into_scope(&mut vm.exec_scopes, "key", key);
     Ok(())
 }
 
@@ -571,8 +491,8 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
-            Err(VirtualMachineError::NoLocalVariable(String::from(
-                "access_indices"
+            Err(VirtualMachineError::VariableNotInScopeError(String::from(
+                "key"
             )))
         );
     }
@@ -1407,7 +1327,7 @@ mod tests {
         let access_indices = get_access_indices(&mut vm).unwrap();
         assert_eq!(
             access_indices,
-            HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+            &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
         );
         let keys = get_list_from_scope(&mut vm, "keys").unwrap();
         assert_eq!(keys, vec![]);
@@ -1629,7 +1549,7 @@ mod tests {
         let access_indices = get_access_indices(&mut vm).unwrap();
         assert_eq!(
             access_indices,
-            HashMap::from([
+            &HashMap::from([
                 (bigint!(1), vec![bigint!(0), bigint!(1)]),
                 (bigint!(2), vec![bigint!(2), bigint!(3)])
             ])
@@ -1815,7 +1735,7 @@ mod tests {
         let access_indices = get_access_indices(&mut vm).unwrap();
         assert_eq!(
             access_indices,
-            HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+            &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
         );
         let keys = get_list_from_scope(&mut vm, "keys").unwrap();
         assert_eq!(keys, vec![]);
@@ -2483,7 +2403,7 @@ mod tests {
         let access_indices = get_access_indices(&mut vm).unwrap();
         assert_eq!(
             access_indices,
-            HashMap::from([(
+            &HashMap::from([(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
                 vec![bigint!(0), bigint!(1)]
             )])

@@ -109,6 +109,25 @@ impl Memory {
             Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
     }
+
+    pub fn insert_relocatable(
+        &mut self,
+        key: &Relocatable,
+        val: &Relocatable,
+    ) -> Result<(), VirtualMachineError> {
+        self.insert(&MaybeRelocatable::from(*key), &MaybeRelocatable::from(*val))
+            .map_err(VirtualMachineError::MemoryError)
+    }
+
+    pub fn insert_integer(
+        &mut self,
+        key: &Relocatable,
+        val: &BigInt,
+    ) -> Result<(), VirtualMachineError> {
+        self.insert(&MaybeRelocatable::from(*key), &MaybeRelocatable::from(*val))
+            .map_err(VirtualMachineError::MemoryError)
+    }
+
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
         self.validation_rules.insert(segment_index, rule);
     }

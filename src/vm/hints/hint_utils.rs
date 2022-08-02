@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
@@ -12,6 +13,16 @@ use crate::vm::{
 use num_bigint::BigInt;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
 use std::collections::HashMap;
+
+//Inserts the value in scope as a BigInt value type
+pub fn insert_int_into_scope(exec_scopes: &mut ExecutionScopes, name: &str, value: BigInt) {
+    exec_scopes.assign_or_update_variable(name, PyValueType::BigInt(value));
+}
+
+//Inserts the list in scope as a List value type
+pub fn insert_list_into_scope(exec_scopes: &mut ExecutionScopes, name: &str, list: Vec<BigInt>) {
+    exec_scopes.assign_or_update_variable(name, PyValueType::List(list));
+}
 
 //Returns the value in the current execution scope that matches the name and is of type BigInt
 pub fn get_int_from_scope(
