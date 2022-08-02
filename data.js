@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659448868279,
+  "lastUpdate": 1659451834942,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -13003,6 +13003,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 222307673,
             "range": "± 587426",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "daaca317dec8354ac3127f5e0beab64ae89601b2",
+          "message": "Add integration tests for math.cairo (#320)\n\n* Add --cairo-path to depend on other programs\r\n\r\n* Add integration tests and benchmark for math.cairo\r\n\r\nThe test is a function parameterized by the number of elements to test\r\nwith. There's one or more functions testing each of the functionalities\r\nof the library on different arrays.\r\nDivision and splits are still missing and the arrays are still rather\r\nsimplistic.\r\nThe benchmark calls this function with a bigger array size to stress the\r\nVM a little bit more.",
+          "timestamp": "2022-08-02T11:39:15-03:00",
+          "tree_id": "c5e34265e1bcfb02f421687ef5379e11819c6960",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/daaca317dec8354ac3127f5e0beab64ae89601b2"
+        },
+        "date": 1659451833543,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1677133293,
+            "range": "± 2379995",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 616304103,
+            "range": "± 828715",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 304091004,
+            "range": "± 335332",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1568010649,
+            "range": "± 2090975",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 223114582,
+            "range": "± 678012",
             "unit": "ns/iter"
           }
         ]
