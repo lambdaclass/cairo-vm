@@ -20,7 +20,7 @@ pub fn nondet_bigint3(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", ids, vm, hint_ap_tracking)?;
-    let value = get_int_ref_from_scope(vm, "value")?;
+    let value = get_int_ref_from_scope(&mut vm.exec_scopes, "value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm.segments
         .write_arg(&mut vm.memory, &res_reloc, &arg, Some(&vm.prime))
