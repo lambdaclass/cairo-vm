@@ -13,7 +13,7 @@ use crate::vm::{
     vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 //Tries to convert a BigInt value to usize

@@ -5,7 +5,7 @@ use std::{
 
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{FromPrimitive, Signed, Zero};
+use num_traits::{Signed, Zero};
 
 use super::hint_utils::{
     get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,

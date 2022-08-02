@@ -1,54 +1,10 @@
-use num_bigint::BigInt;
-use num_traits::FromPrimitive;
-
 use crate::types::relocatable::Relocatable;
+use num_bigint::BigInt;
 
 #[macro_export]
 macro_rules! bigint {
     ($val : expr) => {
-        BigInt::from_i32($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint64 {
-    ($val : expr) => {
-        BigInt::from_i64($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u32 {
-    ($val : expr) => {
-        BigInt::from_u32($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u64 {
-    ($val : expr) => {
-        BigInt::from_u64($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_u128 {
-    ($val : expr) => {
-        BigInt::from_u128($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigintusize {
-    ($val : expr) => {
-        BigInt::from_usize($val).unwrap()
-    };
-}
-
-#[macro_export]
-macro_rules! bigint_i128 {
-    ($val : expr) => {
-        BigInt::from_i128($val).unwrap()
+        Into::<BigInt>::into($val)
     };
 }
 
@@ -93,8 +49,69 @@ pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
 }
 
 #[cfg(test)]
+#[macro_use]
+pub mod test_utils {
+    macro_rules! memory {
+        ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+        {
+            let mut memory = Memory::new();
+            memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
+        memory
+        }
+        };
+    }
+    pub(crate) use memory;
+
+    macro_rules! memory_from_memory {
+        ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
+            {
+                $(
+                    memory_inner!($mem, ($si, $off), $val);
+                )*
+            }
+        };
+    }
+    pub(crate) use memory_from_memory;
+
+    macro_rules! memory_inner {
+        ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
+            let (k, v) = (
+                &mayberelocatable!($si, $off),
+                &mayberelocatable!($sival, $offval),
+            );
+            let mut res = $mem.insert(k, v);
+            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+                $mem.data.push(Vec::new());
+                res = $mem.insert(k, v);
+            }
+        };
+        ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
+            let (k, v) = (&mayberelocatable!($si, $off), &mayberelocatable!($val));
+            let mut res = $mem.insert(k, v);
+            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+                $mem.data.push(Vec::new());
+                res = $mem.insert(k, v);
+            }
+        };
+    }
+    pub(crate) use memory_inner;
+
+    macro_rules! mayberelocatable {
+        ($val1 : expr, $val2 : expr) => {
+            MaybeRelocatable::from(($val1, $val2))
+        };
+        ($val1 : expr) => {
+            MaybeRelocatable::from((bigint!($val1)))
+        };
+    }
+    pub(crate) use mayberelocatable;
+}
+
+#[cfg(test)]
 mod test {
     use super::*;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::{types::relocatable::MaybeRelocatable, vm::vm_memory::memory::Memory};
 
     #[test]
     fn to_field_element_no_change_a() {
@@ -158,5 +175,27 @@ mod test {
                 b"-285178165264032874802339485841451918548722200882996859249332140259261174941"
             )
         );
+    }
+
+    #[test]
+    fn memory_macro_test() {
+        let mut memory = Memory::new();
+        for _ in 0..2 {
+            memory.data.push(Vec::new());
+        }
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+        let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
+        assert_eq!(memory.data, mem.data);
     }
 }

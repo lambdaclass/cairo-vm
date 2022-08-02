@@ -1,5 +1,5 @@
 use crate::{
-    bigint, bigint_u64, bigintusize,
+    bigint,
     serde::deserialize_program::ApTracking,
     types::exec_scope::PyValueType,
     vm::{
@@ -14,7 +14,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 use super::hint_utils::insert_int_into_scope;
@@ -99,13 +99,13 @@ pub fn usort_body(
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
         vm.memory.insert_integer(
             &(multiplicities_base.clone() + i),
-            bigintusize!(repetition_amount),
+            bigint!(repetition_amount),
         )?;
     }
 
     insert_integer_from_var_name(
         "output_len",
-        bigintusize!(output_len),
+        bigint!(output_len),
         ids,
         &mut vm.memory,
         &vm.references,
@@ -177,7 +177,7 @@ pub fn verify_multiplicity_body(
     let current_pos = get_list_u64_from_scope_mut(&mut vm.exec_scopes, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint_u64!(current_pos) - get_int_from_scope(&vm.exec_scopes, "last_pos")?;
+    let pos_diff = bigint!(current_pos) - get_int_from_scope(&vm.exec_scopes, "last_pos")?;
     insert_integer_from_var_name(
         "next_item_index",
         pos_diff,
@@ -187,11 +187,7 @@ pub fn verify_multiplicity_body(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_int_into_scope(
-        &mut vm.exec_scopes,
-        "last_pos",
-        bigint_u64!(current_pos + 1),
-    );
+    insert_int_into_scope(&mut vm.exec_scopes, "last_pos", bigint!(current_pos + 1));
     Ok(())
 }
 
@@ -253,7 +249,7 @@ mod tests {
 
         let mut ids = HashMap::<String, BigInt>::new();
         for (i, s) in ["input", "input_len"].iter().enumerate() {
-            ids.insert(s.to_string(), bigintusize!(i));
+            ids.insert(s.to_string(), bigint!(i));
         }
 
         vm.exec_scopes

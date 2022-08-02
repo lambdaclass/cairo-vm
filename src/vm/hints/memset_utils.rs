@@ -4,7 +4,6 @@ use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
-use num_traits::FromPrimitive;
 use num_traits::Signed;
 use std::collections::HashMap;
 

@@ -32,7 +32,7 @@ use crate::vm::hints::uint256_utils::{
 };
 
 use crate::vm::hints::secp::{
-    bigint_utils::nondet_bigint3,
+    bigint_utils::{bigint_to_uint256, nondet_bigint3},
     field_utils::{reduce, verify_zero},
 };
 use crate::vm::hints::usort::{
@@ -155,6 +155,8 @@ pub fn execute_hint(
         ) => uint256_unsigned_div_rem(vm, &ids, None),
         Ok("# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)"
         ) => finalize_blake2s(vm, &ids, Some(ap_tracking)),
+        Ok("ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1)"
+        ) => bigint_to_uint256(vm, &ids, None),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]"
         ) => blake2s_add_uint256(vm, &ids, Some(ap_tracking)),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])"
@@ -172,12 +174,10 @@ pub fn execute_hint(
 #[cfg(test)]
 mod tests {
     use crate::bigint;
-    use crate::bigint_u128;
     use crate::types::exec_scope::PyValueType;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     use super::*;
 
@@ -855,7 +855,7 @@ mod tests {
             // length
             .insert(
                 &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint_u128!(18446744073709551616)),
+                &MaybeRelocatable::from(bigint!(18446744073709551616_i128)),
             )
             .unwrap();
 

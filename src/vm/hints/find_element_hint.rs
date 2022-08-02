@@ -1,5 +1,4 @@
 use crate::bigint;
-use crate::bigintusize;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::{
     errors::vm_errors::VirtualMachineError,
@@ -9,7 +8,7 @@ use crate::vm::{
     vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 use super::hint_utils::bigint_to_usize;
@@ -198,7 +197,7 @@ pub fn search_sorted_lower(
         if value >= key {
             return insert_integer_from_var_name(
                 "index",
-                bigintusize!(i),
+                bigint!(i),
                 ids,
                 &mut vm.memory,
                 &vm.references,
@@ -222,7 +221,6 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigintusize;
     use crate::types::exec_scope::PyValueType;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
@@ -309,7 +307,7 @@ mod tests {
             .iter()
             .enumerate()
         {
-            ids.insert(s.to_string(), bigintusize!(i));
+            ids.insert(s.to_string(), bigint!(i));
         }
 
         (vm, ids)

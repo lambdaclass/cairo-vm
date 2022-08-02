@@ -22,6 +22,7 @@ bincode = "1.2.1"
 starknet-crypto = "0.1.0"
 clap = { version = "3.2.5", features = ["derive"] }
 sha3 = "0.10.1"
+lazy_static = "1.4.0"
 
 [dev-dependencies.rusty-hook]
 version = "0.11"

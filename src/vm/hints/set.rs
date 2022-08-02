@@ -1,9 +1,9 @@
+use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine};
-use crate::{bigint, bigintusize};
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
 use super::hint_utils::{
@@ -51,9 +51,7 @@ pub fn set_add(
     )?;
 
     if elm_size.is_zero() {
-        return Err(VirtualMachineError::ValueNotPositive(bigintusize!(
-            elm_size
-        )));
+        return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
 
     let elm = vm
@@ -82,7 +80,7 @@ pub fn set_add(
         if set_iter == elm {
             insert_integer_from_var_name(
                 "index",
-                bigintusize!(i / elm_size),
+                bigint!(i / elm_size),
                 ids,
                 &mut vm.memory,
                 &vm.references,

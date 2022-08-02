@@ -5,7 +5,6 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, relocatable};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::FromPrimitive;
 use std::collections::HashMap;
 
 use super::hint_utils::{get_relocatable_from_var_name, insert_integer_from_var_name};
@@ -51,7 +50,6 @@ mod tests {
     use crate::vm::hints::execute_hint::{execute_hint, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
-    use num_traits::FromPrimitive;
 
     use super::*;
 
