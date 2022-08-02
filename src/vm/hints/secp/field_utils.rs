@@ -68,8 +68,6 @@ pub fn reduce(
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", ids, vm, hint_ap_tracking)?.mod_floor(&*SECP_P);
 
-    //let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&sec_p);
-
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));
 
