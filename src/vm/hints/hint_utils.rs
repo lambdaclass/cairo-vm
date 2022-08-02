@@ -23,6 +23,11 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
         .ok_or(VirtualMachineError::BigintToUsizeFail)
 }
 
+//Tries to convert a BigInt value to U32
+pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
+    bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+}
+
 //Inserts value into ap
 pub fn insert_int_into_ap(
     memory: &mut Memory,

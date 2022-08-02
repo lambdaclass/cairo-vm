@@ -171,6 +171,20 @@ impl Memory {
 
         Ok(values)
     }
+
+    pub fn get_integer_range(
+        &self,
+        addr: &Relocatable,
+        size: usize,
+    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+        let mut values = Vec::new();
+
+        for i in 0..size {
+            values.push(self.get_integer(&(addr + i))?);
+        }
+
+        Ok(values)
+    }
 }
 
 impl Default for Memory {

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
-use super::hint_utils::get_ptr_from_var_name;
+use super::hint_utils::{bigint_to_u32, get_ptr_from_var_name};
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
@@ -20,13 +20,10 @@ use crate::{
 use num_bigint::BigInt;
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<Option<&MaybeRelocatable>>,
+    h_range: &Vec<&BigInt>,
 ) -> Result<[u32; T], VirtualMachineError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
-    for element in h_range {
-        let num = element
-            .ok_or(VirtualMachineError::UnexpectMemoryGap)?
-            .get_int_ref()?;
+    for num in h_range {
         u32_vec.push(num.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)?);
     }
     u32_vec
@@ -58,24 +55,11 @@ fn compute_blake2s_func(
     memory: &mut Memory,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
-    let h = get_fixed_size_u32_array::<8>(
-        &memory
-            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(26)?), 8)
-            .map_err(VirtualMachineError::MemoryError)?,
-    )?;
-    let message = get_fixed_size_u32_array::<16>(
-        &memory
-            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(18)?), 16)
-            .map_err(VirtualMachineError::MemoryError)?,
-    )?;
-    let t = memory
-        .get_integer(&output_rel.sub(2)?)?
-        .to_u32()
-        .ok_or(VirtualMachineError::BigintToU32Fail)?;
-    let f = memory
-        .get_integer(&output_rel.sub(1)?)?
-        .to_u32()
-        .ok_or(VirtualMachineError::BigintToU32Fail)?;
+    let h = get_fixed_size_u32_array::<8>(&memory.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
+    let message =
+        get_fixed_size_u32_array::<16>(&memory.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
+    let t = bigint_to_u32(memory.get_integer(&output_rel.sub(2)?)?)?;
+    let f = bigint_to_u32(memory.get_integer(&output_rel.sub(1)?)?)?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
@@ -318,6 +302,7 @@ pub fn blake2s_add_uint256_bigend(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::utils::test_utils::*;
     use crate::{
         bigint,
@@ -411,7 +396,9 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
-            Err(VirtualMachineError::UnexpectMemoryGap)
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 0))
+            ))
         );
     }
 
@@ -474,7 +461,14 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         vm.memory = memory![
             ((0, 0), (1, 26)),
-            ((1, 0), 7842562439562793675803603603688959_i128)
+            ((1, 0), 7842562439562793675803603603688959_i128),
+            ((1, 1), 7842562439562793675803603603688959_i128),
+            ((1, 2), 7842562439562793675803603603688959_i128),
+            ((1, 3), 7842562439562793675803603603688959_i128),
+            ((1, 4), 7842562439562793675803603603688959_i128),
+            ((1, 5), 7842562439562793675803603603688959_i128),
+            ((1, 6), 7842562439562793675803603603688959_i128),
+            ((1, 7), 7842562439562793675803603603688959_i128)
         ];
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
@@ -545,7 +539,7 @@ mod tests {
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((4, 5))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -615,7 +609,7 @@ mod tests {
         //Get data from memory
         let data = get_fixed_size_u32_array::<204>(
             &vm.memory
-                .get_range(&MaybeRelocatable::from((1, 0)), 204)
+                .get_integer_range(&relocatable!(1, 0), 204)
                 .unwrap(),
         )
         .unwrap();

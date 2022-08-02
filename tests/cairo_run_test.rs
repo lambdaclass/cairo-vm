@@ -245,7 +245,7 @@ fn cairo_run_dict_update_bad() {
     .err();
     assert_eq!(
         err.unwrap().to_string(),
-        "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: Some(5) for key: 2"
+        "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: 5 for key: 2"
     );
 }
 

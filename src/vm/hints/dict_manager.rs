@@ -179,7 +179,7 @@ impl DictTracker {
         }
     }
 
-    pub fn get_value(&self, key: &BigInt) -> Result<&BigInt, VirtualMachineError> {
+    pub fn get_value(&mut self, key: &BigInt) -> Result<&BigInt, VirtualMachineError> {
         self.data
             .get(key)
             .ok_or_else(|| VirtualMachineError::NoValueForKey(key.clone()))

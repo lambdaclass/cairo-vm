@@ -1703,7 +1703,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoValueForKey(bigint!(10),))
+            Err(VirtualMachineError::NoValueForKey(bigint!(6),))
         );
     }
 
