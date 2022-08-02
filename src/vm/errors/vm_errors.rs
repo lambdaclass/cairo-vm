@@ -65,7 +65,7 @@ pub enum VirtualMachineError {
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
     FindElemMaxSize(BigInt, BigInt),
-    InvalidIndex(BigInt, MaybeRelocatable, MaybeRelocatable),
+    InvalidIndex(BigInt, BigInt, BigInt),
     KeyNotFound,
     NoneApTrackingData,
     InvalidTrackingGroup(usize, usize),

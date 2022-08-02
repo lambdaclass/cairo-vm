@@ -45,7 +45,7 @@ pub fn squash_dict_inner_first_iteration(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let key = get_int_from_scope(&mut vm.exec_scopes, "key")?;
+    let key = get_int_from_scope(&vm.exec_scopes, "key")?;
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
     let access_indices = get_access_indices(vm)?;
     //Get current_indices from access_indices
@@ -81,8 +81,7 @@ pub fn squash_dict_inner_skip_loop(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_from_scope(&mut vm.exec_scopes, "current_access_indices")?;
+    let current_access_indices = get_list_from_scope(&vm.exec_scopes, "current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -109,7 +108,7 @@ pub fn squash_dict_inner_check_access_index(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = get_int_from_scope(&mut vm.exec_scopes, "current_access_index")?;
+    let current_access_index = get_int_from_scope(&vm.exec_scopes, "current_access_index")?;
     let current_access_indices =
         get_mut_list_ref_from_scope(&mut vm.exec_scopes, "current_access_indices")?;
     //Main Logic
@@ -144,7 +143,7 @@ pub fn squash_dict_inner_continue_loop(
     let loop_temps_addr = get_relocatable_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_ref_from_scope(&mut vm.exec_scopes, "current_access_indices")?;
+        get_list_ref_from_scope(&vm.exec_scopes, "current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -162,7 +161,7 @@ pub fn squash_dict_inner_continue_loop(
 pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_ref_from_scope(&mut vm.exec_scopes, "current_access_indices")?;
+        get_list_ref_from_scope(&vm.exec_scopes, "current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -175,7 +174,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids: HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_int_from_scope(&mut vm.exec_scopes, "key")?;
+    let key = get_int_from_scope(&vm.exec_scopes, "key")?;
     let n_used_accesses =
         get_integer_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?.clone();
     let access_indices = get_access_indices(vm)?;
@@ -199,7 +198,7 @@ pub fn squash_dict_inner_assert_len_keys(
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_list_ref_from_scope(&mut vm.exec_scopes, "keys")?;
+    let keys = get_list_ref_from_scope(&vm.exec_scopes, "keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -261,7 +260,7 @@ pub fn squash_dict(
     if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = get_int_from_scope(&mut vm.exec_scopes, "__squash_dict_max_size");
+    let squash_dict_max_size = get_int_from_scope(&vm.exec_scopes, "__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses > max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
@@ -1329,9 +1328,9 @@ mod tests {
             access_indices,
             &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
         );
-        let keys = get_list_from_scope(&mut vm.exec_scopes, "keys").unwrap();
+        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
         assert_eq!(keys, vec![]);
-        let key = get_int_from_scope(&mut vm.exec_scopes, "key").unwrap();
+        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
         assert_eq!(key, bigint!(1));
         //Check ids variables
         let big_keys = vm
@@ -1554,9 +1553,9 @@ mod tests {
                 (bigint!(2), vec![bigint!(2), bigint!(3)])
             ])
         );
-        let keys = get_list_from_scope(&mut vm.exec_scopes, "keys").unwrap();
+        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
         assert_eq!(keys, vec![bigint!(2)]);
-        let key = get_int_from_scope(&mut vm.exec_scopes, "key").unwrap();
+        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
         assert_eq!(key, bigint!(1));
         //Check ids variables
         let big_keys = vm
@@ -1737,9 +1736,9 @@ mod tests {
             access_indices,
             &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
         );
-        let keys = get_list_from_scope(&mut vm.exec_scopes, "keys").unwrap();
+        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
         assert_eq!(keys, vec![]);
-        let key = get_int_from_scope(&mut vm.exec_scopes, "key").unwrap();
+        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
         assert_eq!(key, bigint!(1));
         //Check ids variables
         let big_keys = vm
@@ -2408,9 +2407,9 @@ mod tests {
                 vec![bigint!(0), bigint!(1)]
             )])
         );
-        let keys = get_list_from_scope(&mut vm.exec_scopes, "keys").unwrap();
+        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
         assert_eq!(keys, vec![]);
-        let key = get_int_from_scope(&mut vm.exec_scopes, "key").unwrap();
+        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
         assert_eq!(
             key,
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727])

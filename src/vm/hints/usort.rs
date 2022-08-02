@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use super::hint_utils::insert_int_into_scope;
 
 pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let usort_max_size = get_u64_from_scope(&mut vm.exec_scopes, "usort_max_size")
+    let usort_max_size = get_u64_from_scope(&vm.exec_scopes, "usort_max_size")
         .map_or(PyValueType::None, PyValueType::U64);
     vm.exec_scopes.enter_scope(HashMap::from([(
         "usort_max_size".to_string(),
@@ -36,7 +36,7 @@ pub fn usort_body(
 ) -> Result<(), VirtualMachineError> {
     let input_arr_start_ptr = get_relocatable_from_var_name("input", ids, vm, hint_ap_tracking)?;
     let input_ptr = vm.memory.get_relocatable(&input_arr_start_ptr)?.clone();
-    let usort_max_size = get_u64_from_scope(&mut vm.exec_scopes, "usort_max_size");
+    let usort_max_size = get_u64_from_scope(&vm.exec_scopes, "usort_max_size");
     let input_len = get_integer_from_var_name("input_len", ids, vm, hint_ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()
@@ -127,7 +127,7 @@ pub fn verify_usort(
 }
 
 pub fn verify_multiplicity_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let positions_len = get_list_u64_from_scope_ref(&mut vm.exec_scopes, "positions")?.len();
+    let positions_len = get_list_u64_from_scope_ref(&vm.exec_scopes, "positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
@@ -143,7 +143,7 @@ pub fn verify_multiplicity_body(
     let current_pos = get_list_u64_from_scope_mut(&mut vm.exec_scopes, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint_u64!(current_pos) - get_int_from_scope(&mut vm.exec_scopes, "last_pos")?;
+    let pos_diff = bigint_u64!(current_pos) - get_int_from_scope(&vm.exec_scopes, "last_pos")?;
     insert_integer_from_var_name("next_item_index", pos_diff, ids, vm, hint_ap_tracking)?;
     insert_int_into_scope(
         &mut vm.exec_scopes,
