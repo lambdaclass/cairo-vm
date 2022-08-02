@@ -39,7 +39,7 @@ use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::{HintVisibleVariables, VirtualMachine};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
@@ -51,14 +51,39 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
+pub fn get_hint_variables<'a>(vm: &'a mut VirtualMachine) -> HintVisibleVariables<'a> {
+    HintVisibleVariables {
+        memory: &mut vm.memory,
+        segments: &mut vm.segments,
+        run_context: &mut vm.run_context,
+        exec_scopes: &mut vm.exec_scopes,
+        builtin_runners: &vm.builtin_runners,
+        references: &vm.references,
+    }
+}
+pub fn execute_hint_alter(
+    variables: HintVisibleVariables,
+    hint_code: &[u8],
+    _ids: HashMap<String, BigInt>,
+    _ap_tracking: &ApTracking,
+) -> Result<(), VirtualMachineError> {
+    match std::str::from_utf8(hint_code) {
+        //Ok("memory[ap] = segments.add()") => add_segment(variables.),
+        Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
+        Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
+            variables.run_context.pc.clone(),
+        )),
+    }
+}
 pub fn execute_hint(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     hint_code: &[u8],
     ids: HashMap<String, BigInt>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     match std::str::from_utf8(hint_code) {
         Ok("memory[ap] = segments.add()") => add_segment(vm),
+        /*
         Ok("memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1") => is_nn(vm, &ids, None),
         Ok("memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1") => {
             is_nn_out_of_range(vm, &ids, None)
@@ -155,6 +180,7 @@ pub fn execute_hint(
         ) => uint256_unsigned_div_rem(vm, &ids, None),
         Ok("# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)"
         ) => finalize_blake2s(vm, &ids, Some(ap_tracking)),
+
         Ok("ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1)"
         ) => bigint_to_uint256(vm, &ids, None),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]"
@@ -164,10 +190,10 @@ pub fn execute_hint(
         Ok("from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')"
         ) => unsafe_keccak(vm, &ids, None),
         Ok("from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')"
-        ) => unsafe_keccak_finalize(vm, &ids, None),
+        ) => unsafe_keccak_finalize(vm, &ids, None)*/
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
-            vm.run_context.pc.clone(),
+            variables.run_context.pc.clone(),
         )),
     }
 }

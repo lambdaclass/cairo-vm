@@ -9,7 +9,6 @@ use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::dict_manager::DictManager;
-use crate::vm::hints::execute_hint::execute_hint;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
@@ -18,7 +17,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
-use super::hints::execute_hint::HintReference;
+use super::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -39,6 +38,14 @@ pub struct HintData {
     pub ap_tracking_data: ApTracking,
 }
 
+pub struct HintVisibleVariables<'a> {
+    pub memory: &'a mut Memory,
+    pub segments: &'a mut MemorySegmentManager,
+    pub run_context: &'a mut RunContext,
+    pub exec_scopes: &'a mut ExecutionScopes,
+    pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub references: &'a HashMap<usize, HintReference>,
+}
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
@@ -491,8 +498,9 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
+                let hint_variables = get_hint_variables(self);
                 execute_hint(
-                    self,
+                    hint_variables,
                     &hint_data.hint_code,
                     hint_data.ids.clone(),
                     &hint_data.ap_tracking_data,
