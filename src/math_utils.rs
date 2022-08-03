@@ -25,16 +25,6 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
     Ok(x)
 }
 
-/// Return the value of x to the power of y and perform modulus on the result.
-pub fn pow_mod(x: &BigInt, y: &BigInt, p: &BigInt) -> BigInt {
-    let mut result = bigint!(1);
-    let mut counter = y.clone();
-    while !counter.is_zero() {
-        result = result * x % p;
-        counter -= 1;
-    }
-    result
-}
 /// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
     if y.is_zero() {
