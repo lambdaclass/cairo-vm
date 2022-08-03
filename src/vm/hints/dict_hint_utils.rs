@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, insert_integer_from_var_name,
+    get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
 };
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
@@ -114,7 +114,7 @@ pub fn dict_read(
     let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(key)?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "value",
         value.clone(),
         ids,
@@ -173,7 +173,7 @@ pub fn dict_write(
     tracker.insert_value(key, new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm.memory.insert_integer(&dict_ptr_prev_value, prev_value)?;
+    vm.memory.insert_value(&dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 

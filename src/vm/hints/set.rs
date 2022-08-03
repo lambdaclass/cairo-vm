@@ -7,7 +7,7 @@ use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
 use super::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, insert_integer_from_var_name,
+    get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
 };
 
 pub fn set_add(
@@ -78,7 +78,7 @@ pub fn set_add(
             .map_err(VirtualMachineError::MemoryError)?;
 
         if set_iter == elm {
-            insert_integer_from_var_name(
+            insert_value_from_var_name(
                 "index",
                 bigint!(i / elm_size),
                 ids,
@@ -87,7 +87,7 @@ pub fn set_add(
                 &vm.run_context,
                 hint_ap_tracking,
             )?;
-            return insert_integer_from_var_name(
+            return insert_value_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
                 ids,
@@ -98,7 +98,7 @@ pub fn set_add(
             );
         }
     }
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "is_elm_in_set",
         bigint!(0),
         ids,

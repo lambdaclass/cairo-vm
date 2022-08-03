@@ -364,9 +364,9 @@ pub fn get_address_from_var_name(
         .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
-pub fn insert_integer_from_var_name(
+pub fn insert_value_from_var_name<T: Into<MaybeRelocatable>>(
     var_name: &str,
-    int: BigInt,
+    int: T,
     ids: &HashMap<String, BigInt>,
     memory: &mut Memory,
     references: &HashMap<usize, HintReference>,
@@ -381,27 +381,7 @@ pub fn insert_integer_from_var_name(
         run_context,
         hint_ap_tracking,
     )?;
-    memory.insert_integer(&var_address, int)
-}
-
-pub fn insert_relocatable_from_var_name(
-    var_name: &str,
-    relocatable: Relocatable,
-    ids: &HashMap<String, BigInt>,
-    memory: &mut Memory,
-    references: &HashMap<usize, HintReference>,
-    run_context: &RunContext,
-    hint_ap_tracking: Option<&ApTracking>,
-) -> Result<(), VirtualMachineError> {
-    let var_address = get_relocatable_from_var_name(
-        var_name,
-        ids,
-        memory,
-        references,
-        run_context,
-        hint_ap_tracking,
-    )?;
-    memory.insert_relocatable(&var_address, &relocatable)
+    memory.insert_value(&var_address, int)
 }
 
 //Gets the address of a variable name.
@@ -514,7 +494,7 @@ pub fn memcpy_continue_copying(
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
-        insert_integer_from_var_name(
+        insert_value_from_var_name(
             "continue_copying",
             bigint!(1),
             ids,
@@ -524,7 +504,7 @@ pub fn memcpy_continue_copying(
             hint_ap_tracking,
         )?;
     } else {
-        insert_integer_from_var_name(
+        insert_value_from_var_name(
             "continue_copying",
             bigint!(0),
             ids,

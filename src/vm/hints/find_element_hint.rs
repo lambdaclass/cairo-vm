@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use super::hint_utils::bigint_to_usize;
 use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_ptr_from_var_name;
-use super::hint_utils::insert_integer_from_var_name;
+use super::hint_utils::insert_value_from_var_name;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
@@ -77,7 +77,7 @@ pub fn find_element(
                 found_key.clone(),
             ));
         }
-        insert_integer_from_var_name(
+        insert_value_from_var_name(
             "index",
             find_element_index_value,
             ids,
@@ -114,7 +114,7 @@ pub fn find_element(
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
             if iter_key == key {
-                return insert_integer_from_var_name(
+                return insert_value_from_var_name(
                     "index",
                     bigint!(i),
                     ids,
@@ -195,7 +195,7 @@ pub fn search_sorted_lower(
     for i in 0..n_elms_usize {
         let value = vm.memory.get_integer(&array_iter)?;
         if value >= key {
-            return insert_integer_from_var_name(
+            return insert_value_from_var_name(
                 "index",
                 bigint!(i),
                 ids,
@@ -207,7 +207,7 @@ pub fn search_sorted_lower(
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "index",
         n_elms.clone(),
         ids,

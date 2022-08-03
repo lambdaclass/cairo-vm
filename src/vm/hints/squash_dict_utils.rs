@@ -16,7 +16,7 @@ use super::{
         get_int_from_scope, get_integer_from_var_name, get_list_from_scope,
         get_list_ref_from_scope, get_mut_list_ref_from_scope, get_ptr_from_var_name,
         get_range_check_builtin, get_relocatable_from_var_name, insert_int_into_scope,
-        insert_integer_from_var_name, insert_list_into_scope,
+        insert_list_into_scope, insert_value_from_var_name,
     },
 };
 
@@ -78,7 +78,7 @@ pub fn squash_dict_inner_first_iteration(
         first_val.clone(),
     );
     //Insert current_accesss_index into range_check_ptr
-    vm.memory.insert_integer(&range_check_ptr, first_val)
+    vm.memory.insert_value(&range_check_ptr, first_val)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -95,7 +95,7 @@ pub fn squash_dict_inner_skip_loop(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "should_skip_loop",
         should_skip_loop,
         ids,
@@ -127,7 +127,7 @@ pub fn squash_dict_inner_check_access_index(
     let index_delta_minus1 = new_access_index.clone() - current_access_index - bigint!(1);
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "loop_temps",
         index_delta_minus1,
         ids,
@@ -178,7 +178,7 @@ pub fn squash_dict_inner_continue_loop(
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3;
     vm.memory
-        .insert_integer(&should_continue_addr, should_continue)
+        .insert_value(&should_continue_addr, should_continue)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
@@ -248,7 +248,7 @@ pub fn squash_dict_inner_next_key(
     let keys = get_mut_list_ref_from_scope(&mut vm.exec_scopes, "keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "next_key",
         next_key.clone(),
         ids,
@@ -355,7 +355,7 @@ pub fn squash_dict(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "big_keys",
         big_keys,
         ids,
@@ -365,7 +365,7 @@ pub fn squash_dict(
         hint_ap_tracking,
     )?;
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "first_key",
         key.clone(),
         ids,

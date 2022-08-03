@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_ref_from_scope, get_relocatable_from_var_name, insert_integer_from_var_name,
+    get_int_ref_from_scope, get_relocatable_from_var_name, insert_value_from_var_name,
 };
 use crate::vm::hints::secp::secp_utils::split;
 use crate::vm::hints::secp::secp_utils::BASE_86;
@@ -59,7 +59,7 @@ pub fn bigint_to_uint256(
     let d0 = vm.memory.get_integer(&x_struct)?;
     let d1 = vm.memory.get_integer(&(&x_struct + 1))?;
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "low",
         low,
         ids,

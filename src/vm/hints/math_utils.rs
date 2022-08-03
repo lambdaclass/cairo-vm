@@ -9,7 +9,7 @@ use num_traits::{Signed, Zero};
 
 use super::hint_utils::{
     get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-    get_range_check_builtin, insert_int_into_ap, insert_integer_from_var_name,
+    get_range_check_builtin, insert_int_into_ap, insert_value_from_var_name,
 };
 use crate::{
     bigint,
@@ -108,7 +108,7 @@ pub fn assert_le_felt(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "small_inputs",
         value,
         ids,
@@ -335,7 +335,7 @@ pub fn split_int(
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
-    vm.memory.insert_integer(&output, res)
+    vm.memory.insert_value(&output, res)
 }
 
 //from starkware.cairo.common.math_utils import is_positive
@@ -365,7 +365,7 @@ pub fn is_positive(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "is_positive",
         result,
         ids,
@@ -404,7 +404,7 @@ pub fn split_felt(
     // ids.high = ids.value >> 128
     let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
     let high: BigInt = value.shr(128_u8);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "high",
         high,
         ids,
@@ -413,7 +413,7 @@ pub fn split_felt(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "low",
         low,
         ids,
@@ -447,7 +447,7 @@ pub fn sqrt(
     if (&mod_value).shr(250_i32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
     }
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "root",
         isqrt(&mod_value)?,
         ids,
@@ -509,7 +509,7 @@ pub fn signed_div_rem(
         return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
     }
     let biased_q = q + bound;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "r",
         r,
         ids,
@@ -518,7 +518,7 @@ pub fn signed_div_rem(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "biased_q",
         biased_q,
         ids,
@@ -568,7 +568,7 @@ pub fn unsigned_div_rem(
         ));
     }
     let (q, r) = value.div_mod_floor(div);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "r",
         r,
         ids,
@@ -577,7 +577,7 @@ pub fn unsigned_div_rem(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "q",
         q,
         ids,
@@ -616,7 +616,7 @@ pub fn assert_250_bit(
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
     let (high, low) = int_value.div_rem(&shift);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "high",
         high,
         ids,
@@ -625,7 +625,7 @@ pub fn assert_250_bit(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "low",
         low,
         ids,

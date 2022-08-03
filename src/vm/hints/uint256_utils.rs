@@ -10,7 +10,7 @@ use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
-use super::hint_utils::{insert_int_into_ap, insert_integer_from_var_name};
+use super::hint_utils::{insert_int_into_ap, insert_value_from_var_name};
 
 /*
 Implements hint:
@@ -66,7 +66,7 @@ pub fn uint256_add(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "carry_high",
         carry_high,
         ids,
@@ -75,7 +75,7 @@ pub fn uint256_add(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "carry_low",
         carry_low,
         ids,
@@ -109,7 +109,7 @@ pub fn split_64(
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
     let high = digits.next().unwrap_or(0u64);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "high",
         bigint!(high),
         ids,
@@ -118,7 +118,7 @@ pub fn split_64(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "low",
         bigint!(low),
         ids,
@@ -180,8 +180,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm.memory.insert_integer(&root_addr, root)?;
-    vm.memory.insert_integer(&(root_addr + 1), bigint!(0))
+    vm.memory.insert_value(&root_addr, root)?;
+    vm.memory.insert_value(&(root_addr + 1), bigint!(0))
 }
 
 /*
@@ -292,15 +292,15 @@ pub fn uint256_unsigned_div_rem(
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
-    vm.memory.insert_integer(&quotient_addr, quotient_low)?;
+    vm.memory.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
     vm.memory
-        .insert_integer(&(quotient_addr + 1), quotient_high)?;
+        .insert_value(&(quotient_addr + 1), quotient_high)?;
     //Insert ids.remainder.low
-    vm.memory.insert_integer(&remainder_addr, remainder_low)?;
+    vm.memory.insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
     vm.memory
-        .insert_integer(&(remainder_addr + 1), remainder_high)
+        .insert_value(&(remainder_addr + 1), remainder_high)
 }
 
 #[cfg(test)]

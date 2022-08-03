@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_integer_from_var_name;
 use super::hint_utils::insert_int_into_scope;
-use super::hint_utils::insert_integer_from_var_name;
+use super::hint_utils::insert_value_from_var_name;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -51,7 +51,7 @@ pub fn memset_continue_loop(
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = bigint!(new_n.is_positive() as i32);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "continue_loop",
         should_continue,
         ids,

@@ -7,8 +7,7 @@ use crate::{
         hints::hint_utils::{
             get_dict_int_list_u64_from_scope_mut, get_int_from_scope, get_integer_from_var_name,
             get_list_u64_from_scope_mut, get_list_u64_from_scope_ref,
-            get_relocatable_from_var_name, get_u64_from_scope, insert_integer_from_var_name,
-            insert_relocatable_from_var_name,
+            get_relocatable_from_var_name, get_u64_from_scope, insert_value_from_var_name,
         },
         vm_core::VirtualMachine,
     },
@@ -93,15 +92,15 @@ pub fn usort_body(
 
     for (i, sorted_element) in output.into_iter().enumerate() {
         vm.memory
-            .insert_integer(&(&output_base + i), sorted_element)?;
+            .insert_value(&(&output_base + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
         vm.memory
-            .insert_integer(&(&multiplicities_base + i), bigint!(repetition_amount))?;
+            .insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
     }
 
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "output_len",
         bigint!(output_len),
         ids,
@@ -110,7 +109,7 @@ pub fn usort_body(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_relocatable_from_var_name(
+    insert_value_from_var_name(
         "output",
         output_base,
         ids,
@@ -119,7 +118,7 @@ pub fn usort_body(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    insert_relocatable_from_var_name(
+    insert_value_from_var_name(
         "multiplicities",
         multiplicities_base,
         ids,
@@ -176,7 +175,7 @@ pub fn verify_multiplicity_body(
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - get_int_from_scope(&vm.exec_scopes, "last_pos")?;
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "next_item_index",
         pos_diff,
         ids,

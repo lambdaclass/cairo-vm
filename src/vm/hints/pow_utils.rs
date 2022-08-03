@@ -7,7 +7,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
 
-use super::hint_utils::{get_relocatable_from_var_name, insert_integer_from_var_name};
+use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
 
 /*
 Implements hint:
@@ -29,7 +29,7 @@ pub fn pow(
     let prev_locs_exp_addr = relocatable!(prev_locs_addr.segment_index, prev_locs_addr.offset + 4);
     let prev_locs_exp = vm.memory.get_integer(&prev_locs_exp_addr)?;
     let locs_bit = prev_locs_exp.mod_floor(&vm.prime) & bigint!(1);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "locs",
         locs_bit,
         ids,

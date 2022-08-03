@@ -110,21 +110,12 @@ impl Memory {
         }
     }
 
-    pub fn insert_relocatable(
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
         key: &Relocatable,
-        val: &Relocatable,
+        val: T,
     ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
-            .map_err(VirtualMachineError::MemoryError)
-    }
-
-    pub fn insert_integer(
-        &mut self,
-        key: &Relocatable,
-        val: BigInt,
-    ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
+        self.insert(&MaybeRelocatable::from(key), &val.into())
             .map_err(VirtualMachineError::MemoryError)
     }
 

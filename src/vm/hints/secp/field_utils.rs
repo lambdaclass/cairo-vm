@@ -2,7 +2,7 @@ use crate::bigint_str;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_relocatable_from_var_name, insert_int_into_scope, insert_integer_from_var_name,
+    get_relocatable_from_var_name, insert_int_into_scope, insert_value_from_var_name,
 };
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -56,7 +56,7 @@ pub fn verify_zero(
             val_d2.clone(),
         ));
     }
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "q",
         q.mod_floor(&vm.prime),
         ids,
