@@ -27,11 +27,17 @@ pub fn isqrt(n: &BigInt) -> Result<BigInt, VirtualMachineError> {
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
-    if y.is_zero() || !(x % y).is_zero() {
-        Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()))
-    } else {
-        Ok(x / y)
+    if y.is_zero() {
+        return Err(VirtualMachineError::DividedByZero);
     }
+
+    let (q, r) = x.div_rem(y);
+
+    if !r.is_zero() {
+        return Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()));
+    }
+
+    Ok(q)
 }
 
 /// Returns the lift of the given field element, val, as an integer in the range (-prime/2, prime/2).
@@ -219,13 +225,20 @@ mod tests {
     }
 
     #[test]
-    fn compute_safe_div_fail() {
+    fn compute_safe_div_non_divisor() {
         let x = bigint!(25);
         let y = bigint!(4);
         assert_eq!(
             safe_div(&x, &y),
             Err(VirtualMachineError::SafeDivFail(bigint!(25), bigint!(4)))
         );
+    }
+
+    #[test]
+    fn compute_safe_div_by_zero() {
+        let x = bigint!(25);
+        let y = bigint!(0);
+        assert_eq!(safe_div(&x, &y), Err(VirtualMachineError::DividedByZero));
     }
 
     #[test]
