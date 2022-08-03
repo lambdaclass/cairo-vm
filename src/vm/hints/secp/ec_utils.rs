@@ -30,13 +30,12 @@ pub fn ec_negate(
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", ids, vm, hint_ap_tracking)?;
 
-    //ids.point.y.d0
-    let y_d0 = get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?;
-    //ids.point.y.d1
-    let y_d1 = get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?;
-    //ids.point.y.d2
-    let y_d2 = get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?;
-
+    //ids.point.y
+    let (y_d0, y_d1, y_d2) = (
+        get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?,
+    );
     let value = (-pack(y_d0, y_d1, y_d2, &vm.prime)).mod_floor(&SECP_P);
 
     vm.exec_scopes
@@ -65,18 +64,14 @@ pub fn compute_doubling_slope(
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", ids, vm, hint_ap_tracking)?;
 
-    //ids.point.y.d0
-    let x_d0 = get_integer_from_relocatable_plus_offset(&point_reloc, 0, vm)?;
-    //ids.point.y.d1
-    let x_d1 = get_integer_from_relocatable_plus_offset(&point_reloc, 1, vm)?;
-    //ids.point.y.d2
-    let x_d2 = get_integer_from_relocatable_plus_offset(&point_reloc, 2, vm)?;
-    //ids.point.y.d0
-    let y_d0 = get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?;
-    //ids.point.y.d1
-    let y_d1 = get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?;
-    //ids.point.y.d2
-    let y_d2 = get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?;
+    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
+        get_integer_from_relocatable_plus_offset(&point_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 2, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?,
+    );
 
     let value = ec_double_slope(
         (
