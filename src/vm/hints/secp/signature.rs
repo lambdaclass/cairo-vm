@@ -60,8 +60,58 @@ pub fn div_mod_n_safe_div(vm: &mut VirtualMachine) -> Result<(), VirtualMachineE
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, bigint_str};
+    use crate::{
+        bigint, bigint_str,
+        types::{instruction::Register, relocatable::MaybeRelocatable},
+        utils::test_utils::{mayberelocatable, memory, memory_from_memory, memory_inner},
+        vm::{
+            errors::memory_errors::MemoryError, hints::execute_hint::HintReference,
+            vm_memory::memory::Memory,
+        },
+    };
     use num_bigint::Sign;
+
+    #[test]
+    fn safe_div_ok() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            Vec::new(),
+            false,
+        );
+
+        vm.memory = memory![
+            ((0, 0), 15),
+            ((0, 1), 3),
+            ((0, 2), 40),
+            ((0, 3), 0),
+            ((0, 4), 10),
+            ((0, 5), 1)
+        ];
+        vm.run_context.fp = mayberelocatable!(0, 3);
+
+        vm.references = HashMap::new();
+        for i in 0..=3 {
+            vm.references.insert(
+                i,
+                HintReference {
+                    register: Register::FP,
+                    offset1: i as i32 - 3,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            );
+        }
+
+        let ids: HashMap<String, BigInt> = HashMap::from([
+            ("a".to_string(), bigint!(0_i32)),
+            ("b".to_string(), bigint!(3_i32)),
+        ]);
+        assert!(div_mod_n_packed_divmod(&mut vm, &ids, None).is_ok());
+        assert!(div_mod_n_safe_div(&mut vm).is_ok());
+    }
+
     #[test]
     fn safe_div_fail() {
         let mut vm = VirtualMachine::new(
