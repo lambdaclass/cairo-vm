@@ -74,7 +74,7 @@ pub fn reduce(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = pack_from_var_name("x", ids, vm, hint_ap_tracking)?.mod_floor(&*SECP_P);
+    let value = pack_from_var_name("x", ids, vm, hint_ap_tracking)?.mod_floor(&SECP_P);
 
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));
