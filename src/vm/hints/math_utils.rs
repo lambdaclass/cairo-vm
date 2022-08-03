@@ -681,6 +681,7 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use crate::types::relocatable::Relocatable;
+    use crate::utils::test_utils::references;
     use crate::vm::hints::execute_hint::get_hint_variables;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{
@@ -5970,30 +5971,7 @@ mod tests {
         ids.insert(String::from("b"), bigint!(1));
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(1);
         let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(

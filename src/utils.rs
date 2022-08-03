@@ -105,6 +105,17 @@ pub mod test_utils {
         };
     }
     pub(crate) use mayberelocatable;
+
+    macro_rules! references {
+        ($num: expr) => {{
+            let mut references = HashMap::<usize, HintReference>::new();
+            for i in 0..=$num {
+                references.insert(i, HintReference::new_simple((i as i32 - $num - 1)));
+            }
+            references
+        }};
+    }
+    pub(crate) use references;
 }
 
 #[cfg(test)]

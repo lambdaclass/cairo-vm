@@ -51,6 +51,19 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
+impl HintReference {
+    pub fn new_simple(offset1: i32) -> Self {
+        HintReference {
+            register: Register::FP,
+            offset1,
+            offset2: 0,
+            inner_dereference: false,
+            ap_tracking_data: None,
+            immediate: None,
+        }
+    }
+}
+
 pub fn get_hint_variables(vm: &mut VirtualMachine) -> HintVisibleVariables {
     HintVisibleVariables {
         memory: &mut vm.memory,
