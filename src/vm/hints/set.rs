@@ -18,17 +18,17 @@ pub fn set_add(
     let set_ptr = get_ptr_from_var_name(
         "set_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let elm_size = get_integer_from_var_name(
         "elm_size",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
     .to_usize()
@@ -36,17 +36,17 @@ pub fn set_add(
     let elm_ptr = get_ptr_from_var_name(
         "elm_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let set_end_ptr = get_ptr_from_var_name(
         "set_end_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -83,8 +83,8 @@ pub fn set_add(
                 bigint!(i / elm_size),
                 ids,
                 variables.memory,
-                &variables.references,
-                &variables.run_context,
+                variables.references,
+                variables.run_context,
                 hint_ap_tracking,
             )?;
             return insert_integer_from_var_name(
@@ -92,8 +92,8 @@ pub fn set_add(
                 bigint!(1),
                 ids,
                 variables.memory,
-                &variables.references,
-                &variables.run_context,
+                variables.references,
+                variables.run_context,
                 hint_ap_tracking,
             );
         }
@@ -103,8 +103,8 @@ pub fn set_add(
         bigint!(0),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }

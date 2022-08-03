@@ -22,9 +22,9 @@ pub fn memset_enter_scope(
     let n = get_integer_from_var_name(
         "n",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
     .clone();
@@ -46,7 +46,7 @@ pub fn memset_continue_loop(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(&variables.exec_scopes, "n")?;
+    let n = get_int_ref_from_scope(variables.exec_scopes, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
@@ -57,8 +57,8 @@ pub fn memset_continue_loop(
         should_continue,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     // Reassign `n` with `n - 1`

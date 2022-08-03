@@ -28,16 +28,16 @@ pub fn nondet_bigint3(
     let res_reloc = get_relocatable_from_var_name(
         "res",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let value = get_int_ref_from_scope(&variables.exec_scopes, "value")?;
+    let value = get_int_ref_from_scope(variables.exec_scopes, "value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     variables
         .segments
-        .write_arg(variables.memory, &res_reloc, &arg, Some(&variables.prime))
+        .write_arg(variables.memory, &res_reloc, &arg, Some(variables.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -52,9 +52,9 @@ pub fn bigint_to_uint256(
     let x_struct = get_relocatable_from_var_name(
         "x",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let d0 = variables.memory.get_integer(&x_struct)?;
@@ -65,8 +65,8 @@ pub fn bigint_to_uint256(
         low,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }

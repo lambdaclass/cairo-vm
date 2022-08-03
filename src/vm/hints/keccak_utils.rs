@@ -45,13 +45,13 @@ pub fn unsafe_keccak(
     let length = get_integer_from_var_name(
         "length",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
-    if let Ok(keccak_max_size) = get_int_from_scope(&variables.exec_scopes, "__keccak_max_size") {
+    if let Ok(keccak_max_size) = get_int_from_scope(variables.exec_scopes, "__keccak_max_size") {
         if length > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.clone(),
@@ -64,26 +64,26 @@ pub fn unsafe_keccak(
     let data = get_ptr_from_var_name(
         "data",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
     let high_addr = get_relocatable_from_var_name(
         "high",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let low_addr = get_relocatable_from_var_name(
         "low",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -169,9 +169,9 @@ pub fn unsafe_keccak_finalize(
     let keccak_state_ptr = match get_relocatable_from_var_name(
         "keccak_state",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     ) {
         Ok(relocatable) => relocatable,
@@ -184,9 +184,9 @@ pub fn unsafe_keccak_finalize(
     let start_ptr = get_ptr_from_var_name(
         "keccak_state",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -202,7 +202,7 @@ pub fn unsafe_keccak_finalize(
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
 
     let n_elems = maybe_rel_end_ptr
-        .sub(&maybe_rel_start_ptr, &variables.prime)?
+        .sub(&maybe_rel_start_ptr, variables.prime)?
         .get_int_ref()?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
@@ -238,17 +238,17 @@ pub fn unsafe_keccak_finalize(
     let high_addr = get_relocatable_from_var_name(
         "high",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let low_addr = get_relocatable_from_var_name(
         "low",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 

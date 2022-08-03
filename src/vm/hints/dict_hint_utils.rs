@@ -68,9 +68,9 @@ pub fn default_dict_new(
     let default_value = get_integer_from_var_name(
         "default_value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
     .clone();
@@ -102,17 +102,17 @@ pub fn dict_read(
     let key = get_integer_from_var_name(
         "key",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let dict_ptr = get_ptr_from_var_name(
         "dict_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let tracker = variables.dict_manager.get_tracker(&dict_ptr)?;
@@ -143,25 +143,25 @@ pub fn dict_write(
     let key = get_integer_from_var_name(
         "key",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let new_value = get_integer_from_var_name(
         "new_value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let dict_ptr = get_ptr_from_var_name(
         "dict_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Get tracker for dictionary
@@ -202,33 +202,33 @@ pub fn dict_update(
     let key = get_integer_from_var_name(
         "key",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let prev_value = get_integer_from_var_name(
         "prev_value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let new_value = get_integer_from_var_name(
         "new_value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let dict_ptr = get_ptr_from_var_name(
         "dict_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -267,9 +267,9 @@ pub fn dict_squash_copy_dict(
     let dict_accesses_end = get_ptr_from_var_name(
         "dict_accesses_end",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let dict_copy = variables
@@ -297,17 +297,17 @@ pub fn dict_squash_update_ptr(
     let squashed_dict_start = get_ptr_from_var_name(
         "squashed_dict_start",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let squashed_dict_end = get_ptr_from_var_name(
         "squashed_dict_end",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     variables

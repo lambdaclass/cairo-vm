@@ -30,9 +30,9 @@ pub fn verify_zero(
     let val_reloc = get_relocatable_from_var_name(
         "val",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -40,7 +40,7 @@ pub fn verify_zero(
     let val_d1 = variables.memory.get_integer(&(val_reloc.clone() + 1))?;
     let val_d2 = variables.memory.get_integer(&(val_reloc + 2))?;
 
-    let pack = pack(val_d0, val_d1, val_d2, &variables.prime);
+    let pack = pack(val_d0, val_d1, val_d2, variables.prime);
 
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     let sec_p = bigint_str!(
@@ -58,11 +58,11 @@ pub fn verify_zero(
     }
     insert_integer_from_var_name(
         "q",
-        q.mod_floor(&variables.prime),
+        q.mod_floor(variables.prime),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -83,9 +83,9 @@ pub fn reduce(
     let x_reloc = get_relocatable_from_var_name(
         "x",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -98,7 +98,7 @@ pub fn reduce(
         b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
     );
 
-    let value = pack(x_d0, x_d1, x_d2, &variables.prime).mod_floor(&sec_p);
+    let value = pack(x_d0, x_d1, x_d2, variables.prime).mod_floor(&sec_p);
     insert_int_into_scope(variables.exec_scopes, "value", value);
     Ok(())
 }

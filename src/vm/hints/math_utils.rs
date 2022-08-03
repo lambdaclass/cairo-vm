@@ -28,21 +28,21 @@ pub fn is_nn(
     let a = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let range_check_builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if a.mod_floor(&variables.prime) >= bigint!(0)
-        && a.mod_floor(&variables.prime) < range_check_builtin._bound
+    let value = if a.mod_floor(variables.prime) >= bigint!(0)
+        && a.mod_floor(variables.prime) < range_check_builtin._bound
     {
         bigint!(0)
     } else {
         bigint!(1)
     };
-    insert_int_into_ap(variables.memory, &variables.run_context, value)
+    insert_int_into_ap(variables.memory, variables.run_context, value)
 }
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
@@ -54,19 +54,19 @@ pub fn is_nn_out_of_range(
     let a = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let range_check_builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if (-a - 1usize).mod_floor(&variables.prime) < range_check_builtin._bound {
+    let value = if (-a - 1usize).mod_floor(variables.prime) < range_check_builtin._bound {
         bigint!(0)
     } else {
         bigint!(1)
     };
-    insert_int_into_ap(variables.memory, &variables.run_context, value)
+    insert_int_into_ap(variables.memory, variables.run_context, value)
 }
 //Implements hint:from starkware.cairo.common.math_utils import assert_integer
 //        assert_integer(ids.a)
@@ -84,22 +84,22 @@ pub fn assert_le_felt(
     let a = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let b = get_integer_from_var_name(
         "b",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let range_check_builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
     //Assert a <= b
-    if a.mod_floor(&variables.prime) > b.mod_floor(&variables.prime) {
+    if a.mod_floor(variables.prime) > b.mod_floor(variables.prime) {
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
     }
     //Calculate value of small_inputs
@@ -113,8 +113,8 @@ pub fn assert_le_felt(
         value,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -129,27 +129,27 @@ pub fn is_le_felt(
     let a_mod = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
-    .mod_floor(&variables.prime);
+    .mod_floor(variables.prime);
     let b_mod = get_integer_from_var_name(
         "b",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
-    .mod_floor(&variables.prime);
+    .mod_floor(variables.prime);
     let value = if a_mod > b_mod {
         bigint!(1)
     } else {
         bigint!(0)
     };
-    insert_int_into_ap(variables.memory, &variables.run_context, value)
+    insert_int_into_ap(variables.memory, variables.run_context, value)
 }
 
 //Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
@@ -168,24 +168,24 @@ pub fn assert_not_equal(
     let a_addr = get_address_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let b_addr = get_address_from_var_name(
         "b",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Check that the ids are in memory
     match (variables.memory.get(&a_addr), variables.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b).is_multiple_of(&variables.prime) {
+                if (a - b).is_multiple_of(variables.prime) {
                     return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),
@@ -228,15 +228,15 @@ pub fn assert_nn(
     let a = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let range_check_builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    if a.mod_floor(&variables.prime) >= range_check_builtin._bound {
+    if a.mod_floor(variables.prime) >= range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
     };
     Ok(())
@@ -256,12 +256,12 @@ pub fn assert_not_zero(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    if value.is_multiple_of(&variables.prime) {
+    if value.is_multiple_of(variables.prime) {
         return Err(VirtualMachineError::AssertNotZero(
             value.clone(),
             variables.prime.clone(),
@@ -279,9 +279,9 @@ pub fn split_int_assert_range(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Main logic (assert value == 0)
@@ -301,37 +301,37 @@ pub fn split_int(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let base = get_integer_from_var_name(
         "base",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let bound = get_integer_from_var_name(
         "bound",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let output = get_ptr_from_var_name(
         "output",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Main Logic
-    let res = (value.mod_floor(&variables.prime)).mod_floor(base);
+    let res = (value.mod_floor(variables.prime)).mod_floor(base);
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
@@ -349,14 +349,14 @@ pub fn is_positive(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let range_check_builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
     //Main logic (assert a is positive)
-    let int_value = as_int(value, &variables.prime);
+    let int_value = as_int(value, variables.prime);
     if int_value.abs() > range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
     }
@@ -370,8 +370,8 @@ pub fn is_positive(
         result,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -393,9 +393,9 @@ pub fn split_felt(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Main logic
@@ -409,8 +409,8 @@ pub fn split_felt(
         high,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_integer_from_var_name(
@@ -418,8 +418,8 @@ pub fn split_felt(
         low,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -437,12 +437,12 @@ pub fn sqrt(
     let mod_value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
-    .mod_floor(&variables.prime);
+    .mod_floor(variables.prime);
     //This is equal to mod_value > bigint!(2).pow(250)
     if (&mod_value).shr(250_i32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
@@ -452,8 +452,8 @@ pub fn sqrt(
         isqrt(&mod_value)?,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -466,28 +466,28 @@ pub fn signed_div_rem(
     let div = get_integer_from_var_name(
         "div",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let bound = get_integer_from_var_name(
         "bound",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let builtin = get_range_check_builtin(variables.builtin_runners)?;
     // Main logic
     if !div.is_positive() || div > &(variables.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
@@ -503,7 +503,7 @@ pub fn signed_div_rem(
         ));
     }
 
-    let int_value = &as_int(value, &variables.prime);
+    let int_value = &as_int(value, variables.prime);
     let (q, r) = int_value.div_mod_floor(div);
     if bound.neg() > q || &q >= bound {
         return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
@@ -514,8 +514,8 @@ pub fn signed_div_rem(
         r,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_integer_from_var_name(
@@ -523,8 +523,8 @@ pub fn signed_div_rem(
         biased_q,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -546,20 +546,20 @@ pub fn unsigned_div_rem(
     let div = get_integer_from_var_name(
         "div",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let builtin = get_range_check_builtin(variables.builtin_runners)?;
     // Main logic
     if !div.is_positive() || div > &(variables.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
@@ -573,8 +573,8 @@ pub fn unsigned_div_rem(
         r,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_integer_from_var_name(
@@ -582,8 +582,8 @@ pub fn unsigned_div_rem(
         q,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -605,13 +605,13 @@ pub fn assert_250_bit(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Main logic
-    let int_value = as_int(value, &variables.prime).mod_floor(&variables.prime);
+    let int_value = as_int(value, variables.prime).mod_floor(variables.prime);
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
@@ -621,8 +621,8 @@ pub fn assert_250_bit(
         high,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_integer_from_var_name(
@@ -630,8 +630,8 @@ pub fn assert_250_bit(
         low,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -654,17 +654,17 @@ pub fn assert_lt_felt(
     let a = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let b = get_integer_from_var_name(
         "b",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     // Main logic
@@ -672,7 +672,7 @@ pub fn assert_lt_felt(
     // assert_integer(ids.b)
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-    if a.mod_floor(&variables.prime) >= b.mod_floor(&variables.prime) {
+    if a.mod_floor(variables.prime) >= b.mod_floor(variables.prime) {
         return Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()));
     };
     Ok(())

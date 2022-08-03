@@ -31,17 +31,17 @@ pub fn uint256_add(
     let a_relocatable = get_relocatable_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let b_relocatable = get_relocatable_from_var_name(
         "b",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let a_low = variables.memory.get_integer(&a_relocatable)?;
@@ -71,8 +71,8 @@ pub fn uint256_add(
         carry_high,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_integer_from_var_name(
@@ -80,8 +80,8 @@ pub fn uint256_add(
         carry_low,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -101,9 +101,9 @@ pub fn split_64(
     let a = get_integer_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let mut digits = a.iter_u64_digits();
@@ -114,8 +114,8 @@ pub fn split_64(
         bigint!(high),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_integer_from_var_name(
@@ -123,8 +123,8 @@ pub fn split_64(
         bigint!(low),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -148,17 +148,17 @@ pub fn uint256_sqrt(
     let n_addr = get_relocatable_from_var_name(
         "n",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let root_addr = get_relocatable_from_var_name(
         "root",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let n_low = variables.memory.get_integer(&n_addr)?;
@@ -198,21 +198,21 @@ pub fn uint256_signed_nn(
     let a_addr = get_relocatable_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let a_high = variables.memory.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
     let result: BigInt =
-        if !a_high.is_negative() && (a_high.mod_floor(&variables.prime)) <= bigint!(i128::MAX) {
+        if !a_high.is_negative() && (a_high.mod_floor(variables.prime)) <= bigint!(i128::MAX) {
             bigint!(1)
         } else {
             bigint!(0)
         };
-    insert_int_into_ap(variables.memory, &variables.run_context, result)
+    insert_int_into_ap(variables.memory, variables.run_context, result)
 }
 
 /*
@@ -236,33 +236,33 @@ pub fn uint256_unsigned_div_rem(
     let a_addr = get_relocatable_from_var_name(
         "a",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let div_addr = get_relocatable_from_var_name(
         "div",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let quotient_addr = get_relocatable_from_var_name(
         "quotient",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let remainder_addr = get_relocatable_from_var_name(
         "remainder",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 

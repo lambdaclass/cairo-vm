@@ -485,9 +485,9 @@ pub fn memcpy_enter_scope(
     let len = get_integer_from_var_name(
         "len",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
     .clone();
@@ -510,7 +510,7 @@ pub fn memcpy_continue_copying(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(&variables.exec_scopes, "n")?;
+    let n = get_int_ref_from_scope(variables.exec_scopes, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if it is positive, insert 1 in the address of `continue_copying`
@@ -521,8 +521,8 @@ pub fn memcpy_continue_copying(
             bigint!(1),
             ids,
             variables.memory,
-            &variables.references,
-            &variables.run_context,
+            variables.references,
+            variables.run_context,
             hint_ap_tracking,
         )?;
     } else {
@@ -531,8 +531,8 @@ pub fn memcpy_continue_copying(
             bigint!(0),
             ids,
             variables.memory,
-            &variables.references,
-            &variables.run_context,
+            variables.references,
+            variables.run_context,
             hint_ap_tracking,
         )?;
     }
@@ -593,9 +593,9 @@ mod tests {
             get_integer_from_var_name(
                 var_name,
                 &ids,
-                &variables.memory,
-                &variables.references,
-                &variables.run_context,
+                variables.memory,
+                variables.references,
+                variables.run_context,
                 None
             ),
             Ok(&bigint!(10))
@@ -646,9 +646,9 @@ mod tests {
             get_integer_from_var_name(
                 var_name,
                 &ids,
-                &variables.memory,
-                &variables.references,
-                &variables.run_context,
+                variables.memory,
+                variables.references,
+                variables.run_context,
                 None
             ),
             Err(VirtualMachineError::ExpectedInteger(

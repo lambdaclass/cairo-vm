@@ -21,21 +21,21 @@ pub fn pow(
     let prev_locs_addr = get_relocatable_from_var_name(
         "prev_locs",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let prev_locs_exp_addr = relocatable!(prev_locs_addr.segment_index, prev_locs_addr.offset + 4);
     let prev_locs_exp = variables.memory.get_integer(&prev_locs_exp_addr)?;
-    let locs_bit = prev_locs_exp.mod_floor(&variables.prime) & bigint!(1);
+    let locs_bit = prev_locs_exp.mod_floor(variables.prime) & bigint!(1);
     insert_integer_from_var_name(
         "locs",
         locs_bit,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     Ok(())

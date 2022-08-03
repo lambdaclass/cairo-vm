@@ -51,7 +51,7 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
-pub fn get_hint_variables<'a>(vm: &'a mut VirtualMachine) -> HintVisibleVariables<'a> {
+pub fn get_hint_variables(vm: &mut VirtualMachine) -> HintVisibleVariables {
     HintVisibleVariables {
         memory: &mut vm.memory,
         segments: &mut vm.segments,

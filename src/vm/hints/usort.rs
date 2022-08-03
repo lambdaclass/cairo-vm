@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use super::hint_utils::insert_int_into_scope;
 
 pub fn usort_enter_scope(variables: HintVisibleVariables) -> Result<(), VirtualMachineError> {
-    let usort_max_size = get_u64_from_scope(&variables.exec_scopes, "usort_max_size")
+    let usort_max_size = get_u64_from_scope(variables.exec_scopes, "usort_max_size")
         .map_or(PyValueType::None, PyValueType::U64);
     variables.exec_scopes.enter_scope(HashMap::from([(
         "usort_max_size".to_string(),
@@ -37,22 +37,22 @@ pub fn usort_body(
     let input_arr_start_ptr = get_relocatable_from_var_name(
         "input",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let input_ptr = variables
         .memory
         .get_relocatable(&input_arr_start_ptr)?
         .clone();
-    let usort_max_size = get_u64_from_scope(&variables.exec_scopes, "usort_max_size");
+    let usort_max_size = get_u64_from_scope(variables.exec_scopes, "usort_max_size");
     let input_len = get_integer_from_var_name(
         "input_len",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let input_len_u64 = input_len
@@ -116,8 +116,8 @@ pub fn usort_body(
         bigint!(output_len),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_relocatable_from_var_name(
@@ -125,8 +125,8 @@ pub fn usort_body(
         output_base,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_relocatable_from_var_name(
@@ -134,8 +134,8 @@ pub fn usort_body(
         multiplicities_base,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -148,9 +148,9 @@ pub fn verify_usort(
     let value = get_integer_from_var_name(
         "value",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
     .clone();
@@ -188,14 +188,14 @@ pub fn verify_multiplicity_body(
     let current_pos = get_list_u64_from_scope_mut(variables.exec_scopes, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - get_int_from_scope(&variables.exec_scopes, "last_pos")?;
+    let pos_diff = bigint!(current_pos) - get_int_from_scope(variables.exec_scopes, "last_pos")?;
     insert_integer_from_var_name(
         "next_item_index",
         pos_diff,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_int_into_scope(variables.exec_scopes, "last_pos", bigint!(current_pos + 1));

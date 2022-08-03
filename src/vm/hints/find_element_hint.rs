@@ -24,36 +24,36 @@ pub fn find_element(
     let key = get_integer_from_var_name(
         "key",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let elm_size_bigint = get_integer_from_var_name(
         "elm_size",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let n_elms = get_integer_from_var_name(
         "n_elms",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let array_start = get_ptr_from_var_name(
         "array_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
-    let find_element_index = get_int_from_scope(&variables.exec_scopes, "find_element_index").ok();
+    let find_element_index = get_int_from_scope(variables.exec_scopes, "find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
@@ -82,8 +82,8 @@ pub fn find_element(
             find_element_index_value,
             ids,
             variables.memory,
-            &variables.references,
-            &variables.run_context,
+            variables.references,
+            variables.run_context,
             hint_ap_tracking,
         )?;
         variables.exec_scopes.delete_variable("find_element_index");
@@ -94,7 +94,7 @@ pub fn find_element(
         }
 
         if let Ok(find_element_max_size) =
-            get_int_ref_from_scope(&variables.exec_scopes, "find_element_max_size")
+            get_int_ref_from_scope(variables.exec_scopes, "find_element_max_size")
         {
             if n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
@@ -119,8 +119,8 @@ pub fn find_element(
                     bigint!(i),
                     ids,
                     variables.memory,
-                    &variables.references,
-                    &variables.run_context,
+                    variables.references,
+                    variables.run_context,
                     hint_ap_tracking,
                 );
             }
@@ -135,37 +135,37 @@ pub fn search_sorted_lower(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = get_int_from_scope(&variables.exec_scopes, "find_element_max_size");
+    let find_element_max_size = get_int_from_scope(variables.exec_scopes, "find_element_max_size");
     let n_elms = get_integer_from_var_name(
         "n_elms",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let rel_array_ptr = get_relocatable_from_var_name(
         "array_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let elm_size = get_integer_from_var_name(
         "elm_size",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let key = get_integer_from_var_name(
         "key",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -200,8 +200,8 @@ pub fn search_sorted_lower(
                 bigint!(i),
                 ids,
                 variables.memory,
-                &variables.references,
-                &variables.run_context,
+                variables.references,
+                variables.run_context,
                 hint_ap_tracking,
             );
         }
@@ -212,8 +212,8 @@ pub fn search_sorted_lower(
         n_elms.clone(),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }

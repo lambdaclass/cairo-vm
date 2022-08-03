@@ -48,13 +48,13 @@ pub fn squash_dict_inner_first_iteration(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let key = get_int_from_scope(&variables.exec_scopes, "key")?;
+    let key = get_int_from_scope(variables.exec_scopes, "key")?;
     let range_check_ptr = get_ptr_from_var_name(
         "range_check_ptr",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let access_indices = get_access_indices(variables.exec_scopes)?;
@@ -92,7 +92,7 @@ pub fn squash_dict_inner_skip_loop(
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_from_scope(&variables.exec_scopes, "current_access_indices")?;
+        get_list_from_scope(variables.exec_scopes, "current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -104,8 +104,8 @@ pub fn squash_dict_inner_skip_loop(
         should_skip_loop,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -121,7 +121,7 @@ pub fn squash_dict_inner_check_access_index(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = get_int_from_scope(&variables.exec_scopes, "current_access_index")?;
+    let current_access_index = get_int_from_scope(variables.exec_scopes, "current_access_index")?;
     let current_access_indices =
         get_mut_list_ref_from_scope(variables.exec_scopes, "current_access_indices")?;
     //Main Logic
@@ -136,8 +136,8 @@ pub fn squash_dict_inner_check_access_index(
         index_delta_minus1,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     insert_int_into_scope(
@@ -164,14 +164,14 @@ pub fn squash_dict_inner_continue_loop(
     let loop_temps_addr = get_relocatable_from_var_name(
         "loop_temps",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_ref_from_scope(&variables.exec_scopes, "current_access_indices")?;
+        get_list_ref_from_scope(variables.exec_scopes, "current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -205,13 +205,13 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_int_from_scope(&variables.exec_scopes, "key")?;
+    let key = get_int_from_scope(variables.exec_scopes, "key")?;
     let n_used_accesses = get_integer_from_var_name(
         "n_used_accesses",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?
     .clone();
@@ -236,7 +236,7 @@ pub fn squash_dict_inner_assert_len_keys(
     variables: HintVisibleVariables,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_list_ref_from_scope(&variables.exec_scopes, "keys")?;
+    let keys = get_list_ref_from_scope(variables.exec_scopes, "keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -260,8 +260,8 @@ pub fn squash_dict_inner_next_key(
         next_key.clone(),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Update local variables
@@ -299,35 +299,35 @@ pub fn squash_dict(
     let address = get_ptr_from_var_name(
         "dict_accesses",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let ptr_diff = get_integer_from_var_name(
         "ptr_diff",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let n_accesses = get_integer_from_var_name(
         "n_accesses",
         ids,
-        &variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.memory,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Get range_check_builtin
-    let range_check_builtin = get_range_check_builtin(&variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
     if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = get_int_from_scope(&variables.exec_scopes, "__squash_dict_max_size");
+    let squash_dict_max_size = get_int_from_scope(variables.exec_scopes, "__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
@@ -367,8 +367,8 @@ pub fn squash_dict(
         big_keys,
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
@@ -377,8 +377,8 @@ pub fn squash_dict(
         key.clone(),
         ids,
         variables.memory,
-        &variables.references,
-        &variables.run_context,
+        variables.references,
+        variables.run_context,
         hint_ap_tracking,
     )?;
     //Insert local variables into scope
