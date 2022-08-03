@@ -115,7 +115,7 @@ pub fn line_slope(
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    assert!(!((point_a.0.clone() - point_b.0.clone()) % prime).is_zero());
+    assert!(!(&point_a.0 - &point_b.0 % prime).is_zero());
     div_mod(
         &(&point_a.1 - &point_b.1),
         &(&point_a.0 - &point_b.0),
@@ -136,9 +136,9 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    assert!(!(point.1.clone() % prime).is_zero());
+    assert!(!(&point.1 % prime).is_zero());
     div_mod(
-        &(bigint!(3_i32) * point.0.clone() * point.0.clone() + alpha),
+        &(bigint!(3_i32) * &point.0 * &point.0 + alpha),
         &(bigint!(2_i32) * point.1),
         prime,
     )
