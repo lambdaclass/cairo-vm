@@ -636,4 +636,82 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn run_ec_double_assign_new_y_ok() {
+        let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P".as_bytes();
+        let mut vm = VirtualMachine::new(
+            VM_PRIME.clone(),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        //Insert 'slope' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "slope",
+            PyValueType::BigInt(bigint_str!(
+                b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
+            )),
+        );
+
+        //Insert 'x' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "x",
+            PyValueType::BigInt(bigint_str!(
+                b"838083498911032969414721426845751663479194726707495046"
+            )),
+        );
+
+        //Insert 'new_x' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "new_x",
+            PyValueType::BigInt(bigint_str!(
+                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+            )),
+        );
+
+        //Insert 'y' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "y",
+            PyValueType::BigInt(bigint_str!(
+                b"4310143708685312414132851373791311001152018708061750480"
+            )),
+        );
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(
+                &mut vm,
+                hint_code,
+                HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+            )))
+        );
+
+        //Check 'new_y' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_y"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+            )))
+        );
+    }
 }
