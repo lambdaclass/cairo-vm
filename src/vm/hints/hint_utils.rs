@@ -248,7 +248,9 @@ pub fn get_address_from_reference(
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
+            println!("lal");
             if let Some(hint_reference) = references.get(&index) {
+                println!("REF: {:?}", hint_reference);
                 return compute_addr_from_reference(
                     hint_reference,
                     run_context,

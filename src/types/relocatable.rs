@@ -48,6 +48,11 @@ impl Relocatable {
         let new_offset = self.offset - other;
         Ok(relocatable!(self.segment_index, new_offset))
     }
+
+    pub fn add(&self, other: usize) -> Result<Self, VirtualMachineError> {
+        let new_offset = self.offset + other;
+        Ok(relocatable!(self.segment_index, new_offset))
+    }
 }
 
 impl MaybeRelocatable {

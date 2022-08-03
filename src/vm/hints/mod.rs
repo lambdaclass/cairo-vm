@@ -1,5 +1,6 @@
 pub mod blake2s_hash;
 pub mod blake2s_utils;
+pub mod cairo_keccak;
 pub mod dict_hint_utils;
 pub mod dict_manager;
 pub mod execute_hint;

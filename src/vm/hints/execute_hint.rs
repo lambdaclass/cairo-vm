@@ -33,6 +33,7 @@ use crate::vm::hints::uint256_utils::{
     split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
 };
 
+use crate::vm::hints::cairo_keccak::keccak_hints::keccak_write_args;
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
     field_utils::{
@@ -176,6 +177,7 @@ pub fn execute_hint(
         ) => is_zero_nondet(vm),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)"
         ) => is_zero_assign_scope_variables(vm),
+        Ok("segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])") => keccak_write_args(vm, &ids, Some(ap_tracking)),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
