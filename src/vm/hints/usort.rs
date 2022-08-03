@@ -68,7 +68,7 @@ pub fn usort_body(
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm.memory.get_integer(&(input_ptr.clone() + i as usize))?;
+        let val = vm.memory.get_integer(&(&input_ptr + i as usize))?;
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
@@ -93,14 +93,12 @@ pub fn usort_body(
 
     for (i, sorted_element) in output.into_iter().enumerate() {
         vm.memory
-            .insert_integer(&(output_base.clone() + i), sorted_element)?;
+            .insert_integer(&(&output_base + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm.memory.insert_integer(
-            &(multiplicities_base.clone() + i),
-            bigint!(repetition_amount),
-        )?;
+        vm.memory
+            .insert_integer(&(&multiplicities_base + i), bigint!(repetition_amount))?;
     }
 
     insert_integer_from_var_name(
