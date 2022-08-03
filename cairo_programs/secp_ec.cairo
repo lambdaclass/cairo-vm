@@ -4,6 +4,8 @@ from starkware.cairo.common.cairo_secp.ec import (
         EcPoint,
         ec_negate,
         compute_doubling_slope,
+        compute_slope,
+        ec_double
 )
 from starkware.cairo.common.cairo_secp.bigint import BigInt3
 
@@ -27,6 +29,14 @@ func main{range_check_ptr: felt}():
 
     let (slope_b) = compute_doubling_slope(EcPoint(BigInt3(-1231, -51235643, -100000), BigInt3(77371252455, 7737125245, 19342813113)))
     assert slope_b = BigInt3(33416489251043008849460372,4045868738249434151710245, 18495428769257823271538303)
+
+    #compute_slope
+    let (slope_c) = compute_slope(point_a, point_c)
+    assert slope_c = BigInt3(71370520431055565073514403,50503780757454603164423474, 8638166971146679236895064)
+
+    #ec_double
+    let (point_d) = ec_double(point_a)
+    assert point_d = EcPoint(BigInt3(74427550641062819382893486, 40869730155367266160799328, 5674783931833640986577252), BigInt3(30795856170124638149720790, 54408100978340609265106444, 13350501717657408140240292))
 
     return()
 end
