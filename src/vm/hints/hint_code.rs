@@ -396,3 +396,17 @@ pub(crate) const IS_ZERO_ASSIGN_SCOPE_VARS: &str = r#"from starkware.cairo.commo
 from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
+
+pub(crate) const EC_NEGATE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+y = pack(ids.point.y, PRIME) % SECP_P
+# The modulo operation in python always returns a nonnegative number.
+value = (-y) % SECP_P"#;
+
+pub(crate) const EC_DOUBLE_SCOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;

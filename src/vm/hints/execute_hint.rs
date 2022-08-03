@@ -36,6 +36,7 @@ use crate::vm::hints::uint256_utils::{
 
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
+    ec_utils::{compute_doubling_slope, ec_negate},
     field_utils::{
         is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
     },
@@ -150,6 +151,8 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::IS_ZERO_PACK => is_zero_pack(vm, ids, None),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm),
+            hint_code::EC_NEGATE => ec_negate(vm, ids, None),
+            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm, ids, None),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }
