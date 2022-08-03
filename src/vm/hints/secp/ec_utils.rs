@@ -134,6 +134,7 @@ mod tests {
                 register: Register::FP,
                 offset1: -8,
                 offset2: 0,
+                dereference: false,
                 inner_dereference: false,
                 immediate: None,
                 ap_tracking_data: Some(ApTracking {
@@ -201,6 +202,7 @@ mod tests {
                 register: Register::FP,
                 offset1: -8,
                 offset2: 0,
+                dereference: false,
                 inner_dereference: false,
                 immediate: None,
                 ap_tracking_data: Some(ApTracking {
