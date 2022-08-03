@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659543431889,
+  "lastUpdate": 1659547355812,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -14261,6 +14261,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 258240521,
             "range": "± 5881009",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0f9c9804f297f00e10d01691da598360e7db5ba9",
+          "message": "[HINTS]Add implementation for hints on function is_zero (cairo_secp/field.cairo ) (#332)\n\n* make MathUtils::div_mod fn public\r\n\r\n* add is_zero hint implementations\r\n\r\n* add is_zero to secp.cairo integration test\r\n\r\n* add is_zero_pack unit tests\r\n\r\n* fix is_zero_pack mod bug\r\n\r\n* add is_zero_nondet unit tests\r\n\r\n* add is_zero_assign_scope_variables unit tests\r\n\r\n* update cairo_programs/secp.cairo\r\n\r\n* add SECP_P constant\r\n\r\n* modify div_mod function\r\n\r\n* review corrections\r\n\r\n* add vm_prime macro\r\n\r\n* add VM_PRIME lazy_static\r\n\r\n* use get_int_from_scope helper",
+          "timestamp": "2022-08-03T14:11:16-03:00",
+          "tree_id": "4ef683d39ecd404d7378e4574aa471ac843efd2a",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/0f9c9804f297f00e10d01691da598360e7db5ba9"
+        },
+        "date": 1659547354144,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1638367582,
+            "range": "± 3203081",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 630394643,
+            "range": "± 2121851",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 297293771,
+            "range": "± 1750776",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1538627835,
+            "range": "± 6676478",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 218660423,
+            "range": "± 866134",
             "unit": "ns/iter"
           }
         ]
