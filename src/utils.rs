@@ -130,6 +130,29 @@ pub mod test_utils {
         };
     }
     pub(crate) use vm_with_range_check;
+
+    macro_rules! ids {
+        ( $( $name: expr ),* ) => {
+            {
+                let mut ids = HashMap::<String, BigInt>::new();
+                let mut num = -1;
+                $(
+                    num += 1;
+                    ids_inner!($name, num, ids);
+
+                )*
+                ids
+            }
+        };
+    }
+    pub(crate) use ids;
+
+    macro_rules! ids_inner {
+        ( $name: expr, $num: expr, $ids: expr ) => {
+            $ids.insert(String::from($name), bigint!($num))
+        };
+    }
+    pub(crate) use ids_inner;
 }
 
 #[cfg(test)]

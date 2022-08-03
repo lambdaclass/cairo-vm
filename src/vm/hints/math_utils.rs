@@ -681,9 +681,10 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::{references, vm_with_range_check};
+    use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::get_hint_variables;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         bigint_str, relocatable,
         types::instruction::Register,
@@ -5934,35 +5935,11 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
         .as_bytes();
         let mut vm = vm_with_range_check!();
-        //Initialize memory segements
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        vm.memory = memory![((1, 1), (1))];
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 3));
-
-        //Insert ids.a into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        //Skip insert ids.b into memory
-        // vm.memory
-        //     .insert(
-        //         &MaybeRelocatable::from((1, 2)),
-        //         &MaybeRelocatable::from(bigint!(2)),
-        //     )
-        //     .unwrap();
-
         //Create incorrects ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-
+        let ids = ids!["a", "b"];
         //Create references
         vm.references = references!(1);
         let variables = get_hint_variables(&mut vm);
