@@ -311,7 +311,6 @@ mod tests {
 
     #[test]
     fn parse_value_with_no_register_test() {
-
         let value = "cast(825323, felt*)";
         let parsed = parse_value(value);
         assert_eq!(
