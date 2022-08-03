@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use cleopatra_cairo::cairo_run;
+use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintExecutor;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const BENCH_NAMES: &'static [&'static str] = &[
@@ -12,10 +13,18 @@ const BENCH_NAMES: &'static [&'static str] = &[
 ];
 const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
 
+static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
 pub fn criterion_benchmarks(c: &mut Criterion) {
     for benchmark_name in build_bench_strings() {
         c.bench_function(&benchmark_name.0, |b| {
-            b.iter(|| cairo_run::cairo_run(black_box(Path::new(&benchmark_name.1)), false))
+            b.iter(|| {
+                cairo_run::cairo_run(
+                    black_box(Path::new(&benchmark_name.1)),
+                    false,
+                    &HINT_EXECUTOR,
+                )
+            })
         });
     }
 }

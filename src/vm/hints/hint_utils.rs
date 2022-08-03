@@ -400,7 +400,7 @@ pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -409,7 +409,7 @@ pub fn is_nn(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -466,7 +466,7 @@ pub fn is_nn(
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -475,7 +475,7 @@ pub fn is_nn_out_of_range(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -539,7 +539,7 @@ pub fn is_nn_out_of_range(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -557,7 +557,7 @@ pub fn assert_le_felt(
                     String::from("b"),
                     String::from("small_inputs"),
                 ],
-                ids.into_keys().collect(),
+                ids.keys().map(Clone::clone).collect(),
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
@@ -638,7 +638,7 @@ pub fn assert_le_felt(
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -649,7 +649,7 @@ pub fn is_le_felt(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a"), String::from("b")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -712,7 +712,7 @@ pub fn is_le_felt(
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -723,7 +723,7 @@ pub fn assert_not_equal(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a"), String::from("b")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -776,7 +776,7 @@ pub fn assert_not_equal(
 // %}
 pub fn assert_nn(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for 'a' variable used by the hint
@@ -785,7 +785,7 @@ pub fn assert_nn(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that 'a' reference id corresponds to a value in the reference manager
@@ -841,7 +841,7 @@ pub fn assert_nn(
 // %}
 pub fn assert_not_zero(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value_ref = if let Some(value_ref) = ids.get(&String::from("value")) {
@@ -849,7 +849,7 @@ pub fn assert_not_zero(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("value")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -887,7 +887,7 @@ pub fn assert_not_zero(
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -896,7 +896,7 @@ pub fn split_int_assert_range(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("value")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -935,7 +935,7 @@ pub fn split_int_assert_range(
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -955,7 +955,7 @@ pub fn split_int(
                     String::from("base"),
                     String::from("bound"),
                 ],
-                ids.into_keys().collect(),
+                ids.keys().map(Clone::clone).collect(),
             ));
         };
     //Check that the ids are in memory (except for small_inputs which is local, and should contain None)
@@ -1039,7 +1039,7 @@ pub fn split_int(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -1051,7 +1051,7 @@ pub fn is_positive(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("value"), String::from("is_positive")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -1131,7 +1131,7 @@ pub fn is_positive(
 // %}
 pub fn split_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for the variables used by the hint
@@ -1148,7 +1148,7 @@ pub fn split_felt(
                 String::from("low"),
                 String::from("value"),
             ],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
 
@@ -1213,7 +1213,7 @@ pub fn split_felt(
 //        ids.root = isqrt(value)
 pub fn sqrt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -1225,7 +1225,7 @@ pub fn sqrt(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("value"), String::from("root")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -1274,7 +1274,7 @@ pub fn sqrt(
 
 pub fn signed_div_rem(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -1311,7 +1311,7 @@ pub fn signed_div_rem(
                 String::from("value"),
                 String::from("bound"),
             ],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -1475,7 +1475,7 @@ ids.q, ids.r = divmod(ids.value, ids.div)
 */
 pub fn unsigned_div_rem(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -1495,7 +1495,7 @@ pub fn unsigned_div_rem(
                     String::from("div"),
                     String::from("value"),
                 ],
-                ids.into_keys().collect(),
+                ids.keys().map(Clone::clone).collect(),
             ));
         };
     //Check that each reference id corresponds to a value in the reference manager
@@ -1598,10 +1598,10 @@ pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len_addr = get_address_from_var_name("len", &ids, vm, hint_ap_tracking)?;
+    let len_addr = get_address_from_var_name("len", ids, vm, hint_ap_tracking)?;
 
     match vm.memory.get(&len_addr) {
         Ok(Some(maybe_rel_len)) => {
@@ -1628,11 +1628,11 @@ pub fn memcpy_enter_scope(
 // %}
 pub fn memcpy_continue_copying(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let continue_copying_addr =
-        get_address_from_var_name("continue_copying", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("continue_copying", ids, vm, hint_ap_tracking)?;
 
     // get `n` variable from vm scope
     let n = match vm.exec_scopes.get_local_variables() {
@@ -1677,7 +1677,7 @@ pub fn memcpy_continue_copying(
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Declare constant values
@@ -1697,7 +1697,7 @@ pub fn assert_250_bit(
                 String::from("high"),
                 String::from("low"),
             ],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -1771,7 +1771,7 @@ Implements hint:
 */
 pub fn assert_lt_felt(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -1782,7 +1782,7 @@ pub fn assert_lt_felt(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("a"), String::from("b")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
     //Check that each reference id corresponds to a value in the reference manager
@@ -1822,7 +1822,10 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn get_integer_from_var_name_valid() {
@@ -1830,6 +1833,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1877,6 +1881,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1926,6 +1931,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1950,6 +1956,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
