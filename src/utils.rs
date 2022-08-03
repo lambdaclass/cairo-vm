@@ -116,6 +116,20 @@ pub mod test_utils {
         }};
     }
     pub(crate) use references;
+
+    macro_rules! vm_with_range_check {
+        () => {
+            VirtualMachine::new(
+                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+                vec![(
+                    "range_check".to_string(),
+                    Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                )],
+                false,
+            )
+        };
+    }
+    pub(crate) use vm_with_range_check;
 }
 
 #[cfg(test)]

@@ -681,7 +681,7 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use crate::types::relocatable::Relocatable;
-    use crate::utils::test_utils::references;
+    use crate::utils::test_utils::{references, vm_with_range_check};
     use crate::vm::hints::execute_hint::get_hint_variables;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{
@@ -5933,14 +5933,7 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
         .as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let mut vm = vm_with_range_check!();
         //Initialize memory segements
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
