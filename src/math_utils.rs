@@ -91,7 +91,7 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
 pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
     let (a, _, c) = igcdex(m.clone(), p.clone());
-    assert_eq!(c, bigint!(1_i32));
+    assert_eq!(c, bigint!(1));
     (n * a).mod_floor(p)
 }
 
