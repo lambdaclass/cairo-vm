@@ -90,7 +90,7 @@ mod tests {
 
         let scope = HashMap::from([(var_name, var_value)]);
 
-        let mut scopes = ExecutionScopes { data: vec![scope] };
+        let scopes = ExecutionScopes { data: vec![scope] };
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
