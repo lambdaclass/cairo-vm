@@ -6,7 +6,6 @@ use crate::types::{
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::abs;
-use num_traits::FromPrimitive;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 

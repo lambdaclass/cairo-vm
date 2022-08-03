@@ -300,6 +300,7 @@ mod tests {
             vm.references.insert(
                 i,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: i as i32 - FP_OFFSET_START as i32,
                     offset2: 0,
@@ -384,6 +385,7 @@ mod tests {
         vm.references.insert(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -7,
                 offset2: 0,
@@ -416,6 +418,7 @@ mod tests {
             vm.references.insert(
                 i,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: i as i32 - FP_OFFSET_START as i32,
                     offset2: 0,
@@ -622,6 +625,7 @@ mod tests {
         vm.references.insert(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -7,
                 offset2: 0,
@@ -654,6 +658,7 @@ mod tests {
             vm.references.insert(
                 i,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: i as i32 - FP_OFFSET_START as i32,
                     offset2: 0,

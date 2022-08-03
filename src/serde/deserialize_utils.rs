@@ -12,7 +12,6 @@ use nom::{
 };
 use num_bigint::{BigInt, ParseBigIntError};
 use num_integer::Integer;
-use num_traits::FromPrimitive;
 use parse_hyperlinks::take_until_unbalanced;
 use std::fmt;
 use std::num::ParseIntError;
