@@ -394,4 +394,107 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn run_compute_slope_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)".as_bytes();
+        let mut vm = VirtualMachine::new(
+            VM_PRIME.clone(),
+            vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+            )],
+            false,
+        );
+
+        vm.memory = memory![
+            ((1, 0), 134),
+            ((1, 1), 5123),
+            ((1, 2), 140),
+            ((1, 3), 1232),
+            ((1, 4), 4652),
+            ((1, 5), 720),
+            ((1, 6), 156),
+            ((1, 7), 6545),
+            ((1, 8), 100010),
+            ((1, 9), 1123),
+            ((1, 10), 1325),
+            ((1, 11), 910)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 14));
+
+        //Create ids
+        let mut ids = HashMap::<String, BigInt>::new();
+        ids.insert(String::from("point0"), bigint!(0));
+        ids.insert(String::from("point1"), bigint!(1));
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -14,
+                    offset2: 0,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -8,
+                    offset2: 0,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+        ]);
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Check 'slope' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
+            )))
+        );
+
+        //Check 'slope' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
+            )))
+        );
+    }
+
 }
