@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659567731774,
+  "lastUpdate": 1659568827713,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -15527,6 +15527,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 218791867,
             "range": "± 1947227",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8195ba6f066e70ddc77b531ab411dd28a2035f54",
+          "message": "Hint executor customization (#330)\n\n* Big hint refactor\r\n\r\nExtract long code strings to constants.\r\nConstruct them as plain strings, use &str for matching them.\r\nPass the hint hashmaps by reference.\r\n\r\nA first step towards customizing hints.\r\n\r\n* Abstract hint execution behind a trait\r\n\r\nThis allows downstream users to implement their own executors.\r\n\r\n* Fix benchmarks\r\n\r\n* Use static strings\r\n\r\n* Revert \"Use static strings\"\r\n\r\nThis reverts commit b4eb1030923993affd499d9466b13e0dffdd5018.\r\n\r\n* Fix test",
+          "timestamp": "2022-08-03T20:07:01-03:00",
+          "tree_id": "449c387bcb9800d07f0de2e3c573764b8a2a074e",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/8195ba6f066e70ddc77b531ab411dd28a2035f54"
+        },
+        "date": 1659568824428,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1999670824,
+            "range": "± 35948157",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 715124561,
+            "range": "± 5728268",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 353811866,
+            "range": "± 3321709",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1736527387,
+            "range": "± 10424077",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 263722775,
+            "range": "± 3158588",
             "unit": "ns/iter"
           }
         ]
