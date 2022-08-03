@@ -188,7 +188,7 @@ pub fn execute_hint(
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"
         ) => ec_double_assign_new_x(vm, &ids, Some(ap_tracking)),
         Ok("value = new_y = (slope * (x - new_x) - y) % SECP_P"
-        ) => ec_double_assign_new_y(vm, &ids, None),
+        ) => ec_double_assign_new_y(vm),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

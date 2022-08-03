@@ -4,7 +4,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
+    get_int_from_scope, get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VirtualMachine;
@@ -222,12 +222,28 @@ pub fn ec_double_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(
-    _vm: &mut VirtualMachine,
-    _ids: &HashMap<String, BigInt>,
-    _hint_ap_tracking: Option<&ApTracking>,
-) -> Result<(), VirtualMachineError> {
-    todo!();
+pub fn ec_double_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    //Get variables from vm scope
+    let (slope, x, new_x, y) = (
+        get_int_from_scope(vm, "slope")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("slope")))?,
+        get_int_from_scope(vm, "x")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x")))?,
+        get_int_from_scope(vm, "new_x")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("new_x")))?,
+        get_int_from_scope(vm, "y")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("y")))?,
+    );
+
+    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("new_y", PyValueType::BigInt(value));
+
+    Ok(())
 }
 
 #[cfg(test)]
