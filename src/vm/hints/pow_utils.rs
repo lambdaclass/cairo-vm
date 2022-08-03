@@ -1,7 +1,7 @@
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::HintVisibleVariables;
 use crate::{bigint, relocatable};
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -14,28 +14,28 @@ Implements hint:
 %{ ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1 %}
 */
 pub fn pow(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let prev_locs_addr = get_relocatable_from_var_name(
         "prev_locs",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
     let prev_locs_exp_addr = relocatable!(prev_locs_addr.segment_index, prev_locs_addr.offset + 4);
-    let prev_locs_exp = vm.memory.get_integer(&prev_locs_exp_addr)?;
-    let locs_bit = prev_locs_exp.mod_floor(&vm.prime) & bigint!(1);
+    let prev_locs_exp = variables.memory.get_integer(&prev_locs_exp_addr)?;
+    let locs_bit = prev_locs_exp.mod_floor(&variables.prime) & bigint!(1);
     insert_integer_from_var_name(
         "locs",
         locs_bit,
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
     Ok(())
@@ -47,7 +47,8 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 
@@ -120,9 +121,12 @@ mod tests {
             group: 4,
             offset: 4,
         };
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            execute_hint(variables, hint_code, ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -154,10 +158,10 @@ mod tests {
         ids.insert(String::from("locs"), bigint!(1));
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -213,10 +217,10 @@ mod tests {
         ]);
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -281,10 +285,10 @@ mod tests {
             .unwrap();
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -357,10 +361,10 @@ mod tests {
             .unwrap();
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),

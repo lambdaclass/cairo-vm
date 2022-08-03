@@ -4,7 +4,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name, insert_int_into_scope, insert_integer_from_var_name,
 };
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::HintVisibleVariables;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -23,24 +23,24 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let val_reloc = get_relocatable_from_var_name(
         "val",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
-    let val_d0 = vm.memory.get_integer(&val_reloc)?;
-    let val_d1 = vm.memory.get_integer(&(val_reloc.clone() + 1))?;
-    let val_d2 = vm.memory.get_integer(&(val_reloc + 2))?;
+    let val_d0 = variables.memory.get_integer(&val_reloc)?;
+    let val_d1 = variables.memory.get_integer(&(val_reloc.clone() + 1))?;
+    let val_d2 = variables.memory.get_integer(&(val_reloc + 2))?;
 
-    let pack = pack(val_d0, val_d1, val_d2, &vm.prime);
+    let pack = pack(val_d0, val_d1, val_d2, &variables.prime);
 
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     let sec_p = bigint_str!(
@@ -58,11 +58,11 @@ pub fn verify_zero(
     }
     insert_integer_from_var_name(
         "q",
-        q.mod_floor(&vm.prime),
+        q.mod_floor(&variables.prime),
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -76,30 +76,30 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let x_reloc = get_relocatable_from_var_name(
         "x",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
-    let x_d0 = vm.memory.get_integer(&x_reloc)?;
-    let x_d1 = vm.memory.get_integer(&(x_reloc.clone() + 1))?;
-    let x_d2 = vm.memory.get_integer(&(x_reloc + 2))?;
+    let x_d0 = variables.memory.get_integer(&x_reloc)?;
+    let x_d1 = variables.memory.get_integer(&(x_reloc.clone() + 1))?;
+    let x_d2 = variables.memory.get_integer(&(x_reloc + 2))?;
 
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     let sec_p = bigint_str!(
         b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
     );
 
-    let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&sec_p);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
+    let value = pack(x_d0, x_d1, x_d2, &variables.prime).mod_floor(&sec_p);
+    insert_int_into_scope(variables.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -113,8 +113,9 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
 
     #[test]
     fn run_verify_zero_ok() {
@@ -203,9 +204,12 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            execute_hint(variables, hint_code, ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         //ids.q
@@ -302,10 +306,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(150)),
             )
             .unwrap();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::SecpVerifyZero(
                 bigint!(0),
                 bigint!(0),
@@ -409,10 +413,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(55)),
             )
             .unwrap();
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
@@ -491,9 +495,10 @@ mod tests {
             None
         );
 
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -557,10 +562,10 @@ mod tests {
             vm.exec_scopes.get_local_variables().unwrap().get("value"),
             None
         );
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            execute_hint(variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
             ))

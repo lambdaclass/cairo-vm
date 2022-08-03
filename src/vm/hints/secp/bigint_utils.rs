@@ -6,7 +6,7 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::hints::secp::secp_utils::split;
 use crate::vm::hints::secp::secp_utils::BASE_86;
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::HintVisibleVariables;
 
 use num_bigint::BigInt;
 use std::collections::HashMap;
@@ -21,22 +21,23 @@ Implements hint:
 */
 
 pub fn nondet_bigint3(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name(
         "res",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
-    let value = get_int_ref_from_scope(&vm.exec_scopes, "value")?;
+    let value = get_int_ref_from_scope(&variables.exec_scopes, "value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
-    vm.segments
-        .write_arg(&mut vm.memory, &res_reloc, &arg, Some(&vm.prime))
+    variables
+        .segments
+        .write_arg(variables.memory, &res_reloc, &arg, Some(&variables.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -44,28 +45,28 @@ pub fn nondet_bigint3(
 // Implements hint
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name(
         "x",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
-    let d0 = vm.memory.get_integer(&x_struct)?;
-    let d1 = vm.memory.get_integer(&(&x_struct + 1))?;
+    let d0 = variables.memory.get_integer(&x_struct)?;
+    let d1 = variables.memory.get_integer(&(&x_struct + 1))?;
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
     insert_integer_from_var_name(
         "low",
         low,
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )
 }
@@ -78,8 +79,9 @@ mod tests {
     use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, bigint_str};
 
     #[test]
@@ -144,9 +146,12 @@ mod tests {
             group: 0,
             offset: 0,
         };
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            execute_hint(variables, hint_code, ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -219,10 +224,10 @@ mod tests {
             group: 0,
             offset: 0,
         };
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))
@@ -270,10 +275,10 @@ mod tests {
             group: 0,
             offset: 0,
         };
-
+        let variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            execute_hint(variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

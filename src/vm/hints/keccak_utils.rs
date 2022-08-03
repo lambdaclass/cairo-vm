@@ -6,7 +6,7 @@ use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
     types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::HintVisibleVariables},
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
@@ -38,20 +38,20 @@ use std::{cmp, collections::HashMap, ops::Shl};
    %}
 */
 pub fn unsafe_keccak(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name(
         "length",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
-    if let Ok(keccak_max_size) = get_int_from_scope(&vm.exec_scopes, "__keccak_max_size") {
+    if let Ok(keccak_max_size) = get_int_from_scope(&variables.exec_scopes, "__keccak_max_size") {
         if length > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.clone(),
@@ -64,26 +64,26 @@ pub fn unsafe_keccak(
     let data = get_ptr_from_var_name(
         "data",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
     let high_addr = get_relocatable_from_var_name(
         "high",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
     let low_addr = get_relocatable_from_var_name(
         "low",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -99,7 +99,7 @@ pub fn unsafe_keccak(
             offset: data.offset + word_i,
         };
 
-        let word = vm.memory.get_integer(&word_addr)?;
+        let word = variables.memory.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {
@@ -124,11 +124,11 @@ pub fn unsafe_keccak(
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
     match (
-        vm.memory.insert(
+        variables.memory.insert(
             &MaybeRelocatable::RelocatableValue(high_addr),
             &MaybeRelocatable::Int(high),
         ),
-        vm.memory.insert(
+        variables.memory.insert(
             &MaybeRelocatable::RelocatableValue(low_addr),
             &MaybeRelocatable::Int(low),
         ),
@@ -154,7 +154,7 @@ Implements hint:
 
  */
 pub fn unsafe_keccak_finalize(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -169,9 +169,9 @@ pub fn unsafe_keccak_finalize(
     let keccak_state_ptr = match get_relocatable_from_var_name(
         "keccak_state",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     ) {
         Ok(relocatable) => relocatable,
@@ -184,15 +184,15 @@ pub fn unsafe_keccak_finalize(
     let start_ptr = get_ptr_from_var_name(
         "keccak_state",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let end_ptr = vm.memory.get_relocatable(&Relocatable {
+    let end_ptr = variables.memory.get_relocatable(&Relocatable {
         segment_index: keccak_state_ptr.segment_index,
         offset: keccak_state_ptr.offset + 1,
     })?;
@@ -202,13 +202,13 @@ pub fn unsafe_keccak_finalize(
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
 
     let n_elems = maybe_rel_end_ptr
-        .sub(&maybe_rel_start_ptr, &vm.prime)?
+        .sub(&maybe_rel_start_ptr, &variables.prime)?
         .get_int_ref()?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
     let mut keccak_input = Vec::new();
-    let range = vm
+    let range = variables
         .memory
         .get_range(&maybe_rel_start_ptr, n_elems)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -238,17 +238,17 @@ pub fn unsafe_keccak_finalize(
     let high_addr = get_relocatable_from_var_name(
         "high",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
     let low_addr = get_relocatable_from_var_name(
         "low",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?;
 
@@ -256,11 +256,11 @@ pub fn unsafe_keccak_finalize(
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
     match (
-        vm.memory.insert(
+        variables.memory.insert(
             &MaybeRelocatable::RelocatableValue(high_addr),
             &MaybeRelocatable::Int(high),
         ),
-        vm.memory.insert(
+        variables.memory.insert(
             &MaybeRelocatable::RelocatableValue(low_addr),
             &MaybeRelocatable::Int(low),
         ),

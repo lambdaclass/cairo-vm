@@ -6,11 +6,11 @@ use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
+use crate::vm::vm_core::HintVisibleVariables;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
     hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
-    vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
@@ -451,24 +451,26 @@ pub fn get_integer_from_var_name<'a>(
 }
 
 ///Implements hint: memory[ap] = segments.add()
-pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn add_segment(variables: HintVisibleVariables) -> Result<(), VirtualMachineError> {
     let new_segment_base =
-        MaybeRelocatable::RelocatableValue(vm.segments.add(&mut vm.memory, None));
-    vm.memory
-        .insert(&vm.run_context.ap, &new_segment_base)
+        MaybeRelocatable::RelocatableValue(variables.segments.add(variables.memory, None));
+    variables
+        .memory
+        .insert(&variables.run_context.ap, &new_segment_base)
         .map_err(VirtualMachineError::MemoryError)
 }
 
 //Implements hint: vm_enter_scope()
-pub fn enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    vm.exec_scopes.enter_scope(HashMap::new());
+pub fn enter_scope(variables: HintVisibleVariables) -> Result<(), VirtualMachineError> {
+    variables.exec_scopes.enter_scope(HashMap::new());
     Ok(())
 }
 
 //  Implements hint:
 //  %{ vm_exit_scope() %}
-pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    vm.exec_scopes
+pub fn exit_scope(variables: HintVisibleVariables) -> Result<(), VirtualMachineError> {
+    variables
+        .exec_scopes
         .exit_scope()
         .map_err(VirtualMachineError::MainScopeError)
 }
@@ -476,20 +478,20 @@ pub fn exit_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let len = get_integer_from_var_name(
         "len",
         ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
+        &variables.memory,
+        &variables.references,
+        &variables.run_context,
         hint_ap_tracking,
     )?
     .clone();
-    vm.exec_scopes.enter_scope(HashMap::from([(
+    variables.exec_scopes.enter_scope(HashMap::from([(
         String::from("n"),
         PyValueType::BigInt(len),
     )]));
@@ -503,12 +505,12 @@ pub fn memcpy_enter_scope(
 //     ids.continue_copying = 1 if n > 0 else 0
 // %}
 pub fn memcpy_continue_copying(
-    vm: &mut VirtualMachine,
+    variables: HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(&vm.exec_scopes, "n")?;
+    let n = get_int_ref_from_scope(&variables.exec_scopes, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if it is positive, insert 1 in the address of `continue_copying`
@@ -518,9 +520,9 @@ pub fn memcpy_continue_copying(
             "continue_copying",
             bigint!(1),
             ids,
-            &mut vm.memory,
-            &vm.references,
-            &vm.run_context,
+            variables.memory,
+            &variables.references,
+            &variables.run_context,
             hint_ap_tracking,
         )?;
     } else {
@@ -528,19 +530,22 @@ pub fn memcpy_continue_copying(
             "continue_copying",
             bigint!(0),
             ids,
-            &mut vm.memory,
-            &vm.references,
-            &vm.run_context,
+            variables.memory,
+            &variables.references,
+            &variables.run_context,
             hint_ap_tracking,
         )?;
     }
-    vm.exec_scopes
+    variables
+        .exec_scopes
         .assign_or_update_variable("n", PyValueType::BigInt(new_n));
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::vm::{hints::execute_hint::get_hint_variables, vm_core::VirtualMachine};
+
     use super::*;
     use num_bigint::Sign;
 
@@ -583,14 +588,14 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
-
+        let variables = get_hint_variables(&mut vm);
         assert_eq!(
             get_integer_from_var_name(
                 var_name,
                 &ids,
-                &vm.memory,
-                &vm.references,
-                &vm.run_context,
+                &variables.memory,
+                &variables.references,
+                &variables.run_context,
                 None
             ),
             Ok(&bigint!(10))
@@ -636,14 +641,14 @@ mod tests {
                 &MaybeRelocatable::from((0, 1)),
             )
             .unwrap();
-
+        let variables = get_hint_variables(&mut vm);
         assert_eq!(
             get_integer_from_var_name(
                 var_name,
                 &ids,
-                &vm.memory,
-                &vm.references,
-                &vm.run_context,
+                &variables.memory,
+                &variables.references,
+                &variables.run_context,
                 None
             ),
             Err(VirtualMachineError::ExpectedInteger(

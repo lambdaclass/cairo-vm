@@ -43,8 +43,10 @@ pub struct HintVisibleVariables<'a> {
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
     pub exec_scopes: &'a mut ExecutionScopes,
+    pub dict_manager: &'a mut DictManager,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     pub references: &'a HashMap<usize, HintReference>,
+    pub prime: &'a BigInt,
 }
 pub struct VirtualMachine {
     pub run_context: RunContext,
