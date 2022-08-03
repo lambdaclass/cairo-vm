@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659560045061,
+  "lastUpdate": 1659560134955,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -14765,6 +14765,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 276357265,
             "range": "± 10993707",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d7d13f3a53c06bac5dff574714a4bd9a9aa48e87",
+          "message": "Add nom parsers for references deserialization (#306)\n\n* Add some nom parsers for the value deserialization\r\n\r\n* Add unit tests\r\n\r\n* Save work in progress\r\n\r\n* Polish the nom parsers and add default values if parsing errors ocurr\r\n\r\n* Refactor ok_or to ok_or_else in get_address_from_var_name\r\n\r\n* remove commented code\r\n\r\n* Add new parser variation for offset_and_register\r\n\r\n* Separate parse_value_test in different test cases\r\n\r\n* Minor fix\r\n\r\n* Fix tests\r\n\r\n* Add some comments to the code",
+          "timestamp": "2022-08-03T17:42:12-03:00",
+          "tree_id": "b8580e90e02bbe71ac95a624791bcfad4c14a630",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/d7d13f3a53c06bac5dff574714a4bd9a9aa48e87"
+        },
+        "date": 1659560132638,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2007303096,
+            "range": "± 19509409",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 721175380,
+            "range": "± 5800716",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 353446991,
+            "range": "± 8522589",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1708553791,
+            "range": "± 37969823",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 269694847,
+            "range": "± 3730890",
             "unit": "ns/iter"
           }
         ]
