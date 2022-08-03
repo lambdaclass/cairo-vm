@@ -26,51 +26,50 @@ impl Memory {
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
     /// Will panic if the segment index given by the address corresponds to a non-allocated segment
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
-    pub fn insert(
-        &mut self,
-        key: &MaybeRelocatable,
-        val: &MaybeRelocatable,
-    ) -> Result<(), MemoryError> {
-        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
-            //Check that the memory segment exists
-            if self.data.len() < value_index + 1 {
-                return Err(MemoryError::UnallocatedSegment(
-                    value_index,
-                    self.data.len(),
-                ));
-            }
-            //Check if the element is inserted next to the last one on the segment
-            //Forgoing this check would allow data to be inserted in a different index
-            if self.data[value_index].len() < value_offset {
-                //Insert none values to represent gaps in memory
-                for _ in 0..(value_offset - self.data[value_index].len()) {
-                    self.data[value_index].push(None)
-                }
-            }
-            if self.data[value_index].len() > value_offset {
-                match self.data[value_index][value_offset] {
-                    Some(ref current_value) => {
-                        if current_value != val {
-                            //Existing memory cannot be changed
-                            return Err(MemoryError::InconsistentMemory(
-                                key.to_owned(),
-                                current_value.to_owned(),
-                                val.to_owned(),
-                            ));
-                        }
-                    }
-                    //Fill existing memory gaps
-                    None => self.data[value_index][value_offset] = Some(val.to_owned()),
-                };
-            } else {
-                //Value inserted netxt to last element
-                self.data[value_index].push(Some(val.clone()))
-            }
-        } else {
-            return Err(MemoryError::AddressNotRelocatable);
+    pub fn insert<K, V>(&mut self, key: &K, val: &V) -> Result<(), MemoryError>
+    where
+        K: TryInto<Relocatable> + Into<MaybeRelocatable>,
+        V: Into<MaybeRelocatable>,
+    {
+        let relocatable: Relocatable = key
+            .try_into()
+            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable);
+        //Check that the memory segment exists
+        if self.data.len() < value_index + 1 {
+            return Err(MemoryError::UnallocatedSegment(
+                value_index,
+                self.data.len(),
+            ));
         }
-        self.validate_memory_cell(key)
+        //Check if the element is inserted next to the last one on the segment
+        //Forgoing this check would allow data to be inserted in a different index
+        if self.data[value_index].len() < value_offset {
+            //Insert none values to represent gaps in memory
+            for _ in 0..(value_offset - self.data[value_index].len()) {
+                self.data[value_index].push(None)
+            }
+        }
+        if self.data[value_index].len() > value_offset {
+            match self.data[value_index][value_offset] {
+                Some(ref current_value) => {
+                    if current_value != val.into() {
+                        //Existing memory cannot be changed
+                        return Err(MemoryError::InconsistentMemory(
+                            relocatable.into(),
+                            current_value.to_owned(),
+                            *val.into(),
+                        ));
+                    }
+                }
+                //Fill existing memory gaps
+                None => self.data[value_index][value_offset] = Some(*val.into()),
+            };
+        } else {
+            //Value inserted netxt to last element
+            self.data[value_index].push(Some(*val.into()))
+        }
+        self.validate_memory_cell(*key.into())
     }
 
     pub fn get(&self, key: &MaybeRelocatable) -> Result<Option<&MaybeRelocatable>, MemoryError> {
@@ -125,6 +124,15 @@ impl Memory {
         val: BigInt,
     ) -> Result<(), VirtualMachineError> {
         self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
+            .map_err(VirtualMachineError::MemoryError)
+    }
+
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
+        self.insert(&MaybeRelocatable::from(key), &val.into())
             .map_err(VirtualMachineError::MemoryError)
     }
 
