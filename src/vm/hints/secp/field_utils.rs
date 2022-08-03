@@ -1,10 +1,11 @@
 use crate::bigint;
+use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_integer_from_relocatable_plus_offset,
+    get_address_from_var_name, get_int_from_scope, get_integer_from_relocatable_plus_offset,
     get_relocatable_from_var_name,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
@@ -13,8 +14,6 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
-
-use crate::math_utils::div_mod;
 
 /*
 Implements hint:
@@ -117,20 +116,9 @@ On .json compiled program
 "memory[ap] = to_felt_or_relocatable(x == 0)"
 */
 pub fn is_zero_nondet(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    // get `value` variable from vm scope
-    let x: &BigInt = match vm
-        .exec_scopes
-        .get_local_variables()
-        .ok_or(VirtualMachineError::ScopeError)?
-        .get("x")
-    {
-        Some(PyValueType::BigInt(x)) => x,
-        _ => {
-            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "x",
-            )))
-        }
-    };
+    //Get `x` variable from vm scope
+    let x = get_int_from_scope(vm, "x")
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x")))?;
 
     let value = bigint!(x.is_zero() as usize);
 
@@ -149,21 +137,11 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let x: &BigInt = match vm
-        .exec_scopes
-        .get_local_variables()
-        .ok_or(VirtualMachineError::ScopeError)?
-        .get("x")
-    {
-        Some(PyValueType::BigInt(x)) => x,
-        _ => {
-            return Err(VirtualMachineError::VariableNotInScopeError(String::from(
-                "x",
-            )))
-        }
-    };
+    //Get `x` variable from vm scope
+    let x = get_int_from_scope(vm, "x")
+        .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x")))?;
 
-    let value = div_mod(bigint!(1), x.clone(), &SECP_P);
+    let value = div_mod(bigint!(1), x, &SECP_P);
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
@@ -868,9 +846,7 @@ mod tests {
                 HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
             ),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "x".to_string()
-            ))
+            Err(VirtualMachineError::NoLocalVariable("x".to_string()))
         );
     }
 
@@ -986,9 +962,7 @@ mod tests {
                 HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
             ),
-            Err(VirtualMachineError::VariableNotInScopeError(
-                "x".to_string()
-            ))
+            Err(VirtualMachineError::NoLocalVariable("x".to_string()))
         );
     }
 }
