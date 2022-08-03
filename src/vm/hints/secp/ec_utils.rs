@@ -22,7 +22,7 @@ Implements hint:
     value = (-y) % SECP_P
 %}
 */
-pub fn ec_negative(
+pub fn ec_negate(
     vm: &mut VirtualMachine,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
@@ -109,7 +109,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
 
     #[test]
-    fn run_ec_negative_ok() {
+    fn run_ec_negate_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P".as_bytes();
         let mut vm = VirtualMachine::new(
             VM_PRIME.clone(),

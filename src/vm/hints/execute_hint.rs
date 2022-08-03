@@ -35,7 +35,7 @@ use crate::vm::hints::uint256_utils::{
 
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
-    ec_utils::{compute_doubling_slope, ec_negative},
+    ec_utils::{compute_doubling_slope, ec_negate},
     field_utils::{
         is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
     },
@@ -177,7 +177,7 @@ pub fn execute_hint(
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)"
         ) => is_zero_assign_scope_variables(vm),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P"
-        ) => ec_negative(vm, &ids, None),
+        ) => ec_negate(vm, &ids, None),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"
         ) => compute_doubling_slope(vm, &ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
