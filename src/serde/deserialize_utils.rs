@@ -99,7 +99,7 @@ fn offset(input: &str) -> IResult<&str, i32> {
         return Ok(("", 0));
     }
 
-    let (rem_input, _) = opt(tag(" + "))(input)?;
+    let (rem_input, _) = opt(alt((tag(" + "), tag(" - "))))(input)?;
     let (rem_input, num_opt) = opt(delimited(tag("("), take_until(")"), tag(")")))(rem_input)?;
 
     if let Some(num) = num_opt {
@@ -140,7 +140,6 @@ fn inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
 
 fn no_inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
     let (rem_input, (register, offset)) = register_and_offset(input)?;
-
     Ok((rem_input, (false, register, offset)))
 }
 
@@ -272,6 +271,7 @@ mod tests {
     fn parse_value_test() {
         let value_1 = "[cast([fp + (-1)] + 2, felt*)]";
         let parsed_1 = parse_value(value_1);
+
         assert_eq!(
             parsed_1,
             Ok((
@@ -289,6 +289,7 @@ mod tests {
 
         let value_2 = "cast(ap + 2, felt*)";
         let parsed_2 = parse_value(value_2);
+
         assert_eq!(
             parsed_2,
             Ok((
@@ -316,6 +317,24 @@ mod tests {
                     offset2: 0,
                     immediate: Some(bigint!(825323)),
                     dereference: false,
+                    inner_dereference: false
+                }
+            ))
+        );
+
+        let value_4 = "[cast(ap - 0 + (-1), felt*)]";
+        let parsed_4 = parse_value(value_4);
+
+        assert_eq!(
+            parsed_4,
+            Ok((
+                "",
+                ValueAddress {
+                    register: Some(Register::AP),
+                    offset1: 0,
+                    offset2: -1,
+                    immediate: None,
+                    dereference: true,
                     inner_dereference: false
                 }
             ))
