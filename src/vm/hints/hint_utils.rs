@@ -112,15 +112,9 @@ pub fn get_ptr_from_var_name(
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
-    println!("1");
-    let var_addr = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    // println!("2");
-    // println!("var_addr: {:?}", var_addr);
-    // println!("fp: {:?}", vm.run_context.fp.clone());
-    // println!("MEMORY: {:?}", vm.memory.data[7]);
-    // println!("value in memory: {:?}", vm.memory.get(&MaybeRelocatable::RelocatableValue(var_addr.clone())));
-    // let value = vm.memory.get_relocatable(&var_addr)?;
-    println!("3");
+    // this variable holds the address of the variable if dereference is true
+    // or the pointer the value is holding if dereference is false
+    let var_relocatable = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
     //Add immediate if present in reference
     let index = ids
         .get(&String::from(var_name))
@@ -135,26 +129,12 @@ pub fn get_ptr_from_var_name(
         )
         .ok_or(VirtualMachineError::FailedToGetIds)?;
 
-    //let value = vm.memory.get_relocatable(&var_addr)?;
-
     if hint_reference.dereference {
-        let value = vm.memory.get_relocatable(&var_addr)?;
+        let value = vm.memory.get_relocatable(&var_relocatable)?;
         Ok(value.clone())
     } else {
-        Ok(var_addr)
+        Ok(var_relocatable)
     }
-
-    // if let Some(immediate) = &hint_reference.immediate {
-    //     let modified_value = relocatable!(
-    //         value.segment_index,
-    //         value.offset
-    //             + immediate
-    //                 .to_usize()
-    //                 .ok_or(VirtualMachineError::BigintToUsizeFail)?
-    //     );
-    //     return Ok(modified_value);
-    // }
-    // Ok(value.clone())
 }
 
 fn apply_ap_tracking_correction(
