@@ -30,7 +30,7 @@ pub fn div_mod_n_packed_divmod(
     let a = pack_from_var_name("a", ids, vm, hint_ap_tracking)?;
     let b = pack_from_var_name("b", ids, vm, hint_ap_tracking)?;
 
-    let value = div_mod(&a, &b, &*N);
+    let value = div_mod(&a, &b, &N);
 
     vm.exec_scopes
         .assign_or_update_variable("a", PyValueType::BigInt(a));
@@ -50,7 +50,7 @@ pub fn div_mod_n_safe_div(vm: &mut VirtualMachine) -> Result<(), VirtualMachineE
     let b = get_int_from_scope_ref(vm, "b")?.clone();
     let res = get_int_from_scope_ref(vm, "res")?;
 
-    let value = safe_div(&(res * b - a), &*N)?;
+    let value = safe_div(&(res * b - a), &N)?;
 
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));

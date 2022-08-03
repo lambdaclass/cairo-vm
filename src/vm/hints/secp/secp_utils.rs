@@ -15,14 +15,18 @@ use std::collections::HashMap;
 lazy_static! {
     pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
     pub static ref BASE_86_MAX: BigInt = &*BASE_86 - bigint!(1);
-    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
-    pub static ref SECP_P:BigInt = bigint_str!(
-        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
-    );
-    pub static ref N:BigInt = bigint_str!(
+    pub static ref SECP_P: BigInt = (bigint!(1) << (256))
+        - (1_i64 << 32)
+        - (1 << 9)
+        - (1 << 8)
+        - (1 << 7)
+        - (1 << 6)
+        - (1 << 4)
+        - 1;
+    pub static ref N: BigInt = bigint_str!(
         b"115792089237316195423570985008687907852837564279074904382605163141518161494337"
     );
-    pub static ref BETA:BigInt = bigint!(7);
+    pub static ref BETA: BigInt = bigint!(7);
 }
 /*
 Takes a 256-bit integer and returns its canonical representation as:
