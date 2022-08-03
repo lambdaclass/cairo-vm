@@ -107,11 +107,6 @@ pub fn keccak_round(
     let mut d = Vec::new();
     let mut a_tmp = Vec::new();
 
-    // for x in 0..u {
-    //     let c_elem = a[x].iter().fold(bigint!(0), |acc, n| acc ^ n);
-    //     c.push(c_elem);
-    // }
-
     for a_row in a.iter().take(u) {
         let c_elem = a_row.iter().fold(bigint!(0), |acc, n| acc ^ n);
         c.push(c_elem)
@@ -188,9 +183,6 @@ fn keccak_func(
 
     let mut values_res = Vec::new();
     for x in 0..u {
-        // for y in 0..u {
-        //     values_res.push(value_matrix[y][x].clone());
-        // }
         for value_matrix_row in value_matrix.iter().take(u) {
             values_res.push(value_matrix_row[x].clone());
         }
@@ -223,7 +215,6 @@ fn keccak_f(
 
     let as_bigint: BigInt = BigInt::from_bytes_le(Sign::Plus, &message);
 
-    //if as_bigint >= bigint_u128!(2_u128.pow((u * u * w))) {
     if as_bigint >= bigint!(1_i32).shl(u * u * w) {
         return Err(KeccakError::BigIntMaxSize(as_bigint));
     }
