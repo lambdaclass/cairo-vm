@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659550573421,
+  "lastUpdate": 1659551476332,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -14365,6 +14365,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 225702240,
             "range": "± 3331335",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "a0cb4fd1060dfacc41e338b1be9cbb6ec4d1500e",
+          "message": "[HINTS]Add implementation for hints on functions ec_negate and compute_doubling_slope (cairo_secp/field.cairo )",
+          "timestamp": "2022-08-03T15:20:36Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/335/commits/a0cb4fd1060dfacc41e338b1be9cbb6ec4d1500e"
+        },
+        "date": 1659551473180,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2037795729,
+            "range": "± 31197888",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 725778779,
+            "range": "± 2112993",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 354138444,
+            "range": "± 7474699",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1763003234,
+            "range": "± 3500423",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 267429899,
+            "range": "± 3505916",
             "unit": "ns/iter"
           }
         ]
