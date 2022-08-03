@@ -1,5 +1,4 @@
 use crate::bigint;
-use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
@@ -14,6 +13,8 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
+
+use crate::math_utils::div_mod;
 
 /*
 Implements hint:
