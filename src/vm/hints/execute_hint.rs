@@ -36,7 +36,7 @@ use crate::vm::hints::uint256_utils::{
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
     field_utils::{reduce, verify_zero},
-    signature::{div_mod_n_packed_divmod, div_mod_n_safe_div},
+    signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
 };
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
@@ -163,6 +163,8 @@ pub fn execute_hint(
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import N, pack\nfrom starkware.python.math_utils import div_mod, safe_div\n\na = pack(ids.a, PRIME)\nb = pack(ids.b, PRIME)\nvalue = res = div_mod(a, b, N)"
         ) => div_mod_n_packed_divmod(vm, &ids, None),
         Ok("value = k = safe_div(res * b - a, N)") => div_mod_n_safe_div(vm),
+        Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx_cube_int = pack(ids.x_cube, PRIME) % SECP_P\ny_square_int = (x_cube_int + ids.BETA) % SECP_P\ny = pow(y_square_int, (SECP_P + 1) // 4, SECP_P)\n\n# We need to decide whether to take y or SECP_P - y.\nif ids.v % 2 == y % 2:\n    value = y\nelse:\n    value = (-y) % SECP_P"
+        ) => get_point_from_x(vm, &ids, Some(ap_tracking)),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]"
         ) => blake2s_add_uint256(vm, &ids, Some(ap_tracking)),
         Ok("B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])"

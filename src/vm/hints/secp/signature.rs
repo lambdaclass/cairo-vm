@@ -5,8 +5,8 @@ use crate::{
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::{
-            hint_utils::get_int_from_scope_ref,
-            secp::secp_utils::{pack_from_var_name, N},
+            hint_utils::{get_int_from_scope_ref, get_integer_from_var_name},
+            secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
         },
         vm_core::VirtualMachine,
     },
@@ -54,6 +54,25 @@ pub fn div_mod_n_safe_div(vm: &mut VirtualMachine) -> Result<(), VirtualMachineE
 
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));
+    Ok(())
+}
+
+pub fn get_point_from_x(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let x_cube_int = pack_from_var_name("x_cube", ids, vm, hint_ap_tracking)? % &*SECP_P;
+    let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
+    let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
+
+    let v = get_integer_from_var_name("v", ids, vm, hint_ap_tracking)?;
+    if v % 2 != &y % 2 {
+        y = -y % &*SECP_P;
+    }
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(y));
     Ok(())
 }
 
