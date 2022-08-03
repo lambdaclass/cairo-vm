@@ -72,7 +72,7 @@ fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
                 (q, c) = (a.div_floor(&b), a % &b);
                 (a, b, r, s, x, y) = (b, c, x - &q * &r, y - q * &s, r, s)
             }
-            (x * x_sign, y * y_sign, a.clone())
+            (x * x_sign, y * y_sign, a)
         }
     }
 }
