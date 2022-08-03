@@ -1,5 +1,5 @@
 use crate::bigint;
-use crate::math_utils::ec_double_slope;
+use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -79,6 +79,70 @@ pub fn compute_doubling_slope(
             pack(y_d0, y_d1, y_d2, &vm.prime),
         ),
         &bigint!(0),
+        &SECP_P,
+    );
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("slope", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+    from starkware.python.math_utils import line_slope
+
+    # Compute the slope.
+    x0 = pack(ids.point0.x, PRIME)
+    y0 = pack(ids.point0.y, PRIME)
+    x1 = pack(ids.point1.x, PRIME)
+    y1 = pack(ids.point1.y, PRIME)
+    value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
+%}
+*/
+pub fn compute_slope(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //ids.point0
+    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm, hint_ap_tracking)?;
+
+    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 2, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 3, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 4, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 5, vm)?,
+    );
+
+    //ids.point1
+    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm, hint_ap_tracking)?;
+
+    let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 2, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 3, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 4, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 5, vm)?,
+    );
+
+    let value = line_slope(
+        (
+            pack(point0_x_d0, point0_x_d1, point0_x_d2, &vm.prime),
+            pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime),
+        ),
+        (
+            pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime),
+            pack(point1_y_d0, point1_y_d1, point1_y_d2, &vm.prime),
+        ),
         &SECP_P,
     );
 
