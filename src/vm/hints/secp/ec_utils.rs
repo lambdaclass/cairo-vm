@@ -155,6 +155,81 @@ pub fn compute_slope(
     Ok(())
 }
 
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    slope = pack(ids.slope, PRIME)
+    x = pack(ids.point.x, PRIME)
+    y = pack(ids.point.y, PRIME)
+
+    value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P
+%}
+*/
+pub fn ec_double_assign_new_x(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //ids.slope
+    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm, hint_ap_tracking)?;
+
+    let (slope_d0, slope_d1, slope_d2) = (
+        get_integer_from_relocatable_plus_offset(&slope_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&slope_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&slope_reloc, 2, vm)?,
+    );
+
+    //ids.point
+    let point_reloc = get_relocatable_from_var_name("point", ids, vm, hint_ap_tracking)?;
+
+    let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
+        get_integer_from_relocatable_plus_offset(&point_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 2, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?,
+        get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?,
+    );
+
+    let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
+    let x = pack(x_d0, x_d1, x_d2, &vm.prime);
+    let y = pack(y_d0, y_d1, y_d2, &vm.prime);
+
+    let value = (slope.pow(2).mod_floor(&SECP_P) - (&x * 2_usize)).mod_floor(&SECP_P);
+
+    //Assign variables to vm scope
+    vm.exec_scopes
+        .assign_or_update_variable("slope", PyValueType::BigInt(slope));
+
+    vm.exec_scopes
+        .assign_or_update_variable("x", PyValueType::BigInt(x));
+
+    vm.exec_scopes
+        .assign_or_update_variable("y", PyValueType::BigInt(y));
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("new_x", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
+/*
+Implements hint:
+%{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
+*/
+pub fn ec_double_assign_new_y(
+    _vm: &mut VirtualMachine,
+    _ids: &HashMap<String, BigInt>,
+    _hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    todo!();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

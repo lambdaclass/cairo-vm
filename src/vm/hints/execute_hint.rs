@@ -35,7 +35,10 @@ use crate::vm::hints::uint256_utils::{
 
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
-    ec_utils::{compute_doubling_slope, ec_negate},
+    ec_utils::{
+        compute_doubling_slope, compute_slope, ec_double_assign_new_x, ec_double_assign_new_y,
+        ec_negate,
+    },
     field_utils::{
         is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
     },
@@ -182,6 +185,10 @@ pub fn execute_hint(
         ) => compute_doubling_slope(vm, &ids, None),
         Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"
         ) => compute_slope(vm, &ids, None),
+        Ok("from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"
+        ) => ec_double_assign_new_x(vm, &ids, Some(ap_tracking)),
+        Ok("value = new_y = (slope * (x - new_x) - y) % SECP_P"
+        ) => ec_double_assign_new_y(vm, &ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),
