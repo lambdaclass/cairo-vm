@@ -471,6 +471,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -541,6 +542,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -587,6 +589,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -634,6 +637,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -684,6 +688,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -736,6 +741,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -808,6 +814,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -853,6 +860,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -903,6 +911,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1022,6 +1031,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1077,6 +1087,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1135,6 +1146,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1256,6 +1268,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1310,6 +1323,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1424,6 +1438,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1435,6 +1450,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1446,6 +1462,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1457,6 +1474,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1468,6 +1486,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1649,6 +1668,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1660,6 +1680,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1671,6 +1692,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1682,6 +1704,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1693,6 +1716,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1837,6 +1861,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1848,6 +1873,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1859,6 +1885,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1870,6 +1897,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1881,6 +1909,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2022,6 +2051,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2033,6 +2063,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2044,6 +2075,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2055,6 +2087,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2066,6 +2099,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2184,6 +2218,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2195,6 +2230,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2206,6 +2242,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2217,6 +2254,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2228,6 +2266,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2345,6 +2384,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2356,6 +2396,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2367,6 +2408,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2378,6 +2420,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2389,6 +2432,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2513,6 +2557,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2524,6 +2569,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2535,6 +2581,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2546,6 +2593,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2557,6 +2605,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,

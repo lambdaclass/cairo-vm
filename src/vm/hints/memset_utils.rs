@@ -128,6 +128,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -175,6 +176,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -229,6 +231,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -286,6 +289,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -342,6 +346,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -396,6 +401,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,

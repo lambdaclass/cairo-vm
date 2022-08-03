@@ -17,7 +17,7 @@ BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
 
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
-	cairo-compile $< --output $@
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(TEST_DIR)/%.cleopatra.memory: $(TEST_DIR)/%.json build
 	./target/release/cleopatra-run $< --memory_file $@
@@ -32,7 +32,7 @@ $(TEST_DIR)/%.trace: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --trace_file $@
 
 $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
-	cairo-compile $< --output $@
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@

@@ -51,6 +51,16 @@ pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
+    use lazy_static::lazy_static;
+    use num_bigint::BigInt;
+
+    lazy_static! {
+        pub static ref VM_PRIME: BigInt = BigInt::parse_bytes(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+    }
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
         {

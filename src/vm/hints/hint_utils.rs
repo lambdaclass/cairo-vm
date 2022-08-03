@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::math_utils::as_int;
 use crate::math_utils::isqrt;
-use crate::relocatable;
+//use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
@@ -112,12 +112,14 @@ pub fn get_ptr_from_var_name(
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let var_addr = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
-    let value = vm.memory.get_relocatable(&var_addr)?;
+    // this variable holds the address of the variable if dereference is true
+    // or the pointer the value is holding if dereference is false
+    let var_relocatable = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
     //Add immediate if present in reference
     let index = ids
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
+
     let hint_reference = vm
         .references
         .get(
@@ -126,17 +128,13 @@ pub fn get_ptr_from_var_name(
                 .ok_or(VirtualMachineError::BigintToUsizeFail)?,
         )
         .ok_or(VirtualMachineError::FailedToGetIds)?;
-    if let Some(immediate) = &hint_reference.immediate {
-        let modified_value = relocatable!(
-            value.segment_index,
-            value.offset
-                + immediate
-                    .to_usize()
-                    .ok_or(VirtualMachineError::BigintToUsizeFail)?
-        );
-        return Ok(modified_value);
+
+    if hint_reference.dereference {
+        let value = vm.memory.get_relocatable(&var_relocatable)?;
+        Ok(value.clone())
+    } else {
+        Ok(var_relocatable)
     }
-    Ok(value.clone())
 }
 
 fn apply_ap_tracking_correction(
@@ -189,6 +187,9 @@ pub fn compute_addr_from_reference(
         }
     };
 
+    println!("base_addr: {:?}", base_addr);
+    println!("valor en ese addr: {:?}", vm.memory.get(&base_addr));
+
     if let MaybeRelocatable::RelocatableValue(relocatable) = base_addr {
         if hint_reference.offset1.is_negative()
             && relocatable.offset < hint_reference.offset1.abs() as usize
@@ -207,12 +208,26 @@ pub fn compute_addr_from_reference(
                 (relocatable.offset as i32 + hint_reference.offset1) as usize,
             ));
 
+            println!("ADDR DESPUES DE APLICAR OFFSET: {:?}", addr);
+            println!("valor en ese addr: {:?}", vm.memory.get(&addr));
+
             match vm.memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
-                    return Ok(Some(MaybeRelocatable::from((
-                        dereferenced_addr.segment_index,
-                        (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
-                    ))))
+                    println!("dereferend_addr: {:?}", dereferenced_addr);
+                    if let Some(imm) = &hint_reference.immediate {
+                        return Ok(Some(MaybeRelocatable::from((
+                            dereferenced_addr.segment_index,
+                            dereferenced_addr.offset
+                                + imm
+                                    .to_usize()
+                                    .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+                        ))));
+                    } else {
+                        return Ok(Some(MaybeRelocatable::from((
+                            dereferenced_addr.segment_index,
+                            (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
+                        ))));
+                    }
                 }
 
                 _none_or_error => return Ok(None),
@@ -254,7 +269,9 @@ pub fn get_address_from_var_name(
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
     let var_ref = ids
         .get(&String::from(var_name))
-        .ok_or(VirtualMachineError::FailedToGetIds)?;
+        .ok_or_else(|| VirtualMachineError::IdNotFound(var_name.to_string()))?;
+
+    //println!("REFERENCIA DEBERIA SER 153: {:?}", var_ref);
     get_address_from_reference(
         var_ref,
         &vm.references,
@@ -1828,6 +1845,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -1875,6 +1893,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,

@@ -239,6 +239,9 @@ impl CairoRunner {
         let mut references = HashMap::<usize, HintReference>::new();
 
         for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
+            if i == 153 {
+                println!("REFERENCE MALA: {:?}", reference.value_address);
+            }
             if let Some(register) = &reference.value_address.register {
                 references.insert(
                     i,
@@ -247,6 +250,7 @@ impl CairoRunner {
                         offset1: reference.value_address.offset1,
                         offset2: reference.value_address.offset2,
                         inner_dereference: reference.value_address.inner_dereference,
+                        dereference: reference.value_address.dereference,
                         immediate: reference.value_address.immediate.clone(),
                         // only store `ap` tracking data if the reference is referred to it
                         ap_tracking_data: if register == &Register::FP {
