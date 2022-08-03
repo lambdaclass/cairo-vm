@@ -268,12 +268,12 @@ mod tests {
     }
 
     #[test]
-    fn parse_value_test() {
-        let value_1 = "[cast([fp + (-1)] + 2, felt*)]";
-        let parsed_1 = parse_value(value_1);
+    fn parse_value_with_inner_dereference_test() {
+        let value = "[cast([fp + (-1)] + 2, felt*)]";
+        let parsed = parse_value(value);
 
         assert_eq!(
-            parsed_1,
+            parsed,
             Ok((
                 "",
                 ValueAddress {
@@ -286,12 +286,15 @@ mod tests {
                 }
             ))
         );
+    }
 
-        let value_2 = "cast(ap + 2, felt*)";
-        let parsed_2 = parse_value(value_2);
+    #[test]
+    fn parse_value_with_no_inner_dereference_test() {
+        let value = "cast(ap + 2, felt*)";
+        let parsed = parse_value(value);
 
         assert_eq!(
-            parsed_2,
+            parsed,
             Ok((
                 "",
                 ValueAddress {
@@ -304,11 +307,15 @@ mod tests {
                 }
             ))
         );
+    }
 
-        let value_3 = "cast(825323, felt*)";
-        let parsed_3 = parse_value(value_3);
+    #[test]
+    fn parse_value_with_no_register_test() {
+
+        let value = "cast(825323, felt*)";
+        let parsed = parse_value(value);
         assert_eq!(
-            parsed_3,
+            parsed,
             Ok((
                 "",
                 ValueAddress {
@@ -321,12 +328,15 @@ mod tests {
                 }
             ))
         );
+    }
 
-        let value_4 = "[cast(ap - 0 + (-1), felt*)]";
-        let parsed_4 = parse_value(value_4);
+    #[test]
+    fn parse_value_with_no_inner_deref_and_two_offsets() {
+        let value = "[cast(ap - 0 + (-1), felt*)]";
+        let parsed = parse_value(value);
 
         assert_eq!(
-            parsed_4,
+            parsed,
             Ok((
                 "",
                 ValueAddress {
