@@ -407,6 +407,7 @@ mod tests {
             false,
         );
 
+        //Insert ids.point0 and ids.point1 into memory
         vm.memory = memory![
             ((1, 0), 134),
             ((1, 1), 5123),
@@ -509,6 +510,7 @@ mod tests {
             false,
         );
 
+        //Insert ids.point and ids.slope into memory
         vm.memory = memory![
             ((1, 0), 134),
             ((1, 1), 5123),
@@ -523,7 +525,8 @@ mod tests {
 
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
-        //Initialize fp
+
+        //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 10));
 
         //Create ids
@@ -563,7 +566,7 @@ mod tests {
             ),
         ]);
 
-        //Create Ap tracking
+        //Create ap tracking
         let ap_tracking = ApTracking {
             group: 1,
             offset: 0,
