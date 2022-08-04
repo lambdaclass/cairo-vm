@@ -3,7 +3,7 @@ use std::ops::Shr;
 use crate::{bigint, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::{abs, Signed, Zero};
+use num_traits::{Signed, Zero};
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -51,28 +51,16 @@ pub fn as_int(val: &BigInt, prime: &BigInt) -> BigInt {
 }
 
 ///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
-fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
-    let mut a = num_a;
-    let mut b = num_b;
-    let x_sign: i32;
-    let y_sign: i32;
-    match (a.clone(), b.clone()) {
-        (a, b) if a == b && a.is_zero() => (bigint!(0_i32), bigint!(1_i32), bigint!(0_i32)),
-        (a, _) if a.is_zero() => (bigint!(0_i32), b.div_floor(&abs(b.clone())), abs(b)),
-        (_, b) if b.is_zero() => (a.div_floor(&a), bigint!(0_i32), abs(a)),
+fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
+    match (num_a, num_b) {
+        (a, b) if a.is_zero() && b.is_zero() => (bigint!(0_i32), bigint!(1_i32), bigint!(0_i32)),
+        (a, _) if a.is_zero() => (bigint!(0_i32), num_b.signum(), num_b.abs()),
+        (_, b) if b.is_zero() => (num_a.signum(), bigint!(0_i32), num_a.abs()),
         _ => {
-            if a.is_negative() {
-                a = -a;
-                x_sign = -1;
-            } else {
-                x_sign = 1;
-            }
-            if b.is_negative() {
-                b = -b;
-                y_sign = -1;
-            } else {
-                y_sign = 1;
-            }
+            let mut a = num_a.abs();
+            let x_sign = num_a.signum();
+            let mut b = num_b.abs();
+            let y_sign = num_b.signum();
             let (mut x, mut y, mut r, mut s) = (
                 bigint!(1_i32),
                 bigint!(0_i32),
@@ -81,8 +69,8 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
             );
             let (mut c, mut q);
             while !b.is_zero() {
-                (c, q) = (a.clone() % b.clone(), a.div_floor(&b.clone()));
-                (a, b, r, s, x, y) = (b, c, x - q.clone() * r.clone(), y - q * s.clone(), r, s)
+                (q, c) = (a.div_floor(&b), a % &b);
+                (a, b, r, s, x, y) = (b, c, x - &q * &r, y - q * &s, r, s)
             }
             (x * x_sign, y * y_sign, a)
         }
@@ -90,7 +78,7 @@ fn igcdex(num_a: BigInt, num_b: BigInt) -> (BigInt, BigInt, BigInt) {
 }
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
 pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
-    let (a, _, c) = igcdex(m.clone(), p.clone());
+    let (a, _, c) = igcdex(m, p);
     assert_eq!(c, bigint!(1));
     (n * a).mod_floor(p)
 }
@@ -115,7 +103,7 @@ pub fn line_slope(
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    assert!(!((point_a.0.clone() - point_b.0.clone()) % prime).is_zero());
+    assert!(!(&point_a.0 - &point_b.0 % prime).is_zero());
     div_mod(
         &(&point_a.1 - &point_b.1),
         &(&point_a.0 - &point_b.0),
@@ -136,9 +124,9 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    assert!(!(point.1.clone() % prime).is_zero());
+    assert!(!(&point.1 % prime).is_zero());
     div_mod(
-        &(bigint!(3_i32) * point.0.clone() * point.0.clone() + alpha),
+        &(bigint!(3_i32) * &point.0 * &point.0 + alpha),
         &(bigint!(2_i32) * point.1),
         prime,
     )
@@ -157,7 +145,7 @@ mod tests {
         let b = bigint_str!(
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
-        assert_eq!((bigint_str!(b"-1688547300931946713657663208540757607205184050780245505361433670721217394901"), bigint_str!(b"1606731415015725997151049087601104361134423282856790368548943305828633315023"), bigint!(1)), igcdex(a, b));
+        assert_eq!((bigint_str!(b"-1688547300931946713657663208540757607205184050780245505361433670721217394901"), bigint_str!(b"1606731415015725997151049087601104361134423282856790368548943305828633315023"), bigint!(1)), igcdex(&a, &b));
     }
 
     #[test]

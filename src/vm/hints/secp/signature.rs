@@ -5,8 +5,8 @@ use crate::{
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::{
-            hint_utils::get_int_from_scope_ref,
-            secp::secp_utils::{pack_from_var_name, N},
+            hint_utils::{get_int_from_scope_ref, get_integer_from_var_name},
+            secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
         },
         vm_core::VirtualMachine,
     },
@@ -57,6 +57,25 @@ pub fn div_mod_n_safe_div(vm: &mut VirtualMachine) -> Result<(), VirtualMachineE
     Ok(())
 }
 
+pub fn get_point_from_x(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    let x_cube_int = pack_from_var_name("x_cube", ids, vm, hint_ap_tracking)? % &*SECP_P;
+    let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
+    let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
+
+    let v = get_integer_from_var_name("v", ids, vm, hint_ap_tracking)?;
+    if v % 2 != &y % 2 {
+        y = -y % &*SECP_P;
+    }
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(y));
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,14 +92,19 @@ mod tests {
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    #[test]
-    fn safe_div_ok() {
-        let mut vm = VirtualMachine::new(
+
+    fn init_vm() -> VirtualMachine {
+        VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
             &HINT_EXECUTOR,
-        );
+        )
+    }
+
+    #[test]
+    fn safe_div_ok() {
+        let mut vm = init_vm();
 
         vm.memory = memory![
             ((0, 0), 15),
@@ -118,12 +142,7 @@ mod tests {
 
     #[test]
     fn safe_div_fail() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = init_vm();
 
         vm.exec_scopes
             .assign_or_update_variable("a", PyValueType::BigInt(bigint!(0_usize)));
@@ -133,5 +152,40 @@ mod tests {
             .assign_or_update_variable("res", PyValueType::BigInt(bigint!(1_usize)));
 
         assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(&mut vm));
+    }
+
+    #[test]
+    fn get_point_from_x_ok() {
+        let mut vm = init_vm();
+        vm.memory = memory![
+            ((0, 0), 18),
+            ((0, 1), 2147483647),
+            ((0, 2), 2147483647),
+            ((0, 3), 2147483647)
+        ];
+        vm.run_context.fp = mayberelocatable!(0, 1);
+
+        vm.references = HashMap::new();
+        for i in 0..=1 {
+            vm.references.insert(
+                i,
+                HintReference {
+                    dereference: true,
+                    register: Register::FP,
+                    offset1: i as i32 - 1,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                },
+            );
+        }
+
+        let ids: HashMap<String, BigInt> = HashMap::from([
+            ("v".to_string(), bigint!(0_i32)),
+            ("x_cube".to_string(), bigint!(1_i32)),
+        ]);
+
+        assert!(get_point_from_x(&mut vm, &ids, None).is_ok());
     }
 }

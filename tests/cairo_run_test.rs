@@ -394,6 +394,16 @@ fn cairo_run_secp() {
 }
 
 #[test]
+fn cairo_run_signature() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/signature.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_secp_ec() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/secp_ec.json"),

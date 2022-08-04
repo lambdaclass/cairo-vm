@@ -26,6 +26,7 @@ lazy_static! {
     pub static ref N: BigInt = bigint_str!(
         b"115792089237316195423570985008687907852837564279074904382605163141518161494337"
     );
+    pub static ref BETA: BigInt = bigint!(7);
 }
 /*
 Takes a 256-bit integer and returns its canonical representation as:
