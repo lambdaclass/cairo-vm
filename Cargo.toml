@@ -24,6 +24,7 @@ clap = { version = "3.2.5", features = ["derive"] }
 sha3 = "0.10.1"
 lazy_static = "1.4.0"
 nom = "7"
+sha256 = "1.0.3"
 
 # This crate has only one function `take_until_unbalanced` that is
 # very useful for our parsing purposes:
