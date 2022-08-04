@@ -405,6 +405,7 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)"#;
 
 pub(crate) const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
 pub(crate) const GET_POINT_FROM_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 x_cube_int = pack(ids.x_cube, PRIME) % SECP_P
