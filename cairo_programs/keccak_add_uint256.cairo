@@ -12,9 +12,14 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     let (inputs) = alloc()
     let inputs_start = inputs
 
-    let num = Uint256(3, 2)
+    let num = Uint256(34623634663146736, 598249824422424658356)
 
     keccak_add_uint256{inputs=inputs_start}(num=num, bigend=0)
+
+    assert inputs[0] = 34623634663146736
+    assert inputs[1] = 0
+    assert inputs[2] = 7954014063719006644
+    assert inputs[3] = 32
 
     serialize_word(inputs[0])
     serialize_word(inputs[1])

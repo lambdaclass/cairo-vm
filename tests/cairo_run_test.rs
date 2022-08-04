@@ -307,3 +307,9 @@ fn cairo_run_unsafe_keccak_finalize() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_keccak_add_uint256() {
+    cairo_run::cairo_run(Path::new("cairo_programs/keccak_add_uint256.json"), false)
+        .expect("Couldn't run program");
+}
