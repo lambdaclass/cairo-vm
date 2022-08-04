@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659646375998,
+  "lastUpdate": 1659648134465,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -16697,6 +16697,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 220535215,
             "range": "± 434205",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "64a873e06b3f61174532c849d7daf08d7ac19a34",
+          "message": "[HINTS] Div mod n hint (#333)\n\n* Add safe_div\r\n\r\n* Add signature\r\n\r\n* Add safediv signature\r\n\r\n* Fix import conflicts\r\n\r\n* Add div-mod-n-hint\r\n\r\n* Invert div check\r\n\r\n* Use reference for div_mod\r\n\r\n* Use reference for line_slope\r\n\r\n* Change mut ref to ref\r\n\r\n* Remove comment\r\n\r\n* Remove unnecessary mut pack\r\n\r\n* Add ok test\r\n\r\n* Change divmod operands to references\r\n\r\n* Add immutable exec scope access\r\n\r\n* Divide once safe_div\r\n\r\n* Use is_zero and is_negative\r\n\r\n* Use references",
+          "timestamp": "2022-08-04T18:08:37-03:00",
+          "tree_id": "42654fa0d8b87ee5d331811963455aa3f7eed8ba",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/64a873e06b3f61174532c849d7daf08d7ac19a34"
+        },
+        "date": 1659648131317,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2026964581,
+            "range": "± 15796900",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 723044211,
+            "range": "± 2106110",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 355473779,
+            "range": "± 1182653",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1754320686,
+            "range": "± 12003609",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 262912422,
+            "range": "± 2491086",
             "unit": "ns/iter"
           }
         ]
