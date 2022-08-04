@@ -197,7 +197,7 @@ pub fn ec_double_assign_new_x(
     let x = pack(x_d0, x_d1, x_d2, &vm.prime);
     let y = pack(y_d0, y_d1, y_d2, &vm.prime);
 
-    let value = (slope.pow(2).mod_floor(&SECP_P) - (&x * 2_usize)).mod_floor(&SECP_P);
+    let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
     vm.exec_scopes
@@ -257,21 +257,14 @@ mod tests {
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::{BigInt, Sign};
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn run_ec_negate_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         vm.memory = memory![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
 
@@ -323,15 +316,7 @@ mod tests {
     #[test]
     fn run_compute_doubling_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         vm.memory = memory![
             ((1, 0), 614323u64),
@@ -404,15 +389,7 @@ mod tests {
     #[test]
     fn run_compute_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Insert ids.point0 and ids.point1 into memory
         vm.memory = memory![
@@ -509,15 +486,7 @@ mod tests {
     #[test]
     fn run_ec_double_assign_new_x_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Insert ids.point and ids.slope into memory
         vm.memory = memory![
@@ -656,15 +625,7 @@ mod tests {
     #[test]
     fn run_ec_double_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Insert 'slope' into vm scope
         vm.exec_scopes.assign_or_update_variable(
