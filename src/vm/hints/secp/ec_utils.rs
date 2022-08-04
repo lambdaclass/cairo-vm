@@ -246,6 +246,108 @@ pub fn ec_double_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMach
     Ok(())
 }
 
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    slope = pack(ids.slope, PRIME)
+    x0 = pack(ids.point0.x, PRIME)
+    x1 = pack(ids.point1.x, PRIME)
+    y0 = pack(ids.point0.y, PRIME)
+
+    value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+%}
+*/
+pub fn fast_ec_add_assign_new_x(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //ids.slope
+    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm, hint_ap_tracking)?;
+
+    let (slope_d0, slope_d1, slope_d2) = (
+        get_integer_from_relocatable_plus_offset(&slope_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&slope_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&slope_reloc, 2, vm)?,
+    );
+
+    //ids.point0
+    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm, hint_ap_tracking)?;
+
+    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 2, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 3, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 4, vm)?,
+        get_integer_from_relocatable_plus_offset(&point0_reloc, 5, vm)?,
+    );
+
+    //ids.point1.x
+    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm, hint_ap_tracking)?;
+
+    let (point1_x_d0, point1_x_d1, point1_x_d2) = (
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 0, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 1, vm)?,
+        get_integer_from_relocatable_plus_offset(&point1_reloc, 2, vm)?,
+    );
+
+    let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
+    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, &vm.prime);
+    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime);
+    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime);
+
+    let value = (slope.pow(2).mod_floor(&SECP_P) - &x0 - x1).mod_floor(&SECP_P);
+
+    //Assign variables to vm scope
+    vm.exec_scopes
+        .assign_or_update_variable("slope", PyValueType::BigInt(slope));
+
+    vm.exec_scopes
+        .assign_or_update_variable("x0", PyValueType::BigInt(x0));
+
+    vm.exec_scopes
+        .assign_or_update_variable("y0", PyValueType::BigInt(y0));
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("new_x", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
+/*
+Implements hint:
+%{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
+*/
+pub fn fast_ec_add_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    //Get variables from vm scope
+    let (slope, x0, new_x, y0) = (
+        get_int_from_scope(vm, "slope")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("slope")))?,
+        get_int_from_scope(vm, "x0")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x0")))?,
+        get_int_from_scope(vm, "new_x")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("new_x")))?,
+        get_int_from_scope(vm, "y0")
+            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("y0")))?,
+    );
+
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("new_y", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
