@@ -72,18 +72,21 @@ mod tests {
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{execute_hint, HintReference},
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
         },
     };
     use num_bigint::Sign;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn memset_enter_scope_valid() {
-        let hint_code = "vm_enter_scope({'n': ids.n})".as_bytes();
+        let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -107,6 +110,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -116,16 +120,20 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
     fn memset_enter_scope_invalid() {
-        let hint_code = "vm_enter_scope({'n': ids.n})".as_bytes();
+        let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -150,6 +158,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -160,7 +169,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -169,11 +179,12 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_1() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -202,6 +213,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -211,7 +223,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
 
         // assert ids.continue_loop = 0
         assert_eq!(
@@ -222,11 +237,12 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_5() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -255,6 +271,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -264,7 +281,10 @@ mod tests {
             },
         )]);
 
-        assert!(execute_hint(&mut vm, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+            .is_ok());
 
         // assert ids.continue_loop = 1
         assert_eq!(
@@ -275,11 +295,12 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_variable_not_in_scope_error() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -307,6 +328,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -317,7 +339,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -326,11 +349,12 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_insert_error() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
 
         // initialize memory segments
@@ -359,6 +383,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -369,7 +394,8 @@ mod tests {
         )]);
 
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

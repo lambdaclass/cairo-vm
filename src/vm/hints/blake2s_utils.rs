@@ -306,19 +306,22 @@ mod tests {
         types::instruction::Register,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{execute_hint, HintReference},
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
         },
     };
     use num_bigint::Sign;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn compute_blake2s_output_offset_zero() {
-        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -336,32 +339,24 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("output"), bigint!(0));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::CantSubOffset(5, 26))
         );
     }
 
     #[test]
     fn compute_blake2s_output_empty_segment() {
-        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -379,20 +374,11 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("output"), bigint!(0));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -401,12 +387,13 @@ mod tests {
 
     #[test]
     fn compute_blake2s_output_not_relocatable() {
-        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -424,20 +411,11 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("output"), bigint!(0));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -446,12 +424,13 @@ mod tests {
 
     #[test]
     fn compute_blake2s_output_input_bigger_than_u32() {
-        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Initialize fp
         //Insert ids into memory
@@ -471,32 +450,24 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("output"), bigint!(0_i32));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::BigintToU32Fail)
         );
     }
 
     #[test]
     fn compute_blake2s_output_input_relocatable() {
-        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -521,20 +492,11 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("output"), bigint!(0));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -543,12 +505,13 @@ mod tests {
 
     #[test]
     fn finalize_blake2s_valid() {
-        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
+        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -566,20 +529,11 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("blake2s_ptr_end"), bigint!(0));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the inserted data
@@ -615,12 +569,13 @@ mod tests {
 
     #[test]
     fn finalize_blake2s_invalid_segment_taken() {
-        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
+        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -645,20 +600,11 @@ mod tests {
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("blake2s_ptr_end"), bigint!(0));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
@@ -671,12 +617,13 @@ mod tests {
 
     #[test]
     fn finalize_blake2s_invalid_no_ids() {
-        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)".as_bytes();
+        let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -684,32 +631,28 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
 
     #[test]
     fn blake2s_add_uint256_valid_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]".as_bytes();
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -739,49 +682,12 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
-        //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        let ids = ids!["data", "high", "low"];
+        vm.references = references!(3);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
@@ -822,12 +728,13 @@ mod tests {
 
     #[test]
     fn blake2s_add_uint256_valid_non_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]".as_bytes();
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -857,15 +764,13 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["data", "high", "low"];
         //Create references
         vm.references = HashMap::from([
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -877,6 +782,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -888,6 +794,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -899,7 +806,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
@@ -940,12 +848,13 @@ mod tests {
 
     #[test]
     fn blake2s_add_uint256_bigend_valid_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])".as_bytes();
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -975,15 +884,13 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["data", "high", "low"];
         //Create references
         vm.references = HashMap::from([
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -995,6 +902,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1006,6 +914,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1017,7 +926,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
@@ -1058,12 +968,13 @@ mod tests {
 
     #[test]
     fn blake2s_add_uint256_bigend_valid_non_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])".as_bytes();
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])";
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1093,15 +1004,13 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["data", "high", "low"];
         //Create references
         vm.references = HashMap::from([
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1113,6 +1022,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1124,6 +1034,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1135,7 +1046,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr

@@ -219,7 +219,6 @@ pub fn get_ptr_from_var_name(
         run_context,
         hint_ap_tracking,
     )?;
-    let value = memory.get_relocatable(&var_addr)?;
     //Add immediate if present in reference
     let index = ids
         .get(&String::from(var_name))
@@ -231,14 +230,21 @@ pub fn get_ptr_from_var_name(
                 .ok_or(VirtualMachineError::BigintToUsizeFail)?,
         )
         .ok_or(VirtualMachineError::FailedToGetIds)?;
-    if let Some(immediate) = &hint_reference.immediate {
-        let modified_value = relocatable!(
-            value.segment_index,
-            value.offset + bigint_to_usize(immediate)?
-        );
-        return Ok(modified_value);
+
+    if hint_reference.dereference {
+        let value = memory.get_relocatable(&var_addr)?;
+        if let Some(immediate) = &hint_reference.immediate {
+            let modified_value = relocatable!(
+                value.segment_index,
+                value.offset + bigint_to_usize(immediate)?
+            );
+            Ok(modified_value)
+        } else {
+            Ok(value.clone())
+        }
+    } else {
+        Ok(var_addr)
     }
-    Ok(value.clone())
 }
 
 fn apply_ap_tracking_correction(
@@ -311,10 +317,21 @@ pub fn compute_addr_from_reference(
 
             match memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
-                    return Ok(Some(MaybeRelocatable::from((
-                        dereferenced_addr.segment_index,
-                        (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
-                    ))))
+                    println!("dereferend_addr: {:?}", dereferenced_addr);
+                    if let Some(imm) = &hint_reference.immediate {
+                        return Ok(Some(MaybeRelocatable::from((
+                            dereferenced_addr.segment_index,
+                            dereferenced_addr.offset
+                                + imm
+                                    .to_usize()
+                                    .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+                        ))));
+                    } else {
+                        return Ok(Some(MaybeRelocatable::from((
+                            dereferenced_addr.segment_index,
+                            (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
+                        ))));
+                    }
                 }
 
                 _none_or_error => return Ok(None),
@@ -522,7 +539,10 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn get_integer_from_var_name_valid() {
@@ -530,6 +550,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -541,6 +562,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
@@ -583,6 +605,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -594,6 +617,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -2,
                 offset2: 0,
