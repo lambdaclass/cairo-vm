@@ -154,7 +154,7 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm),
             hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(vm, ids, None),
             hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm),
-            hint_code::GET_POINT_FROM_X => get_point_from_x(vm, &ids, Some(ap_tracking)),
+            hint_code::GET_POINT_FROM_X => get_point_from_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_NEGATE => ec_negate(vm, ids, None),
             hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm, ids, None),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
