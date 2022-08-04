@@ -1,5 +1,5 @@
 # Comment to just trigger the workflow for timing
-.PHONY: deps build run check test clippy coverage benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output
+.PHONY: deps build run check test clippy coverage coverage-generic benchmark flamegraph compare_benchmarks_deps compare_benchmarks docs clean compare_vm_output
 
 TEST_DIR=cairo_programs
 TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
@@ -63,8 +63,12 @@ test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM) $(COMPILED_BAD_TESTS)
 clippy:
 	cargo clippy  -- -D warnings
 
-coverage:
+# Because tarpaulin only supports Linux we need this for other platforms
+coverage-generic:
 	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
+
+coverage: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
+	cargo tarpaulin
 
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark

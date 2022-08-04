@@ -18,7 +18,7 @@ jobs:
       with:
           toolchain: 1.61.0
           override: true
-          components: rustfmt, clippy
+          components: rustfmt, clippy, cargo-tarpaulin
     - uses: actions/checkout@v3
     - name: Python3 Build
       uses: actions/setup-python@v4
@@ -28,14 +28,12 @@ jobs:
       run: pip install ecdsa fastecdsa sympy cairo-lang
     - name: format
       run: cargo fmt --all -- --check
-    - name: Run tests
-      run: make -j test
+    - name: Tests and Coverage
+      run: make -j coverage
     - name: Compare trace and memory
       run: make compare_trace_memory
     - name: Run clippy
       run: make clippy
-    - name: Coverage
-      run: make coverage
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v2
       with:
