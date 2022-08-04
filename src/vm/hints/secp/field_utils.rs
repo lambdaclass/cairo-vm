@@ -1,20 +1,24 @@
-use crate::bigint;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::PyValueType;
-use crate::types::relocatable::MaybeRelocatable;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{
-    get_address_from_var_name, get_int_from_scope, get_integer_from_relocatable_plus_offset,
-    get_relocatable_from_var_name,
+use crate::{
+    bigint,
+    math_utils::div_mod,
+    serde::deserialize_program::ApTracking,
+    types::{exec_scope::PyValueType, relocatable::MaybeRelocatable},
+    vm::{
+        errors::vm_errors::VirtualMachineError,
+        hints::{
+            hint_utils::{
+                get_address_from_var_name, get_int_from_scope,
+                get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
+            },
+            secp::secp_utils::{pack, pack_from_var_name, SECP_P},
+        },
+        vm_core::VirtualMachine,
+    },
 };
-use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
-use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
-
-use crate::math_utils::div_mod;
 
 /*
 Implements hint:
@@ -32,6 +36,7 @@ pub fn verify_zero(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let q_address = get_address_from_var_name("q", ids, vm, hint_ap_tracking)?;
+
     let val_reloc = get_relocatable_from_var_name("val", ids, vm, hint_ap_tracking)?;
 
     let val_d0 = get_integer_from_relocatable_plus_offset(&val_reloc, 0, vm)?;
@@ -68,13 +73,7 @@ pub fn reduce(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", ids, vm, hint_ap_tracking)?;
-
-    let x_d0 = get_integer_from_relocatable_plus_offset(&x_reloc, 0, vm)?;
-    let x_d1 = get_integer_from_relocatable_plus_offset(&x_reloc, 1, vm)?;
-    let x_d2 = get_integer_from_relocatable_plus_offset(&x_reloc, 2, vm)?;
-
-    let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&SECP_P);
+    let value = pack_from_var_name("x", ids, vm, hint_ap_tracking)?.mod_floor(&SECP_P);
 
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value));
@@ -142,7 +141,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
     let x = get_int_from_scope(vm, "x")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x")))?;
 
-    let value = div_mod(bigint!(1), x, &SECP_P);
+    let value = div_mod(&bigint!(1), &x, &SECP_P);
     vm.exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
@@ -155,6 +154,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint;
     use crate::bigint_str;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;

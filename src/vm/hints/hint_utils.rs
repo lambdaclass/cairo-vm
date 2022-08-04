@@ -28,6 +28,19 @@ pub fn get_int_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<BigInt>
     val
 }
 
+pub fn get_int_from_scope_ref<'a>(
+    vm: &'a VirtualMachine,
+    name: &'a str,
+) -> Result<&'a BigInt, VirtualMachineError> {
+    let mut val: Result<&'a BigInt, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
+    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+            val = Ok(py_val);
+        }
+    }
+    val
+}
+
 pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, VirtualMachineError> {
     let mut val: Result<u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
@@ -39,7 +52,7 @@ pub fn get_u64_from_scope(vm: &mut VirtualMachine, name: &str) -> Result<u64, Vi
 }
 
 //Returns the value in the current execution scope that matches the name and is of type List
-pub fn get_list_from_scope(vm: &mut VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
+pub fn get_list_from_scope(vm: &VirtualMachine, name: &str) -> Option<Vec<BigInt>> {
     let mut val: Option<Vec<BigInt>> = None;
     if let Some(variables) = vm.exec_scopes.get_local_variables() {
         if let Some(PyValueType::List(py_val)) = variables.get(name) {
@@ -68,7 +81,7 @@ pub fn get_list_u64_from_scope_mut<'a>(
 ) -> Result<&'a mut Vec<u64>, VirtualMachineError> {
     let mut val: Result<&'a mut Vec<u64>, VirtualMachineError> =
         Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+    if let Some(variables) = vm.exec_scopes.get_local_variables_mut() {
         if let Some(PyValueType::ListU64(py_val)) = variables.get_mut(name) {
             val = Ok(py_val);
         }
@@ -82,7 +95,7 @@ pub fn get_dict_int_list_u64_from_scope_mut<'a>(
 ) -> Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
     let mut val: Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> =
         Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+    if let Some(variables) = vm.exec_scopes.get_local_variables_mut() {
         if let Some(PyValueType::DictBigIntListU64(py_val)) = variables.get_mut(name) {
             val = Ok(py_val);
         }

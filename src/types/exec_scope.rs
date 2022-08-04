@@ -39,18 +39,22 @@ impl ExecutionScopes {
         Ok(())
     }
 
-    pub fn get_local_variables(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
+    pub fn get_local_variables(&self) -> Option<&HashMap<String, PyValueType>> {
+        self.data.last()
+    }
+
+    pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
         self.data.last_mut()
     }
 
     pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
-        if let Some(local_variables) = self.get_local_variables() {
+        if let Some(local_variables) = self.get_local_variables_mut() {
             local_variables.insert(var_name.to_string(), var_value);
         }
     }
 
     pub fn delete_variable(&mut self, var_name: &str) {
-        if let Some(local_variables) = self.get_local_variables() {
+        if let Some(local_variables) = self.get_local_variables_mut() {
             local_variables.remove(&var_name.to_string());
         }
     }
@@ -86,7 +90,7 @@ mod tests {
 
         let scope = HashMap::from([(var_name, var_value)]);
 
-        let mut scopes = ExecutionScopes { data: vec![scope] };
+        let scopes = ExecutionScopes { data: vec![scope] };
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
