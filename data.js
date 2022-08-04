@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659618402212,
+  "lastUpdate": 1659620547261,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -15631,6 +15631,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 200250272,
             "range": "± 874627",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "9d111a37d10d9bba9a14957527d6eaca4bf27f5b",
+          "message": "[HINTS] Get point from x hint",
+          "timestamp": "2022-08-04T12:51:05Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/338/commits/9d111a37d10d9bba9a14957527d6eaca4bf27f5b"
+        },
+        "date": 1659620544071,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1959848847,
+            "range": "± 27449370",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 702008192,
+            "range": "± 17516611",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 351903923,
+            "range": "± 7406634",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1736409649,
+            "range": "± 15308790",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 257561896,
+            "range": "± 3615392",
             "unit": "ns/iter"
           }
         ]
