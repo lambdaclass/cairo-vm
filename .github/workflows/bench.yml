@@ -30,7 +30,7 @@ jobs:
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
     - name: Run benchmark
-      run: make benchmark-action
+      run: make -j benchmark-action
     - name: Store benchmark result
       uses: benchmark-action/github-action-benchmark@v1
       with:
