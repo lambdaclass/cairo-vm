@@ -98,7 +98,8 @@ fn offset(input: &str) -> IResult<&str, i32> {
         return Ok(("", 0));
     }
 
-    let (rem_input, _) = opt(alt((tag(" + "), tag(" - "))))(input)?;
+    let (rem_input, sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
+
     let (rem_input, num_opt) = opt(delimited(tag("("), take_until(")"), tag(")")))(rem_input)?;
 
     if let Some(num) = num_opt {
@@ -112,8 +113,23 @@ fn offset(input: &str) -> IResult<&str, i32> {
             }
         };
 
+        if let Some(sign_str) = sign {
+            if sign_str.eq(" - ") {
+                return Ok((rem_input, -parsed_num));
+            }
+
+            return Ok((rem_input, parsed_num));
+        }
+
         Ok((rem_input, parsed_num))
     } else {
+        if let Some(sign_str) = sign {
+            if sign_str.eq(" - ") {
+                let (rem_input, parsed_num) = map_res(digit1, i32::from_str)(rem_input)?;
+                return Ok((rem_input, -parsed_num));
+            }
+            return map_res(digit1, i32::from_str)(rem_input);
+        }
         map_res(digit1, i32::from_str)(rem_input)
     }
 }
@@ -235,6 +251,10 @@ mod tests {
         let value_2 = " + 1";
         let parsed_2 = offset(value_2);
         assert_eq!(parsed_2, Ok(("", 1_i32)));
+
+        let value_3 = " - 1";
+        let parsed_3 = offset(value_3);
+        assert_eq!(parsed_3, Ok(("", -1_i32)));
     }
 
     #[test]

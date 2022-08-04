@@ -12,7 +12,7 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     let (inputs) = alloc()
     let inputs_start = inputs
 
-    let num = Uint256(6666666666666666666666666, 99999999999999999999999999999)
+    let num = Uint256(3, 2)
 
     keccak_add_uint256{inputs=inputs_start}(num=num, bigend=0)
 

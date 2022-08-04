@@ -10,6 +10,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
+use std::ops::Shl;
 
 /*
     Implements hint:
@@ -23,28 +24,31 @@ pub fn keccak_write_args(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    println!("1");
-
     let inputs_ptr = get_ptr_from_var_name("inputs", ids, vm, hint_ap_tracking)?;
-    println!("2");
 
     let low = get_integer_from_var_name("low", &ids, vm, hint_ap_tracking)?;
-    println!("3");
     let high = get_integer_from_var_name("high", &ids, vm, hint_ap_tracking)?;
-    println!("4");
 
-    let low_args = [low.mod_floor(&bigint!(2)).pow(64), (low / 2_i32).pow(64)];
-    let high_args = [high.mod_floor(&bigint!(2)).pow(64), (high / 2_i32).pow(64)];
+    let low_args = [low.mod_floor(&bigint!(1).shl(64)), low / bigint!(1).shl(64)];
+    let high_args = [
+        high.mod_floor(&bigint!(1).shl(64)),
+        high / bigint!(1).shl(64),
+    ];
 
     vm.segments
-        .write_arg(&mut vm.memory, &inputs_ptr, &low_args, Some(&vm.prime))
+        .write_arg(
+            &mut vm.memory,
+            &inputs_ptr,
+            &low_args.to_vec(),
+            Some(&vm.prime),
+        )
         .map_err(VirtualMachineError::MemoryError)?;
 
     vm.segments
         .write_arg(
             &mut vm.memory,
             &inputs_ptr.add(2)?,
-            &high_args,
+            &high_args.to_vec(),
             Some(&vm.prime),
         )
         .map_err(VirtualMachineError::MemoryError)?;

@@ -187,9 +187,6 @@ pub fn compute_addr_from_reference(
         }
     };
 
-    println!("base_addr: {:?}", base_addr);
-    println!("valor en ese addr: {:?}", vm.memory.get(&base_addr));
-
     if let MaybeRelocatable::RelocatableValue(relocatable) = base_addr {
         if hint_reference.offset1.is_negative()
             && relocatable.offset < hint_reference.offset1.abs() as usize
@@ -208,12 +205,8 @@ pub fn compute_addr_from_reference(
                 (relocatable.offset as i32 + hint_reference.offset1) as usize,
             ));
 
-            println!("ADDR DESPUES DE APLICAR OFFSET: {:?}", addr);
-            println!("valor en ese addr: {:?}", vm.memory.get(&addr));
-
             match vm.memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
-                    println!("dereferend_addr: {:?}", dereferenced_addr);
                     if let Some(imm) = &hint_reference.immediate {
                         return Ok(Some(MaybeRelocatable::from((
                             dereferenced_addr.segment_index,
@@ -248,9 +241,7 @@ pub fn get_address_from_reference(
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     if let Some(index) = reference_id.to_usize() {
         if index < references.len() {
-            println!("lal");
             if let Some(hint_reference) = references.get(&index) {
-                println!("REF: {:?}", hint_reference);
                 return compute_addr_from_reference(
                     hint_reference,
                     run_context,
@@ -273,7 +264,6 @@ pub fn get_address_from_var_name(
         .get(&String::from(var_name))
         .ok_or_else(|| VirtualMachineError::IdNotFound(var_name.to_string()))?;
 
-    //println!("REFERENCIA DEBERIA SER 153: {:?}", var_ref);
     get_address_from_reference(
         var_ref,
         &vm.references,
