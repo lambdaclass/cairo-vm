@@ -187,9 +187,6 @@ pub fn compute_addr_from_reference(
         }
     };
 
-    println!("base_addr: {:?}", base_addr);
-    println!("valor en ese addr: {:?}", vm.memory.get(&base_addr));
-
     if let MaybeRelocatable::RelocatableValue(relocatable) = base_addr {
         if hint_reference.offset1.is_negative()
             && relocatable.offset < hint_reference.offset1.abs() as usize
