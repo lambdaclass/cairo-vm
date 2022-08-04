@@ -463,3 +463,5 @@ value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P"#;
 
 pub(crate) const FAST_EC_ADD_ASSIGN_NEW_Y: &str =
     r#"value = new_y = (slope * (x0 - new_x) - y0) % SECP_P"#;
+
+pub(crate) const EC_MUL_INNER: &str = r#"memory[ap] = (ids.scalar % PRIME) % 2"#;

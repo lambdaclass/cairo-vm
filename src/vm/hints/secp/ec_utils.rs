@@ -2,9 +2,11 @@ use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
+    get_int_from_scope, get_integer_from_relocatable_plus_offset, get_integer_from_var_name,
+    get_relocatable_from_var_name,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VirtualMachine;
@@ -346,6 +348,26 @@ pub fn fast_ec_add_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMa
         .assign_or_update_variable("new_y", PyValueType::BigInt(value));
 
     Ok(())
+}
+
+/*
+Implements hint:
+%{ memory[ap] = (ids.scalar % PRIME) % 2 %}
+%{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
+*/
+pub fn ec_mul_inner(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //(ids.scalar % PRIME) % 2
+    let scalar = get_integer_from_var_name("scalar", ids, vm, hint_ap_tracking)?
+        .mod_floor(&vm.prime)
+        .mod_floor(&bigint!(2));
+
+    vm.memory
+        .insert(&vm.run_context.ap, &MaybeRelocatable::from(scalar))
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 #[cfg(test)]
