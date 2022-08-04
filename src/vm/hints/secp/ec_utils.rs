@@ -353,7 +353,6 @@ pub fn fast_ec_add_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMa
 /*
 Implements hint:
 %{ memory[ap] = (ids.scalar % PRIME) % 2 %}
-%{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
 pub fn ec_mul_inner(
     vm: &mut VirtualMachine,
@@ -813,6 +812,127 @@ mod tests {
             vm.exec_scopes.get_local_variables().unwrap().get("new_y"),
             Some(&PyValueType::BigInt(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_fast_ec_add_assign_new_x_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx0 = pack(ids.point0.x, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0, ids.point1.x and ids.slope into memory
+        vm.memory = memory![
+            ((1, 0), 89712),
+            ((1, 1), 56),
+            ((1, 2), 1233409),
+            ((1, 3), 980126),
+            ((1, 4), 10),
+            ((1, 5), 8793),
+            ((1, 6), 1235216451),
+            ((1, 7), 5967),
+            ((1, 8), 2171381),
+            ((1, 9), 67470097831679799377177424_i128),
+            ((1, 10), 43370026683122492246392730_i128),
+            ((1, 11), 16032182557092050689870202_i128)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 20));
+
+        //Create ids
+        let ids = ids!["point0", "point1", "slope"];
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -15,
+                    offset2: 0,
+                    dereference: false,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -9,
+                    offset2: 0,
+                    dereference: false,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::AP,
+                    offset1: -11,
+                    offset2: 0,
+                    dereference: false,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+        ]);
+
+        //Create ap tracking
+        let ap_tracking = ApTracking {
+            group: 1,
+            offset: 0,
+        };
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Check 'new_x' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+            )))
+        );
+
+        //Check 'new_x' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
             )))
         );
     }
