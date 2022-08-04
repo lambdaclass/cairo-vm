@@ -14,7 +14,7 @@ Implements hint:
 */
 pub fn pow(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for the variables used by the hint
@@ -26,7 +26,7 @@ pub fn pow(
     } else {
         return Err(VirtualMachineError::IncorrectIds(
             vec![String::from("prev_locs"), String::from("locs")],
-            ids.into_keys().collect(),
+            ids.keys().map(Clone::clone).collect(),
         ));
     };
 
@@ -81,15 +81,17 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 
     use super::*;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn run_pow_ok() {
-        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1".as_bytes();
+        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -97,6 +99,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -158,7 +161,11 @@ mod tests {
         };
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -169,7 +176,7 @@ mod tests {
 
     #[test]
     fn run_pow_incorrect_ids() {
-        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1".as_bytes();
+        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -177,6 +184,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -193,7 +201,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::IncorrectIds(
                 vec![String::from("prev_locs"), String::from("locs")],
                 vec![String::from("locs")]
@@ -203,7 +212,7 @@ mod tests {
 
     #[test]
     fn run_pow_incorrect_references() {
-        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1".as_bytes();
+        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -211,6 +220,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -257,14 +267,15 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
 
     #[test]
     fn run_pow_prev_locs_exp_is_not_integer() {
-        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1".as_bytes();
+        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -272,6 +283,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -325,7 +337,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -334,7 +347,7 @@ mod tests {
 
     #[test]
     fn run_pow_invalid_memory_insert() {
-        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1".as_bytes();
+        let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -342,6 +355,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -403,7 +417,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),

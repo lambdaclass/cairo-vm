@@ -254,30 +254,33 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_memory::memory::Memory;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn run_ec_negate_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\ny = pack(ids.point.y, PRIME) % SECP_P\n# The modulo operation in python always returns a nonnegative number.\nvalue = (-y) % SECP_P";
         let mut vm = VirtualMachine::new(
             VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
-        vm.memory = memory![((1, 3), 2645), ((1, 4), 454), ((1, 5), 206)];
+        vm.memory = memory![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
 
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 8));
 
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("point"), bigint!(0));
+        ids.insert(String::from("point"), bigint!(0i32));
 
         //Create references
         vm.references = HashMap::from([(
@@ -304,7 +307,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -319,23 +323,24 @@ mod tests {
 
     #[test]
     fn run_compute_doubling_slope_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
         let mut vm = VirtualMachine::new(
             VM_PRIME.clone(),
             vec![(
                 "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         vm.memory = memory![
-            ((1, 0), 614323),
-            ((1, 1), 5456867),
-            ((1, 2), 101208),
-            ((1, 3), 773712524),
-            ((1, 4), 77371252),
-            ((1, 5), 5298795)
+            ((1, 0), 614323u64),
+            ((1, 1), 5456867u64),
+            ((1, 2), 101208u64),
+            ((1, 3), 773712524u64),
+            ((1, 4), 77371252u64),
+            ((1, 5), 5298795u64)
         ];
 
         //Initialize fp
@@ -343,7 +348,7 @@ mod tests {
 
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("point"), bigint!(0));
+        ids.insert(String::from("point"), bigint!(0i32));
 
         //Create references
         vm.references = HashMap::from([(
@@ -376,7 +381,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
