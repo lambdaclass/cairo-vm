@@ -49,6 +49,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 
@@ -163,8 +164,8 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
 
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 11));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 11));
 
         //Create ids
         let ids = ids!["prev_locs", "locs"];
@@ -192,8 +193,8 @@ mod tests {
     fn run_pow_prev_locs_exp_is_not_integer() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 11));
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 11));
 
         //Create ids
         let ids = ids!["prev_locs", "locs"];

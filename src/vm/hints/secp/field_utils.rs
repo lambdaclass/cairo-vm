@@ -1,18 +1,19 @@
+use crate::bigint;
+use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     get_int_from_scope, get_relocatable_from_var_name, insert_int_into_ap, insert_int_into_scope,
     insert_value_from_var_name,
 };
-use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
+use crate::vm::hints::secp::secp_utils::SECP_P;
 use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, bigint_str};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
 
-use crate::math_utils::div_mod;
+use super::secp_utils::{pack, pack_from_var_name};
 
 /*
 Implements hint:
@@ -77,25 +78,7 @@ pub fn reduce(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name(
-        "x",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-
-    let x_d0 = vm.memory.get_integer(&x_reloc)?;
-    let x_d1 = vm.memory.get_integer(&(&x_reloc + 1))?;
-    let x_d2 = vm.memory.get_integer(&(x_reloc + 2))?;
-
-    //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
-    let sec_p = bigint_str!(
-        b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
-    );
-
-    let value = pack(x_d0, x_d1, x_d2, &vm.prime).mod_floor(&sec_p);
+    let value = pack_from_var_name("x", ids, vm, hint_ap_tracking)?.mod_floor(&SECP_P);
     insert_int_into_scope(&mut vm.exec_scopes, "value", value);
     Ok(())
 }
@@ -159,7 +142,7 @@ pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), Vir
     //Get `x` variable from vm scope
     let x = get_int_from_scope(&vm.exec_scopes, "x")?;
 
-    let value = div_mod(bigint!(1), x, &SECP_P);
+    let value = div_mod(&bigint!(1), &x, &SECP_P);
     insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
     insert_int_into_scope(&mut vm.exec_scopes, "x_inv", value);
     Ok(())

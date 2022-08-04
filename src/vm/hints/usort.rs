@@ -192,6 +192,7 @@ pub fn verify_multiplicity_body(
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,

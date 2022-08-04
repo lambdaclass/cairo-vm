@@ -34,10 +34,14 @@ use crate::vm::hints::uint256_utils::{
 
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
-    ec_utils::{compute_doubling_slope, ec_negate},
+    ec_utils::{
+        compute_doubling_slope, compute_slope, ec_double_assign_new_x, ec_double_assign_new_y,
+        ec_negate,
+    },
     field_utils::{
         is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
     },
+    signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
 };
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
@@ -174,8 +178,14 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::IS_ZERO_PACK => is_zero_pack(vm, ids, None),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm),
+            hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(vm, ids, None),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm),
+            hint_code::GET_POINT_FROM_X => get_point_from_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_NEGATE => ec_negate(vm, ids, None),
             hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm, ids, None),
+            hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }
