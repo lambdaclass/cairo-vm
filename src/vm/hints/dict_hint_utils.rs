@@ -502,9 +502,11 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
+    use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::dict_manager::{DictManager, DictTracker, Dictionary};
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, relocatable};
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
@@ -597,12 +599,7 @@ mod tests {
     fn run_dict_read_valid() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
             ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -619,65 +616,10 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.value
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5_i32), ((0, 2), (1, 0))];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
-        //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        let ids = ids!["key", "value", "dict_ptr"];
+        vm.references = references!(3);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
