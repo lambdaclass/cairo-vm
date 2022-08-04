@@ -67,7 +67,7 @@ impl HintReference {
             inner_dereference: false,
             ap_tracking_data: None,
             immediate: None,
-            dereference: false,
+            dereference: true,
         }
     }
 }
