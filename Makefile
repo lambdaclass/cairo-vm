@@ -25,8 +25,8 @@ $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 # several of the targets need updating.
 # The '$(@:OLD_SUFFIX=NEW_SUFFIX)' is needed because there's no way to
 # distinguish which target triggered the rule.
-$(TEST_DIR)/%.cleopatra.memory $(TEST_DIR)/%.cleopatra.trace &: $(TEST_DIR)/%.json build
-	./target/release/cleopatra-run $< --memory_file $(@:trace=memory) --trace_file $(@:memory=trace)
+$(TEST_DIR)/%.cleopatra.memory $(TEST_DIR)/%.cleopatra.trace &: $(TEST_DIR)/%.json
+	cargo run $< --memory_file $(@:trace=memory) --trace_file $(@:memory=trace)
 
 $(TEST_DIR)/%.memory $(TEST_DIR)/%.trace &: $(TEST_DIR)/%.json
 	PYENV_VERSION=pypy3.7-7.3.9 cairo-run --layout all --program $< --memory_file $(@:trace=memory) --trace_file $(@:memory=trace)
@@ -73,7 +73,7 @@ benchmark: $(COMPILED_BENCHES)
 benchmark-action: $(COMPILED_BENCHES)
 	cargo +nightly bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
 
-flamegraph:
+flamegraph: $(COMPILED_BENCHES)
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
 compare_benchmarks: $(COMPILED_BENCHES)
