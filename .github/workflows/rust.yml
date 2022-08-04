@@ -26,6 +26,7 @@ jobs:
         python-version: '3.9'
     - name: Install test dependencies
       run: pip install ecdsa fastecdsa sympy cairo-lang
+    - name: Install Tarpaulin
       run: cargo install --version 0.20.1 cargo-tarpaulin
     - name: format
       run: cargo fmt --all -- --check
