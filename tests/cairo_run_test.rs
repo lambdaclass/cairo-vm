@@ -313,3 +313,9 @@ fn cairo_run_keccak_add_uint256() {
     cairo_run::cairo_run(Path::new("cairo_programs/keccak_add_uint256.json"), false)
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_private_keccak() {
+    cairo_run::cairo_run(Path::new("cairo_programs/_keccak.json"), false)
+        .expect("Couldn't run program");
+}
