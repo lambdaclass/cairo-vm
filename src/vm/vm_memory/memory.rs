@@ -84,20 +84,22 @@ impl Memory {
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
     pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        match self.get(&MaybeRelocatable::from((key.segment_index, key.offset))) {
-            Ok(Some(MaybeRelocatable::Int(int))) => Ok(int),
-            Ok(_) => Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((key.segment_index, key.offset)),
-            )),
-            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+        if let Some(MaybeRelocatable::Int(int)) =
+            self.get(key).map_err(VirtualMachineError::MemoryError)?
+        {
+            Ok(int)
+        } else {
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from(key),
+            ))
         }
     }
 
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
-        match self.get(&MaybeRelocatable::from((key.segment_index, key.offset))) {
+        match self.get(key) {
             Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
             Ok(_) => Err(VirtualMachineError::ExpectedRelocatable(
-                MaybeRelocatable::from((key.segment_index, key.offset)),
+                MaybeRelocatable::from(key),
             )),
             Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
@@ -108,16 +110,7 @@ impl Memory {
         key: &Relocatable,
         val: T,
     ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(key), &val.into())
-            .map_err(VirtualMachineError::MemoryError)
-    }
-
-    pub fn insert_value<T: Into<MaybeRelocatable>>(
-        &mut self,
-        key: &Relocatable,
-        val: T,
-    ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(key), &val.into())
+        self.insert(key, &val.into())
             .map_err(VirtualMachineError::MemoryError)
     }
 
