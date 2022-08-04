@@ -279,8 +279,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 8));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("point"), bigint!(0i32));
+        let ids = ids!["point"];
 
         //Create references
         vm.references = HashMap::from([(
@@ -347,8 +346,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 8));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("point"), bigint!(0i32));
+        let ids = ids!["point"];
 
         //Create references
         vm.references = HashMap::from([(
@@ -405,7 +403,7 @@ mod tests {
 
     #[test]
     fn run_compute_slope_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import line_slope\n\n# Compute the slope.\nx0 = pack(ids.point0.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny1 = pack(ids.point1.y, PRIME)\nvalue = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)";
         let mut vm = VirtualMachine::new(
             VM_PRIME.clone(),
             vec![(
@@ -413,6 +411,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         //Insert ids.point0 and ids.point1 into memory
@@ -435,9 +434,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 14));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("point0"), bigint!(0));
-        ids.insert(String::from("point1"), bigint!(1));
+        let ids = ids!["point0", "point1"];
 
         //Create references
         vm.references = HashMap::from([
@@ -487,7 +484,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -510,7 +508,7 @@ mod tests {
 
     #[test]
     fn run_ec_double_assign_new_x_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
         let mut vm = VirtualMachine::new(
             VM_PRIME.clone(),
             vec![(
@@ -518,6 +516,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         //Insert ids.point and ids.slope into memory
@@ -540,9 +539,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 10));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("point"), bigint!(0));
-        ids.insert(String::from("slope"), bigint!(1));
+        let ids = ids!["point", "slope"];
 
         //Create references
         vm.references = HashMap::from([
@@ -609,7 +606,11 @@ mod tests {
         );
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
@@ -654,7 +655,7 @@ mod tests {
 
     #[test]
     fn run_ec_double_assign_new_y_ok() {
-        let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P".as_bytes();
+        let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P";
         let mut vm = VirtualMachine::new(
             VM_PRIME.clone(),
             vec![(
@@ -662,6 +663,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         //Insert 'slope' into vm scope
@@ -704,10 +706,10 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(
+            vm.hint_executor.execute_hint(
                 &mut vm,
                 hint_code,
-                HashMap::<String, BigInt>::new(),
+                &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
             ),
             Ok(())

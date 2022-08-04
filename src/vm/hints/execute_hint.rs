@@ -169,10 +169,8 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm),
             hint_code::EC_NEGATE => ec_negate(vm, ids, None),
             hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm, ids, None),
-            hint_code::COMPUTE_SLOPE => compute_slope(vm, &ids, None),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
-                ec_double_assign_new_x(vm, &ids, Some(ap_tracking))
-            }
+            hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
