@@ -39,10 +39,10 @@ use std::{cmp, collections::HashMap, ops::Shl};
 */
 pub fn unsafe_keccak(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let length = get_integer_from_var_name("length", &ids, vm, hint_ap_tracking)?.clone();
+    let length = get_integer_from_var_name("length", ids, vm, hint_ap_tracking)?.clone();
 
     if let Some(keccak_max_size) = get_int_from_scope(vm, "__keccak_max_size") {
         if length > keccak_max_size {
@@ -51,10 +51,10 @@ pub fn unsafe_keccak(
     }
 
     // `data` is an array, represented by a pointer to the first element.
-    let data = get_ptr_from_var_name("data", &ids, vm, hint_ap_tracking)?;
+    let data = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
 
-    let high_addr = get_relocatable_from_var_name("high", &ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", &ids, vm, hint_ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
 
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length

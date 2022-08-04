@@ -35,7 +35,7 @@ fn get_access_indices(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, Vec<Big
 */
 pub fn squash_dict_inner_first_iteration(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
@@ -45,7 +45,7 @@ pub fn squash_dict_inner_first_iteration(
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
     //Get addr for ids variables
     let range_check_ptr_addr =
-        get_address_from_var_name("range_check_ptr", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("range_check_ptr", ids, vm, hint_ap_tracking)?;
     //Get ids from memory
     let range_check_ptr = vm
         .memory
@@ -82,7 +82,7 @@ pub fn squash_dict_inner_first_iteration(
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -92,7 +92,7 @@ pub fn squash_dict_inner_skip_loop(
         })?;
     //Get addr for ids variables
     let should_skip_loop_addr =
-        get_address_from_var_name("should_skip_loop", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("should_skip_loop", ids, vm, hint_ap_tracking)?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -114,7 +114,7 @@ pub fn squash_dict_inner_skip_loop(
 */
 pub fn squash_dict_inner_check_access_index(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
@@ -126,7 +126,7 @@ pub fn squash_dict_inner_check_access_index(
         VirtualMachineError::NoLocalVariable(String::from("current_access_index"))
     })?;
     //Get addr for ids variables
-    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
+    let loop_temps_addr = get_address_from_var_name("loop_temps", ids, vm, hint_ap_tracking)?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
@@ -158,7 +158,7 @@ pub fn squash_dict_inner_check_access_index(
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -168,7 +168,7 @@ pub fn squash_dict_inner_continue_loop(
         })?;
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
-    let loop_temps_addr = get_address_from_var_name("loop_temps", &ids, vm, hint_ap_tracking)?;
+    let loop_temps_addr = get_address_from_var_name("loop_temps", ids, vm, hint_ap_tracking)?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -202,7 +202,7 @@ pub fn squash_dict_inner_len_assert(vm: &mut VirtualMachine) -> Result<(), Virtu
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
@@ -212,7 +212,7 @@ pub fn squash_dict_inner_used_accesses_assert(
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("key")))?;
     //Get addr for ids variables
     let n_used_accesses_addr =
-        get_address_from_var_name("n_used_accesses", &ids, vm, hint_ap_tracking)?;
+        get_address_from_var_name("n_used_accesses", ids, vm, hint_ap_tracking)?;
     //Get n_used_accesses from memory
     let maybe_rel_n_used_accesses = vm
         .memory
@@ -259,14 +259,14 @@ pub fn squash_dict_inner_assert_len_keys(
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let mut keys = get_list_from_scope(vm, "keys")
         .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("keys")))?;
     //Get addr for ids variables
-    let next_key_addr = get_address_from_var_name("next_key", &ids, vm, hint_ap_tracking)?;
+    let next_key_addr = get_address_from_var_name("next_key", ids, vm, hint_ap_tracking)?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     vm.memory
@@ -303,16 +303,15 @@ pub fn squash_dict_inner_next_key(
 */
 pub fn squash_dict(
     vm: &mut VirtualMachine,
-    ids: HashMap<String, BigInt>,
+    ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let dict_accesses_addr =
-        get_address_from_var_name("dict_accesses", &ids, vm, hint_ap_tracking)?;
-    let ptr_diff_addr = get_address_from_var_name("ptr_diff", &ids, vm, hint_ap_tracking)?;
-    let n_accesses_addr = get_address_from_var_name("n_accesses", &ids, vm, hint_ap_tracking)?;
-    let big_keys_addr = get_address_from_var_name("big_keys", &ids, vm, hint_ap_tracking)?;
-    let first_key_addr = get_address_from_var_name("first_key", &ids, vm, hint_ap_tracking)?;
+    let dict_accesses_addr = get_address_from_var_name("dict_accesses", ids, vm, hint_ap_tracking)?;
+    let ptr_diff_addr = get_address_from_var_name("ptr_diff", ids, vm, hint_ap_tracking)?;
+    let n_accesses_addr = get_address_from_var_name("n_accesses", ids, vm, hint_ap_tracking)?;
+    let big_keys_addr = get_address_from_var_name("big_keys", ids, vm, hint_ap_tracking)?;
+    let first_key_addr = get_address_from_var_name("first_key", ids, vm, hint_ap_tracking)?;
     //Get ids variables from memory
     let ptr_diff = if let MaybeRelocatable::Int(ptr_diff) = vm
         .memory
@@ -410,11 +409,17 @@ mod tests {
     use crate::serde::deserialize_program::ApTracking;
     use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
-    use crate::vm::hints::execute_hint::{execute_hint, HintReference};
+    use crate::vm::hints::{
+        execute_hint::{BuiltinHintExecutor, HintReference},
+        hint_code,
+    };
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_bigint::Sign;
 
     use super::*;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";
     const SQUASH_DICT_INNER_SKIP_LOOP: &str =
@@ -430,7 +435,7 @@ mod tests {
     const SQUASH_DICT: &str ="dict_access_size = ids.DictAccess.SIZE\naddress = ids.dict_accesses.address_\nassert ids.ptr_diff % dict_access_size == 0, \\\n    'Accesses array size must be divisible by DictAccess.SIZE'\nn_accesses = ids.n_accesses\nif '__squash_dict_max_size' in globals():\n    assert n_accesses <= __squash_dict_max_size, \\\n        f'squash_dict() can only be used with n_accesses<={__squash_dict_max_size}. ' \\\n        f'Got: n_accesses={n_accesses}.'\n# A map from key to the list of indices accessing it.\naccess_indices = {}\nfor i in range(n_accesses):\n    key = memory[address + dict_access_size * i]\n    access_indices.setdefault(key, []).append(i)\n# Descending list of keys.\nkeys = sorted(access_indices.keys(), reverse=True)\n# Are the keys used bigger than range_check bound.\nids.big_keys = 1 if keys[0] >= range_check_builtin.bound else 0\nids.first_key = key = keys.pop()";
     #[test]
     fn squash_dict_inner_first_iteration_valid() {
-        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -440,6 +445,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -465,6 +471,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -475,7 +482,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -497,7 +505,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_first_iteration_empty_accessed_indices() {
-        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         //Leave current_accessed_indices empty
@@ -508,6 +516,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -533,6 +542,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -543,20 +553,22 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
 
     #[test]
     fn squash_dict_inner_first_iteration_no_local_variables() {
-        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //No scope variables
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -577,6 +589,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -587,7 +600,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::NoLocalVariable(String::from(
                 "access_indices"
             )))
@@ -596,7 +610,7 @@ mod tests {
 
     #[test]
     fn should_skip_loop_valid_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -604,6 +618,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
@@ -622,6 +637,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -632,7 +648,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -644,7 +661,7 @@ mod tests {
 
     #[test]
     fn should_skip_loop_valid_non_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(4), bigint!(7)];
         //Create vm
@@ -652,6 +669,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
@@ -670,6 +688,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -680,7 +699,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -692,7 +712,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_check_access_index_valid() {
-        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)];
         //Create vm
@@ -700,6 +720,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -720,6 +741,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -730,7 +752,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -755,7 +778,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_check_access_current_access_addr_empty() {
-        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -763,6 +786,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -790,6 +814,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -800,14 +825,15 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
 
     #[test]
     fn should_continue_loop_valid_non_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(4), bigint!(7)];
         //Create vm
@@ -815,6 +841,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -833,6 +860,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -843,7 +871,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -855,7 +884,7 @@ mod tests {
 
     #[test]
     fn should_continue_loop_valid_empty_current_access_indices() {
-        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -863,6 +892,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -881,6 +911,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -891,7 +922,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -903,7 +935,7 @@ mod tests {
 
     #[test]
     fn assert_current_indices_len_is_empty() {
-        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
@@ -911,6 +943,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Store scope variables
         vm.exec_scopes.assign_or_update_variable(
@@ -920,14 +953,19 @@ mod tests {
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Ok(())
         );
     }
 
     #[test]
     fn assert_current_indices_len_is_empty_not() {
-        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Prepare scope variables
         let current_access_indices = vec![bigint!(29)];
         //Create vm
@@ -935,6 +973,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Store scope variables
         vm.exec_scopes.assign_or_update_variable(
@@ -944,14 +983,19 @@ mod tests {
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }
 
     #[test]
     fn squash_dict_inner_uses_accesses_assert_valid() {
-        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -961,6 +1005,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -986,6 +1031,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -997,14 +1043,15 @@ mod tests {
         //Execute the hint
         //Hint would fail is assertion fails
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
     }
 
     #[test]
     fn squash_dict_inner_uses_accesses_assert_wrong_used_access_number() {
-        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -1014,6 +1061,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1039,6 +1087,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1049,7 +1098,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -1060,7 +1110,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_uses_accesses_assert_used_access_number_relocatable() {
-        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
@@ -1070,6 +1120,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1095,6 +1146,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1105,7 +1157,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1114,7 +1167,7 @@ mod tests {
 
     #[test]
     fn squash_dict_assert_len_keys_empty() {
-        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Prepare scope variables
         let keys = vec![];
         //Create vm
@@ -1122,20 +1175,26 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Store scope variables
         vm.exec_scopes
             .assign_or_update_variable("keys", PyValueType::List(keys));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Ok(())
         );
     }
 
     #[test]
     fn squash_dict_assert_len_keys_not_empty() {
-        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Prepare scope variables
         let keys = vec![bigint!(3)];
         //Create vm
@@ -1143,36 +1202,48 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Store scope variables
         vm.exec_scopes
             .assign_or_update_variable("keys", PyValueType::List(keys));
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::KeysNotEmpty)
         );
     }
 
     #[test]
     fn squash_dict_assert_len_keys_no_keys() {
-        let hint_code = SQUASH_DICT_INNER_LEN_KEYS.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, HashMap::new(), &ApTracking::default()),
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::NoLocalVariable(String::from("keys")))
         );
     }
 
     #[test]
     fn squash_dict_inner_next_key_keys_non_empty() {
-        let hint_code = SQUASH_DICT_INNER_NEXT_KEY.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Prepare scope variables
         let keys = vec![bigint!(1), bigint!(3)];
         //Create vm
@@ -1180,6 +1251,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
@@ -1196,6 +1268,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1206,7 +1279,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.next_key
@@ -1224,7 +1298,7 @@ mod tests {
 
     #[test]
     fn squash_dict_inner_next_key_keys_empty() {
-        let hint_code = SQUASH_DICT_INNER_NEXT_KEY.as_bytes();
+        let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Prepare scope variables
         let keys = vec![];
         //Create vm
@@ -1232,6 +1306,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
@@ -1248,6 +1323,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::FP,
                 offset1: -1,
                 offset2: 0,
@@ -1258,7 +1334,8 @@ mod tests {
         )]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -1266,7 +1343,7 @@ mod tests {
     #[test]
     fn squash_dict_valid_one_key_dict_no_max_size() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1275,6 +1352,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1360,6 +1438,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1371,6 +1450,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1382,6 +1462,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1393,6 +1474,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1404,6 +1486,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1415,7 +1498,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1446,7 +1530,8 @@ mod tests {
     #[test]
     fn squash_dict_valid_two_key_dict_no_max_size() {
         //Dict = {1: (1,1), 1: (1,2), 2: (10,10), 2: (10,20)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
+        assert_eq!(SQUASH_DICT, hint_code::SQUASH_DICT);
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1455,6 +1540,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1582,6 +1668,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1593,6 +1680,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1604,6 +1692,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1615,6 +1704,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1626,6 +1716,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1637,7 +1728,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1671,7 +1763,7 @@ mod tests {
     #[test]
     fn squash_dict_valid_one_key_dict_with_max_size() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1680,6 +1772,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1768,6 +1861,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1779,6 +1873,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1790,6 +1885,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1801,6 +1897,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1812,6 +1909,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -1823,7 +1921,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1854,7 +1953,7 @@ mod tests {
     #[test]
     fn squash_dict_invalid_one_key_dict_with_max_size_exceeded() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -1863,6 +1962,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1951,6 +2051,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -1962,6 +2063,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -1973,6 +2075,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -1984,6 +2087,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -1995,6 +2099,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2006,7 +2111,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -2017,7 +2123,7 @@ mod tests {
     #[test]
     fn squash_dict_invalid_one_key_dict_bad_ptr_diff() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2026,6 +2132,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2111,6 +2218,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2122,6 +2230,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2133,6 +2242,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2144,6 +2254,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2155,6 +2266,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2166,14 +2278,15 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
         );
     }
     #[test]
     fn squash_dict_invalid_one_key_dict_with_n_access_too_big() {
         //Dict = {1: (1,1), 1: (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2182,6 +2295,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2270,6 +2384,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2281,6 +2396,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2292,6 +2408,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2303,6 +2420,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2314,6 +2432,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2325,7 +2444,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::NAccessesTooBig(BigInt::new(
                 Sign::Plus,
                 vec![1, 0, 0, 0, 0, 0, 17, 134217728]
@@ -2336,7 +2456,7 @@ mod tests {
     #[test]
     fn squash_dict_valid_one_key_dict_no_max_size_big_keys() {
         //Dict = {(prime - 1): (1,1), (prime - 1): (1,2)}
-        let hint_code = SQUASH_DICT.as_bytes();
+        let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
@@ -2345,6 +2465,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -2436,6 +2557,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -2447,6 +2569,7 @@ mod tests {
             (
                 1,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -4,
                     offset2: 0,
@@ -2458,6 +2581,7 @@ mod tests {
             (
                 2,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -3,
                     offset2: 0,
@@ -2469,6 +2593,7 @@ mod tests {
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -2480,6 +2605,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -2491,7 +2617,8 @@ mod tests {
         ]);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ApTracking::default()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables

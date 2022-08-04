@@ -84,17 +84,21 @@ mod tests {
         types::{instruction::Register, relocatable::MaybeRelocatable},
         utils::test_utils::{mayberelocatable, memory, memory_from_memory, memory_inner},
         vm::{
-            errors::memory_errors::MemoryError, hints::execute_hint::HintReference,
+            errors::memory_errors::MemoryError,
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
             vm_memory::memory::Memory,
         },
     };
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     fn init_vm() -> VirtualMachine {
         VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         )
     }
 
@@ -117,6 +121,7 @@ mod tests {
             vm.references.insert(
                 i,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: i as i32 - 3,
                     offset2: 0,
@@ -165,6 +170,7 @@ mod tests {
             vm.references.insert(
                 i,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: i as i32 - 1,
                     offset2: 0,
