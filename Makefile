@@ -12,8 +12,12 @@ BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
 COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
 
+BAD_TEST_DIR=cairo_programs/bad_programs
+BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
+COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
+
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
-	cairo-compile $< --output $@
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(TEST_DIR)/%.cleopatra.memory: $(TEST_DIR)/%.json build
 	./target/release/cleopatra-run $< --memory_file $@
@@ -28,10 +32,14 @@ $(TEST_DIR)/%.trace: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --trace_file $@
 
 $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
+
+$(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
+	cargo install --version 1.14.0 hyperfine
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
@@ -48,7 +56,7 @@ run:
 check:
 	cargo check
 
-test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM)
+test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM) $(COMPILED_BAD_TESTS)
 	cargo test
 
 clippy:
@@ -60,6 +68,9 @@ coverage:
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark
 	@echo 'Report: target/criterion/reports/index.html'
+
+benchmark-action: $(COMPILED_BENCHES)
+	cargo +nightly bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
 
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
@@ -84,3 +95,4 @@ clean:
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(BENCH_DIR)/*.json
+	rm -f $(BAD_TEST_DIR)/*.json

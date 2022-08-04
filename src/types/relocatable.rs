@@ -1,15 +1,19 @@
-use crate::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
+use crate::{
+    bigint, relocatable,
+    vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
+use std::ops::Add;
 
-#[derive(Eq, Hash, PartialEq, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
     pub segment_index: usize,
     pub offset: usize,
 }
 
-#[derive(Eq, Hash, PartialEq, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(BigInt),
@@ -36,6 +40,16 @@ impl From<BigInt> for MaybeRelocatable {
     }
 }
 
+impl Relocatable {
+    pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
+        if self.offset < other {
+            return Err(VirtualMachineError::CantSubOffset(self.offset, other));
+        }
+        let new_offset = self.offset - other;
+        Ok(relocatable!(self.segment_index, new_offset))
+    }
+}
+
 impl MaybeRelocatable {
     ///Adds a bigint to self, then performs mod prime
     pub fn add_int_mod(
@@ -56,7 +70,7 @@ impl MaybeRelocatable {
                 big_offset = big_offset.mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
+                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
                 };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -106,7 +120,7 @@ impl MaybeRelocatable {
                 let big_offset: BigInt = (num_ref + rel.offset).mod_floor(prime);
                 let new_offset = match big_offset.to_usize() {
                     Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExeeded(big_offset)),
+                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
                 };
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -132,12 +146,17 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: rel_a.segment_index,
-                        offset: rel_a.offset - rel_b.offset,
-                    }));
+                    return Ok(MaybeRelocatable::from(bigint!(rel_a.offset - rel_b.offset)));
                 }
                 Err(VirtualMachineError::DiffIndexSub)
+            }
+            (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
+                Ok(MaybeRelocatable::from((
+                    rel_a.segment_index,
+                    (rel_a.offset - num_b)
+                        .to_usize()
+                        .ok_or_else(|| VirtualMachineError::OffsetExceeded(rel_a.offset - num_b))?,
+                )))
             }
             _ => Err(VirtualMachineError::NotImplemented),
         }
@@ -163,6 +182,27 @@ impl MaybeRelocatable {
                 MaybeRelocatable::from(val.mod_floor(div)),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
+        }
+    }
+
+    //Returns reference to BigInt inside self if Int variant or Error if RelocatableValue variant
+    pub fn get_int_ref(&self) -> Result<&BigInt, VirtualMachineError> {
+        match self {
+            MaybeRelocatable::Int(num) => Ok(num),
+            MaybeRelocatable::RelocatableValue(_) => {
+                Err(VirtualMachineError::ExpectedInteger(self.clone()))
+            }
+        }
+    }
+}
+
+impl<'a> Add<usize> for &'a Relocatable {
+    type Output = Relocatable;
+
+    fn add(self, other: usize) -> Self::Output {
+        Relocatable {
+            segment_index: self.segment_index,
+            offset: self.offset + other,
         }
     }
 }
@@ -198,7 +238,6 @@ mod tests {
     use crate::relocatable;
     use num_bigint::BigInt;
     use num_bigint::Sign;
-    use num_traits::FromPrimitive;
 
     #[test]
     fn add_bigint_to_int() {
@@ -230,7 +269,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -364,7 +403,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -383,7 +422,7 @@ mod tests {
         );
         assert_eq!(
             error,
-            Err(VirtualMachineError::OffsetExeeded(bigint_str!(
+            Err(VirtualMachineError::OffsetExceeded(bigint_str!(
                 b"18446744073709551616"
             )))
         );
@@ -402,10 +441,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
         let sub_addr = addr_a.sub(addr_b, &bigint!(23));
-        assert_eq!(
-            Ok(MaybeRelocatable::RelocatableValue(relocatable!(7, 10))),
-            sub_addr
-        );
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(10))), sub_addr);
     }
 
     #[test]
@@ -424,9 +460,8 @@ mod tests {
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from(bigint!(5));
-        let error = addr_a.sub(addr_b, &bigint!(23));
-        assert_eq!(error, Err(VirtualMachineError::NotImplemented));
-        assert_eq!(error.unwrap_err().to_string(), "This is not implemented");
+        let addr_c = addr_a.sub(addr_b, &bigint!(23));
+        assert_eq!(addr_c, Ok(MaybeRelocatable::from((7, 12))));
     }
 
     #[test]

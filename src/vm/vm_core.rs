@@ -1,18 +1,22 @@
 use crate::bigint;
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::hint_executor::HintExecutor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{
+    MaybeRelocatable, MaybeRelocatable::RelocatableValue, Relocatable,
+};
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::execute_hint::execute_hint;
+use crate::vm::hints::dict_manager::DictManager;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 use super::hints::execute_hint::HintReference;
@@ -30,17 +34,22 @@ struct OperandsAddresses(Relocatable, Relocatable, Relocatable);
 #[derive(Clone, Debug)]
 
 pub struct HintData {
-    pub hint_code: Vec<u8>,
+    pub hint_code: String,
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
+    pub ap_tracking_data: ApTracking,
 }
+
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
     pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     pub segments: MemorySegmentManager,
+    pub _program_base: Option<MaybeRelocatable>,
+    pub memory: Memory,
     pub exec_scopes: ExecutionScopes,
     //enter_scope:
+    pub hint_executor: &'static dyn HintExecutor,
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     pub references: HashMap<usize, HintReference>,
     //hint_locals: HashMap<..., ...>,
@@ -50,8 +59,6 @@ pub struct VirtualMachine {
     //debug_file_contents: HashMap<String, String>,
     //error_message_attributes: Vec<VmAttributeScope>,
     //program: ProgramBase,
-    pub _program_base: Option<MaybeRelocatable>,
-    pub memory: Memory,
     //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     //Some(accessed_addresses) == proof mode enabled
     accessed_addresses: Option<Vec<Relocatable>>,
@@ -59,11 +66,20 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
+    pub dict_manager: DictManager,
 }
 
 impl HintData {
-    pub fn new(hint_code: Vec<u8>, ids: HashMap<String, BigInt>) -> HintData {
-        HintData { hint_code, ids }
+    pub fn new(
+        hint_code: &str,
+        ids: HashMap<String, BigInt>,
+        ap_tracking_data: ApTracking,
+    ) -> HintData {
+        HintData {
+            hint_code: hint_code.to_string(),
+            ids,
+            ap_tracking_data,
+        }
     }
 }
 
@@ -72,6 +88,7 @@ impl VirtualMachine {
         prime: BigInt,
         builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
         trace_enabled: bool,
+        hint_executor: &'static dyn HintExecutor,
     ) -> VirtualMachine {
         let run_context = RunContext {
             pc: MaybeRelocatable::from((0, 0)),
@@ -90,6 +107,7 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
+            hint_executor,
             hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
             references: HashMap::<usize, HintReference>::new(),
             _program_base: None,
@@ -99,6 +117,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
         }
     }
@@ -427,11 +446,17 @@ impl VirtualMachine {
         self.opcode_assertions(&instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
-            trace.push(TraceEntry {
-                pc: self.run_context.pc.clone(),
-                ap: self.run_context.ap.clone(),
-                fp: self.run_context.fp.clone(),
-            });
+            if let (RelocatableValue(ref pc), RelocatableValue(ref ap), RelocatableValue(ref fp)) = (
+                &self.run_context.pc,
+                &self.run_context.ap,
+                &self.run_context.fp,
+            ) {
+                trace.push(TraceEntry {
+                    pc: pc.clone(),
+                    ap: ap.clone(),
+                    fp: fp.clone(),
+                });
+            }
         }
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
@@ -467,7 +492,12 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                execute_hint(self, &hint_data.hint_code, hint_data.ids.clone())?
+                self.hint_executor.execute_hint(
+                    self,
+                    &hint_data.hint_code,
+                    &hint_data.ids,
+                    &hint_data.ap_tracking_data,
+                )?
             }
         }
         self.skip_instruction_execution = false;
@@ -670,14 +700,18 @@ mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::runners::builtin_runner::{
         BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
     };
 
-    use crate::{bigint64, bigint_str};
+    use crate::bigint_str;
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
+    use num_traits::FromPrimitive;
     use std::collections::HashSet;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
@@ -695,7 +729,7 @@ mod tests {
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.memory.data.push(Vec::new());
         vm.run_context.pc = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
         vm.memory
@@ -709,7 +743,7 @@ mod tests {
 
     #[test]
     fn get_instruction_encoding_successful_with_imm() {
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.memory.data.push(Vec::new());
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
 
@@ -735,7 +769,7 @@ mod tests {
 
     #[test]
     fn get_instruction_encoding_unsuccesful() {
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         let error = vm.get_instruction_encoding();
         assert_eq!(error, Err(VirtualMachineError::InvalidInstructionEncoding));
@@ -769,7 +803,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -802,7 +836,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -835,7 +869,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -868,7 +902,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -901,7 +935,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -938,7 +972,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -971,7 +1005,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1004,7 +1038,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1037,7 +1071,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1070,7 +1104,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1103,7 +1137,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1136,7 +1170,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1173,7 +1207,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1206,7 +1240,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1243,7 +1277,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1278,7 +1312,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1311,7 +1345,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1344,7 +1378,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1379,7 +1413,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1431,7 +1465,7 @@ mod tests {
             opcode: Opcode::Call,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1459,7 +1493,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1492,7 +1526,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1517,7 +1551,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1550,7 +1584,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1580,7 +1614,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1610,7 +1644,7 @@ mod tests {
             opcode: Opcode::Ret,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1640,7 +1674,7 @@ mod tests {
             opcode: Opcode::Call,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1665,7 +1699,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1698,7 +1732,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1723,7 +1757,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1756,7 +1790,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1786,7 +1820,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1815,7 +1849,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1847,7 +1881,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1877,7 +1911,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1907,7 +1941,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1937,7 +1971,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1967,7 +2001,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -1994,7 +2028,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2023,7 +2057,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2048,7 +2082,7 @@ mod tests {
             opcode: Opcode::Call,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2076,7 +2110,7 @@ mod tests {
             opcode: Opcode::Ret,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2101,7 +2135,7 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((0, 0));
@@ -2156,7 +2190,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
         };
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((0, 0));
@@ -2215,23 +2249,23 @@ mod tests {
         let mem_arr = vec![
             (
                 MaybeRelocatable::from((0, 0)),
-                MaybeRelocatable::Int(bigint64!(0x206800180018001)),
+                MaybeRelocatable::Int(bigint!(0x206800180018001_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
-                MaybeRelocatable::Int(bigint64!(0x4)),
+                MaybeRelocatable::Int(bigint!(0x4)),
             ),
         ];
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.accessed_addresses = Some(Vec::new());
         vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::Int(bigint64!(0x4)),
+            dst: MaybeRelocatable::Int(bigint!(0x4)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint64!(0x4)),
-            op1: MaybeRelocatable::Int(bigint64!(0x4)),
+            op0: MaybeRelocatable::Int(bigint!(0x4)),
+            op1: MaybeRelocatable::Int(bigint!(0x4)),
         };
 
         let expected_addresses = Some(OperandsAddresses(
@@ -2276,10 +2310,10 @@ mod tests {
 
         let mem_arr = vec![(
             MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::Int(bigint64!(0x206800180018001)),
+            MaybeRelocatable::Int(bigint!(0x206800180018001_i64)),
         )];
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
 
         vm.memory =
             memory_from(mem_arr.clone(), 1).expect("Unexpected memory initialization failure");
@@ -2316,7 +2350,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2353,7 +2387,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2396,7 +2430,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
@@ -2456,7 +2490,9 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            dict_manager: DictManager::new(),
             exec_scopes: ExecutionScopes::new(),
+            hint_executor: &HINT_EXECUTOR,
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);
@@ -2492,6 +2528,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             true,
+            &HINT_EXECUTOR,
         );
         vm.accessed_addresses = Some(Vec::new());
         for _ in 0..4 {
@@ -2523,9 +2560,18 @@ mod tests {
         assert_eq!(
             trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 0)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 2))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 0
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                }
             }
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
@@ -2582,6 +2628,7 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             true,
+            &HINT_EXECUTOR,
         );
         vm.accessed_addresses = Some(Vec::new());
         for _ in 0..4 {
@@ -2675,41 +2722,86 @@ mod tests {
         assert_eq!(
             trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 3)),
-                ap: MaybeRelocatable::from((1, 2)),
-                fp: MaybeRelocatable::from((1, 2)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 3
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
             }
         );
         assert_eq!(
             trace[1],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 5)),
-                ap: MaybeRelocatable::from((1, 3)),
-                fp: MaybeRelocatable::from((1, 2)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 5
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 3
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
             }
         );
         assert_eq!(
             trace[2],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 0)),
-                ap: MaybeRelocatable::from((1, 5)),
-                fp: MaybeRelocatable::from((1, 5)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 0
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                },
             }
         );
         assert_eq!(
             trace[3],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 2)),
-                ap: MaybeRelocatable::from((1, 6)),
-                fp: MaybeRelocatable::from((1, 5)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                },
             }
         );
         assert_eq!(
             trace[4],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 7)),
-                ap: MaybeRelocatable::from((1, 6)),
-                fp: MaybeRelocatable::from((1, 2)),
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 7
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
             }
         );
         //Check accessed_addresses
@@ -2806,7 +2898,7 @@ mod tests {
         let mem_arr = vec![
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 0)),
-                MaybeRelocatable::Int(bigint64!(0x400680017fff8000)),
+                MaybeRelocatable::Int(bigint!(0x400680017fff8000_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
@@ -2814,7 +2906,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 2)),
-                MaybeRelocatable::Int(bigint64!(0x40780017fff7fff)),
+                MaybeRelocatable::Int(bigint!(0x40780017fff7fff_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 3)),
@@ -2822,7 +2914,7 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 4)),
-                MaybeRelocatable::Int(bigint64!(0x480680017fff8000)),
+                MaybeRelocatable::Int(bigint!(0x480680017fff8000_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 5)),
@@ -2830,11 +2922,11 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 6)),
-                MaybeRelocatable::Int(bigint64!(0x40507ffe7fff8000)),
+                MaybeRelocatable::Int(bigint!(0x40507ffe7fff8000_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(0, 7)),
-                MaybeRelocatable::Int(bigint64!(0x208b7fff7fff7ffe)),
+                MaybeRelocatable::Int(bigint!(0x208b7fff7fff7ffe_i64)),
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(1, 0)),
@@ -2854,13 +2946,14 @@ mod tests {
             ),
             (
                 MaybeRelocatable::RelocatableValue(relocatable!(1, 4)),
-                MaybeRelocatable::Int(bigint64!(0x14)),
+                MaybeRelocatable::Int(bigint!(0x14)),
             ),
         ];
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             false,
+            &HINT_EXECUTOR,
         );
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
@@ -2892,13 +2985,13 @@ mod tests {
 
         assert_eq!(
             vm.memory.get(&vm.run_context.ap).unwrap(),
-            Some(&MaybeRelocatable::Int(bigint64!(0x14))),
+            Some(&MaybeRelocatable::Int(bigint!(0x14))),
         );
     }
 
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
-        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false, &HINT_EXECUTOR);
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))),
             Ok(None)
@@ -2907,7 +3000,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
-        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false, &HINT_EXECUTOR);
         let mut builtin = HashBuiltinRunner::new(true, 8);
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
@@ -2980,7 +3073,7 @@ mod tests {
         };
         let mut builtin = HashBuiltinRunner::new(true, 8);
         builtin.base = Some(relocatable!(3, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
@@ -3126,7 +3219,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
-        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false, &HINT_EXECUTOR);
         let mut builtin = BitwiseBuiltinRunner::new(true, 8);
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
@@ -3186,7 +3279,7 @@ mod tests {
         };
         let mut builtin = BitwiseBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(2, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
@@ -3286,7 +3379,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_ec_op_builtin_valid() {
-        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false, &HINT_EXECUTOR);
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
@@ -3368,7 +3461,7 @@ mod tests {
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(3, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
         for _ in 0..4 {
@@ -3427,7 +3520,7 @@ mod tests {
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
         let mut builtin = EcOpBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(3, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
         for _ in 0..4 {
@@ -3511,7 +3604,7 @@ mod tests {
     fn verify_auto_deductions_bitwise() {
         let mut builtin = BitwiseBuiltinRunner::new(true, 256);
         builtin.base = Some(relocatable!(2, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         for _ in 0..3 {
@@ -3559,7 +3652,7 @@ mod tests {
     fn verify_auto_deductions_pedersen() {
         let mut builtin = HashBuiltinRunner::new(true, 8);
         builtin.base = Some(relocatable!(3, 0));
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false, &HINT_EXECUTOR);
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         for _ in 0..4 {
@@ -3609,12 +3702,14 @@ mod tests {
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             Vec::new(),
             true,
+            &HINT_EXECUTOR,
         );
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
             vec![HintData::new(
-                "memory[ap] = segments.add()".as_bytes().to_vec(),
+                "memory[ap] = segments.add()",
                 HashMap::new(),
+                ApTracking::new(),
             )],
         );
 
@@ -3630,7 +3725,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint64!(290341444919459839)),
+                &MaybeRelocatable::from(bigint!(290341444919459839_i64)),
             )
             .unwrap();
         vm.memory
@@ -3642,13 +3737,13 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint64!(2345108766317314046)),
+                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             )
             .unwrap();
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from(bigint64!(1226245742482522112)),
+                &MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
             )
             .unwrap();
         vm.memory
@@ -3662,7 +3757,7 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::from(bigint64!(5189976364521848832)),
+                &MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
             )
             .unwrap();
         vm.memory
@@ -3674,13 +3769,13 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 7)),
-                &MaybeRelocatable::from(bigint64!(4611826758063128575)),
+                &MaybeRelocatable::from(bigint!(4611826758063128575_i64)),
             )
             .unwrap();
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 8)),
-                &MaybeRelocatable::from(bigint64!(2345108766317314046)),
+                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             )
             .unwrap();
         vm.memory
@@ -3705,49 +3800,103 @@ mod tests {
         assert_eq!(
             trace[0],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 3)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 2))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 3
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                }
             }
         );
         assert_eq!(
             trace[1],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 0)),
-                fp: MaybeRelocatable::from((1, 4)),
-                ap: MaybeRelocatable::from((1, 4))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 0
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                }
             }
         );
         assert_eq!(
             trace[2],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 2)),
-                fp: MaybeRelocatable::from((1, 4)),
-                ap: MaybeRelocatable::from((1, 5))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 2
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 4
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                }
             }
         );
         assert_eq!(
             trace[3],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 5)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 5))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 5
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 5
+                }
             }
         );
         assert_eq!(
             trace[4],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 7)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 6))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 7
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                }
             }
         );
         assert_eq!(
             trace[5],
             TraceEntry {
-                pc: MaybeRelocatable::from((0, 8)),
-                fp: MaybeRelocatable::from((1, 2)),
-                ap: MaybeRelocatable::from((1, 6))
+                pc: Relocatable {
+                    segment_index: 0,
+                    offset: 8
+                },
+                fp: Relocatable {
+                    segment_index: 1,
+                    offset: 2
+                },
+                ap: Relocatable {
+                    segment_index: 1,
+                    offset: 6
+                }
             }
         );
 

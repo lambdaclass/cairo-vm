@@ -1,19 +1,23 @@
-use crate::types::program::Program;
-use crate::vm::errors::cairo_run_errors::CairoRunError;
+use crate::types::{hint_executor::HintExecutor, program::Program};
+use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 use num_bigint::BigInt;
 use std::fs::File;
-use std::io::{self, Error, ErrorKind, Write};
+use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
-pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoRunError> {
+pub fn cairo_run(
+    path: &Path,
+    trace_enabled: bool,
+    hint_executor: &'static dyn HintExecutor,
+) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::new(path) {
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let mut cairo_runner = CairoRunner::new(&program, trace_enabled);
+    let mut cairo_runner = CairoRunner::new(&program, trace_enabled, hint_executor);
     cairo_runner.initialize_segments(None);
 
     let end = match cairo_runner.initialize_main_entrypoint() {
@@ -41,10 +45,15 @@ pub fn cairo_run(path: &Path, trace_enabled: bool) -> Result<CairoRunner, CairoR
 }
 
 pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
-    if let Err(error) = cairo_runner.write_output(&mut io::stdout()) {
-        return Err(CairoRunError::Runner(error));
-    }
-    Ok(())
+    let mut buffer = BufWriter::new(io::stdout());
+    writeln!(&mut buffer, "Program Output: ")
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
+    cairo_runner
+        .write_output(&mut buffer)
+        .map_err(CairoRunError::Runner)?;
+    buffer
+        .flush()
+        .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))
 }
 
 /// Writes a trace as a binary file. Bincode encodes to little endian by default and each trace
@@ -53,7 +62,8 @@ pub fn write_binary_trace(
     relocated_trace: &[RelocatedTraceEntry],
     trace_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(trace_file)?;
+    let file = File::create(trace_file)?;
+    let mut buffer = BufWriter::new(file);
 
     for (i, entry) in relocated_trace.iter().enumerate() {
         if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
@@ -63,7 +73,7 @@ pub fn write_binary_trace(
         }
     }
 
-    Ok(())
+    buffer.flush()
 }
 
 /*
@@ -78,7 +88,8 @@ pub fn write_binary_memory(
     relocated_memory: &[Option<BigInt>],
     memory_file: &Path,
 ) -> io::Result<()> {
-    let mut buffer = File::create(memory_file)?;
+    let file = File::create(memory_file)?;
+    let mut buffer = BufWriter::new(file);
 
     // initialize bytes vector that will be dumped to file
     let mut memory_bytes: Vec<u8> = Vec::new();
@@ -92,10 +103,8 @@ pub fn write_binary_memory(
         }
     }
 
-    match buffer.write(&memory_bytes) {
-        Err(e) => Err(e),
-        Ok(_) => Ok(()),
-    }
+    buffer.write_all(&memory_bytes)?;
+    buffer.flush()
 }
 
 // encodes a given memory cell.
@@ -113,7 +122,10 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use std::io::Read;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     fn run_test_program(program_path: &Path) -> Result<CairoRunner, CairoRunError> {
         let program = match Program::new(program_path) {
@@ -121,7 +133,7 @@ mod tests {
             Err(e) => return Err(CairoRunError::Program(e)),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, true);
+        let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
 
         cairo_runner.initialize_segments(None);
 
@@ -161,7 +173,7 @@ mod tests {
         // it should fail when the program is loaded.
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
 
-        assert!(cairo_run(no_data_program_path, false).is_err());
+        assert!(cairo_run(no_data_program_path, false, &HINT_EXECUTOR).is_err());
     }
 
     #[test]
@@ -170,7 +182,7 @@ mod tests {
         // it should fail when trying to run initialize_main_entrypoint.
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
 
-        assert!(cairo_run(no_main_program_path, false).is_err());
+        assert!(cairo_run(no_main_program_path, false, &HINT_EXECUTOR).is_err());
     }
 
     #[test]
@@ -179,7 +191,7 @@ mod tests {
         // decode the instruction.
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
 
-        assert!(cairo_run(invalid_memory, false).is_err());
+        assert!(cairo_run(invalid_memory, false, &HINT_EXECUTOR).is_err());
     }
 
     #[test]
@@ -231,7 +243,7 @@ mod tests {
     fn run_with_no_trace() {
         let program_path = Path::new("cairo_programs/struct.json");
         let program = Program::new(program_path).unwrap();
-        let mut cairo_runner = CairoRunner::new(&program, false);
+        let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR);
 
         cairo_runner.initialize_segments(None);
 
