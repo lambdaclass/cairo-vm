@@ -76,7 +76,7 @@ mod tests {
 
     use super::*;
     use crate::types::exec_scope::PyValueType;
-    use crate::types::instruction::Register;
+    use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::{
         bigint, bigint_str,
@@ -89,19 +89,10 @@ mod tests {
     #[test]
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
-
         // initialize vm scope with variable `n`
         vm.exec_scopes.assign_or_update_variable(
             "value",
@@ -109,55 +100,20 @@ mod tests {
                 b"7737125245533626718119526477371252455336267181195264773712524553362"
             )),
         );
-
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 6));
-
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 6));
-
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("res"), bigint!(0));
-
+        let ids = ids!["res"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::AP,
-                offset1: 5,
-                offset2: 0,
-                inner_dereference: false,
-                immediate: None,
-                ap_tracking_data: Some(ApTracking {
-                    group: 0,
-                    offset: 0,
-                }),
-            },
-        )]);
-
-        //Create AP tracking
-        let _ap_tracking = ApTracking {
-            group: 0,
-            offset: 0,
-        };
-
-        //Execute the hint
-
-        //Create AP tracking
-        let ap_tracking = ApTracking {
-            group: 0,
-            offset: 0,
-        };
-
+        vm.references = HashMap::from([(0, HintReference::new_simple(5))]);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
-
         //Check hint memory inserts
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 11))),
@@ -182,24 +138,8 @@ mod tests {
     #[test]
     fn run_nondet_bigint3_value_not_in_scope() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        let mut vm = vm_with_range_check!();
         // we don't initialize `value` now:
-        // vm.exec_scopes
-        //     .assign_or_update_variable("value", PyValueType::BigInt(bigint_str!(
-        //         b"7737125245533626718119526477371252455336267181195264773712524553362")));
-
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 6));
 
@@ -207,35 +147,15 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 6));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("res"), bigint!(0));
+        let ids = ids!["res"];
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::AP,
-                offset1: 5,
-                offset2: 0,
-                immediate: None,
-                inner_dereference: false,
-                ap_tracking_data: Some(ApTracking {
-                    group: 0,
-                    offset: 0,
-                }),
-            },
-        )]);
-
-        let ap_tracking = ApTracking {
-            group: 0,
-            offset: 0,
-        };
+        vm.references = HashMap::from([(0, HintReference::new_simple(5))]);
 
         //Execute the hint
         assert_eq!(
             vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))
@@ -245,51 +165,18 @@ mod tests {
     #[test]
     fn run_nondet_bigint3_split_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm_with_range_check!();
 
         // initialize vm scope with variable `n`
         vm.exec_scopes
             .assign_or_update_variable("value", PyValueType::BigInt(bigint!(-1)));
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("res"), bigint!(0));
-
+        let ids = ids!["res"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::AP,
-                offset1: 5,
-                offset2: 0,
-                immediate: None,
-                inner_dereference: false,
-                ap_tracking_data: Some(ApTracking {
-                    group: 0,
-                    offset: 0,
-                }),
-            },
-        )]);
-
-        let ap_tracking = ApTracking {
-            group: 0,
-            offset: 0,
-        };
-
+        vm.references = HashMap::from([(0, HintReference::new_simple(5))]);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

@@ -68,6 +68,18 @@ impl HintReference {
             dereference: true,
         }
     }
+
+    pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool) -> Self {
+        HintReference {
+            register: Register::FP,
+            offset1,
+            offset2,
+            inner_dereference,
+            ap_tracking_data: None,
+            immediate: None,
+            dereference,
+        }
+    }
 }
 pub struct BuiltinHintExecutor {}
 
@@ -174,6 +186,7 @@ mod tests {
     use crate::bigint;
     use crate::types::exec_scope::PyValueType;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::utils::test_utils::*;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use num_bigint::{BigInt, Sign};
 
@@ -184,13 +197,7 @@ mod tests {
     #[test]
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            //ap value is (0,0)
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //ids and references are not needed for this test
         vm.hint_executor
             .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
@@ -207,12 +214,7 @@ mod tests {
     #[test]
     fn run_alloc_hint_preset_memory() {
         let hint_code = "memory[ap] = segments.add()";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Add 3 segments to the memory
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -234,12 +236,7 @@ mod tests {
     #[test]
     fn run_alloc_hint_ap_is_not_empty() {
         let hint_code = "memory[ap] = segments.add()";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Add 3 segments to the memory
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -269,12 +266,7 @@ mod tests {
     #[test]
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         assert_eq!(
             vm.hint_executor
@@ -286,12 +278,7 @@ mod tests {
     #[test]
     fn memcpy_enter_scope_valid() {
         let hint_code = "vm_enter_scope({'n': ids.len})";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -333,12 +320,7 @@ mod tests {
     #[test]
     fn memcpy_enter_scope_invalid() {
         let hint_code = "vm_enter_scope({'n': ids.len})";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -384,12 +366,7 @@ mod tests {
     #[test]
     fn memcpy_continue_copying_valid() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -436,12 +413,7 @@ mod tests {
     #[test]
     fn memcpy_continue_copying_variable_not_in_scope_error() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -491,12 +463,7 @@ mod tests {
     #[test]
     fn memcpy_continue_copying_insert_error() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -550,12 +517,7 @@ mod tests {
     #[test]
     fn exit_scope_valid() {
         let hint_code = "vm_exit_scope()";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // create new vm scope with dummy variable
         vm.exec_scopes.enter_scope(HashMap::from([(
@@ -575,12 +537,7 @@ mod tests {
     #[test]
     fn exit_scope_invalid() {
         let hint_code = "vm_exit_scope()";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // new vm scope is not created so that the hint raises an error:
         //vm.exec_scopes.enter_scope(HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(1)))]));
@@ -601,12 +558,7 @@ mod tests {
     fn run_enter_scope() {
         let hint_code = "vm_enter_scope()";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Execute the hint
         assert_eq!(
             vm.hint_executor.execute_hint(
@@ -625,12 +577,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_valid() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -756,12 +703,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_max_size() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -888,12 +830,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_invalid_input_length() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1016,12 +953,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_invalid_word_size() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1148,12 +1080,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_finalize_valid() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1264,12 +1191,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_finalize_nones_in_range() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -1374,12 +1296,7 @@ mod tests {
     #[test]
     fn unsafe_keccak_finalize_expected_integer_at_range() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);

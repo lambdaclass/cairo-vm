@@ -384,18 +384,18 @@ pub fn squash_dict(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::bigint;
     use crate::serde::deserialize_program::ApTracking;
     use crate::types::exec_scope::PyValueType;
     use crate::utils::test_utils::references;
+    use crate::utils::test_utils::*;
     use crate::vm::hints::{
         execute_hint::{BuiltinHintExecutor, HintReference},
         hint_code,
     };
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_bigint::Sign;
-
-    use super::*;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
@@ -420,12 +420,7 @@ mod tests {
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -480,12 +475,7 @@ mod tests {
         let current_accessed_indices = vec![];
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -521,12 +511,7 @@ mod tests {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //No scope variables
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -560,12 +545,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -600,12 +580,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![bigint!(4), bigint!(7)];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -640,12 +615,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -695,12 +665,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -739,12 +704,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![bigint!(4), bigint!(7)];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -779,12 +739,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -819,12 +774,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Store scope variables
         vm.exec_scopes.assign_or_update_variable(
             "current_access_indices",
@@ -849,12 +799,7 @@ mod tests {
         //Prepare scope variables
         let current_access_indices = vec![bigint!(29)];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Store scope variables
         vm.exec_scopes.assign_or_update_variable(
             "current_access_indices",
@@ -881,12 +826,7 @@ mod tests {
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -926,12 +866,7 @@ mod tests {
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -974,12 +909,7 @@ mod tests {
         let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1018,12 +948,7 @@ mod tests {
         //Prepare scope variables
         let keys = vec![];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Store scope variables
         vm.exec_scopes
             .assign_or_update_variable("keys", PyValueType::List(keys));
@@ -1045,12 +970,7 @@ mod tests {
         //Prepare scope variables
         let keys = vec![bigint!(3)];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Store scope variables
         vm.exec_scopes
             .assign_or_update_variable("keys", PyValueType::List(keys));
@@ -1070,12 +990,7 @@ mod tests {
     fn squash_dict_assert_len_keys_no_keys() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Execute the hint
         assert_eq!(
             vm.hint_executor.execute_hint(
@@ -1096,12 +1011,7 @@ mod tests {
         //Prepare scope variables
         let keys = vec![bigint!(1), bigint!(3)];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1140,12 +1050,7 @@ mod tests {
         //Prepare scope variables
         let keys = vec![];
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }

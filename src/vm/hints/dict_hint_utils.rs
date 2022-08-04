@@ -316,7 +316,6 @@ mod tests {
 
     use num_bigint::{BigInt, Sign};
 
-    use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -332,13 +331,7 @@ mod tests {
     #[test]
     fn run_dict_new_with_initial_dict_empty() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            //ap value is (0,0)
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Store initial dict in scope
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
@@ -364,13 +357,7 @@ mod tests {
     #[test]
     fn run_dict_new_with_no_initial_dict() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            //ap value is (0,0)
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //ids and references are not needed for this test
         assert_eq!(
             vm.hint_executor
@@ -382,22 +369,10 @@ mod tests {
     #[test]
     fn run_dict_new_ap_is_taken() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            //ap value is (0,0)
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        vm.segments.add(&mut vm.memory, None);
+        let mut vm = vm!();
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 1)];
         //ids and references are not needed for this test
         assert_eq!(
             vm.hint_executor
@@ -406,7 +381,7 @@ mod tests {
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
                     MaybeRelocatable::from(bigint!(1)),
-                    MaybeRelocatable::from((1, 0))
+                    MaybeRelocatable::from((0, 0))
                 )
             ))
         );
@@ -414,12 +389,8 @@ mod tests {
 
     #[test]
     fn run_dict_read_valid() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            ;
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]";
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
@@ -430,7 +401,8 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5_i32), ((0, 2), (1, 0))];
+        vm.memory = memory![((0, 0), 5), ((0, 2), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["key", "value", "dict_ptr"];
         vm.references = references!(3);
@@ -454,17 +426,8 @@ mod tests {
 
     #[test]
     fn run_dict_read_invalid_key() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Initialize dictionary
@@ -478,26 +441,9 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //ids.value
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
+        let ids = ids!["key", "value", "dict_ptr"];
         //Create references
         vm.references = references!(3);
         //Execute the hint
@@ -511,41 +457,17 @@ mod tests {
     fn run_dict_read_no_tracker() {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
             ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create manager
         let dict_manager = DictManager::new();
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //ids.value
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
+        let ids = ids!["key", "value", "dict_ptr"];
         //Create references
         vm.references = references!(3);
         //Execute the hint
@@ -559,46 +481,31 @@ mod tests {
     #[test]
     fn run_default_dict_new_valid() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            //ap value is (0,0)
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 1));
         //insert ids.default_value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), 17)];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("default_value"), bigint!(0));
+        let ids = ids!["default_value"];
         //Create references
         vm.references = references!(1);
         vm.hint_executor
             .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
-        assert_eq!(vm.segments.num_segments, 3);
-        //new segment base (2,0) is inserted into ap (0,0)
+        assert_eq!(vm.memory.data.len(), 3);
+        //new segment base (0,0) is inserted into ap (0,0)
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
-            Ok(Some(&MaybeRelocatable::from((2, 0))))
+            Ok(Some(&MaybeRelocatable::from((0, 0))))
         );
-        //Check the dict manager has a tracker for segment 2,
-        //and that tracker contains the ptr (2,0) and an empty dict
+        //Check the dict manager has a tracker for segment 0,
+        //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
-            vm.dict_manager.trackers.get(&2),
+            vm.dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
-                &relocatable!(2, 0),
+                &relocatable!(0, 0),
                 &bigint!(17),
                 None
             ))
@@ -608,18 +515,11 @@ mod tests {
     #[test]
     fn run_default_dict_new_no_default_value() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            //ap value is (0,0)
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("default_value"), bigint!(0));
+        let ids = ids!["default_value"];
         //Create references
         vm.references = references!(1);
         assert_eq!(
@@ -633,17 +533,8 @@ mod tests {
 
     #[test]
     fn run_dict_write_default_valid_empty_dict() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
@@ -654,20 +545,8 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 17)];
+        vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
@@ -680,10 +559,7 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("new_value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
+        let ids = ids!["key", "new_value", "dict_ptr"];
         //Create references
         vm.references = references!(3);
         //Execute the hint
@@ -715,17 +591,8 @@ mod tests {
 
     #[test]
     fn run_dict_write_default_valid_overwrite_value() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
@@ -738,36 +605,15 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("new_value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
+        let ids = ids!["key", "new_value", "dict_ptr"];
         //Create references
         vm.references = references!(3);
         //Execute the hint
@@ -799,17 +645,8 @@ mod tests {
 
     #[test]
     fn run_dict_write_simple_valid_overwrite_value() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
@@ -822,36 +659,15 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("new_value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
+        let ids = ids!["key", "new_value", "dict_ptr"];
         //Create references
         vm.references = references!(3);
         //Execute the hint
@@ -883,17 +699,8 @@ mod tests {
 
     #[test]
     fn run_dict_write_simple_valid_cant_write_new_key() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create tracker
@@ -904,36 +711,15 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("new_value"), bigint!(1));
-        ids.insert(String::from("dict_ptr"), bigint!(2));
+        let ids = ids!["key", "new_value", "dict_ptr"];
         //Create references
         vm.references = references!(3);
         //Execute the hint
@@ -946,17 +732,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_simple_valid() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -969,96 +746,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(20)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1083,17 +780,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_simple_valid_no_change() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1106,96 +794,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1220,17 +828,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_simple_invalid_wrong_prev_key() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1243,96 +842,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(11)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 11), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1349,15 +868,7 @@ mod tests {
     fn run_dict_update_simple_invalid_wrong_key() {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
             ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1370,96 +881,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 6), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1470,17 +901,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_default_valid() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1494,96 +916,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(20)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1608,17 +950,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_default_valid_no_change() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1632,96 +965,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1746,17 +999,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_default_invalid_wrong_prev_key() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1770,96 +1014,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(11)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 11), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1874,17 +1038,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_default_invalid_wrong_key() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -1898,96 +1053,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 6), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -2002,17 +1077,8 @@ mod tests {
 
     #[test]
     fn run_dict_update_default_valid_no_key_prev_value_equals_default() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Create tracker
@@ -2024,96 +1090,16 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //Insert ids into memory
-        //ids.key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-        //ids.prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
-        //ids.new_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(20)),
-            )
-            .unwrap();
-        //ids.dict_ptr
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //ids.dict_ptr (1, 0):
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("key"), bigint!(0));
-        ids.insert(String::from("prev_value"), bigint!(1));
-        ids.insert(String::from("new_value"), bigint!(2));
-        ids.insert(String::from("dict_ptr"), bigint!(3));
-
+        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(4);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -2138,17 +1124,8 @@ mod tests {
 
     #[test]
     fn run_dict_squash_copy_dict_valid_empty_dict() {
-        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Initialize dictionary
@@ -2161,15 +1138,10 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //ids.dict_access
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("dict_accesses_end"), bigint!(0));
+        let ids = ids!["dict_accesses_end"];
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -2191,17 +1163,8 @@ mod tests {
 
     #[test]
     fn run_dict_squash_copy_dict_valid_non_empty_dict() {
-        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Initialize dictionary
@@ -2216,16 +1179,10 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
-        //ids.dict_access
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("dict_accesses_end"), bigint!(0));
+        let ids = ids!["dict_accesses_end"];
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -2251,32 +1208,17 @@ mod tests {
 
     #[test]
     fn run_dict_squash_copy_dict_invalid_no_dict() {
-        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create manager
         let dict_manager = DictManager::new();
         vm.dict_manager = dict_manager;
-        //ids.dict_access
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("dict_accesses_end"), bigint!(0));
+        let ids = ids!["dict_accesses_end"];
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -2289,67 +1231,19 @@ mod tests {
 
     #[test]
     fn run_dict_squash_update_ptr_no_tracker() {
-        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         //Create manager
         let dict_manager = DictManager::new();
         vm.dict_manager = dict_manager;
-        //ids.squash_dict_start
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //ids.squash_dict_end
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((1, 3)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("squashed_dict_start"), bigint!(0));
-        ids.insert(String::from("squashed_dict_end"), bigint!(0));
+        let ids = ids!["squashed_dict_start", "squashed_dict_end"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(2);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -2360,17 +1254,8 @@ mod tests {
 
     #[test]
     fn run_dict_squash_update_ptr_valid() {
-        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_"
-            ;
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         //Initialize dictionary
@@ -2384,50 +1269,12 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
         //ids.squash_dict_start
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //ids.squash_dict_end
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((1, 3)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("squashed_dict_start"), bigint!(0));
-        ids.insert(String::from("squashed_dict_end"), bigint!(1));
+        let ids = ids!["squashed_dict_start", "squashed_dict_end"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(2);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -2447,15 +1294,7 @@ mod tests {
     #[test]
     fn run_dict_squash_update_ptr_mismatched_dict_ptr() {
         let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         //Initialize dictionary
@@ -2468,51 +1307,12 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
         vm.dict_manager = dict_manager;
-        //ids.squash_dict_start
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 3)),
-            )
-            .unwrap();
-        //ids.squash_dict_end
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((1, 6)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 3)), ((0, 1), (1, 6))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("squashed_dict_start"), bigint!(0));
-        ids.insert(String::from("squashed_dict_end"), bigint!(1));
+        let ids = ids!["squashed_dict_start", "squashed_dict_end"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(2);
         //Execute the hint
         assert_eq!(
             vm.hint_executor

@@ -68,6 +68,7 @@ pub fn memset_continue_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::test_utils::*;
     use crate::{
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
@@ -82,12 +83,7 @@ mod tests {
     #[test]
     fn memset_enter_scope_valid() {
         let hint_code = "vm_enter_scope({'n': ids.n})";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -129,12 +125,7 @@ mod tests {
     #[test]
     fn memset_enter_scope_invalid() {
         let hint_code = "vm_enter_scope({'n': ids.n})";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -180,12 +171,7 @@ mod tests {
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_1() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -238,12 +224,7 @@ mod tests {
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_5() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -296,12 +277,7 @@ mod tests {
     #[test]
     fn memset_continue_loop_variable_not_in_scope_error() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -350,12 +326,7 @@ mod tests {
     #[test]
     fn memset_continue_loop_insert_error() {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);

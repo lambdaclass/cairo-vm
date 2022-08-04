@@ -178,25 +178,14 @@ mod tests {
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn run_verify_zero_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 9));
 
@@ -204,9 +193,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("val"), bigint!(0));
-        ids.insert(String::from("q"), bigint!(1));
+        let ids = ids!["val", "q"];
 
         //Create references
         vm.references = HashMap::from([
@@ -247,31 +234,7 @@ mod tests {
             group: 1,
             offset: 0,
         };
-
-        //Insert ids.val.d0 into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        //Insert ids.val.d1 into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        //Insert ids.val.d2 into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
+        vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -290,15 +253,7 @@ mod tests {
     #[test]
     fn run_verify_zero_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -310,9 +265,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("val"), bigint!(0));
-        ids.insert(String::from("q"), bigint!(1));
+        let ids = ids!["val", "q"];
 
         //Create references
         vm.references = HashMap::from([
@@ -393,15 +346,7 @@ mod tests {
     #[test]
     fn run_verify_zero_invalid_memory_insert() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -413,9 +358,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("val"), bigint!(0));
-        ids.insert(String::from("q"), bigint!(1));
+        let ids = ids!["val", "q"];
 
         //Create references
         vm.references = HashMap::from([
@@ -506,15 +449,7 @@ mod tests {
     #[test]
     fn run_reduce_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -523,8 +458,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 25));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("x"), bigint!(0));
+        let ids = ids!["x"];
 
         //Create references
         vm.references = HashMap::from([(
@@ -592,15 +526,7 @@ mod tests {
     #[test]
     fn run_reduce_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -609,8 +535,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 25));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("x"), bigint!(0));
+        let ids = ids!["x"];
 
         //Create references
         vm.references = HashMap::from([(
@@ -656,22 +581,13 @@ mod tests {
     #[test]
     fn run_is_zero_pack_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 15));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("x"), bigint!(0));
+        let ids = ids!["x"];
 
         //Create references
         vm.references = HashMap::from([(
@@ -719,15 +635,7 @@ mod tests {
     #[test]
     fn run_is_zero_pack_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 15));
@@ -776,15 +684,7 @@ mod tests {
     #[test]
     fn run_is_zero_nondet_ok_true() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Initialize memory
         for _ in 0..2 {
@@ -820,15 +720,7 @@ mod tests {
     #[test]
     fn run_is_zero_nondet_ok_false() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Initialize memory
         for _ in 0..2 {
@@ -864,15 +756,7 @@ mod tests {
     #[test]
     fn run_is_zero_nondet_scope_error() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Initialize memory
         for _ in 0..2 {
@@ -903,15 +787,7 @@ mod tests {
     #[test]
     fn run_is_zero_nondet_invalid_memory_insert() {
         let hint_code = "memory[ap] = to_felt_or_relocatable(x == 0)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Insert a value in ap before the hint execution, so the hint memory insert fails
         vm.memory = memory![((1, 15), 55)];
@@ -944,15 +820,7 @@ mod tests {
     #[test]
     fn is_zero_assign_scope_variables_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Initialize vm scope with variable `x`
         vm.exec_scopes.assign_or_update_variable(
@@ -993,15 +861,7 @@ mod tests {
     #[test]
     fn is_zero_assign_scope_variables_scope_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P\nfrom starkware.python.math_utils import div_mod\n\nvalue = x_inv = div_mod(1, x, SECP_P)";
-        let mut vm = VirtualMachine::new(
-            VM_PRIME.clone(),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8i32), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         //Skip `x` assignment
         // vm.exec_scopes

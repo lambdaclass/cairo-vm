@@ -539,6 +539,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use num_bigint::Sign;
 
@@ -546,12 +547,7 @@ mod tests {
 
     #[test]
     fn get_integer_from_var_name_valid() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
 
@@ -601,12 +597,7 @@ mod tests {
 
     #[test]
     fn get_integer_from_var_name_invalid_expected_integer() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
 
