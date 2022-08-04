@@ -26,64 +26,58 @@ impl Memory {
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
     /// Will panic if the segment index given by the address corresponds to a non-allocated segment
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
-    pub fn insert<K, V>(&mut self, key: &K, val: &V) -> Result<(), MemoryError>
+    pub fn insert<'a, K: 'a, V: 'a>(&mut self, key: &'a K, val: &'a V) -> Result<(), MemoryError>
     where
-        K: TryInto<Relocatable> + Into<MaybeRelocatable>,
-        V: Into<MaybeRelocatable>,
+        Relocatable: TryFrom<&'a K>,
+        MaybeRelocatable: From<&'a K>,
+        MaybeRelocatable: From<&'a V>,
     {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
-        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable);
-        //Check that the memory segment exists
-        if self.data.len() < value_index + 1 {
-            return Err(MemoryError::UnallocatedSegment(
-                value_index,
-                self.data.len(),
-            ));
-        }
+        let val = MaybeRelocatable::from(val);
+        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
+        let data_len = self.data.len();
+        let segment = self
+            .data
+            .get_mut(value_index)
+            .ok_or(MemoryError::UnallocatedSegment(value_index, data_len))?;
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index
-        if self.data[value_index].len() < value_offset {
-            //Insert none values to represent gaps in memory
-            for _ in 0..(value_offset - self.data[value_index].len()) {
-                self.data[value_index].push(None)
-            }
+        if segment.len() <= value_offset {
+            segment.resize(value_offset + 1, None);
         }
-        if self.data[value_index].len() > value_offset {
-            match self.data[value_index][value_offset] {
-                Some(ref current_value) => {
-                    if current_value != val.into() {
-                        //Existing memory cannot be changed
-                        return Err(MemoryError::InconsistentMemory(
-                            relocatable.into(),
-                            current_value.to_owned(),
-                            *val.into(),
-                        ));
-                    }
+        // At this point there's *something* in there
+        match segment[value_offset] {
+            None => segment[value_offset] = Some(val),
+            Some(ref current_value) => {
+                if current_value != &val {
+                    //Existing memory cannot be changed
+                    return Err(MemoryError::InconsistentMemory(
+                        relocatable.into(),
+                        current_value.to_owned(),
+                        val,
+                    ));
                 }
-                //Fill existing memory gaps
-                None => self.data[value_index][value_offset] = Some(*val.into()),
-            };
-        } else {
-            //Value inserted netxt to last element
-            self.data[value_index].push(Some(*val.into()))
-        }
-        self.validate_memory_cell(*key.into())
+            }
+        };
+        self.validate_memory_cell(&MaybeRelocatable::from(key))
     }
 
-    pub fn get(&self, key: &MaybeRelocatable) -> Result<Option<&MaybeRelocatable>, MemoryError> {
-        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
-            if self.data.len() > i && self.data[i].len() > j {
-                if let Some(ref element) = self.data[i][j] {
-                    return Ok(Some(element));
-                }
+    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    where
+        Relocatable: TryFrom<&'a K>,
+    {
+        let relocatable: Relocatable = key
+            .try_into()
+            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let (i, j) = from_relocatable_to_indexes(relocatable);
+        if self.data.len() > i && self.data[i].len() > j {
+            if let Some(ref element) = self.data[i][j] {
+                return Ok(Some(element));
             }
-            Ok(None)
-        } else {
-            Err(MemoryError::AddressNotRelocatable)
         }
+        Ok(None)
     }
 
     //Gets the value from memory address.

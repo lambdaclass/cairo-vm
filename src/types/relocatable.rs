@@ -81,6 +81,12 @@ impl TryInto<Relocatable> for MaybeRelocatable {
     }
 }
 
+impl From<&MaybeRelocatable> for MaybeRelocatable {
+    fn from(other: &MaybeRelocatable) -> Self {
+        other.clone()
+    }
+}
+
 impl TryFrom<&MaybeRelocatable> for Relocatable {
     type Error = MemoryError;
     fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
