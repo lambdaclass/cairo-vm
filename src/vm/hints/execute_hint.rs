@@ -59,6 +59,19 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
+impl HintReference {
+    pub fn new_simple(offset1: i32) -> Self {
+        HintReference {
+            register: Register::FP,
+            offset1,
+            offset2: 0,
+            inner_dereference: false,
+            ap_tracking_data: None,
+            immediate: None,
+            dereference: false,
+        }
+    }
+}
 pub struct BuiltinHintExecutor {}
 
 impl HintExecutor for BuiltinHintExecutor {
