@@ -18,25 +18,25 @@ BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
 
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
-	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
+	PYENV_VERSION=pypy3.7-7.3.9 cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.cleopatra.memory: $(TEST_DIR)/%.json build
-	./target/release/cleopatra-run $< --memory_file $@
+# NOTE: '<target1> <target2> &' syntax was introduced in GNU Make 4.3.
+# It groups targets in a way that makes the recipe run exactly once if any or
+# several of the targets need updating.
+# The '$(@:OLD_SUFFIX=NEW_SUFFIX)' is needed because there's no way to
+# distinguish which target triggered the rule.
+$(TEST_DIR)/%.cleopatra.memory $(TEST_DIR)/%.cleopatra.trace &: $(TEST_DIR)/%.json build
+	./target/release/cleopatra-run $< --memory_file $(@:trace=memory) --trace_file $(@:memory=trace)
 
-$(TEST_DIR)/%.cleopatra.trace: $(TEST_DIR)/%.json build
-	./target/release/cleopatra-run $< --trace_file $@
-
-$(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
-	cairo-run --layout all --program $< --memory_file $@
-
-$(TEST_DIR)/%.trace: $(TEST_DIR)/%.json
-	cairo-run --layout all --program $< --trace_file $@
+$(TEST_DIR)/%.memory $(TEST_DIR)/%.trace &: $(TEST_DIR)/%.json
+	PYENV_VERSION=pypy3.7-7.3.9 cairo-run --layout all --program $< --memory_file $(@:trace=memory) --trace_file $(@:memory=trace)
 
 $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
-	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
+	PYENV_VERSION=pypy3.7-7.3.9 cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
-	cairo-compile $< --output $@
+	PYENV_VERSION=pypy3.7-7.3.9 cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
+
 deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
