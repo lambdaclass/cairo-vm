@@ -381,9 +381,9 @@ pub fn get_address_from_var_name(
         .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
-pub fn insert_value_from_var_name<T: Into<MaybeRelocatable>>(
+pub fn insert_value_from_var_name(
     var_name: &str,
-    int: T,
+    value: impl Into<MaybeRelocatable>,
     ids: &HashMap<String, BigInt>,
     memory: &mut Memory,
     references: &HashMap<usize, HintReference>,
@@ -398,7 +398,7 @@ pub fn insert_value_from_var_name<T: Into<MaybeRelocatable>>(
         run_context,
         hint_ap_tracking,
     )?;
-    memory.insert_value(&var_address, int)
+    memory.insert_value(&var_address, value)
 }
 
 //Gets the address of a variable name.
