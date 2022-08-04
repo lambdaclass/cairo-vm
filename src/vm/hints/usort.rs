@@ -159,15 +159,17 @@ mod tests {
     use crate::{
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
-            hints::execute_hint::{execute_hint, HintReference},
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
             runners::builtin_runner::RangeCheckBuiltinRunner,
         },
     };
     use num_bigint::Sign;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn usort_out_of_range() {
-        let hint = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])".as_bytes();
+        let hint = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -175,6 +177,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
 
         const FP_OFFSET_START: usize = 1;
@@ -199,6 +202,7 @@ mod tests {
             vm.references.insert(
                 i,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: i as i32 - FP_OFFSET_START as i32,
                     offset2: 0,
@@ -218,7 +222,8 @@ mod tests {
             .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 
         assert_eq!(
-            execute_hint(&mut vm, hint, ids, &ApTracking::new()),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint, &ids, &ApTracking::new()),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

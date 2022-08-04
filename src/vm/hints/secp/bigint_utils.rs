@@ -78,14 +78,16 @@ mod tests {
         bigint, bigint_str,
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
-            hints::execute_hint::{execute_hint, HintReference},
+            hints::execute_hint::{BuiltinHintExecutor, HintReference},
             runners::builtin_runner::RangeCheckBuiltinRunner,
         },
     };
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
     #[test]
     fn run_nondet_bigint3_ok() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -93,6 +95,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -120,6 +123,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
@@ -147,7 +151,11 @@ mod tests {
         };
 
         //Execute the hint
-        assert_eq!(execute_hint(&mut vm, hint_code, ids, &ap_tracking), Ok(()));
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
 
         //Check hint memory inserts
         assert_eq!(
@@ -172,7 +180,7 @@ mod tests {
 
     #[test]
     fn run_nondet_bigint3_value_not_in_scope() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -180,6 +188,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -204,6 +213,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
@@ -223,7 +233,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))
@@ -232,7 +243,7 @@ mod tests {
 
     #[test]
     fn run_nondet_bigint3_split_error() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))".as_bytes();
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![(
@@ -240,6 +251,7 @@ mod tests {
                 Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
             )],
             false,
+            &HINT_EXECUTOR,
         );
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -255,6 +267,7 @@ mod tests {
         vm.references = HashMap::from([(
             0,
             HintReference {
+                dereference: true,
                 register: Register::AP,
                 offset1: 5,
                 offset2: 0,
@@ -274,7 +287,8 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut vm, hint_code, ids, &ap_tracking),
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }
