@@ -135,11 +135,11 @@ pub fn compute_slope(
     );
 
     let value = line_slope(
-        (
+        &(
             pack(point0_x_d0, point0_x_d1, point0_x_d2, &vm.prime),
             pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime),
         ),
-        (
+        &(
             pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime),
             pack(point1_y_d0, point1_y_d1, point1_y_d2, &vm.prime),
         ),
