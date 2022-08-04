@@ -113,6 +113,7 @@ pub fn set_add(
 mod tests {
     use super::*;
     use crate::types::instruction::Register;
+    use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use num_bigint::Sign;
@@ -127,15 +128,7 @@ mod tests {
         elm_a: Option<&MaybeRelocatable>,
         elm_b: Option<&MaybeRelocatable>,
     ) -> (VirtualMachine, HashMap<String, BigInt>) {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -222,30 +215,8 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (1, HintReference::new_simple(-4)),
+            (2, HintReference::new_simple(-3)),
             (
                 3,
                 HintReference {
@@ -270,18 +241,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                5,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (5, HintReference::new_simple(0)),
         ]);
 
         let mut ids = HashMap::<String, BigInt>::new();
@@ -399,18 +359,7 @@ mod tests {
     #[test]
     fn find_elm_failed_ids_get_addres() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        vm.references.insert(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -7,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        );
+        vm.references.insert(0, HintReference::new_simple(-7));
 
         assert_eq!(
             vm.hint_executor

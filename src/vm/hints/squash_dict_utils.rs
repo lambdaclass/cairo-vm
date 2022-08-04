@@ -1077,15 +1077,7 @@ mod tests {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1204,15 +1196,7 @@ mod tests {
         let hint_code = SQUASH_DICT;
         assert_eq!(SQUASH_DICT, hint_code::SQUASH_DICT);
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1375,15 +1359,7 @@ mod tests {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1504,15 +1480,7 @@ mod tests {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1613,15 +1581,7 @@ mod tests {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1715,15 +1675,7 @@ mod tests {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1824,15 +1776,7 @@ mod tests {
         //Dict = {(prime - 1): (1,1), (prime - 1): (1,2)}
         let hint_code = SQUASH_DICT;
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }

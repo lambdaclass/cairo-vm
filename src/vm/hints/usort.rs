@@ -191,8 +191,10 @@ pub fn verify_multiplicity_body(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::test_utils::*;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        types::{instruction::Register, relocatable::MaybeRelocatable},
+        types::relocatable::MaybeRelocatable,
         vm::{
             hints::execute_hint::{BuiltinHintExecutor, HintReference},
             runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -205,54 +207,21 @@ mod tests {
     #[test]
     fn usort_out_of_range() {
         let hint = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm_with_range_check!();
 
         const FP_OFFSET_START: usize = 1;
         vm.run_context.fp = MaybeRelocatable::from((0, FP_OFFSET_START));
 
         vm.segments.add(&mut vm.memory, None);
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 1)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .expect("Unexpected memory insert fail");
-
+        vm.memory = memory![((0, 0), (1, 1)), ((0, 1), 5)];
         vm.references = HashMap::new();
         for i in 0..=FP_OFFSET_START {
             vm.references.insert(
                 i,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: i as i32 - FP_OFFSET_START as i32,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
+                HintReference::new_simple(i as i32 - FP_OFFSET_START as i32),
             );
         }
-
-        let mut ids = HashMap::<String, BigInt>::new();
-        for (i, s) in ["input", "input_len"].iter().enumerate() {
-            ids.insert(s.to_string(), bigint!(i));
-        }
-
+        let ids = ids!["input", "input_len"];
         vm.exec_scopes
             .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 

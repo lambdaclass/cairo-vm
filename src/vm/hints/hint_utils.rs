@@ -555,18 +555,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         let var_name: &str = "variable";
 
@@ -605,18 +594,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         let var_name: &str = "variable";
 

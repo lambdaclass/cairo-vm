@@ -298,18 +298,7 @@ mod tests {
         ids.insert(String::from("len"), bigint!(0));
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         assert!(vm
             .hint_executor
@@ -341,18 +330,7 @@ mod tests {
         ids.insert(String::from("len"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         assert_eq!(
             vm.hint_executor
@@ -391,18 +369,7 @@ mod tests {
         ids.insert(String::from("continue_copying"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         assert!(vm
             .hint_executor
@@ -438,18 +405,7 @@ mod tests {
         ids.insert(String::from("continue_copying"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         assert_eq!(
             vm.hint_executor
@@ -488,18 +444,7 @@ mod tests {
         ids.insert(String::from("continue_copying"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         assert_eq!(
             vm.hint_executor
@@ -644,18 +589,7 @@ mod tests {
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-3)),
             (
                 1,
                 HintReference {
@@ -680,18 +614,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (3, HintReference::new_simple(0)),
         ]);
 
         assert!(vm
@@ -770,18 +693,7 @@ mod tests {
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-3)),
             (
                 1,
                 HintReference {
@@ -806,18 +718,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (3, HintReference::new_simple(0)),
         ]);
 
         assert_eq!(
@@ -894,18 +795,7 @@ mod tests {
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-3)),
             (
                 1,
                 HintReference {
@@ -930,18 +820,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (3, HintReference::new_simple(0)),
         ]);
 
         assert!(vm
@@ -1020,18 +899,7 @@ mod tests {
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-3)),
             (
                 1,
                 HintReference {
@@ -1056,18 +924,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (3, HintReference::new_simple(0)),
         ]);
 
         assert_eq!(
@@ -1156,18 +1013,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (1, HintReference::new_simple(-3)),
             (
                 2,
                 HintReference {
@@ -1260,18 +1106,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (1, HintReference::new_simple(-3)),
             (
                 2,
                 HintReference {
@@ -1373,18 +1208,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (1, HintReference::new_simple(-3)),
             (
                 2,
                 HintReference {
