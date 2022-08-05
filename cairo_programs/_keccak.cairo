@@ -33,10 +33,6 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
 
     let (res : felt*) = _keccak{keccak_ptr=keccak_output}(inputs=inputs_start, n_bytes=n_bytes, state=state_start)
 
-    # assert output[0] = 12
-    # assert output[1] = 12
-    # assert output[2] = 12
-
     serialize_word(res[0])
     serialize_word(res[1])
     serialize_word(res[2])
