@@ -3,9 +3,7 @@ use crate::bigint_str;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{
-    get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
-};
+use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
 use crate::vm::vm_core::VirtualMachine;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
@@ -72,11 +70,18 @@ pub fn pack_from_var_name(
     vm: &VirtualMachine,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<BigInt, VirtualMachineError> {
-    let to_pack = get_relocatable_from_var_name(name, ids, vm, hint_ap_tracking)?;
+    let to_pack = get_relocatable_from_var_name(
+        name,
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
-    let d0 = get_integer_from_relocatable_plus_offset(&to_pack, 0, vm)?;
-    let d1 = get_integer_from_relocatable_plus_offset(&to_pack, 1, vm)?;
-    let d2 = get_integer_from_relocatable_plus_offset(&to_pack, 2, vm)?;
+    let d0 = vm.memory.get_integer(&to_pack)?;
+    let d1 = vm.memory.get_integer(&(&to_pack + 1))?;
+    let d2 = vm.memory.get_integer(&(&to_pack + 2))?;
 
     Ok(pack(d0, d1, d2, &vm.prime))
 }

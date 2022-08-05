@@ -67,18 +67,17 @@ pub enum VirtualMachineError {
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
     FindElemMaxSize(BigInt, BigInt),
-    InvalidIndex(BigInt, MaybeRelocatable, MaybeRelocatable),
+    InvalidIndex(BigInt, BigInt, BigInt),
     KeyNotFound,
     NoneApTrackingData,
     InvalidTrackingGroup(usize, usize),
     InvalidApValue(MaybeRelocatable),
     NoInitialDict,
-    NoLocalVariable(String),
     NoKeyInAccessIndices(BigInt),
     EmptyAccessIndices,
     EmptyCurrentAccessIndices,
     CurrentAccessIndicesNotEmpty,
-    WrongPrevValue(BigInt, Option<BigInt>, BigInt),
+    WrongPrevValue(BigInt, BigInt, BigInt),
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
     KeysNotEmpty,
     EmptyKeys,
@@ -235,9 +234,6 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NoInitialDict => {
                 write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
-            },
-            VirtualMachineError::NoLocalVariable(name) => {
-                write!(f, "Hint Exception: Couldnt find local variable '{:?}'", name)
             },
             VirtualMachineError::NoKeyInAccessIndices(key) => {
                 write!(f, "squash_dict_inner fail: couldnt find key {:?} in accesses_indices", key)

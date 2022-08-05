@@ -118,7 +118,7 @@ pub fn blake2s_compress(
         (IV[7] ^ f1),
     ]);
     for sigma_list in SIGMA {
-        state = blake_round(state.clone(), message, sigma_list);
+        state = blake_round(state, message, sigma_list);
     }
     let mut new_state = Vec::<u32>::new();
     for i in 0..8 {
