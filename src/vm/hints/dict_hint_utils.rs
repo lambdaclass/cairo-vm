@@ -35,7 +35,7 @@ fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt
 For now, the functionality to create a dictionary from a previously defined initial_dict (using a hint)
 is not available
 */
-pub fn dict_new(variables: HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn dict_new(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict =
         copy_initial_dict(variables.exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
@@ -60,7 +60,7 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available, an empty dict is created always
 */
 pub fn default_dict_new(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -95,7 +95,7 @@ pub fn default_dict_new(
    ids.value = dict_tracker.data[ids.key]
 */
 pub fn dict_read(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -136,7 +136,7 @@ pub fn dict_read(
     dict_tracker.data[ids.key] = ids.new_value
 */
 pub fn dict_write(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -195,7 +195,7 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -260,7 +260,7 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -290,7 +290,7 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -349,9 +349,14 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
 
-        let variables = get_hint_variables(&mut vm); //ids and references are not needed for this test
-        execute_hint(variables, hint_code, HashMap::new(), &ApTracking::new())
-            .expect("Error while executing hint");
+        let mut variables = get_hint_variables(&mut vm); //ids and references are not needed for this test
+        execute_hint(
+            &mut variables,
+            hint_code,
+            HashMap::new(),
+            &ApTracking::new(),
+        )
+        .expect("Error while executing hint");
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 1);
         //new segment base (0,0) is inserted into ap (0,0)
@@ -377,9 +382,14 @@ mod tests {
             false,
         );
         //ids and references are not needed for this test
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::new()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
@@ -403,9 +413,14 @@ mod tests {
             )
             .unwrap();
         //ids and references are not needed for this test
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::new()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -494,10 +509,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that value variable (at address (0,1)) contains the proper value
@@ -593,10 +608,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
@@ -674,10 +689,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -718,8 +733,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        let mut variables = get_hint_variables(&mut vm);
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 3);
@@ -766,9 +781,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -863,10 +878,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -980,10 +995,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1097,10 +1112,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -1212,10 +1227,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -1330,10 +1345,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1462,10 +1477,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1594,10 +1609,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -1716,10 +1731,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6),))
         );
     }
@@ -1835,10 +1850,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1968,10 +1983,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2101,10 +2116,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -2224,10 +2239,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 bigint!(17),
@@ -2345,10 +2360,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -2412,10 +2427,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -2477,10 +2492,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -2537,10 +2552,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -2605,10 +2620,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -2680,10 +2695,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check the updated pointer
@@ -2763,10 +2778,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MismatchedDictPtr(
                 relocatable!(1, 0),
                 relocatable!(1, 3)

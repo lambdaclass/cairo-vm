@@ -500,9 +500,9 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                let hint_variables = get_hint_variables(self);
+                let mut hint_variables = get_hint_variables(self);
                 execute_hint(
-                    hint_variables,
+                    &mut hint_variables,
                     &hint_data.hint_code,
                     hint_data.ids.clone(),
                     &hint_data.ap_tracking_data,

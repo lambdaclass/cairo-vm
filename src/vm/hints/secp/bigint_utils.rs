@@ -21,7 +21,7 @@ Implements hint:
 */
 
 pub fn nondet_bigint3(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -45,7 +45,7 @@ pub fn nondet_bigint3(
 // Implements hint
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -146,10 +146,10 @@ mod tests {
             group: 0,
             offset: 0,
         };
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Ok(())
         );
 
@@ -224,10 +224,10 @@ mod tests {
             group: 0,
             offset: 0,
         };
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))
@@ -275,10 +275,10 @@ mod tests {
             group: 0,
             offset: 0,
         };
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 use super::hint_utils::insert_int_into_scope;
 
-pub fn usort_enter_scope(variables: HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn usort_enter_scope(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
     let usort_max_size = get_u64_from_scope(variables.exec_scopes, "usort_max_size")
         .map_or(PyValueType::None, PyValueType::U64);
     variables.exec_scopes.enter_scope(HashMap::from([(
@@ -30,7 +30,7 @@ pub fn usort_enter_scope(variables: HintVisibleVariables) -> Result<(), VirtualM
 }
 
 pub fn usort_body(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -141,7 +141,7 @@ pub fn usort_body(
 }
 
 pub fn verify_usort(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -170,7 +170,7 @@ pub fn verify_usort(
 }
 
 pub fn verify_multiplicity_assert(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
 ) -> Result<(), VirtualMachineError> {
     let positions_len = get_list_u64_from_scope_ref(variables.exec_scopes, "positions")?.len();
     if positions_len == 0 {
@@ -181,7 +181,7 @@ pub fn verify_multiplicity_assert(
 }
 
 pub fn verify_multiplicity_body(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -267,9 +267,9 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint, ids, &ApTracking::new()),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

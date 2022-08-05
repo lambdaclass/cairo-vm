@@ -21,7 +21,7 @@ use crate::{
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -47,7 +47,7 @@ pub fn is_nn(
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -77,7 +77,7 @@ pub fn is_nn_out_of_range(
 //        ids.small_inputs = int(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -122,7 +122,7 @@ pub fn assert_le_felt(
 //Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -161,7 +161,7 @@ pub fn is_le_felt(
 //            f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -221,7 +221,7 @@ pub fn assert_not_equal(
 //     assert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'
 // %}
 pub fn assert_nn(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -249,7 +249,7 @@ pub fn assert_nn(
 // assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'
 // %}
 pub fn assert_not_zero(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -272,7 +272,7 @@ pub fn assert_not_zero(
 
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -294,7 +294,7 @@ pub fn split_int_assert_range(
 //Implements hint: memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -342,7 +342,7 @@ pub fn split_int(
 //ids.is_positive = 1 if is_positive(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -386,7 +386,7 @@ pub fn is_positive(
 //     ids.high = ids.value >> 128
 // %}
 pub fn split_felt(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -430,7 +430,7 @@ pub fn split_felt(
 //        assert 2 ** 250 < PRIME
 //        ids.root = isqrt(value)
 pub fn sqrt(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -459,7 +459,7 @@ pub fn sqrt(
 }
 
 pub fn signed_div_rem(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -539,7 +539,7 @@ assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
 ids.q, ids.r = divmod(ids.value, ids.div)
 */
 pub fn unsigned_div_rem(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -595,7 +595,7 @@ pub fn unsigned_div_rem(
 //        # Calculation for the assertion.
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -647,7 +647,7 @@ Implements hint:
 %}
 */
 pub fn assert_lt_felt(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -735,9 +735,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that ap now contains false (0)
         assert_eq!(
@@ -786,9 +786,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
@@ -842,9 +842,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that ap now contains true (1)
         assert_eq!(
@@ -861,9 +861,14 @@ mod tests {
             Vec::new(),
             false,
         );
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, &hint_code, HashMap::new(), &ApTracking::new()),
+            execute_hint(
+                &mut variables,
+                &hint_code,
+                HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::InvalidHintEncoding(vm.run_context.pc))
         );
     }
@@ -905,10 +910,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, &hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -933,10 +938,10 @@ mod tests {
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("b"), bigint!(0));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -975,10 +980,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1025,10 +1030,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1115,10 +1120,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -1185,9 +1190,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
     #[test]
@@ -1249,10 +1254,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -1323,9 +1328,9 @@ mod tests {
 
         // Since the ids are a map, the order might not always match and so the error returned
         // sometimes might be different
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, &hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1370,10 +1375,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -1419,10 +1424,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -1467,10 +1472,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds),
         );
     }
@@ -1515,10 +1520,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1563,10 +1568,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1610,10 +1615,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -1650,10 +1655,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1740,10 +1745,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
@@ -1828,10 +1833,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 2)),
@@ -1922,10 +1927,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -2012,10 +2017,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -2063,9 +2068,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -2114,9 +2119,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -2180,10 +2185,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(1)),
                 MaybeRelocatable::from(bigint!(1))
@@ -2248,10 +2253,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -2317,10 +2322,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(-1)),
                 MaybeRelocatable::from(bigint_str!(
@@ -2387,10 +2392,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from((0, 0)),
                 MaybeRelocatable::from((0, 0))
@@ -2455,10 +2460,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -2520,10 +2525,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::DiffIndexComp(
                 relocatable!(1, 0),
                 relocatable!(0, 0)
@@ -2588,10 +2593,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::DiffTypeComparison(
                 MaybeRelocatable::from((1, 0)),
                 MaybeRelocatable::from(bigint!(1))
@@ -2635,9 +2640,9 @@ mod tests {
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(0));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -2678,9 +2683,9 @@ mod tests {
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(0));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotZero(bigint!(0), vm.prime))
         );
     }
@@ -2721,9 +2726,9 @@ mod tests {
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(0));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertNotZero(
                 vm.prime.clone(),
                 vm.prime
@@ -2767,9 +2772,9 @@ mod tests {
         //Create invalid id value
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(10));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -2810,9 +2815,9 @@ mod tests {
         //Create invalid id key
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("incorrect_id"), bigint!(0));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -2852,9 +2857,9 @@ mod tests {
         //Create ids
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("value"), bigint!(0));
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -2897,10 +2902,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::SplitIntNotZero)
         );
     }
@@ -2941,10 +2946,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -3045,10 +3050,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         assert_eq!(
@@ -3153,10 +3158,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::SplitIntLimbOutOfRange(bigint!(100)))
         );
     }
@@ -3216,9 +3221,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that is_positive now contains 1 (true)
         assert_eq!(
@@ -3282,9 +3287,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        execute_hint(variables, hint_code, ids, &ApTracking::new())
+        execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //Check that is_positive now contains 0 (false)
         assert_eq!(
@@ -3351,10 +3356,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutsideValidRange(as_int(
                 &BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
                 &vm.prime
@@ -3422,10 +3427,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -3486,10 +3491,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that root (0,1) has the square root of 81
@@ -3549,10 +3554,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutside250BitRange(bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
             )))
@@ -3616,10 +3621,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -3713,9 +3718,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(2))))
@@ -3809,10 +3814,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -3900,9 +3905,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, &hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -3996,10 +4001,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -4093,10 +4098,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert!(matches!(
-            execute_hint(variables, &hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         ))
     }
@@ -4214,9 +4219,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
@@ -4340,9 +4345,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((0, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(4))))
@@ -4466,10 +4471,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -4587,9 +4592,9 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, &hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -4713,10 +4718,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -4841,9 +4846,9 @@ mod tests {
             ),
         ]);
         //Execute the hint
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert!(matches!(
-            execute_hint(variables, &hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, &hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         ))
     }
@@ -4911,10 +4916,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -4992,10 +4997,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueOutside250BitRange(
                 bigint!(1).shl(251i32)
             ))
@@ -5080,10 +5085,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -5176,10 +5181,15 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, incomplete_ids, &ApTracking::new()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                incomplete_ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -5251,10 +5261,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -5346,10 +5356,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
@@ -5447,10 +5457,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 1)),
@@ -5539,10 +5549,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -5616,10 +5626,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -5691,10 +5701,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertLtFelt(bigint!(3), bigint!(2)))
         );
     }
@@ -5765,10 +5775,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -5840,10 +5850,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -5917,10 +5927,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))
@@ -5994,10 +6004,10 @@ mod tests {
                 },
             ),
         ]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))

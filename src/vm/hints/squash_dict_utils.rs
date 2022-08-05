@@ -43,7 +43,7 @@ fn get_access_indices(
     memory[ids.range_check_ptr] = current_access_index
 */
 pub fn squash_dict_inner_first_iteration(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -86,7 +86,7 @@ pub fn squash_dict_inner_first_iteration(
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -116,7 +116,7 @@ pub fn squash_dict_inner_skip_loop(
    current_access_index = new_access_index
 */
 pub fn squash_dict_inner_check_access_index(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -155,7 +155,7 @@ pub fn squash_dict_inner_check_access_index(
 
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -188,7 +188,7 @@ pub fn squash_dict_inner_continue_loop(
 
 // Implements Hint: assert len(current_access_indices) == 0
 pub fn squash_dict_inner_len_assert(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
@@ -201,7 +201,7 @@ pub fn squash_dict_inner_len_assert(
 
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -233,7 +233,7 @@ pub fn squash_dict_inner_used_accesses_assert(
 
 // Implements Hint: assert len(keys) == 0
 pub fn squash_dict_inner_assert_len_keys(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let keys = get_list_ref_from_scope(variables.exec_scopes, "keys")?;
@@ -247,7 +247,7 @@ pub fn squash_dict_inner_assert_len_keys(
 //  assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -291,7 +291,7 @@ pub fn squash_dict_inner_next_key(
     ids.first_key = key = keys.pop()
 */
 pub fn squash_dict(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -461,10 +461,10 @@ mod tests {
             },
         )]);
         {
-            let variables = get_hint_variables(&mut vm);
+            let mut variables = get_hint_variables(&mut vm);
             //Execute the hint
             assert_eq!(
-                execute_hint(variables, hint_code, ids, &ApTracking::default()),
+                execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
                 Ok(())
             );
         }
@@ -531,10 +531,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -576,10 +576,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::VariableNotInScopeError(String::from(
                 "key"
             )))
@@ -622,10 +622,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -671,10 +671,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -723,10 +723,10 @@ mod tests {
             },
         )]);
         {
-            let variables = get_hint_variables(&mut vm);
+            let mut variables = get_hint_variables(&mut vm);
             //Execute the hint
             assert_eq!(
-                execute_hint(variables, hint_code, ids, &ApTracking::default()),
+                execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
                 Ok(())
             );
         }
@@ -795,10 +795,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -839,10 +839,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -888,10 +888,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -919,9 +919,14 @@ mod tests {
         );
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::default()
+            ),
             Ok(())
         );
     }
@@ -944,9 +949,14 @@ mod tests {
         );
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }
@@ -998,9 +1008,9 @@ mod tests {
         )]);
         //Execute the hint
         //Hint would fail is assertion fails
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
     }
@@ -1050,10 +1060,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -1107,10 +1117,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1132,9 +1142,14 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("keys", PyValueType::List(keys));
         //Execute the hint
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::default()
+            ),
             Ok(())
         );
     }
@@ -1154,9 +1169,14 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("keys", PyValueType::List(keys));
         //Execute the hint
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::KeysNotEmpty)
         );
     }
@@ -1171,9 +1191,14 @@ mod tests {
             false,
         );
         //Execute the hint
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::VariableNotInScopeError(String::from(
                 "keys"
             )))
@@ -1214,10 +1239,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check the value of ids.next_key
@@ -1267,10 +1292,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -1426,10 +1451,10 @@ mod tests {
             ),
         ]);
         {
-            let variables = get_hint_variables(&mut vm);
+            let mut variables = get_hint_variables(&mut vm);
             //Execute the hint
             assert_eq!(
-                execute_hint(variables, hint_code, ids, &ApTracking::default()),
+                execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
                 Ok(())
             );
         }
@@ -1651,9 +1676,9 @@ mod tests {
             ),
         ]);
 
-        let variables = get_hint_variables(&mut vm); //Execute the hint
+        let mut variables = get_hint_variables(&mut vm); //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -1838,9 +1863,9 @@ mod tests {
             ),
         ]);
 
-        let variables = get_hint_variables(&mut vm); //Execute the hint
+        let mut variables = get_hint_variables(&mut vm); //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables
@@ -2022,9 +2047,9 @@ mod tests {
             ),
         ]);
 
-        let variables = get_hint_variables(&mut vm); //Execute the hint
+        let mut variables = get_hint_variables(&mut vm); //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -2183,9 +2208,9 @@ mod tests {
             ),
         ]);
 
-        let variables = get_hint_variables(&mut vm); //Execute the hint
+        let mut variables = get_hint_variables(&mut vm); //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
         );
     }
@@ -2343,9 +2368,9 @@ mod tests {
             ),
         ]);
 
-        let variables = get_hint_variables(&mut vm); //Execute the hint
+        let mut variables = get_hint_variables(&mut vm); //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::NAccessesTooBig(BigInt::new(
                 Sign::Plus,
                 vec![1, 0, 0, 0, 0, 0, 17, 134217728]
@@ -2510,9 +2535,9 @@ mod tests {
             ),
         ]);
 
-        let variables = get_hint_variables(&mut vm); //Execute the hint
+        let mut variables = get_hint_variables(&mut vm); //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check scope variables

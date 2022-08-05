@@ -14,7 +14,7 @@ Implements hint:
 %{ ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1 %}
 */
 pub fn pow(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -121,10 +121,10 @@ mod tests {
             group: 4,
             offset: 4,
         };
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Ok(())
         );
 
@@ -158,10 +158,10 @@ mod tests {
         ids.insert(String::from("locs"), bigint!(1));
 
         let ap_tracking: ApTracking = ApTracking::new();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -217,10 +217,10 @@ mod tests {
         ]);
 
         let ap_tracking: ApTracking = ApTracking::new();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -285,10 +285,10 @@ mod tests {
             .unwrap();
 
         let ap_tracking: ApTracking = ApTracking::new();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -361,10 +361,10 @@ mod tests {
             .unwrap();
 
         let ap_tracking: ApTracking = ApTracking::new();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),

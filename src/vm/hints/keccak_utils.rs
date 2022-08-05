@@ -38,7 +38,7 @@ use std::{cmp, collections::HashMap, ops::Shl};
    %}
 */
 pub fn unsafe_keccak(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -154,7 +154,7 @@ Implements hint:
 
  */
 pub fn unsafe_keccak_finalize(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {

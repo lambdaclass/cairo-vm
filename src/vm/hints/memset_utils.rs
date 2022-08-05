@@ -15,7 +15,7 @@ use super::hint_utils::insert_integer_from_var_name;
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -41,7 +41,7 @@ pub fn memset_enter_scope(
 %}
 */
 pub fn memset_continue_loop(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -118,8 +118,8 @@ mod tests {
             },
         )]);
 
-        let variables = get_hint_variables(&mut vm);
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        let mut variables = get_hint_variables(&mut vm);
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
     #[test]
@@ -161,9 +161,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -214,8 +214,8 @@ mod tests {
             },
         )]);
 
-        let variables = get_hint_variables(&mut vm);
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        let mut variables = get_hint_variables(&mut vm);
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
 
         // assert ids.continue_loop = 0
         assert_eq!(
@@ -268,8 +268,8 @@ mod tests {
             },
         )]);
 
-        let variables = get_hint_variables(&mut vm);
-        assert!(execute_hint(variables, hint_code, ids, &ApTracking::new()).is_ok());
+        let mut variables = get_hint_variables(&mut vm);
+        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
 
         // assert ids.continue_loop = 1
         assert_eq!(
@@ -320,9 +320,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -372,9 +372,9 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

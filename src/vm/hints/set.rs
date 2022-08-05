@@ -11,7 +11,7 @@ use super::hint_utils::{
 };
 
 pub fn set_add(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -301,9 +301,9 @@ mod tests {
     #[test]
     fn set_add_new_elem() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -321,9 +321,9 @@ mod tests {
             Some(&MaybeRelocatable::from(bigint!(1))),
             Some(&MaybeRelocatable::from(bigint!(3))),
         );
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -341,9 +341,9 @@ mod tests {
     #[test]
     fn elm_size_not_int() {
         let (mut vm, ids) = init_vm_ids(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 3))
             ))
@@ -355,9 +355,9 @@ mod tests {
         let int = bigint!(-2);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
@@ -367,18 +367,18 @@ mod tests {
         let int = bigint!(0);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueNotPositive(int))
         );
     }
     #[test]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids) = init_vm_ids(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::InvalidSetRange(
                 MaybeRelocatable::from((1, 3)),
                 MaybeRelocatable::from((1, 2)),
@@ -400,9 +400,9 @@ mod tests {
                 immediate: None,
             },
         );
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         assert_eq!(
-            execute_hint(variables, HINT_CODE, ids, &ApTracking::new()),
+            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -420,7 +420,7 @@ mod tests {
             "range_check".to_string(),
             Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
         ));
-        let variables = get_hint_variables(&mut vm);
-        assert!(execute_hint(variables, HINT_CODE, ids, &ApTracking::new()).is_ok());
+        let mut variables = get_hint_variables(&mut vm);
+        assert!(execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()).is_ok());
     }
 }

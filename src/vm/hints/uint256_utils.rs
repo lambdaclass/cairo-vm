@@ -22,7 +22,7 @@ Implements hint:
 %}
 */
 pub fn uint256_add(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -94,7 +94,7 @@ Implements hint:
 %}
 */
 pub fn split_64(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -141,7 +141,7 @@ Implements hint:
 %}
 */
 pub fn uint256_sqrt(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -191,7 +191,7 @@ Implements hint:
 %{ memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0 %}
 */
 pub fn uint256_signed_nn(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -229,7 +229,7 @@ Implements hint:
 %}
 */
 pub fn uint256_unsigned_div_rem(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -425,10 +425,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -553,10 +553,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -636,10 +636,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -737,10 +737,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -816,10 +816,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -903,10 +903,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -986,10 +986,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -1044,10 +1044,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1103,10 +1103,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1166,10 +1166,10 @@ mod tests {
         vm.memory
             .insert(&mut vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
             .unwrap();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -1282,10 +1282,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1421,10 +1421,10 @@ mod tests {
             )
             .unwrap();
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),

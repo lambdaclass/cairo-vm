@@ -23,7 +23,7 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -76,7 +76,7 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -204,10 +204,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Ok(())
         );
 
@@ -306,10 +306,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(150)),
             )
             .unwrap();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::SecpVerifyZero(
                 bigint!(0),
                 bigint!(0),
@@ -413,10 +413,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(55)),
             )
             .unwrap();
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ap_tracking),
+            execute_hint(&mut variables, hint_code, ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
@@ -495,10 +495,10 @@ mod tests {
             None
         );
 
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -562,10 +562,10 @@ mod tests {
             vm.exec_scopes.get_local_variables().unwrap().get("value"),
             None
         );
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
             ))

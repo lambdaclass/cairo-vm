@@ -71,7 +71,7 @@ fn compute_blake2s_func(
    compute_blake2s_func(segments=segments, output_ptr=ids.output)
 */
 pub fn compute_blake2s(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -109,7 +109,7 @@ pub fn compute_blake2s(
     segments.write_arg(ids.blake2s_ptr_end, padding)
 */
 pub fn finalize_blake2s(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -154,7 +154,7 @@ pub fn finalize_blake2s(
     segments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -231,7 +231,7 @@ pub fn blake2s_add_uint256(
     segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256_bigend(
-    variables: HintVisibleVariables,
+    variables: &mut HintVisibleVariables,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -355,10 +355,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::CantSubOffset(5, 26))
         );
     }
@@ -400,10 +400,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -447,10 +447,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -496,10 +496,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::BigintToU32Fail)
         );
     }
@@ -548,10 +548,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -595,10 +595,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check the inserted data
@@ -676,10 +676,10 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
@@ -717,10 +717,15 @@ mod tests {
             },
         )]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, HashMap::new(), &ApTracking::default()),
+            execute_hint(
+                &mut variables,
+                hint_code,
+                HashMap::new(),
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -803,10 +808,10 @@ mod tests {
             ),
         ]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
@@ -923,10 +928,10 @@ mod tests {
             ),
         ]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
@@ -1043,10 +1048,10 @@ mod tests {
             ),
         ]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
@@ -1163,10 +1168,10 @@ mod tests {
             ),
         ]);
         //Create HintVisibleVariables
-        let variables = get_hint_variables(&mut vm);
+        let mut variables = get_hint_variables(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(variables, hint_code, ids, &ApTracking::default()),
+            execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
             Ok(())
         );
         //Check data ptr
