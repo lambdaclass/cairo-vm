@@ -21,7 +21,7 @@ const KECCAK_STATE_SIZE_FELTS: usize = 25;
 const BLOCK_SIZE: usize = 3;
 
 /*
-    Implements hint:
+Implements hint:
     %{
       segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])
       segments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])
@@ -64,11 +64,12 @@ pub fn keccak_write_args(
     Ok(())
 }
 /*
-Cairo code:
-if nondet %{ ids.n_bytes < ids.BYTES_IN_WORD %} != 0:
+Implements hint:
+    Cairo code:
+    if nondet %{ ids.n_bytes < ids.BYTES_IN_WORD %} != 0:
 
-Compiled code:
-memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)
+    Compiled code:
+    memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)
 */
 pub fn compare_bytes_in_word_nondet(
     vm: &mut VirtualMachine,
@@ -85,11 +86,12 @@ pub fn compare_bytes_in_word_nondet(
 }
 
 /*
-Cairo code:
-if nondet %{ ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES %} != 0:
+Implements hint:
+    Cairo code:
+    if nondet %{ ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES %} != 0:
 
-Compiled code:
-"memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"
+    Compiled code:
+    "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm: &mut VirtualMachine,
@@ -106,6 +108,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
 }
 
 /*
+Implements hint:
     %{
         from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
         _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -138,21 +141,10 @@ pub fn block_permutation(
         )
         .map_err(VirtualMachineError::MemoryError)?;
 
-    // this is done because the f1600 function needs an array of u64 numbers as input.
-    // let mut u64_values: [u64; KECCAK_STATE_SIZE_FELTS] = values
-    //     .iter()
-    //     .map(|n| {
-    //         if let Some(MaybeRelocatable::Int(num)) = n {
-    //             num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-    //         } else {
-    //             return Err(VirtualMachineError::NoneInMemoryRange);
-    //         }
-    //     })
-    //     .collect::<Result<Vec<u64>, VirtualMachineError>>()?
-    //     .try_into()
-    //     .map_err(|_| VirtualMachineError::BigintToU32Fail)?;
     let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?;
 
+    // this function of the keccak crate is the one used instead of keccak_func from
+    // keccak_utils.py
     keccak::f1600(&mut u64_values);
 
     let bigint_values = u64_array_to_bigint_vec(&u64_values);
@@ -243,11 +235,49 @@ fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    //static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::HintReference;
+    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::{BigInt, Sign};
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    //use crate::memory_segments::tests::MemoryError::UnallocatedSegment
+    //use crate::vm::vm_memory::memory_segments::tests::MemoryError::UnallocatedSegment;
 
     #[test]
     fn keccak_write_args_valid_test() {
-        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
+        let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
+        let mut vm = vm_with_range_check!();
+
+        for _ in 0..1 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        vm.memory = memory![
+            ((0, 0), 233),
+            ((0, 1), 351),
+            ((0, 2), (1, 0)),
+            ((1, 4), 5_i32)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+
+        //Create ids
+        let ids = ids!["low", "high", "inputs"];
+        vm.references = references!(3);
+
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn keccak_write_args_write_error() {
+        let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
 
         for _ in 0..1 {
@@ -257,14 +287,78 @@ mod tests {
         vm.memory = memory![((0, 0), 233), ((0, 1), 351), ((0, 2), (1, 0))];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
-
-        //Initialize ap
-        //vm.run_context.ap = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         //Create ids
         let ids = ids!["low", "high", "inputs"];
         vm.references = references!(3);
+
+        let error = vm
+            .hint_executor
+            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new());
+
+        assert!(matches!(error, Err(VirtualMachineError::MemoryError(_))));
+    }
+
+    #[test]
+    fn compare_bytes_in_word_nondet_valid() {
+        let hint_code =
+            "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
+        let mut vm = vm_with_range_check!();
+
+        vm.segments.add(&mut vm.memory, None);
+        vm.memory = memory![((0, 0), 24)];
+
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = MaybeRelocatable::from((0, 1));
+
+        let ids = ids!["n_bytes"];
+        vm.references = references!(1);
+
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn compare_keccak_full_rate_in_bytes_nondet_valid() {
+        let hint_code =
+            "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
+
+        let mut vm = vm_with_range_check!();
+
+        vm.segments.add(&mut vm.memory, None);
+        vm.memory = memory![((0, 0), 24)];
+
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = MaybeRelocatable::from((0, 1));
+
+        let ids = ids!["n_bytes"];
+        vm.references = references!(1);
+
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn block_permutation_valid_test() {
+        let hint_code =
+            "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
+        let mut vm = vm_with_range_check!();
+
+        vm.segments.add(&mut vm.memory, None);
+        vm.memory = memory![((0, 0), 24)];
+
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = MaybeRelocatable::from((0, 1));
+
+        let ids = ids!["n_bytes"];
+        vm.references = references!(1);
 
         assert_eq!(
             vm.hint_executor
