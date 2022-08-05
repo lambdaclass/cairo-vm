@@ -953,7 +953,7 @@ mod tests {
             )),
         );
 
-        //Insert 'x' into vm scope
+        //Insert 'x0' into vm scope
         vm.exec_scopes.assign_or_update_variable(
             "x0",
             PyValueType::BigInt(bigint_str!(
@@ -969,7 +969,7 @@ mod tests {
             )),
         );
 
-        //Insert 'y' into vm scope
+        //Insert 'y0' into vm scope
         vm.exec_scopes.assign_or_update_variable(
             "y0",
             PyValueType::BigInt(bigint_str!(
@@ -1008,6 +1008,41 @@ mod tests {
             Some(&PyValueType::BigInt(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
             )))
+        );
+    }
+
+    #[test]
+    fn run_ec_mul_inner_ok() {
+        let hint_code = "memory[ap] = (ids.scalar % PRIME) % 2";
+        let mut vm = vm_with_range_check!();
+
+        let scalar = 89712 + &vm.prime;
+        //Insert ids.scalar into memory
+        vm.memory = memory![((1, 0), scalar)];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 0));
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 1));
+
+        //Create ids
+        let ids = ids!["scalar"];
+
+        //Create references
+        vm.references = references!(1);
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check hint memory inserts
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint_str!(b"0"))))
         );
     }
 }
