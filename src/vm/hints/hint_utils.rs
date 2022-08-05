@@ -317,7 +317,6 @@ pub fn compute_addr_from_reference(
 
             match memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
-                    println!("dereferend_addr: {:?}", dereferenced_addr);
                     if let Some(imm) = &hint_reference.immediate {
                         return Ok(Some(MaybeRelocatable::from((
                             dereferenced_addr.segment_index,
