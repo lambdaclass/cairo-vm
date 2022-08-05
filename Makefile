@@ -70,7 +70,7 @@ benchmark: $(COMPILED_BENCHES)
 	@echo 'Report: target/criterion/reports/index.html'
 
 benchmark-action: $(COMPILED_BENCHES)
-	cargo +nightly bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
+	cargo bench --bench criterion_benchmark -- --output-format bencher |sed 1d | tee output.txt
 
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
