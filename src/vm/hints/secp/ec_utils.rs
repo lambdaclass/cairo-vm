@@ -823,15 +823,18 @@ mod tests {
 
         //Insert ids.point0, ids.point1.x and ids.slope into memory
         vm.memory = memory![
+            //ids.point0
             ((1, 0), 89712),
             ((1, 1), 56),
             ((1, 2), 1233409),
             ((1, 3), 980126),
             ((1, 4), 10),
             ((1, 5), 8793),
+            //ids.point0.x
             ((1, 6), 1235216451),
             ((1, 7), 5967),
             ((1, 8), 2171381),
+            //ids.slope
             ((1, 9), 67470097831679799377177424_i128),
             ((1, 10), 43370026683122492246392730_i128),
             ((1, 11), 16032182557092050689870202_i128)
@@ -933,6 +936,77 @@ mod tests {
             vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
             Some(&PyValueType::BigInt(bigint_str!(
                 b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_fast_ec_add_assign_new_y_ok() {
+        let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        //Insert 'slope' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "slope",
+            PyValueType::BigInt(bigint_str!(
+                b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
+            )),
+        );
+
+        //Insert 'x' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "x0",
+            PyValueType::BigInt(bigint_str!(
+                b"838083498911032969414721426845751663479194726707495046"
+            )),
+        );
+
+        //Insert 'new_x' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "new_x",
+            PyValueType::BigInt(bigint_str!(
+                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+            )),
+        );
+
+        //Insert 'y' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "y0",
+            PyValueType::BigInt(bigint_str!(
+                b"4310143708685312414132851373791311001152018708061750480"
+            )),
+        );
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+            )))
+        );
+
+        //Check 'new_y' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_y"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
             )))
         );
     }
