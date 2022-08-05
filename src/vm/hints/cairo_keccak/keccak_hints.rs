@@ -241,8 +241,35 @@ fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt
 
 #[cfg(test)]
 mod tests {
-    //use super::*;
+    use super::*;
+    use crate::utils::test_utils::*;
+    //static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
-    fn keccak_write_args_valid_test() {}
+    fn keccak_write_args_valid_test() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        for _ in 0..1 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        vm.memory = memory![((0, 0), 233), ((0, 1), 351), ((0, 2), (1, 0))];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+
+        //Initialize ap
+        //vm.run_context.ap = MaybeRelocatable::from((1, 10));
+
+        //Create ids
+        let ids = ids!["low", "high", "inputs"];
+        vm.references = references!(3);
+
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+    }
 }

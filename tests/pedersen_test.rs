@@ -1,15 +1,17 @@
 use std::path::Path;
 
 use cleopatra_cairo::{
-    types::program::Program, vm::runners::cairo_runner::CairoRunner,
-    vm::trace::trace_entry::RelocatedTraceEntry,
+    types::program::Program, vm::hints::execute_hint::BuiltinHintExecutor,
+    vm::runners::cairo_runner::CairoRunner, vm::trace::trace_entry::RelocatedTraceEntry,
 };
+
+static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
 #[test]
 fn pedersen_integration_test() {
     let program = Program::new(Path::new("cairo_programs/pedersen_test.json"))
         .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program, true);
+    let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
     assert!(cairo_runner.initialize_vm() == Ok(()), "Execution failed");

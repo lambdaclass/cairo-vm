@@ -55,6 +55,8 @@ pub enum VirtualMachineError {
     DiffIndexComp(Relocatable, Relocatable),
     ValueOutside250BitRange(BigInt),
     SqrtNegative(BigInt),
+    SafeDivFail(BigInt, BigInt),
+    DividedByZero,
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
     MainScopeError(ExecScopeError),
@@ -209,6 +211,8 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
             VirtualMachineError::SqrtNegative(value) => write!(f, "Can't calculate the square root of negative number: {:?})", value),
+            VirtualMachineError::SafeDivFail(x, y) => write!(f, "{} is not divisible by {}", x, y),
+            VirtualMachineError::DividedByZero => write!(f, "Attempted to devide by zero"),
             VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
