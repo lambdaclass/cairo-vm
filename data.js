@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659739289044,
+  "lastUpdate": 1659739370047,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -17255,6 +17255,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 220720171,
             "range": "± 770918",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "4b810770e7a6c64a39de917e5bbf60fc88d251fc",
+          "message": "[HINTS] Add implementation of cairo_keccak/keccak hints",
+          "timestamp": "2022-08-05T02:54:04Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/351/commits/4b810770e7a6c64a39de917e5bbf60fc88d251fc"
+        },
+        "date": 1659739368414,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2088390567,
+            "range": "± 4116892",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 740702260,
+            "range": "± 771963",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 368880622,
+            "range": "± 8666985",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1831638937,
+            "range": "± 1656022",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 274971273,
+            "range": "± 359017",
             "unit": "ns/iter"
           }
         ]
