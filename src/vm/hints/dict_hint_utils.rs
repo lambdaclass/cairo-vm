@@ -35,17 +35,16 @@ fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt
 For now, the functionality to create a dictionary from a previously defined initial_dict (using a hint)
 is not available
 */
-pub fn dict_new(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn dict_new(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict =
-        copy_initial_dict(variables.exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
-    let base =
-        variables
-            .dict_manager
-            .new_dict(variables.segments, variables.memory, initial_dict)?;
-    variables
+        copy_initial_dict(vm_proxy.exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
+    let base = vm_proxy
+        .dict_manager
+        .new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
+    vm_proxy
         .memory
-        .insert(&variables.run_context.ap, &base)
+        .insert(&vm_proxy.run_context.ap, &base)
         .map_err(VirtualMachineError::MemoryError)
 }
 
@@ -60,32 +59,25 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available, an empty dict is created always
 */
 pub fn default_dict_new(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let default_value = get_integer_from_var_name(
-        "default_value",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?
-    .clone();
+    let default_value =
+        get_integer_from_var_name("default_value", ids, vm_proxy, hint_ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
-    let initial_dict = copy_initial_dict(variables.exec_scopes);
+    let initial_dict = copy_initial_dict(vm_proxy.exec_scopes);
 
-    let base = variables.dict_manager.new_default_dict(
-        variables.segments,
-        variables.memory,
+    let base = vm_proxy.dict_manager.new_default_dict(
+        vm_proxy.segments,
+        vm_proxy.memory,
         &default_value,
         initial_dict,
     )?;
-    variables
+    vm_proxy
         .memory
-        .insert(&variables.run_context.ap, &base)
+        .insert(&vm_proxy.run_context.ap, &base)
         .map_err(VirtualMachineError::MemoryError)
 }
 
@@ -95,38 +87,16 @@ pub fn default_dict_new(
    ids.value = dict_tracker.data[ids.key]
 */
 pub fn dict_read(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_ptr = get_ptr_from_var_name(
-        "dict_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let tracker = variables.dict_manager.get_tracker(&dict_ptr)?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(key)?;
-    insert_integer_from_var_name(
-        "value",
-        value.clone(),
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )
+    let value = tracker.get_value(&key)?;
+    insert_integer_from_var_name("value", value.clone(), ids, vm_proxy, hint_ap_tracking)
 }
 
 /* Implements hint:
@@ -136,48 +106,28 @@ pub fn dict_read(
     dict_tracker.data[ids.key] = ids.new_value
 */
 pub fn dict_write(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let new_value = get_integer_from_var_name(
-        "new_value",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_ptr = get_ptr_from_var_name(
-        "dict_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let new_value =
+        get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?.clone();
     //Get tracker for dictionary
-    let tracker = variables.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value = dict_ptr + 1;
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(key)?.clone();
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    variables
+    vm_proxy
         .memory
         .insert_integer(&dict_ptr_prev_value, prev_value)?;
     Ok(())
@@ -195,48 +145,22 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let prev_value = get_integer_from_var_name(
-        "prev_value",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let new_value = get_integer_from_var_name(
-        "new_value",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_ptr = get_ptr_from_var_name(
-        "dict_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let prev_value =
+        get_integer_from_var_name("prev_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let new_value =
+        get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?.clone();
 
     //Get tracker for dictionary
-    let tracker = variables.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key)?;
-    if current_value != prev_value {
+    let current_value = tracker.get_value(&key)?;
+    if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value.clone(),
             current_value.clone(),
@@ -244,7 +168,7 @@ pub fn dict_update(
         ));
     }
     //Update Value
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
@@ -260,24 +184,18 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let dict_accesses_end = get_ptr_from_var_name(
-        "dict_accesses_end",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_copy = variables
+    let dict_accesses_end =
+        get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
+    let dict_copy = vm_proxy
         .dict_manager
         .get_tracker(&dict_accesses_end)?
         .get_dictionary_copy();
 
-    variables.exec_scopes.enter_scope(HashMap::from([(
+    vm_proxy.exec_scopes.enter_scope(HashMap::from([(
         String::from("initial_dict"),
         PyValueType::Dictionary(dict_copy),
     )]));
@@ -290,27 +208,15 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let squashed_dict_start = get_ptr_from_var_name(
-        "squashed_dict_start",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let squashed_dict_end = get_ptr_from_var_name(
-        "squashed_dict_end",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    variables
+    let squashed_dict_start =
+        get_ptr_from_var_name("squashed_dict_start", ids, vm_proxy, hint_ap_tracking)?;
+    let squashed_dict_end =
+        get_ptr_from_var_name("squashed_dict_end", ids, vm_proxy, hint_ap_tracking)?;
+    vm_proxy
         .dict_manager
         .get_tracker(&squashed_dict_start)?
         .current_ptr = squashed_dict_end;
@@ -2427,10 +2333,10 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            execute_hint(&mut vm_proxy, hint_code, ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created

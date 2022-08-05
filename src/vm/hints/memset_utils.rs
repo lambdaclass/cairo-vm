@@ -15,20 +15,12 @@ use super::hint_utils::insert_integer_from_var_name;
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n = get_integer_from_var_name(
-        "n",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?
-    .clone();
-    variables
+    let n = get_integer_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?.clone();
+    vm_proxy
         .exec_scopes
         .enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
     Ok(())
@@ -41,12 +33,12 @@ pub fn memset_enter_scope(
 %}
 */
 pub fn memset_continue_loop(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(variables.exec_scopes, "n")?;
+    let n = get_int_ref_from_scope(vm_proxy.exec_scopes, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
@@ -56,14 +48,12 @@ pub fn memset_continue_loop(
         "continue_loop",
         should_continue,
         ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    insert_int_into_scope(variables.exec_scopes, "n", new_n);
+    insert_int_into_scope(vm_proxy.exec_scopes, "n", new_n);
     Ok(())
 }
 #[cfg(test)]

@@ -23,24 +23,17 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let val_reloc = get_relocatable_from_var_name(
-        "val",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let val_reloc = get_relocatable_from_var_name("val", ids, vm_proxy, hint_ap_tracking)?;
 
-    let val_d0 = variables.memory.get_integer(&val_reloc)?;
-    let val_d1 = variables.memory.get_integer(&(val_reloc.clone() + 1))?;
-    let val_d2 = variables.memory.get_integer(&(val_reloc + 2))?;
+    let val_d0 = vm_proxy.memory.get_integer(&val_reloc)?;
+    let val_d1 = vm_proxy.memory.get_integer(&(val_reloc.clone() + 1))?;
+    let val_d2 = vm_proxy.memory.get_integer(&(val_reloc + 2))?;
 
-    let pack = pack(val_d0, val_d1, val_d2, variables.prime);
+    let pack = pack(val_d0, val_d1, val_d2, vm_proxy.prime);
 
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     let sec_p = bigint_str!(
@@ -58,11 +51,9 @@ pub fn verify_zero(
     }
     insert_integer_from_var_name(
         "q",
-        q.mod_floor(variables.prime),
+        q.mod_floor(vm_proxy.prime),
         ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )
 }
@@ -76,30 +67,23 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name(
-        "x",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let x_reloc = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;
 
-    let x_d0 = variables.memory.get_integer(&x_reloc)?;
-    let x_d1 = variables.memory.get_integer(&(x_reloc.clone() + 1))?;
-    let x_d2 = variables.memory.get_integer(&(x_reloc + 2))?;
+    let x_d0 = vm_proxy.memory.get_integer(&x_reloc)?;
+    let x_d1 = vm_proxy.memory.get_integer(&(x_reloc.clone() + 1))?;
+    let x_d2 = vm_proxy.memory.get_integer(&(x_reloc + 2))?;
 
     //SECP_P = 2**256 - 2**32 - 2**9 - 2**8 - 2**7 - 2**6 - 2**4 - 1
     let sec_p = bigint_str!(
         b"115792089237316195423570985008687907853269984665640564039457584007908834671663"
     );
 
-    let value = pack(x_d0, x_d1, x_d2, variables.prime).mod_floor(&sec_p);
-    insert_int_into_scope(variables.exec_scopes, "value", value);
+    let value = pack(x_d0, x_d1, x_d2, vm_proxy.prime).mod_floor(&sec_p);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
     Ok(())
 }
 

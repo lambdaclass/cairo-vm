@@ -43,21 +43,15 @@ fn get_access_indices(
     memory[ids.range_check_ptr] = current_access_index
 */
 pub fn squash_dict_inner_first_iteration(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let key = get_int_from_scope(variables.exec_scopes, "key")?;
-    let range_check_ptr = get_ptr_from_var_name(
-        "range_check_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let access_indices = get_access_indices(variables.exec_scopes)?;
+    let key = get_int_from_scope(vm_proxy.exec_scopes, "key")?;
+    let range_check_ptr =
+        get_ptr_from_var_name("range_check_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let access_indices = get_access_indices(vm_proxy.exec_scopes)?;
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
@@ -71,28 +65,28 @@ pub fn squash_dict_inner_first_iteration(
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
     insert_list_into_scope(
-        variables.exec_scopes,
+        vm_proxy.exec_scopes,
         "current_access_indices",
         current_access_indices,
     );
     insert_int_into_scope(
-        variables.exec_scopes,
+        vm_proxy.exec_scopes,
         "current_access_index",
         first_val.clone(),
     );
     //Insert current_accesss_index into range_check_ptr
-    variables.memory.insert_integer(&range_check_ptr, first_val)
+    vm_proxy.memory.insert_integer(&range_check_ptr, first_val)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_from_scope(variables.exec_scopes, "current_access_indices")?;
+        get_list_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -103,9 +97,7 @@ pub fn squash_dict_inner_skip_loop(
         "should_skip_loop",
         should_skip_loop,
         ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )
 }
@@ -116,14 +108,14 @@ pub fn squash_dict_inner_skip_loop(
    current_access_index = new_access_index
 */
 pub fn squash_dict_inner_check_access_index(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = get_int_from_scope(variables.exec_scopes, "current_access_index")?;
+    let current_access_index = get_int_from_scope(vm_proxy.exec_scopes, "current_access_index")?;
     let current_access_indices =
-        get_mut_list_ref_from_scope(variables.exec_scopes, "current_access_indices")?;
+        get_mut_list_ref_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
@@ -135,18 +127,16 @@ pub fn squash_dict_inner_check_access_index(
         "loop_temps",
         index_delta_minus1,
         ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )?;
     insert_int_into_scope(
-        variables.exec_scopes,
+        vm_proxy.exec_scopes,
         "new_access_index",
         new_access_index.clone(),
     );
     insert_int_into_scope(
-        variables.exec_scopes,
+        vm_proxy.exec_scopes,
         "current_access_index",
         new_access_index,
     );
@@ -155,23 +145,17 @@ pub fn squash_dict_inner_check_access_index(
 
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
-    let loop_temps_addr = get_relocatable_from_var_name(
-        "loop_temps",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let loop_temps_addr =
+        get_relocatable_from_var_name("loop_temps", ids, vm_proxy, hint_ap_tracking)?;
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_ref_from_scope(variables.exec_scopes, "current_access_indices")?;
+        get_list_ref_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -181,16 +165,16 @@ pub fn squash_dict_inner_continue_loop(
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
     let should_continue_addr = loop_temps_addr + 3;
-    variables
+    vm_proxy
         .memory
         .insert_integer(&should_continue_addr, should_continue)
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
-pub fn squash_dict_inner_len_assert(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn squash_dict_inner_len_assert(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices =
-        get_list_ref_from_scope(variables.exec_scopes, "current_access_indices")?;
+        get_list_ref_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -199,21 +183,14 @@ pub fn squash_dict_inner_len_assert(variables: &mut VMProxy) -> Result<(), Virtu
 
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_int_from_scope(variables.exec_scopes, "key")?;
-    let n_used_accesses = get_integer_from_var_name(
-        "n_used_accesses",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?
-    .clone();
-    let access_indices = get_access_indices(variables.exec_scopes)?;
+    let key = get_int_from_scope(vm_proxy.exec_scopes, "key")?;
+    let n_used_accesses =
+        get_integer_from_var_name("n_used_accesses", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let access_indices = get_access_indices(vm_proxy.exec_scopes)?;
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
@@ -231,10 +208,10 @@ pub fn squash_dict_inner_used_accesses_assert(
 
 // Implements Hint: assert len(keys) == 0
 pub fn squash_dict_inner_assert_len_keys(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_list_ref_from_scope(variables.exec_scopes, "keys")?;
+    let keys = get_list_ref_from_scope(vm_proxy.exec_scopes, "keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -245,25 +222,23 @@ pub fn squash_dict_inner_assert_len_keys(
 //  assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_mut_list_ref_from_scope(variables.exec_scopes, "keys")?;
+    let keys = get_mut_list_ref_from_scope(vm_proxy.exec_scopes, "keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_integer_from_var_name(
         "next_key",
         next_key.clone(),
         ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )?;
     //Update local variables
-    insert_int_into_scope(variables.exec_scopes, "key", next_key);
+    insert_int_into_scope(vm_proxy.exec_scopes, "key", next_key);
     Ok(())
 }
 
@@ -289,43 +264,22 @@ pub fn squash_dict_inner_next_key(
     ids.first_key = key = keys.pop()
 */
 pub fn squash_dict(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let address = get_ptr_from_var_name(
-        "dict_accesses",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let ptr_diff = get_integer_from_var_name(
-        "ptr_diff",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let n_accesses = get_integer_from_var_name(
-        "n_accesses",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let address = get_ptr_from_var_name("dict_accesses", ids, vm_proxy, hint_ap_tracking)?;
+    let ptr_diff = get_integer_from_var_name("ptr_diff", ids, vm_proxy, hint_ap_tracking)?;
+    let n_accesses = get_integer_from_var_name("n_accesses", ids, vm_proxy, hint_ap_tracking)?;
     //Get range_check_builtin
-    let range_check_builtin = get_range_check_builtin(variables.builtin_runners)?;
+    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
     if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = get_int_from_scope(variables.exec_scopes, "__squash_dict_max_size");
+    let squash_dict_max_size = get_int_from_scope(vm_proxy.exec_scopes, "__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
@@ -341,7 +295,7 @@ pub fn squash_dict(
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
         let key_addr = address.clone() + DICT_ACCESS_SIZE * i;
-        let key = variables
+        let key = vm_proxy
             .memory
             .get_integer(&key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
@@ -360,31 +314,15 @@ pub fn squash_dict(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name(
-        "big_keys",
-        big_keys,
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    insert_integer_from_var_name("big_keys", big_keys, ids, vm_proxy, hint_ap_tracking)?;
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
-    insert_integer_from_var_name(
-        "first_key",
-        key.clone(),
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    insert_integer_from_var_name("first_key", key.clone(), ids, vm_proxy, hint_ap_tracking)?;
     //Insert local variables into scope
-    variables
+    vm_proxy
         .exec_scopes
         .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-    insert_list_into_scope(variables.exec_scopes, "keys", keys);
-    insert_int_into_scope(variables.exec_scopes, "key", key);
+    insert_list_into_scope(vm_proxy.exec_scopes, "keys", keys);
+    insert_int_into_scope(vm_proxy.exec_scopes, "key", key);
     Ok(())
 }
 

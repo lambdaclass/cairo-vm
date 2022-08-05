@@ -21,23 +21,16 @@ Implements hint:
 */
 
 pub fn nondet_bigint3(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name(
-        "res",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let value = get_int_ref_from_scope(variables.exec_scopes, "value")?;
+    let res_reloc = get_relocatable_from_var_name("res", ids, vm_proxy, hint_ap_tracking)?;
+    let value = get_int_ref_from_scope(vm_proxy.exec_scopes, "value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
-    variables
+    vm_proxy
         .segments
-        .write_arg(variables.memory, &res_reloc, &arg, Some(variables.prime))
+        .write_arg(vm_proxy.memory, &res_reloc, &arg, Some(vm_proxy.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -45,30 +38,15 @@ pub fn nondet_bigint3(
 // Implements hint
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_struct = get_relocatable_from_var_name(
-        "x",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let d0 = variables.memory.get_integer(&x_struct)?;
-    let d1 = variables.memory.get_integer(&(&x_struct + 1))?;
+    let x_struct = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;
+    let d0 = vm_proxy.memory.get_integer(&x_struct)?;
+    let d1 = vm_proxy.memory.get_integer(&(&x_struct + 1))?;
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
-    insert_integer_from_var_name(
-        "low",
-        low,
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )
+    insert_integer_from_var_name("low", low, ids, vm_proxy, hint_ap_tracking)
 }
 
 #[cfg(test)]

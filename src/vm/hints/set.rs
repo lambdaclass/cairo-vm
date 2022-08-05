@@ -11,50 +11,22 @@ use super::hint_utils::{
 };
 
 pub fn set_add(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let set_ptr = get_ptr_from_var_name(
-        "set_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let elm_size = get_integer_from_var_name(
-        "elm_size",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?
-    .to_usize()
-    .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-    let elm_ptr = get_ptr_from_var_name(
-        "elm_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let set_end_ptr = get_ptr_from_var_name(
-        "set_end_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let set_ptr = get_ptr_from_var_name("set_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", ids, vm_proxy, hint_ap_tracking)?
+        .to_usize()
+        .ok_or(VirtualMachineError::BigintToUsizeFail)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
 
-    let elm = variables
+    let elm = vm_proxy
         .memory
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -69,7 +41,7 @@ pub fn set_add(
     let range_limit = set_end_ptr.sub_rel(&set_ptr)?;
 
     for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = variables
+        let set_iter = vm_proxy
             .memory
             .get_range(
                 &MaybeRelocatable::from(set_ptr.clone() + i as usize),
@@ -82,31 +54,19 @@ pub fn set_add(
                 "index",
                 bigint!(i / elm_size),
                 ids,
-                variables.memory,
-                variables.references,
-                variables.run_context,
+                vm_proxy,
                 hint_ap_tracking,
             )?;
             return insert_integer_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
                 ids,
-                variables.memory,
-                variables.references,
-                variables.run_context,
+                vm_proxy,
                 hint_ap_tracking,
             );
         }
     }
-    insert_integer_from_var_name(
-        "is_elm_in_set",
-        bigint!(0),
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )
+    insert_integer_from_var_name("is_elm_in_set", bigint!(0), ids, vm_proxy, hint_ap_tracking)
 }
 
 #[cfg(test)]

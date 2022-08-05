@@ -17,43 +17,15 @@ use super::hint_utils::get_ptr_from_var_name;
 use super::hint_utils::insert_integer_from_var_name;
 
 pub fn find_element(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let elm_size_bigint = get_integer_from_var_name(
-        "elm_size",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let n_elms = get_integer_from_var_name(
-        "n_elms",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let array_start = get_ptr_from_var_name(
-        "array_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let find_element_index = get_int_from_scope(variables.exec_scopes, "find_element_index").ok();
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
+    let elm_size_bigint = get_integer_from_var_name("elm_size", ids, vm_proxy, hint_ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", ids, vm_proxy, hint_ap_tracking)?;
+    let array_start = get_ptr_from_var_name("array_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let find_element_index = get_int_from_scope(vm_proxy.exec_scopes, "find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
@@ -65,7 +37,7 @@ pub fn find_element(
 
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
-        let found_key = variables
+        let found_key = vm_proxy
             .memory
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
@@ -81,12 +53,10 @@ pub fn find_element(
             "index",
             find_element_index_value,
             ids,
-            variables.memory,
-            variables.references,
-            variables.run_context,
+            vm_proxy,
             hint_ap_tracking,
         )?;
-        variables.exec_scopes.delete_variable("find_element_index");
+        vm_proxy.exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
         if n_elms.is_negative() {
@@ -94,7 +64,7 @@ pub fn find_element(
         }
 
         if let Ok(find_element_max_size) =
-            get_int_ref_from_scope(variables.exec_scopes, "find_element_max_size")
+            get_int_ref_from_scope(vm_proxy.exec_scopes, "find_element_max_size")
         {
             if n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
@@ -108,7 +78,7 @@ pub fn find_element(
             .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
 
         for i in 0..n_elms_iter {
-            let iter_key = variables
+            let iter_key = vm_proxy
                 .memory
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
@@ -118,9 +88,7 @@ pub fn find_element(
                     "index",
                     bigint!(i),
                     ids,
-                    variables.memory,
-                    variables.references,
-                    variables.run_context,
+                    vm_proxy,
                     hint_ap_tracking,
                 );
             }
@@ -131,43 +99,16 @@ pub fn find_element(
 }
 
 pub fn search_sorted_lower(
-    variables: &mut VMProxy,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = get_int_from_scope(variables.exec_scopes, "find_element_max_size");
-    let n_elms = get_integer_from_var_name(
-        "n_elms",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let rel_array_ptr = get_relocatable_from_var_name(
-        "array_ptr",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let elm_size = get_integer_from_var_name(
-        "elm_size",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )?;
+    let find_element_max_size = get_int_from_scope(vm_proxy.exec_scopes, "find_element_max_size");
+    let n_elms = get_integer_from_var_name("n_elms", ids, vm_proxy, hint_ap_tracking)?;
+    let rel_array_ptr =
+        get_relocatable_from_var_name("array_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", ids, vm_proxy, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
 
     if !elm_size.is_positive() {
         return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
@@ -186,36 +127,26 @@ pub fn search_sorted_lower(
         }
     }
 
-    let mut array_iter = variables.memory.get_relocatable(&rel_array_ptr)?.clone();
+    let mut array_iter = vm_proxy.memory.get_relocatable(&rel_array_ptr)?.clone();
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
         .ok_or(VirtualMachineError::KeyNotFound)?;
 
     for i in 0..n_elms_usize {
-        let value = variables.memory.get_integer(&array_iter)?;
+        let value = vm_proxy.memory.get_integer(&array_iter)?;
         if value >= key {
             return insert_integer_from_var_name(
                 "index",
                 bigint!(i),
                 ids,
-                variables.memory,
-                variables.references,
-                variables.run_context,
+                vm_proxy,
                 hint_ap_tracking,
             );
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_integer_from_var_name(
-        "index",
-        n_elms.clone(),
-        ids,
-        variables.memory,
-        variables.references,
-        variables.run_context,
-        hint_ap_tracking,
-    )
+    insert_integer_from_var_name("index", n_elms.clone(), ids, vm_proxy, hint_ap_tracking)
 }
 
 #[cfg(test)]
