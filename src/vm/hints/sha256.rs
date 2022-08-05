@@ -10,6 +10,9 @@ pub fn sha256_input(vm: &mut VirtualMachine, ids: &HashMap<String, BigInt>, hint
 }
 
 pub fn sha256(vm: &mut VirtualMachine, ids: &HashMap<String, BigInt>, hint_ap_tracking: Option<&ApTracking>) -> Result<(), VirtualMachineError> {
+    let const BIT_STEP_32: usize = 32;
+    let const BIT_SIZE_SHA: usize = 256;
+
     let sha256_input_chunk_size_felts = get_usize_from_var_name("SHA256_INPUT_CHUNK_SIZE_FELTS", ids, vm, hint_ap_tracking)?; 
     if sha256_input_chunk_size_felts < 100 {
         return Err(VirtualMachineError::ShaInputChunkOutOfBounds);
@@ -24,8 +27,16 @@ pub fn sha256(vm: &mut VirtualMachine, ids: &HashMap<String, BigInt>, hint_ap_tr
         message.extend(get_integer_from_relocatable_plus_offset(input_ptr, i, vm)?.to_signed_bytes_be());
     }
 
-    let new_state = digest(message.to_owned());
-    let output: Vec<BigInt> = Vec::new();
+    let new_state = digest_bytes(message).as_bytes();
+    let mut output: Vec<u32> = Vec::new();
 
+    for i in (0..BIT_SIZE_SHA - BIT_STEP_32).step_by(BIT_STEP_32) {
+        output.push(bigint_str!(&new_state[i..i + BIT_STEP_32]));
+    }
 
+    let output_base = vm.segments.add(&mut vm.memory, Some(output.len()));
+    for (i, sha_chunk) in output.into_iter().enumerate() {
+        vm.memory
+            .insert_value(&(&output_base + i), sha_chunk)?;
+    }
 }
