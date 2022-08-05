@@ -1021,10 +1021,10 @@ mod tests {
         vm.memory = memory![((1, 0), scalar)];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 0));
+        vm.run_context.fp = MaybeRelocatable::from((1, 1));
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 1));
+        vm.run_context.ap = MaybeRelocatable::from((1, 2));
 
         //Create ids
         let ids = ids!["scalar"];
@@ -1041,7 +1041,7 @@ mod tests {
 
         //Check hint memory inserts
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
             Ok(Some(&MaybeRelocatable::from(bigint_str!(b"0"))))
         );
     }
