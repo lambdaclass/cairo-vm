@@ -319,3 +319,12 @@ fn cairo_run_private_keccak() {
     cairo_run::cairo_run(Path::new("cairo_programs/_keccak.json"), false)
         .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_finalize_keccak() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/cairo_finalize_keccak.json"),
+        false,
+    )
+    .expect("Couldn't run program");
+}

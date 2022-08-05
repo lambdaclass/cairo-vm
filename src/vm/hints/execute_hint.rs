@@ -34,8 +34,8 @@ use crate::vm::hints::uint256_utils::{
 };
 
 use crate::vm::hints::cairo_keccak::keccak_hints::{
-    block_permutation, compare_bytes_in_word_nondet, compare_keccak_full_rate_in_bytes_nondet,
-    keccak_write_args,
+    block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
+    compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
 };
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
@@ -184,6 +184,7 @@ pub fn execute_hint(
         Ok("memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)") => compare_bytes_in_word_nondet(vm, &ids, None),
         Ok("memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)") => compare_keccak_full_rate_in_bytes_nondet(vm, &ids, None),
         Ok("from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func\n_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)\nassert 0 <= _keccak_state_size_felts < 100\n\noutput_values = keccak_func(memory.get_range(\n    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))\nsegments.write_arg(ids.keccak_ptr, output_values)") => block_permutation(vm, &ids, None),
+        Ok("# Add dummy pairs of input and output.\n_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)\n_block_size = int(ids.BLOCK_SIZE)\nassert 0 <= _keccak_state_size_felts < 100\nassert 0 <= _block_size < 10\ninp = [0] * _keccak_state_size_felts\npadding = (inp + keccak_func(inp)) * _block_size\nsegments.write_arg(ids.keccak_ptr_end, padding)") => cairo_keccak_finalize(vm, &ids, None),
         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
             vm.run_context.pc.clone(),

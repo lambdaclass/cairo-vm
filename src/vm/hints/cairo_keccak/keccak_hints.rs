@@ -1,3 +1,4 @@
+use crate::vm::hints::hint_utils::get_range_check_builtin;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
@@ -186,6 +187,9 @@ pub fn cairo_keccak_finalize(
             KECCAK_STATE_SIZE_FELTS,
         ));
     }
+
+    //println!("builtin runners: {:?}", vm.builtin_runners);
+    let _ = get_range_check_builtin(vm)?;
 
     if BLOCK_SIZE >= 10 {
         return Err(VirtualMachineError::InvalidBlockSize(BLOCK_SIZE));

@@ -1,41 +1,29 @@
-%builtins output range_check bitwise
+%builtins range_check bitwise
 
-from starkware.cairo.common.cairo_keccak.keccak import finalize_keccak 
+from starkware.cairo.common.cairo_keccak.keccak import keccak, finalize_keccak 
+from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.alloc import alloc
-from starkware.cairo.common.serialize import serialize_word
 
-func fill_array(array: felt*, base: felt, array_length: felt, iterator: felt):
-    if iterator == array_length:
-        return()
-    end
-
-    assert array[iterator] = base
-
-    return fill_array(array, base, array_length, iterator + 1)
-end
-
-func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
+func main{range_check_ptr : felt, bitwise_ptr : BitwiseBuiltin*}():
     alloc_locals
 
-    let (output : felt*) = alloc()
-    let keccak_output = output
+    let (keccak_ptr : felt*) = alloc()
+    let keccak_ptr_start = keccak_ptr 
 
     let (inputs : felt*) = alloc()
-    let inputs_start = inputs
-    fill_array(inputs, 9, 3, 0)
 
-    let (state : felt*) = alloc()
-    let state_start = state
-    fill_array(state, 5, 25, 0)
+    assert inputs[0] = 8031924123371070792
+    assert inputs[1] = 560229490
 
-    let n_bytes = 24
+    let n_bytes = 16 
 
-    let (res : felt*) = keccak_finalize{keccak_ptr=keccak_output}(inputs=inputs_start, n_bytes=n_bytes, state=state_start)
+    let (res : Uint256) = keccak{keccak_ptr=keccak_ptr}(inputs=inputs, n_bytes=n_bytes)
+    
+    assert res.low = 293431514620200399776069983710520819074
+    assert res.high = 317109767021952548743448767588473366791
 
-    serialize_word(res[0])
-    serialize_word(res[1])
-    serialize_word(res[2])
+    finalize_keccak(keccak_ptr_start=keccak_ptr_start, keccak_ptr_end=keccak_ptr)
 
     return ()
 end
