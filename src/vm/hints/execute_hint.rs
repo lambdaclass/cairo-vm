@@ -190,27 +190,15 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
-            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm, &ids, Some(ap_tracking)),
-            hint_code::COMPARE_BYTES_IN_WORD_NONDET => compare_bytes_in_word_nondet(vm, &ids, None),
+            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm, ids, Some(ap_tracking)),
+            hint_code::COMPARE_BYTES_IN_WORD_NONDET => compare_bytes_in_word_nondet(vm, ids, None),
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
-                compare_keccak_full_rate_in_bytes_nondet(vm, &ids, None)
+                compare_keccak_full_rate_in_bytes_nondet(vm, ids, None)
             }
-            hint_code::BLOCK_PERMUTATION => block_permutation(vm, &ids, None),
-            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm, &ids, None),
+            hint_code::BLOCK_PERMUTATION => block_permutation(vm, ids, None),
+            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm, ids, None),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
-
-        //         Ok("segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])") => keccak_write_args(vm, &ids, Some(ap_tracking)),
-        //         Ok("memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)") => compare_bytes_in_word_nondet(vm, &ids, None),
-        //         Ok("memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)") => compare_keccak_full_rate_in_bytes_nondet(vm, &ids, None),
-        //         Ok("from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func\n_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)\nassert 0 <= _keccak_state_size_felts < 100\n\noutput_values = keccak_func(memory.get_range(\n    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))\nsegments.write_arg(ids.keccak_ptr, output_values)") => block_permutation(vm, &ids, None),
-        //         Ok("# Add dummy pairs of input and output.\n_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)\n_block_size = int(ids.BLOCK_SIZE)\nassert 0 <= _keccak_state_size_felts < 100\nassert 0 <= _block_size < 10\ninp = [0] * _keccak_state_size_felts\npadding = (inp + keccak_func(inp)) * _block_size\nsegments.write_arg(ids.keccak_ptr_end, padding)") => cairo_keccak_finalize(vm, &ids, None),
-        //         Ok(hint_code) => Err(VirtualMachineError::UnknownHint(String::from(hint_code))),
-        //         Err(_) => Err(VirtualMachineError::InvalidHintEncoding(
-        //             vm.run_context.pc.clone(),
-        //         )),
-        // =======
-        // >>>>>>> main
     }
 }
 

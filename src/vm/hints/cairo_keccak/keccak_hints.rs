@@ -257,7 +257,7 @@ pub fn cairo_keccak_finalize(
 // Helper function to transform a vector of MaybeRelocatables into a vector
 // of u64. Raises error if there are None's or if MaybeRelocatables are not Bigints.
 fn maybe_reloc_vec_to_u64_array(
-    vec: &Vec<Option<&MaybeRelocatable>>,
+    vec: &[Option<&MaybeRelocatable>],
 ) -> Result<[u64; KECCAK_STATE_SIZE_FELTS], VirtualMachineError> {
     let array: [u64; KECCAK_STATE_SIZE_FELTS] = vec
         .iter()
@@ -265,7 +265,7 @@ fn maybe_reloc_vec_to_u64_array(
             if let Some(MaybeRelocatable::Int(num)) = n {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
             } else {
-                return Err(VirtualMachineError::NoneInMemoryRange);
+                Err(VirtualMachineError::NoneInMemoryRange)
             }
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?
