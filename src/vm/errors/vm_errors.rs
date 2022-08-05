@@ -55,6 +55,8 @@ pub enum VirtualMachineError {
     DiffIndexComp(Relocatable, Relocatable),
     ValueOutside250BitRange(BigInt),
     SqrtNegative(BigInt),
+    SafeDivFail(BigInt, BigInt),
+    DividedByZero,
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
     MainScopeError(ExecScopeError),
@@ -65,18 +67,17 @@ pub enum VirtualMachineError {
     NoValueForKey(BigInt),
     AssertLtFelt(BigInt, BigInt),
     FindElemMaxSize(BigInt, BigInt),
-    InvalidIndex(BigInt, MaybeRelocatable, MaybeRelocatable),
+    InvalidIndex(BigInt, BigInt, BigInt),
     KeyNotFound,
     NoneApTrackingData,
     InvalidTrackingGroup(usize, usize),
     InvalidApValue(MaybeRelocatable),
     NoInitialDict,
-    NoLocalVariable(String),
     NoKeyInAccessIndices(BigInt),
     EmptyAccessIndices,
     EmptyCurrentAccessIndices,
     CurrentAccessIndicesNotEmpty,
-    WrongPrevValue(BigInt, Option<BigInt>, BigInt),
+    WrongPrevValue(BigInt, BigInt, BigInt),
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
     KeysNotEmpty,
     EmptyKeys,
@@ -208,6 +209,8 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
             VirtualMachineError::SqrtNegative(value) => write!(f, "Can't calculate the square root of negative number: {:?})", value),
+            VirtualMachineError::SafeDivFail(x, y) => write!(f, "{} is not divisible by {}", x, y),
+            VirtualMachineError::DividedByZero => write!(f, "Attempted to devide by zero"),
             VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
@@ -232,9 +235,6 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::NoInitialDict => {
                 write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
-            },
-            VirtualMachineError::NoLocalVariable(name) => {
-                write!(f, "Hint Exception: Couldnt find local variable '{:?}'", name)
             },
             VirtualMachineError::NoKeyInAccessIndices(key) => {
                 write!(f, "squash_dict_inner fail: couldnt find key {:?} in accesses_indices", key)

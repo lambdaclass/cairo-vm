@@ -353,7 +353,7 @@ fn cairo_run_dict_update_bad() {
     .err();
     assert_eq!(
         err.unwrap().to_string(),
-        "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: Some(5) for key: 2"
+        "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: 5 for key: 2"
     );
 }
 
@@ -391,6 +391,16 @@ fn cairo_run_set_add() {
 fn cairo_run_secp() {
     cairo_run::cairo_run(Path::new("cairo_programs/secp.json"), false, &HINT_EXECUTOR)
         .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_signature() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/signature.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
 }
 
 #[test]

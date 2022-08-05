@@ -397,6 +397,27 @@ from starkware.python.math_utils import div_mod
 
 value = x_inv = div_mod(1, x, SECP_P)"#;
 
+pub(crate) const DIV_MOD_N_PACKED_DIVMOD: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import N, pack
+from starkware.python.math_utils import div_mod, safe_div
+
+a = pack(ids.a, PRIME)
+b = pack(ids.b, PRIME)
+value = res = div_mod(a, b, N)"#;
+
+pub(crate) const DIV_MOD_N_SAFE_DIV: &str = r#"value = k = safe_div(res * b - a, N)"#;
+
+pub(crate) const GET_POINT_FROM_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+x_cube_int = pack(ids.x_cube, PRIME) % SECP_P
+y_square_int = (x_cube_int + ids.BETA) % SECP_P
+y = pow(y_square_int, (SECP_P + 1) // 4, SECP_P)
+
+# We need to decide whether to take y or SECP_P - y.
+if ids.v % 2 == y % 2:
+    value = y
+else:
+    value = (-y) % SECP_P"#;
+
 pub(crate) const EC_NEGATE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 y = pack(ids.point.y, PRIME) % SECP_P
@@ -410,3 +431,24 @@ from starkware.python.math_utils import ec_double_slope
 x = pack(ids.point.x, PRIME)
 y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)"#;
+
+pub(crate) const COMPUTE_SLOPE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+from starkware.python.math_utils import line_slope
+
+# Compute the slope.
+x0 = pack(ids.point0.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y1 = pack(ids.point1.y, PRIME)
+value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub(crate) const EC_DOUBLE_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
+
+pub(crate) const EC_DOUBLE_ASSIGN_NEW_Y: &str =
+    r#"value = new_y = (slope * (x - new_x) - y) % SECP_P"#;
