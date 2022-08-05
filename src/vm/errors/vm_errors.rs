@@ -107,6 +107,7 @@ pub enum VirtualMachineError {
     NoneInMemoryRange,
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     IdNotFound(String),
+    ShaInputChunkOutOfBounds(usize),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -307,6 +308,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::NoneInMemoryRange => write!(f, "None value was found in memory range cell"),
             VirtualMachineError::ExpectedIntAtRange(maybe_relocatable) => write!(f, "Expected integer, found: {:?}", maybe_relocatable.as_ref().unwrap()),
             VirtualMachineError::IdNotFound(var_name) => write!(f, "{} key was not found in the hint references. This may be caused because of a parsing error that resulted in a default value being returned. Please be sure to check this.", var_name),
+            VirtualMachineError::ShaInputChunkOutOfBounds(sha_chunk_size) => write!(f, "SHA input chunk size must be 0 <= x < 100, got {}", sha_chunk_size),
         }
     }
 }

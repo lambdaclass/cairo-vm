@@ -362,6 +362,17 @@ pub fn get_u64_from_relocatable_plus_offset(
     int.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
 }
 
+pub fn get_usize_from_var_name(
+    var_name: &str,
+    ids: &HashMap<String, BigInt>,
+    vm: &VirtualMachine,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<usize, VirtualMachineError> {
+    let relocatable = get_relocatable_from_var_name(var_name, ids, vm, hint_ap_tracking)?;
+    let int = vm.memory.get_integer(&relocatable)?;
+    int.to_usize().ok_or(VirtualMachineError::BigintToUsizeFail)
+}
+
 pub fn insert_integer_at_relocatable_plus_offset(
     int: BigInt,
     relocatable: &Relocatable,
