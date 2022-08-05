@@ -227,12 +227,15 @@ pub fn cairo_keccak_finalize(
 
     let mut inp = [0u64; KECCAK_STATE_SIZE_FELTS];
     keccak::f1600(&mut inp);
+    println!("LEN INPUT: {:?}", inp.len());
 
     let mut padding = vec![bigint!(0_u64); KECCAK_STATE_SIZE_FELTS];
     padding.extend(u64_array_to_bigint_vec(&inp));
 
-    for _ in 0..BLOCK_SIZE {
-        padding.extend(padding.clone());
+    let base_padding = padding.clone();
+
+    for _ in 0..(BLOCK_SIZE - 1) {
+        padding.extend(base_padding.clone());
     }
 
     let keccak_ptr_end = get_ptr_from_var_name(
@@ -411,26 +414,4 @@ mod tests {
             Ok(())
         );
     }
-
-    // #[test]
-    // fn cairo_keccak_finalize_valid_test() {
-    //     let hint_code =
-    //     "# Add dummy pairs of input and output.\n_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)\n_block_size = int(ids.BLOCK_SIZE)\nassert 0 <= _keccak_state_size_felts < 100\nassert 0 <= _block_size < 10\ninp = [0] * _keccak_state_size_felts\npadding = (inp + keccak_func(inp)) * _block_size\nsegments.write_arg(ids.keccak_ptr_end, padding)";
-    //     let mut vm = vm_with_range_check!();
-
-    //     vm.segments.add(&mut vm.memory, None);
-    //     vm.memory = memory![((0, 0), 24)];
-
-    //     vm.run_context.fp = MaybeRelocatable::from((0, 1));
-    //     vm.run_context.ap = MaybeRelocatable::from((0, 1));
-
-    //     let ids = ids!["n_bytes"];
-    //     vm.references = references!(1);
-
-    //     assert_eq!(
-    //         vm.hint_executor
-    //             .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
-    //         Ok(())
-    //     );
-    // }
 }
