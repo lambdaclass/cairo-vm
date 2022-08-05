@@ -1,10 +1,9 @@
 use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_integer_from_relocatable_plus_offset, get_relocatable_from_var_name,
+    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_scope,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VirtualMachine;
@@ -28,19 +27,23 @@ pub fn ec_negate(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", ids, vm, hint_ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name(
+        "point",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     //ids.point.y
     let (y_d0, y_d1, y_d2) = (
-        get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?,
+        vm.memory.get_integer(&(&point_reloc + 3))?,
+        vm.memory.get_integer(&(&point_reloc + 4))?,
+        vm.memory.get_integer(&(&point_reloc + 5))?,
     );
     let value = (-pack(y_d0, y_d1, y_d2, &vm.prime)).mod_floor(&SECP_P);
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -62,15 +65,22 @@ pub fn compute_doubling_slope(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", ids, vm, hint_ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name(
+        "point",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        get_integer_from_relocatable_plus_offset(&point_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 2, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?,
+        vm.memory.get_integer(&point_reloc)?,
+        vm.memory.get_integer(&(&point_reloc + 1))?,
+        vm.memory.get_integer(&(&point_reloc + 2))?,
+        vm.memory.get_integer(&(&point_reloc + 3))?,
+        vm.memory.get_integer(&(&point_reloc + 4))?,
+        vm.memory.get_integer(&(&point_reloc + 5))?,
     );
 
     let value = ec_double_slope(
@@ -81,13 +91,8 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    vm.exec_scopes
-        .assign_or_update_variable("slope", PyValueType::BigInt(value));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
+    insert_int_into_scope(&mut vm.exec_scopes, "slope", value);
     Ok(())
 }
 
@@ -111,27 +116,41 @@ pub fn compute_slope(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm, hint_ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name(
+        "point0",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 2, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 3, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 4, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 5, vm)?,
+        vm.memory.get_integer(&point0_reloc)?,
+        vm.memory.get_integer(&(&point0_reloc + 1))?,
+        vm.memory.get_integer(&(&point0_reloc + 2))?,
+        vm.memory.get_integer(&(&point0_reloc + 3))?,
+        vm.memory.get_integer(&(&point0_reloc + 4))?,
+        vm.memory.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm, hint_ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name(
+        "point1",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 2, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 3, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 4, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 5, vm)?,
+        vm.memory.get_integer(&point1_reloc)?,
+        vm.memory.get_integer(&(&point1_reloc + 1))?,
+        vm.memory.get_integer(&(&point1_reloc + 2))?,
+        vm.memory.get_integer(&(&point1_reloc + 3))?,
+        vm.memory.get_integer(&(&point1_reloc + 4))?,
+        vm.memory.get_integer(&(&point1_reloc + 5))?,
     );
 
     let value = line_slope(
@@ -145,13 +164,8 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    vm.exec_scopes
-        .assign_or_update_variable("slope", PyValueType::BigInt(value));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
+    insert_int_into_scope(&mut vm.exec_scopes, "slope", value);
     Ok(())
 }
 
@@ -173,24 +187,38 @@ pub fn ec_double_assign_new_x(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm, hint_ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name(
+        "slope",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        get_integer_from_relocatable_plus_offset(&slope_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&slope_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&slope_reloc, 2, vm)?,
+        vm.memory.get_integer(&slope_reloc)?,
+        vm.memory.get_integer(&(&slope_reloc + 1))?,
+        vm.memory.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", ids, vm, hint_ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name(
+        "point",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        get_integer_from_relocatable_plus_offset(&point_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 2, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 3, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 4, vm)?,
-        get_integer_from_relocatable_plus_offset(&point_reloc, 5, vm)?,
+        vm.memory.get_integer(&point_reloc)?,
+        vm.memory.get_integer(&(&point_reloc + 1))?,
+        vm.memory.get_integer(&(&point_reloc + 2))?,
+        vm.memory.get_integer(&(&point_reloc + 3))?,
+        vm.memory.get_integer(&(&point_reloc + 4))?,
+        vm.memory.get_integer(&(&point_reloc + 5))?,
     );
 
     let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
@@ -200,21 +228,11 @@ pub fn ec_double_assign_new_x(
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    vm.exec_scopes
-        .assign_or_update_variable("slope", PyValueType::BigInt(slope));
-
-    vm.exec_scopes
-        .assign_or_update_variable("x", PyValueType::BigInt(x));
-
-    vm.exec_scopes
-        .assign_or_update_variable("y", PyValueType::BigInt(y));
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    vm.exec_scopes
-        .assign_or_update_variable("new_x", PyValueType::BigInt(value));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "slope", slope);
+    insert_int_into_scope(&mut vm.exec_scopes, "x", x);
+    insert_int_into_scope(&mut vm.exec_scopes, "y", y);
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
+    insert_int_into_scope(&mut vm.exec_scopes, "new_x", value);
     Ok(())
 }
 
@@ -225,24 +243,15 @@ Implements hint:
 pub fn ec_double_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        get_int_from_scope(vm, "slope")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("slope")))?,
-        get_int_from_scope(vm, "x")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x")))?,
-        get_int_from_scope(vm, "new_x")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("new_x")))?,
-        get_int_from_scope(vm, "y")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("y")))?,
+        get_int_from_scope(&vm.exec_scopes, "slope")?,
+        get_int_from_scope(&vm.exec_scopes, "x")?,
+        get_int_from_scope(&vm.exec_scopes, "new_x")?,
+        get_int_from_scope(&vm.exec_scopes, "y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    vm.exec_scopes
-        .assign_or_update_variable("new_y", PyValueType::BigInt(value));
-
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
+    insert_int_into_scope(&mut vm.exec_scopes, "new_y", value);
     Ok(())
 }
 
@@ -250,6 +259,7 @@ pub fn ec_double_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMach
 mod tests {
     use super::*;
     use crate::bigint_str;
+    use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
@@ -267,43 +277,24 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         vm.memory = memory![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
-
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 8));
-
+        vm.run_context.fp = MaybeRelocatable::from((1, 1));
         //Create ids
         let ids = ids!["point"];
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -8,
-                offset2: 0,
-                dereference: false,
-                inner_dereference: false,
-                immediate: None,
-                ap_tracking_data: Some(ApTracking {
-                    group: 1,
-                    offset: 0,
-                }),
-            },
-        )]);
-
+        vm.references = references!(1);
         //Check 'value' is not defined in the vm scope
         assert_eq!(
             vm.exec_scopes.get_local_variables().unwrap().get("value"),
             None
         );
-
         //Execute the hint
         assert_eq!(
             vm.hint_executor
                 .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
-
         //Check 'value' is defined in the vm scope
         assert_eq!(
             vm.exec_scopes.get_local_variables().unwrap().get("value"),
@@ -317,7 +308,6 @@ mod tests {
     fn run_compute_doubling_slope_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\nfrom starkware.python.math_utils import ec_double_slope\n\n# Compute the slope.\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\nvalue = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)";
         let mut vm = vm_with_range_check!();
-
         vm.memory = memory![
             ((1, 0), 614323u64),
             ((1, 1), 5456867u64),
@@ -328,27 +318,13 @@ mod tests {
         ];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 8));
+        vm.run_context.fp = MaybeRelocatable::from((1, 1));
 
         //Create ids
         let ids = ids!["point"];
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -8,
-                offset2: 0,
-                dereference: false,
-                inner_dereference: false,
-                immediate: None,
-                ap_tracking_data: Some(ApTracking {
-                    group: 1,
-                    offset: 0,
-                }),
-            },
-        )]);
+        vm.references = references!(1);
 
         //Check 'value' is not defined in the vm scope
         assert_eq!(

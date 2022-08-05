@@ -1,172 +1,132 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::{exec_scope::PyValueType, relocatable::MaybeRelocatable};
 use crate::vm::{
     errors::vm_errors::VirtualMachineError,
     hints::hint_utils::{
-        get_address_from_var_name, get_int_from_scope, get_integer_from_var_name,
-        get_range_check_builtin, get_relocatable_from_var_name,
+        get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
     },
-    runners::builtin_runner::RangeCheckBuiltinRunner,
     vm_core::VirtualMachine,
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
+use super::hint_utils::bigint_to_usize;
+use super::hint_utils::get_int_ref_from_scope;
+use super::hint_utils::get_ptr_from_var_name;
+use super::hint_utils::insert_value_from_var_name;
+
 pub fn find_element(
     vm: &mut VirtualMachine,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let array_ptr_addr = get_address_from_var_name("array_ptr", ids, vm, hint_ap_tracking)?;
-    let elm_size_addr = get_address_from_var_name("elm_size", ids, vm, hint_ap_tracking)?;
-    let n_elms_addr = get_address_from_var_name("n_elms", ids, vm, hint_ap_tracking)?;
-    let index_addr = get_address_from_var_name("index", ids, vm, hint_ap_tracking)?;
-    let key_addr = get_address_from_var_name("key", ids, vm, hint_ap_tracking)?;
+    let key = get_integer_from_var_name(
+        "key",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let elm_size_bigint = get_integer_from_var_name(
+        "elm_size",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let n_elms = get_integer_from_var_name(
+        "n_elms",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let array_start = get_ptr_from_var_name(
+        "array_ptr",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let find_element_index = get_int_from_scope(&vm.exec_scopes, "find_element_index").ok();
+    let elm_size = elm_size_bigint
+        .to_usize()
+        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
+    if elm_size == 0 {
+        return Err(VirtualMachineError::ValueOutOfRange(
+            elm_size_bigint.clone(),
+        ));
+    }
 
-    match (
-        vm.memory.get(&array_ptr_addr),
-        vm.memory.get(&elm_size_addr),
-        vm.memory.get(&n_elms_addr),
-        vm.memory.get(&index_addr),
-        vm.memory.get(&key_addr),
-    ) {
-        (
-            Ok(_),
-            Ok(Some(maybe_rel_elm_size)),
-            Ok(Some(maybe_rel_n_elms)),
-            Ok(_),
-            Ok(Some(maybe_rel_key)),
-        ) => {
-            let _ = vm
-                .builtin_runners
-                .iter()
-                .find(|(name, _)| name.as_str() == "range_check")
-                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?
-                .1
-                .as_any()
-                .downcast_ref::<RangeCheckBuiltinRunner>()
-                .ok_or(VirtualMachineError::NoRangeCheckBuiltin)?;
+    if let Some(find_element_index_value) = find_element_index {
+        let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
+        let found_key = vm
+            .memory
+            .get_integer(&(array_start + (elm_size * find_element_index_usize)))
+            .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-            let elm_size = if let MaybeRelocatable::Int(ref elm_size) = maybe_rel_elm_size {
-                elm_size
-            } else {
-                return Err(VirtualMachineError::ExpectedInteger(
-                    maybe_rel_elm_size.clone(),
+        if found_key != key {
+            return Err(VirtualMachineError::InvalidIndex(
+                find_element_index_value,
+                key.clone(),
+                found_key.clone(),
+            ));
+        }
+        insert_value_from_var_name(
+            "index",
+            find_element_index_value,
+            ids,
+            &mut vm.memory,
+            &vm.references,
+            &vm.run_context,
+            hint_ap_tracking,
+        )?;
+        vm.exec_scopes.delete_variable("find_element_index");
+        Ok(())
+    } else {
+        if n_elms.is_negative() {
+            return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+        }
+
+        if let Ok(find_element_max_size) =
+            get_int_ref_from_scope(&vm.exec_scopes, "find_element_max_size")
+        {
+            if n_elms > find_element_max_size {
+                return Err(VirtualMachineError::FindElemMaxSize(
+                    find_element_max_size.clone(),
+                    n_elms.clone(),
                 ));
-            };
-
-            if !elm_size.is_positive() {
-                return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
-            }
-
-            let find_element_index = if let Some(variables) = vm.exec_scopes.get_local_variables() {
-                if let Some(PyValueType::BigInt(bigint)) = variables.get("find_element_index") {
-                    Some(bigint)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-
-            if let Some(find_element_index_value) = find_element_index {
-                let array_start = vm
-                    .memory
-                    .get(&array_ptr_addr)
-                    .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::KeyNotFound)?;
-
-                let found_key = vm
-                    .memory
-                    .get(
-                        &array_start
-                            .add_int_mod(&(elm_size * find_element_index_value), &vm.prime)?,
-                    )
-                    .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::KeyNotFound)?;
-
-                if found_key != maybe_rel_key {
-                    return Err(VirtualMachineError::InvalidIndex(
-                        find_element_index_value.clone(),
-                        maybe_rel_key.clone(),
-                        found_key.clone(),
-                    ));
-                }
-
-                vm.memory
-                    .insert(
-                        &index_addr,
-                        &MaybeRelocatable::Int(find_element_index_value.clone()),
-                    )
-                    .map_err(VirtualMachineError::MemoryError)?;
-
-                vm.exec_scopes.delete_variable("find_element_index");
-                Ok(())
-            } else {
-                let n_elms = if let MaybeRelocatable::Int(ref n_elms) = maybe_rel_n_elms {
-                    n_elms
-                } else {
-                    return Err(VirtualMachineError::ExpectedInteger(
-                        maybe_rel_n_elms.clone(),
-                    ));
-                };
-
-                if n_elms.is_negative() {
-                    return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
-                }
-
-                if let Some(variables) = vm.exec_scopes.get_local_variables() {
-                    if let Some(PyValueType::BigInt(find_element_max_size)) =
-                        variables.get("find_element_max_size")
-                    {
-                        if n_elms > find_element_max_size {
-                            return Err(VirtualMachineError::FindElemMaxSize(
-                                find_element_max_size.clone(),
-                                n_elms.clone(),
-                            ));
-                        }
-                    }
-                }
-
-                let n_elms_iter: i32 = n_elms
-                    .to_i32()
-                    .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
-
-                let mut array_start = vm
-                    .memory
-                    .get(&array_ptr_addr)
-                    .map_err(VirtualMachineError::MemoryError)?
-                    .ok_or(VirtualMachineError::KeyNotFound)?
-                    // This clone is needed in order to be able to use memory.get below
-                    .clone();
-
-                for i in 0..n_elms_iter {
-                    let iter_key = vm
-                        .memory
-                        .get(&array_start)
-                        .map_err(VirtualMachineError::MemoryError)?
-                        .ok_or(VirtualMachineError::KeyNotFound)?;
-
-                    if iter_key == maybe_rel_key {
-                        return vm
-                            .memory
-                            .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
-                            .map_err(VirtualMachineError::MemoryError);
-                    }
-
-                    array_start = array_start.add_int_mod(elm_size, &vm.prime)?;
-                }
-
-                if let MaybeRelocatable::Int(ref key) = maybe_rel_key {
-                    Err(VirtualMachineError::NoValueForKey(key.clone()))
-                } else {
-                    Err(VirtualMachineError::ExpectedInteger(maybe_rel_key.clone()))
-                }
             }
         }
-        _ => Err(VirtualMachineError::FailedToGetIds),
+        let n_elms_iter: i32 = n_elms
+            .to_i32()
+            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
+
+        for i in 0..n_elms_iter {
+            let iter_key = vm
+                .memory
+                .get_integer(&(array_start.clone() + (elm_size * i as usize)))
+                .map_err(|_| VirtualMachineError::KeyNotFound)?;
+
+            if iter_key == key {
+                return insert_value_from_var_name(
+                    "index",
+                    bigint!(i),
+                    ids,
+                    &mut vm.memory,
+                    &vm.references,
+                    &vm.run_context,
+                    hint_ap_tracking,
+                );
+            }
+        }
+
+        Err(VirtualMachineError::NoValueForKey(key.clone()))
     }
 }
 
@@ -175,14 +135,39 @@ pub fn search_sorted_lower(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = get_int_from_scope(vm, "find_element_max_size");
-    let n_elms = get_integer_from_var_name("n_elms", ids, vm, hint_ap_tracking)?;
-    let rel_array_ptr = get_relocatable_from_var_name("array_ptr", ids, vm, hint_ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", ids, vm, hint_ap_tracking)?;
-    let index_addr = get_address_from_var_name("index", ids, vm, hint_ap_tracking)?;
-    let key = get_integer_from_var_name("key", ids, vm, hint_ap_tracking)?;
-
-    let _ = get_range_check_builtin(vm)?;
+    let find_element_max_size = get_int_from_scope(&vm.exec_scopes, "find_element_max_size");
+    let n_elms = get_integer_from_var_name(
+        "n_elms",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let rel_array_ptr = get_relocatable_from_var_name(
+        "array_ptr",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let elm_size = get_integer_from_var_name(
+        "elm_size",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let key = get_integer_from_var_name(
+        "key",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     if !elm_size.is_positive() {
         return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
@@ -192,7 +177,7 @@ pub fn search_sorted_lower(
         return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
     }
 
-    if let Some(find_element_max_size) = find_element_max_size {
+    if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms > &find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
                 find_element_max_size,
@@ -210,29 +195,39 @@ pub fn search_sorted_lower(
     for i in 0..n_elms_usize {
         let value = vm.memory.get_integer(&array_iter)?;
         if value >= key {
-            return vm
-                .memory
-                .insert(&index_addr, &MaybeRelocatable::Int(bigint!(i)))
-                .map_err(VirtualMachineError::MemoryError);
+            return insert_value_from_var_name(
+                "index",
+                bigint!(i),
+                ids,
+                &mut vm.memory,
+                &vm.references,
+                &vm.run_context,
+                hint_ap_tracking,
+            );
         }
         array_iter.offset += elm_size_usize;
     }
-
-    let index_value = MaybeRelocatable::Int(n_elms.clone());
-    vm.memory
-        .insert(&index_addr, &index_value)
-        .map_err(VirtualMachineError::MemoryError)
+    insert_value_from_var_name(
+        "index",
+        n_elms.clone(),
+        ids,
+        &mut vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::PyValueType;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
     use crate::vm::hints::{
         execute_hint::{BuiltinHintExecutor, HintReference},
         hint_code,
     };
-    use crate::vm::runners::builtin_runner::OutputBuiltinRunner;
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
@@ -245,10 +240,7 @@ mod tests {
     ) -> (VirtualMachine, HashMap<String, BigInt>) {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
+            vec![],
             false,
             &HINT_EXECUTOR,
         );
@@ -417,10 +409,7 @@ mod tests {
     fn find_elm_failed_ids_get_from_mem() {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
+            vec![],
             false,
             &HINT_EXECUTOR,
         );
@@ -453,53 +442,9 @@ mod tests {
         assert_eq!(
             vm.hint_executor
                 .execute_hint(&mut vm, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
-            Err(VirtualMachineError::FailedToGetIds)
-        );
-    }
-
-    #[test]
-    fn find_elm_builtin_is_none() {
-        let (mut vm, ids) = init_vm_ids(HashMap::new());
-        _ = vm.builtin_runners.pop();
-
-        assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
-        );
-    }
-
-    #[test]
-    fn find_elm_range_check_not_present() {
-        let (mut vm, ids) = init_vm_ids(HashMap::new());
-        _ = vm.builtin_runners.pop();
-        vm.builtin_runners.push((
-            "output".to_string(),
-            Box::new(OutputBuiltinRunner::new(true)),
-        ));
-
-        assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
-        );
-    }
-
-    #[test]
-    fn find_elm_range_check_not_first() {
-        let (mut vm, ids) = init_vm_ids(HashMap::new());
-        let range_builtin = vm.builtin_runners.pop();
-        vm.builtin_runners.push((
-            "output".to_string(),
-            Box::new(OutputBuiltinRunner::new(true)),
-        ));
-        vm.builtin_runners
-            .push(range_builtin.expect("Lost range check builtin"));
-
-        assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
-            Ok(())
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((0, 0))
+            ))
         );
     }
 
@@ -514,7 +459,7 @@ mod tests {
             vm.hint_executor
                 .execute_hint(&mut vm, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((7, 8))
+                MaybeRelocatable::from((0, 1))
             ))
         );
     }
@@ -549,7 +494,7 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let relocatable = MaybeRelocatable::from((1, 2));
+        let relocatable = MaybeRelocatable::from((0, 2));
         let (mut vm, ids) =
             init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
 
@@ -601,7 +546,7 @@ mod tests {
 
     #[test]
     fn find_elm_key_not_int() {
-        let relocatable = MaybeRelocatable::from((1, 2));
+        let relocatable = MaybeRelocatable::from((0, 4));
         let (mut vm, ids) = init_vm_ids(HashMap::from([("key".to_string(), relocatable.clone())]));
 
         assert_eq!(
@@ -685,10 +630,7 @@ mod tests {
     fn search_sorted_lower_failed_ids_get_from_mem() {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
+            vec![],
             false,
             &HINT_EXECUTOR,
         );
@@ -726,64 +668,6 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::FailedToGetIds)
-        );
-    }
-
-    #[test]
-    fn search_sorted_lower_builtin_is_none() {
-        let (mut vm, ids) = init_vm_ids(HashMap::new());
-        _ = vm.builtin_runners.pop();
-
-        assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
-                SEARCH_SORTED_LOWER_HINT,
-                &ids,
-                &ApTracking::new()
-            ),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
-        );
-    }
-
-    #[test]
-    fn search_sorted_lower_range_check_not_present() {
-        let (mut vm, ids) = init_vm_ids(HashMap::new());
-        _ = vm.builtin_runners.pop();
-        vm.builtin_runners.push((
-            "output".to_string(),
-            Box::new(OutputBuiltinRunner::new(true)),
-        ));
-
-        assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
-                SEARCH_SORTED_LOWER_HINT,
-                &ids,
-                &ApTracking::new()
-            ),
-            Err(VirtualMachineError::NoRangeCheckBuiltin)
-        );
-    }
-
-    #[test]
-    fn search_sorted_lower_range_check_not_first() {
-        let (mut vm, ids) = init_vm_ids(HashMap::new());
-        let range_builtin = vm.builtin_runners.pop();
-        vm.builtin_runners.push((
-            "output".to_string(),
-            Box::new(OutputBuiltinRunner::new(true)),
-        ));
-        vm.builtin_runners
-            .push(range_builtin.expect("Lost range check builtin"));
-
-        assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
-                SEARCH_SORTED_LOWER_HINT,
-                &ids,
-                &ApTracking::new()
-            ),
-            Ok(())
         );
     }
 

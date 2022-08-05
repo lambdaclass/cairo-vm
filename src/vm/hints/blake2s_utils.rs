@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
-use super::hint_utils::get_ptr_from_var_name;
+use super::hint_utils::{bigint_to_u32, get_ptr_from_var_name};
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
@@ -20,13 +20,10 @@ use crate::{
 use num_bigint::BigInt;
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<Option<&MaybeRelocatable>>,
+    h_range: &Vec<&BigInt>,
 ) -> Result<[u32; T], VirtualMachineError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
-    for element in h_range {
-        let num = element
-            .ok_or(VirtualMachineError::UnexpectMemoryGap)?
-            .get_int_ref()?;
+    for num in h_range {
         u32_vec.push(num.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)?);
     }
     u32_vec
@@ -43,10 +40,7 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
 }
 
 fn get_maybe_relocatable_array_from_bigint(array: &[BigInt]) -> Vec<MaybeRelocatable> {
-    array
-        .iter()
-        .map(|x| MaybeRelocatable::from(x.clone()))
-        .collect()
+    array.iter().map(MaybeRelocatable::from).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
 Computes the blake2s compress function and fills the value in the right position.
@@ -58,24 +52,11 @@ fn compute_blake2s_func(
     memory: &mut Memory,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
-    let h = get_fixed_size_u32_array::<8>(
-        &memory
-            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(26)?), 8)
-            .map_err(VirtualMachineError::MemoryError)?,
-    )?;
-    let message = get_fixed_size_u32_array::<16>(
-        &memory
-            .get_range(&MaybeRelocatable::RelocatableValue(output_rel.sub(18)?), 16)
-            .map_err(VirtualMachineError::MemoryError)?,
-    )?;
-    let t = memory
-        .get_integer(&output_rel.sub(2)?)?
-        .to_u32()
-        .ok_or(VirtualMachineError::BigintToU32Fail)?;
-    let f = memory
-        .get_integer(&output_rel.sub(1)?)?
-        .to_u32()
-        .ok_or(VirtualMachineError::BigintToU32Fail)?;
+    let h = get_fixed_size_u32_array::<8>(&memory.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
+    let message =
+        get_fixed_size_u32_array::<16>(&memory.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
+    let t = bigint_to_u32(memory.get_integer(&output_rel.sub(2)?)?)?;
+    let f = bigint_to_u32(memory.get_integer(&output_rel.sub(1)?)?)?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
@@ -94,7 +75,14 @@ pub fn compute_blake2s(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let output = get_ptr_from_var_name("output", ids, vm, hint_ap_tracking)?;
+    let output = get_ptr_from_var_name(
+        "output",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     compute_blake2s_func(&mut vm.segments, &mut vm.memory, output)
 }
 
@@ -126,7 +114,14 @@ pub fn finalize_blake2s(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
-    let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", ids, vm, hint_ap_tracking)?;
+    let blake2s_ptr_end = get_ptr_from_var_name(
+        "blake2s_ptr_end",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let message: [u32; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;
@@ -163,9 +158,30 @@ pub fn blake2s_add_uint256(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name(
+        "data",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let low_addr = get_relocatable_from_var_name(
+        "low",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let high_addr = get_relocatable_from_var_name(
+        "high",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let low = &vm.memory.get_integer(&low_addr)?.clone();
     let high = &vm.memory.get_integer(&high_addr)?.clone();
     //Main logic
@@ -217,9 +233,30 @@ pub fn blake2s_add_uint256_bigend(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", ids, vm, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", ids, vm, hint_ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", ids, vm, hint_ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name(
+        "data",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let low_addr = get_relocatable_from_var_name(
+        "low",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let high_addr = get_relocatable_from_var_name(
+        "high",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     let low = &vm.memory.get_integer(&low_addr)?.clone();
     let high = &vm.memory.get_integer(&high_addr)?.clone();
     //Main logic
@@ -262,10 +299,10 @@ pub fn blake2s_add_uint256_bigend(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::relocatable;
     use crate::utils::test_utils::*;
     use crate::{
         bigint,
-        types::instruction::Register,
         vm::{
             errors::memory_errors::MemoryError,
             hints::execute_hint::{BuiltinHintExecutor, HintReference},
@@ -279,40 +316,15 @@ mod tests {
     fn compute_blake2s_output_offset_zero() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 5)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 5))];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0));
+        let ids = ids!["output"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -325,12 +337,7 @@ mod tests {
     fn compute_blake2s_output_empty_segment() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -344,26 +351,16 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0));
+        let ids = ids!["output"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
                 .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
-            Err(VirtualMachineError::UnexpectMemoryGap)
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from((1, 0))
+            ))
         );
     }
 
@@ -371,40 +368,15 @@ mod tests {
     fn compute_blake2s_output_not_relocatable() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(12)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), 12)];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0));
+        let ids = ids!["output"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -419,35 +391,25 @@ mod tests {
     fn compute_blake2s_output_input_bigger_than_u32() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
+        let mut vm = vm!();
         //Initialize fp
         //Insert ids into memory
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         vm.memory = memory![
             ((0, 0), (1, 26)),
-            ((1, 0), 7842562439562793675803603603688959_i128)
+            ((1, 0), 7842562439562793675803603603688959_i128),
+            ((1, 1), 7842562439562793675803603603688959_i128),
+            ((1, 2), 7842562439562793675803603603688959_i128),
+            ((1, 3), 7842562439562793675803603603688959_i128),
+            ((1, 4), 7842562439562793675803603603688959_i128),
+            ((1, 5), 7842562439562793675803603603688959_i128),
+            ((1, 6), 7842562439562793675803603603688959_i128),
+            ((1, 7), 7842562439562793675803603603688959_i128)
         ];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0_i32));
+        let ids = ids!["output"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -460,53 +422,21 @@ mod tests {
     fn compute_blake2s_output_input_relocatable() {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 26)),
-            )
-            .unwrap();
-        //Insert big number into output_ptr segment
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((4, 5)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 26)), ((1, 0), (4, 5))];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("output"), bigint!(0));
+        let ids = ids!["output"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
                 .execute_hint(&mut vm, hint_code, &ids, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((4, 5))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -515,40 +445,16 @@ mod tests {
     fn finalize_blake2s_valid() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0))];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("blake2s_ptr_end"), bigint!(0));
+        let ids = ids!["blake2s_ptr_end"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -579,7 +485,7 @@ mod tests {
         //Get data from memory
         let data = get_fixed_size_u32_array::<204>(
             &vm.memory
-                .get_range(&MaybeRelocatable::from((1, 0)), 204)
+                .get_integer_range(&relocatable!(1, 0), 204)
                 .unwrap(),
         )
         .unwrap();
@@ -590,47 +496,15 @@ mod tests {
     fn finalize_blake2s_invalid_segment_taken() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //Insert data into blake2s segment
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((1, 0), (1, 0))];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("blake2s_ptr_end"), bigint!(0));
+        let ids = ids!["blake2s_ptr_end"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -649,30 +523,11 @@ mod tests {
     fn finalize_blake2s_invalid_no_ids() {
         let hint_code = "# Add dummy pairs of input and output.\nfrom starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress\n\n_n_packed_instances = int(ids.N_PACKED_INSTANCES)\nassert 0 <= _n_packed_instances < 20\n_blake2s_input_chunk_size_felts = int(ids.INPUT_BLOCK_FELTS)\nassert 0 <= _blake2s_input_chunk_size_felts < 100\n\nmessage = [0] * _blake2s_input_chunk_size_felts\nmodified_iv = [IV[0] ^ 0x01010020] + IV[1:]\noutput = blake2s_compress(\n    message=message,\n    h=modified_iv,\n    t0=0,\n    t1=0,\n    f0=0xffffffff,\n    f1=0,\n)\npadding = (modified_iv + message + [0, 0xffffffff] + output) * (_n_packed_instances - 1)\nsegments.write_arg(ids.blake2s_ptr_end, padding)";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -1,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = references!(1);
         //Execute the hint
         assert_eq!(
             vm.hint_executor.execute_hint(
@@ -681,9 +536,7 @@ mod tests {
                 &HashMap::new(),
                 &ApTracking::default()
             ),
-            Err(VirtualMachineError::IdNotFound(
-                "blake2s_ptr_end".to_string()
-            ))
+            Err(VirtualMachineError::FailedToGetIds)
         );
     }
 
@@ -691,83 +544,15 @@ mod tests {
     fn blake2s_add_uint256_valid_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Insert ids into memory
-        //ids.data
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //ids.high
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-        //ids.low
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 0), ((0, 2), 0)];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
-        //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        let ids = ids!["data", "high", "low"];
+        vm.references = references!(3);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -814,83 +599,16 @@ mod tests {
     fn blake2s_add_uint256_valid_non_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Insert ids into memory
-        //ids.data
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //ids.high
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(25)),
-            )
-            .unwrap();
-        //ids.low
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(20)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 25), ((0, 2), 20)];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["data", "high", "low"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(3);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -937,83 +655,16 @@ mod tests {
     fn blake2s_add_uint256_bigend_valid_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Insert ids into memory
-        //ids.data
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //ids.high
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-        //ids.low
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 0), ((0, 2), 0)];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["data", "high", "low"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(3);
         //Execute the hint
         assert_eq!(
             vm.hint_executor
@@ -1060,83 +711,16 @@ mod tests {
     fn blake2s_add_uint256_bigend_valid_non_zero() {
         let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])";
         //Create vm
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        );
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Insert ids into memory
-        //ids.data
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 0)),
-            )
-            .unwrap();
-        //ids.high
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(25)),
-            )
-            .unwrap();
-        //ids.low
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(20)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 25), ((0, 2), 20)];
+        vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("data"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["data", "high", "low"];
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-        ]);
+        vm.references = references!(3);
         //Execute the hint
         assert_eq!(
             vm.hint_executor

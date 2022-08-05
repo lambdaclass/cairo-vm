@@ -1,4 +1,3 @@
-use crate::vm::hints::hint_utils::get_range_check_builtin;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
@@ -32,10 +31,31 @@ pub fn keccak_write_args(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let inputs_ptr = get_ptr_from_var_name("inputs", ids, vm, hint_ap_tracking)?;
+    let inputs_ptr = get_ptr_from_var_name(
+        "inputs",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
-    let low = get_integer_from_var_name("low", &ids, vm, hint_ap_tracking)?;
-    let high = get_integer_from_var_name("high", &ids, vm, hint_ap_tracking)?;
+    let low = get_integer_from_var_name(
+        "low",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+    let high = get_integer_from_var_name(
+        "high",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let low_args = [low.mod_floor(&bigint!(1).shl(64)), low / bigint!(1).shl(64)];
     let high_args = [
@@ -76,7 +96,14 @@ pub fn compare_bytes_in_word_nondet(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", &ids, vm, hint_ap_tracking)?;
+    let n_bytes = get_integer_from_var_name(
+        "n_bytes",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let value = bigint!((n_bytes < &bigint!(BYTES_IN_WORD)) as usize);
 
@@ -98,7 +125,14 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", &ids, vm, hint_ap_tracking)?;
+    let n_bytes = get_integer_from_var_name(
+        "n_bytes",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let value = bigint!((n_bytes >= &bigint!(KECCAK_FULL_RATE_IN_BYTES)) as usize);
 
@@ -125,7 +159,14 @@ pub fn block_permutation(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", ids, vm, hint_ap_tracking)?;
+    let keccak_ptr = get_ptr_from_var_name(
+        "keccak_ptr",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     if KECCAK_STATE_SIZE_FELTS >= 100 {
         return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
@@ -180,9 +221,6 @@ pub fn cairo_keccak_finalize(
         ));
     }
 
-    //println!("builtin runners: {:?}", vm.builtin_runners);
-    let _ = get_range_check_builtin(vm)?;
-
     if BLOCK_SIZE >= 10 {
         return Err(VirtualMachineError::InvalidBlockSize(BLOCK_SIZE));
     }
@@ -197,7 +235,14 @@ pub fn cairo_keccak_finalize(
         padding.extend(padding.clone());
     }
 
-    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", ids, vm, hint_ap_tracking)?;
+    let keccak_ptr_end = get_ptr_from_var_name(
+        "keccak_ptr_end",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     vm.segments
         .write_arg(&mut vm.memory, &keccak_ptr_end, &padding, Some(&vm.prime))
@@ -366,4 +411,26 @@ mod tests {
             Ok(())
         );
     }
+
+    // #[test]
+    // fn cairo_keccak_finalize_valid_test() {
+    //     let hint_code =
+    //     "# Add dummy pairs of input and output.\n_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)\n_block_size = int(ids.BLOCK_SIZE)\nassert 0 <= _keccak_state_size_felts < 100\nassert 0 <= _block_size < 10\ninp = [0] * _keccak_state_size_felts\npadding = (inp + keccak_func(inp)) * _block_size\nsegments.write_arg(ids.keccak_ptr_end, padding)";
+    //     let mut vm = vm_with_range_check!();
+
+    //     vm.segments.add(&mut vm.memory, None);
+    //     vm.memory = memory![((0, 0), 24)];
+
+    //     vm.run_context.fp = MaybeRelocatable::from((0, 1));
+    //     vm.run_context.ap = MaybeRelocatable::from((0, 1));
+
+    //     let ids = ids!["n_bytes"];
+    //     vm.references = references!(1);
+
+    //     assert_eq!(
+    //         vm.hint_executor
+    //             .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+    //         Ok(())
+    //     );
+    // }
 }

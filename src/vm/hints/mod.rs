@@ -8,6 +8,7 @@ pub mod find_element_hint;
 pub mod hint_code;
 pub mod hint_utils;
 pub mod keccak_utils;
+pub mod math_utils;
 pub mod memset_utils;
 pub mod pow_utils;
 pub mod secp;

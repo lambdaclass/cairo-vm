@@ -40,6 +40,63 @@ impl From<BigInt> for MaybeRelocatable {
     }
 }
 
+impl From<&Relocatable> for MaybeRelocatable {
+    fn from(rel: &Relocatable) -> Self {
+        MaybeRelocatable::RelocatableValue(rel.clone())
+    }
+}
+
+impl From<&Relocatable> for Relocatable {
+    fn from(other: &Relocatable) -> Self {
+        other.clone()
+    }
+}
+
+impl From<&BigInt> for MaybeRelocatable {
+    fn from(val: &BigInt) -> Self {
+        MaybeRelocatable::Int(val.clone())
+    }
+}
+
+impl From<Relocatable> for MaybeRelocatable {
+    fn from(rel: Relocatable) -> Self {
+        MaybeRelocatable::RelocatableValue(rel)
+    }
+}
+
+impl Add<usize> for Relocatable {
+    type Output = Relocatable;
+    fn add(self, other: usize) -> Self {
+        relocatable!(self.segment_index, self.offset + other)
+    }
+}
+
+impl TryInto<Relocatable> for MaybeRelocatable {
+    type Error = MemoryError;
+    fn try_into(self) -> Result<Relocatable, MemoryError> {
+        match self {
+            MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
+            _ => Err(MemoryError::AddressNotRelocatable),
+        }
+    }
+}
+
+impl From<&MaybeRelocatable> for MaybeRelocatable {
+    fn from(other: &MaybeRelocatable) -> Self {
+        other.clone()
+    }
+}
+
+impl TryFrom<&MaybeRelocatable> for Relocatable {
+    type Error = MemoryError;
+    fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
+        match other {
+            MaybeRelocatable::RelocatableValue(rel) => Ok(rel.clone()),
+            _ => Err(MemoryError::AddressNotRelocatable),
+        }
+    }
+}
+
 impl Relocatable {
     pub fn sub(&self, other: usize) -> Result<Self, VirtualMachineError> {
         if self.offset < other {
@@ -52,6 +109,20 @@ impl Relocatable {
     pub fn add(&self, other: usize) -> Result<Self, VirtualMachineError> {
         let new_offset = self.offset + other;
         Ok(relocatable!(self.segment_index, new_offset))
+    }
+
+    pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {
+        if self.segment_index != other.segment_index {
+            return Err(VirtualMachineError::DiffIndexSub);
+        }
+        if self.offset < other.offset {
+            return Err(VirtualMachineError::CantSubOffset(
+                self.offset,
+                other.offset,
+            ));
+        }
+        let result = self.offset - other.offset;
+        Ok(result)
     }
 }
 
