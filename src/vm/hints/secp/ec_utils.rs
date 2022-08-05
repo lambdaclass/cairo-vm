@@ -5,8 +5,8 @@ use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_integer_from_relocatable_plus_offset, get_integer_from_var_name,
-    get_relocatable_from_var_name, insert_int_into_scope,
+    get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
+    insert_int_into_scope,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VirtualMachine;
@@ -277,33 +277,54 @@ pub fn fast_ec_add_assign_new_x(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm, hint_ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name(
+        "slope",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        get_integer_from_relocatable_plus_offset(&slope_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&slope_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&slope_reloc, 2, vm)?,
+        vm.memory.get_integer(&slope_reloc)?,
+        vm.memory.get_integer(&(&slope_reloc + 1))?,
+        vm.memory.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm, hint_ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name(
+        "point0",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 2, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 3, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 4, vm)?,
-        get_integer_from_relocatable_plus_offset(&point0_reloc, 5, vm)?,
+        vm.memory.get_integer(&point0_reloc)?,
+        vm.memory.get_integer(&(&point0_reloc + 1))?,
+        vm.memory.get_integer(&(&point0_reloc + 2))?,
+        vm.memory.get_integer(&(&point0_reloc + 3))?,
+        vm.memory.get_integer(&(&point0_reloc + 4))?,
+        vm.memory.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm, hint_ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name(
+        "point1",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 0, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 1, vm)?,
-        get_integer_from_relocatable_plus_offset(&point1_reloc, 2, vm)?,
+        vm.memory.get_integer(&point1_reloc)?,
+        vm.memory.get_integer(&(&point1_reloc + 1))?,
+        vm.memory.get_integer(&(&point1_reloc + 2))?,
     );
 
     let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
@@ -339,14 +360,10 @@ Implements hint:
 pub fn fast_ec_add_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        get_int_from_scope(vm, "slope")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("slope")))?,
-        get_int_from_scope(vm, "x0")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("x0")))?,
-        get_int_from_scope(vm, "new_x")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("new_x")))?,
-        get_int_from_scope(vm, "y0")
-            .ok_or_else(|| VirtualMachineError::NoLocalVariable(String::from("y0")))?,
+        get_int_from_scope(&vm.exec_scopes, "slope")?,
+        get_int_from_scope(&vm.exec_scopes, "x0")?,
+        get_int_from_scope(&vm.exec_scopes, "new_x")?,
+        get_int_from_scope(&vm.exec_scopes, "y0")?,
     );
 
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
@@ -370,9 +387,16 @@ pub fn ec_mul_inner(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar = get_integer_from_var_name("scalar", ids, vm, hint_ap_tracking)?
-        .mod_floor(&vm.prime)
-        .mod_floor(&bigint!(2));
+    let scalar = get_integer_from_var_name(
+        "scalar",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .mod_floor(&vm.prime)
+    .mod_floor(&bigint!(2));
 
     vm.memory
         .insert(&vm.run_context.ap, &MaybeRelocatable::from(scalar))
