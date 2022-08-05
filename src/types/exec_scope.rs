@@ -39,12 +39,12 @@ impl ExecutionScopes {
         Ok(())
     }
 
-    pub fn get_local_variables(&self) -> Option<&HashMap<String, PyValueType>> {
-        self.data.last()
-    }
-
     pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
         self.data.last_mut()
+    }
+
+    pub fn get_local_variables(&self) -> Option<&HashMap<String, PyValueType>> {
+        self.data.last()
     }
 
     pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {

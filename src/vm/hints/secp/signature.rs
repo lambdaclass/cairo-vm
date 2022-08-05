@@ -1,11 +1,12 @@
 use crate::{
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
-    types::exec_scope::PyValueType,
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::{
-            hint_utils::{get_int_from_scope_ref, get_integer_from_var_name},
+            hint_utils::{
+                get_int_ref_from_scope, get_integer_from_var_name, insert_int_into_scope,
+            },
             secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
         },
         vm_core::VirtualMachine,
@@ -31,29 +32,23 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", ids, vm, hint_ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-
-    vm.exec_scopes
-        .assign_or_update_variable("a", PyValueType::BigInt(a));
-    vm.exec_scopes
-        .assign_or_update_variable("b", PyValueType::BigInt(b));
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-    vm.exec_scopes
-        .assign_or_update_variable("res", PyValueType::BigInt(value));
+    insert_int_into_scope(&mut vm.exec_scopes, "a", a);
+    insert_int_into_scope(&mut vm.exec_scopes, "b", b);
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
+    insert_int_into_scope(&mut vm.exec_scopes, "res", value);
     Ok(())
 }
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
 pub fn div_mod_n_safe_div(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let a = get_int_from_scope_ref(vm, "a")?.clone();
-    let b = get_int_from_scope_ref(vm, "b")?.clone();
-    let res = get_int_from_scope_ref(vm, "res")?;
+    let a = get_int_ref_from_scope(&vm.exec_scopes, "a")?;
+    let b = get_int_ref_from_scope(&vm.exec_scopes, "b")?;
+    let res = get_int_ref_from_scope(&vm.exec_scopes, "res")?;
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value));
+    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -66,13 +61,18 @@ pub fn get_point_from_x(
     let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
-    let v = get_integer_from_var_name("v", ids, vm, hint_ap_tracking)?;
+    let v = get_integer_from_var_name(
+        "v",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
     if v % 2 != &y % 2 {
         y = -y % &*SECP_P;
     }
-
-    vm.exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(y));
+    insert_int_into_scope(&mut vm.exec_scopes, "value", y);
     Ok(())
 }
 
@@ -81,8 +81,8 @@ mod tests {
     use super::*;
     use crate::{
         bigint, bigint_str,
-        types::{instruction::Register, relocatable::MaybeRelocatable},
-        utils::test_utils::{mayberelocatable, memory, memory_from_memory, memory_inner},
+        types::{exec_scope::PyValueType, instruction::Register, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError,
             hints::execute_hint::{BuiltinHintExecutor, HintReference},
@@ -136,8 +136,8 @@ mod tests {
             ("a".to_string(), bigint!(0_i32)),
             ("b".to_string(), bigint!(3_i32)),
         ]);
-        assert!(div_mod_n_packed_divmod(&mut vm, &ids, None).is_ok());
-        assert!(div_mod_n_safe_div(&mut vm).is_ok());
+        assert_eq!(div_mod_n_packed_divmod(&mut vm, &ids, None), Ok(()));
+        assert_eq!(div_mod_n_safe_div(&mut vm), Ok(()));
     }
 
     #[test]
