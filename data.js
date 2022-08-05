@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659731022763,
+  "lastUpdate": 1659732210588,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -17051,6 +17051,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 224170890,
             "range": "± 702609",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c151f09683a614737bf93c230123fcaa71f3ac11",
+          "message": "Fix rust version in bench.yml (#353)\n\n* Change Rust version in bench.yml\r\n\r\n* Change parse_hyperlinks crate version\r\n\r\n* remove nightly call from makefile",
+          "timestamp": "2022-08-05T17:30:57-03:00",
+          "tree_id": "94bd4aa75ae9d29d5396c0b542b33097b33a11f1",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/c151f09683a614737bf93c230123fcaa71f3ac11"
+        },
+        "date": 1659732208761,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1794197112,
+            "range": "± 93120491",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 696239407,
+            "range": "± 12058737",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 344663191,
+            "range": "± 3914930",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1640634712,
+            "range": "± 39645941",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 221764292,
+            "range": "± 11800865",
             "unit": "ns/iter"
           }
         ]
