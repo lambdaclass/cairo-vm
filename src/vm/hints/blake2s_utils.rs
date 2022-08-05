@@ -9,7 +9,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::hints::blake2s_hash::IV;
 use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
-use crate::vm::vm_core::HintVisibleVariables;
+use crate::vm::vm_core::VMProxy;
 use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{
@@ -71,7 +71,7 @@ fn compute_blake2s_func(
    compute_blake2s_func(segments=segments, output_ptr=ids.output)
 */
 pub fn compute_blake2s(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -109,7 +109,7 @@ pub fn compute_blake2s(
     segments.write_arg(ids.blake2s_ptr_end, padding)
 */
 pub fn finalize_blake2s(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -154,7 +154,7 @@ pub fn finalize_blake2s(
     segments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -231,7 +231,7 @@ pub fn blake2s_add_uint256(
     segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256_bigend(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -306,7 +306,7 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::get_hint_variables;
+    use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{
         bigint,
@@ -354,8 +354,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -399,8 +399,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -446,8 +446,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -495,8 +495,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -547,8 +547,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -594,8 +594,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -675,8 +675,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -716,8 +716,8 @@ mod tests {
                 immediate: None,
             },
         )]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(
@@ -807,8 +807,8 @@ mod tests {
                 },
             ),
         ]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -927,8 +927,8 @@ mod tests {
                 },
             ),
         ]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -1047,8 +1047,8 @@ mod tests {
                 },
             ),
         ]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),
@@ -1167,8 +1167,8 @@ mod tests {
                 },
             ),
         ]);
-        //Create HintVisibleVariables
-        let mut variables = get_hint_variables(&mut vm);
+        //Create VMProxy
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::default()),

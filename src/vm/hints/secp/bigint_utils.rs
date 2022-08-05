@@ -6,7 +6,7 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::hints::secp::secp_utils::split;
 use crate::vm::hints::secp::secp_utils::BASE_86;
-use crate::vm::vm_core::HintVisibleVariables;
+use crate::vm::vm_core::VMProxy;
 
 use num_bigint::BigInt;
 use std::collections::HashMap;
@@ -21,7 +21,7 @@ Implements hint:
 */
 
 pub fn nondet_bigint3(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -45,7 +45,7 @@ pub fn nondet_bigint3(
 // Implements hint
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -79,7 +79,7 @@ mod tests {
     use crate::types::exec_scope::PyValueType;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
-    use crate::vm::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
+    use crate::vm::hints::execute_hint::{execute_hint, get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, bigint_str};
@@ -146,7 +146,7 @@ mod tests {
             group: 0,
             offset: 0,
         };
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ap_tracking),
@@ -224,7 +224,7 @@ mod tests {
             group: 0,
             offset: 0,
         };
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ap_tracking),
@@ -275,7 +275,7 @@ mod tests {
             group: 0,
             offset: 0,
         };
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ap_tracking),

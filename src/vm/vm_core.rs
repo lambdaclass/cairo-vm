@@ -17,7 +17,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
-use super::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
+use super::hints::execute_hint::{execute_hint, get_vm_proxy, HintReference};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -38,7 +38,7 @@ pub struct HintData {
     pub ap_tracking_data: ApTracking,
 }
 
-pub struct HintVisibleVariables<'a> {
+pub struct VMProxy<'a> {
     pub memory: &'a mut Memory,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
@@ -500,9 +500,9 @@ impl VirtualMachine {
     pub fn step(&mut self) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
-                let mut hint_variables = get_hint_variables(self);
+                let mut vm_proxy = get_vm_proxy(self);
                 execute_hint(
-                    &mut hint_variables,
+                    &mut vm_proxy,
                     &hint_data.hint_code,
                     hint_data.ids.clone(),
                     &hint_data.ap_tracking_data,

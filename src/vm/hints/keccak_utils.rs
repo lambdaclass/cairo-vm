@@ -6,7 +6,7 @@ use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
     types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::HintVisibleVariables},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
@@ -38,7 +38,7 @@ use std::{cmp, collections::HashMap, ops::Shl};
    %}
 */
 pub fn unsafe_keccak(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -154,7 +154,7 @@ Implements hint:
 
  */
 pub fn unsafe_keccak_finalize(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {

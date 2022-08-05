@@ -4,7 +4,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name, insert_int_into_scope, insert_integer_from_var_name,
 };
-use crate::vm::vm_core::HintVisibleVariables;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -23,7 +23,7 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -76,7 +76,7 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -113,7 +113,7 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
+    use crate::vm::hints::execute_hint::{execute_hint, get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
 
@@ -204,7 +204,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ap_tracking),
@@ -306,7 +306,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(150)),
             )
             .unwrap();
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ap_tracking),
@@ -413,7 +413,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(55)),
             )
             .unwrap();
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ap_tracking),
@@ -495,7 +495,7 @@ mod tests {
             None
         );
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -562,7 +562,7 @@ mod tests {
             vm.exec_scopes.get_local_variables().unwrap().get("value"),
             None
         );
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),

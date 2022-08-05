@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use crate::{
     serde::deserialize_program::ApTracking,
     types::exec_scope::{ExecutionScopes, PyValueType},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::HintVisibleVariables},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
 use super::hint_utils::{
@@ -35,7 +35,7 @@ fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt
 For now, the functionality to create a dictionary from a previously defined initial_dict (using a hint)
 is not available
 */
-pub fn dict_new(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn dict_new(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict =
         copy_initial_dict(variables.exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
@@ -60,7 +60,7 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available, an empty dict is created always
 */
 pub fn default_dict_new(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -95,7 +95,7 @@ pub fn default_dict_new(
    ids.value = dict_tracker.data[ids.key]
 */
 pub fn dict_read(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -136,7 +136,7 @@ pub fn dict_read(
     dict_tracker.data[ids.key] = ids.new_value
 */
 pub fn dict_write(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -195,7 +195,7 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -260,7 +260,7 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -290,7 +290,7 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -327,7 +327,7 @@ mod tests {
     use crate::types::relocatable::Relocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::dict_manager::{DictManager, Dictionary};
-    use crate::vm::hints::execute_hint::{get_hint_variables, HintReference};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, relocatable};
     use crate::{
@@ -349,7 +349,7 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
 
-        let mut variables = get_hint_variables(&mut vm); //ids and references are not needed for this test
+        let mut variables = get_vm_proxy(&mut vm); //ids and references are not needed for this test
         execute_hint(
             &mut variables,
             hint_code,
@@ -382,7 +382,7 @@ mod tests {
             false,
         );
         //ids and references are not needed for this test
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(
                 &mut variables,
@@ -413,7 +413,7 @@ mod tests {
             )
             .unwrap();
         //ids and references are not needed for this test
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(
                 &mut variables,
@@ -509,7 +509,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -608,7 +608,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -689,7 +689,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -733,7 +733,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         execute_hint(&mut variables, hint_code, ids, &ApTracking::new())
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
@@ -781,7 +781,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
@@ -878,7 +878,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -995,7 +995,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1112,7 +1112,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1227,7 +1227,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1345,7 +1345,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1477,7 +1477,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1609,7 +1609,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1731,7 +1731,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1850,7 +1850,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1983,7 +1983,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2116,7 +2116,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2239,7 +2239,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2360,7 +2360,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2427,7 +2427,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2492,7 +2492,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2552,7 +2552,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2620,7 +2620,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2695,7 +2695,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -2778,7 +2778,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),

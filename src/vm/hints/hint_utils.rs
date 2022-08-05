@@ -6,7 +6,7 @@ use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
-use crate::vm::vm_core::HintVisibleVariables;
+use crate::vm::vm_core::VMProxy;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
@@ -451,7 +451,7 @@ pub fn get_integer_from_var_name<'a>(
 }
 
 ///Implements hint: memory[ap] = segments.add()
-pub fn add_segment(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn add_segment(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
     let new_segment_base =
         MaybeRelocatable::RelocatableValue(variables.segments.add(variables.memory, None));
     variables
@@ -461,14 +461,14 @@ pub fn add_segment(variables: &mut HintVisibleVariables) -> Result<(), VirtualMa
 }
 
 //Implements hint: vm_enter_scope()
-pub fn enter_scope(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn enter_scope(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
     variables.exec_scopes.enter_scope(HashMap::new());
     Ok(())
 }
 
 //  Implements hint:
 //  %{ vm_exit_scope() %}
-pub fn exit_scope(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn exit_scope(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
     variables
         .exec_scopes
         .exit_scope()
@@ -478,7 +478,7 @@ pub fn exit_scope(variables: &mut HintVisibleVariables) -> Result<(), VirtualMac
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -505,7 +505,7 @@ pub fn memcpy_enter_scope(
 //     ids.continue_copying = 1 if n > 0 else 0
 // %}
 pub fn memcpy_continue_copying(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -544,7 +544,7 @@ pub fn memcpy_continue_copying(
 
 #[cfg(test)]
 mod tests {
-    use crate::vm::{hints::execute_hint::get_hint_variables, vm_core::VirtualMachine};
+    use crate::vm::{hints::execute_hint::get_vm_proxy, vm_core::VirtualMachine};
 
     use super::*;
     use num_bigint::Sign;
@@ -588,7 +588,7 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
-        let variables = get_hint_variables(&mut vm);
+        let variables = get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(
                 var_name,
@@ -641,7 +641,7 @@ mod tests {
                 &MaybeRelocatable::from((0, 1)),
             )
             .unwrap();
-        let variables = get_hint_variables(&mut vm);
+        let variables = get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(
                 var_name,

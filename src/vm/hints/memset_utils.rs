@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::HintVisibleVariables;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::collections::HashMap;
@@ -15,7 +15,7 @@ use super::hint_utils::insert_integer_from_var_name;
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -41,7 +41,7 @@ pub fn memset_enter_scope(
 %}
 */
 pub fn memset_continue_loop(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -73,7 +73,7 @@ mod tests {
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{execute_hint, get_hint_variables, HintReference},
+            hints::execute_hint::{execute_hint, get_vm_proxy, HintReference},
             vm_core::VirtualMachine,
         },
     };
@@ -118,7 +118,7 @@ mod tests {
             },
         )]);
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
@@ -161,7 +161,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
@@ -214,7 +214,7 @@ mod tests {
             },
         )]);
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
 
         // assert ids.continue_loop = 0
@@ -268,7 +268,7 @@ mod tests {
             },
         )]);
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
 
         // assert ids.continue_loop = 1
@@ -320,7 +320,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
@@ -372,7 +372,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(

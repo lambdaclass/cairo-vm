@@ -39,7 +39,7 @@ use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::vm::vm_core::{HintVisibleVariables, VirtualMachine};
+use crate::vm::vm_core::{VMProxy, VirtualMachine};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
@@ -51,8 +51,8 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
-pub fn get_hint_variables(vm: &mut VirtualMachine) -> HintVisibleVariables {
-    HintVisibleVariables {
+pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
+    VMProxy {
         memory: &mut vm.memory,
         segments: &mut vm.segments,
         run_context: &mut vm.run_context,
@@ -64,7 +64,7 @@ pub fn get_hint_variables(vm: &mut VirtualMachine) -> HintVisibleVariables {
     }
 }
 pub fn execute_hint(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     hint_code: &[u8],
     ids: HashMap<String, BigInt>,
     ap_tracking: &ApTracking,
@@ -206,7 +206,7 @@ mod tests {
         );
         //ids and references are not needed for this test
         {
-            let mut variables = get_hint_variables(&mut vm);
+            let mut variables = get_vm_proxy(&mut vm);
             execute_hint(
                 &mut variables,
                 hint_code,
@@ -238,7 +238,7 @@ mod tests {
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
         //ids and references are not needed for this test
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         execute_hint(
             &mut variables,
             hint_code,
@@ -276,7 +276,7 @@ mod tests {
             )
             .unwrap();
         //ids and references are not needed for this test
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(
                 &mut variables,
@@ -302,7 +302,7 @@ mod tests {
             Vec::new(),
             false,
         );
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(
                 &mut variables,
@@ -354,7 +354,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
@@ -397,7 +397,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
@@ -449,7 +449,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
@@ -496,7 +496,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
@@ -548,7 +548,7 @@ mod tests {
                 immediate: None,
             },
         )]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
@@ -578,7 +578,7 @@ mod tests {
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(
             &mut variables,
             hint_code,
@@ -602,7 +602,7 @@ mod tests {
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(
                 &mut variables,
@@ -625,7 +625,7 @@ mod tests {
             Vec::new(),
             false,
         );
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(
@@ -760,7 +760,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
@@ -883,7 +883,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
@@ -1006,7 +1006,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_err());
     }
 
@@ -1129,7 +1129,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
@@ -1241,7 +1241,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
     }
 
@@ -1343,7 +1343,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
             Err(VirtualMachineError::NoneInMemoryRange)
@@ -1456,7 +1456,7 @@ mod tests {
                 },
             ),
         ]);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_err());
     }
 }

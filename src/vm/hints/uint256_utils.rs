@@ -3,7 +3,7 @@ use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name};
-use crate::vm::vm_core::HintVisibleVariables;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
 use num_traits::Signed;
@@ -22,7 +22,7 @@ Implements hint:
 %}
 */
 pub fn uint256_add(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -94,7 +94,7 @@ Implements hint:
 %}
 */
 pub fn split_64(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -141,7 +141,7 @@ Implements hint:
 %}
 */
 pub fn uint256_sqrt(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -191,7 +191,7 @@ Implements hint:
 %{ memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0 %}
 */
 pub fn uint256_signed_nn(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -229,7 +229,7 @@ Implements hint:
 %}
 */
 pub fn uint256_unsigned_div_rem(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -318,7 +318,7 @@ mod tests {
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, get_hint_variables, HintReference};
+    use crate::vm::hints::execute_hint::{execute_hint, get_vm_proxy, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
@@ -425,7 +425,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -553,7 +553,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -636,7 +636,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -737,7 +737,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -816,7 +816,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -903,7 +903,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -986,7 +986,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1044,7 +1044,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1103,7 +1103,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1166,7 +1166,7 @@ mod tests {
         vm.memory
             .insert(&mut vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
             .unwrap();
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1282,7 +1282,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
@@ -1421,7 +1421,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
             execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),

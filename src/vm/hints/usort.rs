@@ -10,7 +10,7 @@ use crate::{
             get_relocatable_from_var_name, get_u64_from_scope, insert_integer_from_var_name,
             insert_relocatable_from_var_name,
         },
-        vm_core::HintVisibleVariables,
+        vm_core::VMProxy,
     },
 };
 use num_bigint::BigInt;
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 use super::hint_utils::insert_int_into_scope;
 
-pub fn usort_enter_scope(variables: &mut HintVisibleVariables) -> Result<(), VirtualMachineError> {
+pub fn usort_enter_scope(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
     let usort_max_size = get_u64_from_scope(variables.exec_scopes, "usort_max_size")
         .map_or(PyValueType::None, PyValueType::U64);
     variables.exec_scopes.enter_scope(HashMap::from([(
@@ -30,7 +30,7 @@ pub fn usort_enter_scope(variables: &mut HintVisibleVariables) -> Result<(), Vir
 }
 
 pub fn usort_body(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -141,7 +141,7 @@ pub fn usort_body(
 }
 
 pub fn verify_usort(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -169,9 +169,7 @@ pub fn verify_usort(
     Ok(())
 }
 
-pub fn verify_multiplicity_assert(
-    variables: &mut HintVisibleVariables,
-) -> Result<(), VirtualMachineError> {
+pub fn verify_multiplicity_assert(variables: &mut VMProxy) -> Result<(), VirtualMachineError> {
     let positions_len = get_list_u64_from_scope_ref(variables.exec_scopes, "positions")?.len();
     if positions_len == 0 {
         Ok(())
@@ -181,7 +179,7 @@ pub fn verify_multiplicity_assert(
 }
 
 pub fn verify_multiplicity_body(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -208,7 +206,7 @@ mod tests {
     use crate::{
         types::{instruction::Register, relocatable::MaybeRelocatable},
         vm::{
-            hints::execute_hint::{execute_hint, get_hint_variables, HintReference},
+            hints::execute_hint::{execute_hint, get_vm_proxy, HintReference},
             runners::builtin_runner::RangeCheckBuiltinRunner,
             vm_core::VirtualMachine,
         },
@@ -267,7 +265,7 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, hint, ids, &ApTracking::new()),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))

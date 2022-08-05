@@ -1,7 +1,7 @@
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::{bigint, vm::vm_core::HintVisibleVariables};
+use crate::{bigint, vm::vm_core::VMProxy};
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use super::hint_utils::{
 };
 
 pub fn set_add(
-    variables: &mut HintVisibleVariables,
+    variables: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -113,7 +113,7 @@ pub fn set_add(
 mod tests {
     use super::*;
     use crate::types::instruction::Register;
-    use crate::vm::hints::execute_hint::get_hint_variables;
+    use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::{
@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn set_add_new_elem() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Ok(())
@@ -321,7 +321,7 @@ mod tests {
             Some(&MaybeRelocatable::from(bigint!(1))),
             Some(&MaybeRelocatable::from(bigint!(3))),
         );
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Ok(())
@@ -341,7 +341,7 @@ mod tests {
     #[test]
     fn elm_size_not_int() {
         let (mut vm, ids) = init_vm_ids(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
@@ -355,7 +355,7 @@ mod tests {
         let int = bigint!(-2);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::BigintToUsizeFail)
@@ -367,7 +367,7 @@ mod tests {
         let int = bigint!(0);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueNotPositive(int))
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids) = init_vm_ids(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::InvalidSetRange(
@@ -400,7 +400,7 @@ mod tests {
                 immediate: None,
             },
         );
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert_eq!(
             execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
@@ -420,7 +420,7 @@ mod tests {
             "range_check".to_string(),
             Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
         ));
-        let mut variables = get_hint_variables(&mut vm);
+        let mut variables = get_vm_proxy(&mut vm);
         assert!(execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()).is_ok());
     }
 }
