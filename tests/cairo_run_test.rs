@@ -483,6 +483,16 @@ fn cairo_run_private_keccak() {
 }
 
 #[test]
+fn cairo_run_keccak_copy_inputs() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/keccak_copy_inputs.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_finalize_keccak() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/cairo_finalize_keccak.json"),
