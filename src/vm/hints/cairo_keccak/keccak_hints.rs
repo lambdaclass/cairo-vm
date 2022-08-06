@@ -289,8 +289,6 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    //use crate::memory_segments::tests::MemoryError::UnallocatedSegment
-    //use crate::vm::vm_memory::memory_segments::tests::MemoryError::UnallocatedSegment;
 
     #[test]
     fn keccak_write_args_valid_test() {
