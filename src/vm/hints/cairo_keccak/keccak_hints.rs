@@ -227,7 +227,6 @@ pub fn cairo_keccak_finalize(
 
     let mut inp = [0u64; KECCAK_STATE_SIZE_FELTS];
     keccak::f1600(&mut inp);
-    println!("LEN INPUT: {:?}", inp.len());
 
     let mut padding = vec![bigint!(0_u64); KECCAK_STATE_SIZE_FELTS];
     padding.extend(u64_array_to_bigint_vec(&inp));
