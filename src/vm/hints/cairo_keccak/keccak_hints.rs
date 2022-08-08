@@ -101,6 +101,11 @@ pub fn compare_bytes_in_word_nondet(
         hint_ap_tracking,
     )?;
 
+    // This works fine, but it should be checked for a performance improvement.
+    // One option is to try to convert n_bytes into usize, with failure to do so simply
+    // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
+    // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
+    // bigint!(BYTES_INTO_WORD) into a lazy_static!
     let value = bigint!((n_bytes < &bigint!(BYTES_IN_WORD)) as usize);
 
     vm.memory
