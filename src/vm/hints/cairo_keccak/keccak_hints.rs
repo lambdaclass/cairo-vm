@@ -8,12 +8,15 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
+use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
-const BYTES_IN_WORD: usize = 8;
-const KECCAK_FULL_RATE_IN_BYTES: usize = 136;
+lazy_static! {
+    pub static ref BYTES_IN_WORD: BigInt = bigint!(8);
+    pub static ref KECCAK_FULL_RATE_IN_BYTES: BigInt = bigint!(136);
+}
 const KECCAK_STATE_SIZE_FELTS: usize = 25;
 const BLOCK_SIZE: usize = 3;
 
@@ -106,7 +109,7 @@ pub fn compare_bytes_in_word_nondet(
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
-    let value = bigint!((n_bytes < &bigint!(BYTES_IN_WORD)) as usize);
+    let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
 
     vm.memory
         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
@@ -135,7 +138,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
         hint_ap_tracking,
     )?;
 
-    let value = bigint!((n_bytes >= &bigint!(KECCAK_FULL_RATE_IN_BYTES)) as usize);
+    let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
 
     vm.memory
         .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
