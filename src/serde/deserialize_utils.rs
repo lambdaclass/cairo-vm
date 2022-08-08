@@ -8,7 +8,7 @@ use nom::{
     combinator::{map_res, opt, value},
     error::{ErrorKind, ParseError},
     sequence::{delimited, tuple},
-    IResult,
+    Err, IResult,
 };
 use num_bigint::{BigInt, ParseBigIntError};
 use num_integer::Integer;
@@ -99,38 +99,24 @@ fn offset(input: &str) -> IResult<&str, i32> {
     }
 
     let (rem_input, sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
-
     let (rem_input, num_opt) = opt(delimited(tag("("), take_until(")"), tag(")")))(rem_input)?;
 
-    if let Some(num) = num_opt {
-        let parsed_num: i32 = match num.parse() {
-            Ok(parsed_num) => parsed_num,
-            Err(_) => {
-                return Err(nom::Err::Error(ParseError::from_error_kind(
-                    num,
-                    ErrorKind::MapRes,
-                )))
-            }
-        };
-
-        if let Some(sign_str) = sign {
-            if sign_str.eq(" - ") {
-                return Ok((rem_input, -parsed_num));
-            }
-
-            return Ok((rem_input, parsed_num));
-        }
-
-        Ok((rem_input, parsed_num))
+    let sign = if let Some(" - ") = sign {
+        -1_i32
     } else {
-        if let Some(sign_str) = sign {
-            if sign_str.eq(" - ") {
-                let (rem_input, parsed_num) = map_res(digit1, i32::from_str)(rem_input)?;
-                return Ok((rem_input, -parsed_num));
-            }
-            return map_res(digit1, i32::from_str)(rem_input);
-        }
-        map_res(digit1, i32::from_str)(rem_input)
+        1_i32
+    };
+
+    if let Some(num) = num_opt {
+        let parsed_num: i32 = num
+            .parse()
+            .map_err(|_| Err::Error(ParseError::from_error_kind(num, ErrorKind::MapRes)))?;
+
+        Ok((rem_input, sign * parsed_num))
+    } else {
+        let (rem_input, parsed_num) = map_res(digit1, i32::from_str)(rem_input)?;
+
+        Ok((rem_input, sign * parsed_num))
     }
 }
 

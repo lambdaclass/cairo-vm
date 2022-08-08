@@ -83,6 +83,7 @@ pub fn keccak_write_args(
 
     Ok(())
 }
+
 /*
 Implements hint:
     Cairo code:
@@ -153,7 +154,6 @@ Implements hint:
         segments.write_arg(ids.keccak_ptr, output_values)
     %}
 */
-
 pub fn block_permutation(
     vm: &mut VirtualMachine,
     ids: &HashMap<String, BigInt>,
@@ -197,7 +197,7 @@ pub fn block_permutation(
     Ok(())
 }
 
-/*
+/* Implements hint:
     %{
         # Add dummy pairs of input and output.
         _keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
@@ -209,7 +209,6 @@ pub fn block_permutation(
         segments.write_arg(ids.keccak_ptr_end, padding)
     %}
 */
-
 pub fn cairo_keccak_finalize(
     vm: &mut VirtualMachine,
     ids: &HashMap<String, BigInt>,
