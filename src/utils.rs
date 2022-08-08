@@ -11,8 +11,10 @@ macro_rules! bigint {
 #[macro_export]
 macro_rules! bigint_str {
     ($val: expr) => {
-        //BigInt::from_bytes_be(Sign::Plus, $val.chars().map(|c| c.to_digit(10).unwrap()).collect())
         BigInt::parse_bytes($val, 10).unwrap()
+    };
+    ($val: expr, $opt: expr) => {
+        BigInt::parse_bytes($val, $opt).unwrap()
     };
 }
 

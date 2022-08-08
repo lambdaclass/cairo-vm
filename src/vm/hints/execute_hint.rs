@@ -47,6 +47,7 @@ use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
+use crate::vm::hints::sha256_utils::{sha256_main, sha256_input};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -186,6 +187,8 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
+            hint_code::SHA256_MAIN => sha256_main(vm, ids, None),
+            hint_code::SHA256_INPUT => sha256_input(vm, ids, None),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }
