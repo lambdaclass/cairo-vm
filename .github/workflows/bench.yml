@@ -16,10 +16,10 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-    - name: Install Rust nightly
+    - name: Install Rust 1.62.1 
       uses: actions-rs/toolchain@v1
       with:
-          toolchain: nightly
+          toolchain: 1.62.1 
           override: true
           components: rustfmt, clippy
     - uses: actions/checkout@v3
