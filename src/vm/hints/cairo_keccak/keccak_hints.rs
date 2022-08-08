@@ -9,10 +9,8 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_integer::Integer;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
-use std::ops::Shl;
 
 const BYTES_IN_WORD: usize = 8;
 const KECCAK_FULL_RATE_IN_BYTES: usize = 136;
@@ -57,11 +55,8 @@ pub fn keccak_write_args(
         hint_ap_tracking,
     )?;
 
-    let low_args = [low.mod_floor(&bigint!(1).shl(64)), low / bigint!(1).shl(64)];
-    let high_args = [
-        high.mod_floor(&bigint!(1).shl(64)),
-        high / bigint!(1).shl(64),
-    ];
+    let low_args = [low & bigint!(u64::MAX), low >> 64];
+    let high_args = [high & bigint!(u64::MAX), high >> 64];
 
     vm.segments
         .write_arg(
