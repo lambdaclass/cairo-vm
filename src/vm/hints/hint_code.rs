@@ -478,3 +478,17 @@ assert 0 <= _block_size < 10
 inp = [0] * _keccak_state_size_felts
 padding = (inp + keccak_func(inp)) * _block_size
 segments.write_arg(ids.keccak_ptr_end, padding)"#;
+
+pub(crate) const FAST_EC_ADD_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+slope = pack(ids.slope, PRIME)
+x0 = pack(ids.point0.x, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P"#;
+
+pub(crate) const FAST_EC_ADD_ASSIGN_NEW_Y: &str =
+    r#"value = new_y = (slope * (x0 - new_x) - y0) % SECP_P"#;
+
+pub(crate) const EC_MUL_INNER: &str = r#"memory[ap] = (ids.scalar % PRIME) % 2"#;

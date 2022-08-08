@@ -1,15 +1,19 @@
 use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::PyValueType;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_scope,
+    get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
+    insert_int_into_scope,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
+use std::ops::BitAnd;
 
 /*
 Implements hint:
@@ -253,6 +257,151 @@ pub fn ec_double_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMach
     insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
     insert_int_into_scope(&mut vm.exec_scopes, "new_y", value);
     Ok(())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+
+    slope = pack(ids.slope, PRIME)
+    x0 = pack(ids.point0.x, PRIME)
+    x1 = pack(ids.point1.x, PRIME)
+    y0 = pack(ids.point0.y, PRIME)
+
+    value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
+%}
+*/
+pub fn fast_ec_add_assign_new_x(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //ids.slope
+    let slope_reloc = get_relocatable_from_var_name(
+        "slope",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+
+    let (slope_d0, slope_d1, slope_d2) = (
+        vm.memory.get_integer(&slope_reloc)?,
+        vm.memory.get_integer(&(&slope_reloc + 1))?,
+        vm.memory.get_integer(&(&slope_reloc + 2))?,
+    );
+
+    //ids.point0
+    let point0_reloc = get_relocatable_from_var_name(
+        "point0",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+
+    let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
+        vm.memory.get_integer(&point0_reloc)?,
+        vm.memory.get_integer(&(&point0_reloc + 1))?,
+        vm.memory.get_integer(&(&point0_reloc + 2))?,
+        vm.memory.get_integer(&(&point0_reloc + 3))?,
+        vm.memory.get_integer(&(&point0_reloc + 4))?,
+        vm.memory.get_integer(&(&point0_reloc + 5))?,
+    );
+
+    //ids.point1.x
+    let point1_reloc = get_relocatable_from_var_name(
+        "point1",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?;
+
+    let (point1_x_d0, point1_x_d1, point1_x_d2) = (
+        vm.memory.get_integer(&point1_reloc)?,
+        vm.memory.get_integer(&(&point1_reloc + 1))?,
+        vm.memory.get_integer(&(&point1_reloc + 2))?,
+    );
+
+    let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
+    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, &vm.prime);
+    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime);
+    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime);
+
+    let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
+
+    //Assign variables to vm scope
+    vm.exec_scopes
+        .assign_or_update_variable("slope", PyValueType::BigInt(slope));
+
+    vm.exec_scopes
+        .assign_or_update_variable("x0", PyValueType::BigInt(x0));
+
+    vm.exec_scopes
+        .assign_or_update_variable("y0", PyValueType::BigInt(y0));
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("new_x", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
+/*
+Implements hint:
+%{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
+*/
+pub fn fast_ec_add_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    //Get variables from vm scope
+    let (slope, x0, new_x, y0) = (
+        get_int_from_scope(&vm.exec_scopes, "slope")?,
+        get_int_from_scope(&vm.exec_scopes, "x0")?,
+        get_int_from_scope(&vm.exec_scopes, "new_x")?,
+        get_int_from_scope(&vm.exec_scopes, "y0")?,
+    );
+
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
+
+    vm.exec_scopes
+        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+
+    vm.exec_scopes
+        .assign_or_update_variable("new_y", PyValueType::BigInt(value));
+
+    Ok(())
+}
+
+/*
+Implements hint:
+%{ memory[ap] = (ids.scalar % PRIME) % 2 %}
+*/
+pub fn ec_mul_inner(
+    vm: &mut VirtualMachine,
+    ids: &HashMap<String, BigInt>,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<(), VirtualMachineError> {
+    //(ids.scalar % PRIME) % 2
+    let scalar = get_integer_from_var_name(
+        "scalar",
+        ids,
+        &vm.memory,
+        &vm.references,
+        &vm.run_context,
+        hint_ap_tracking,
+    )?
+    .mod_floor(&vm.prime)
+    .bitand(bigint!(1));
+
+    vm.memory
+        .insert(&vm.run_context.ap, &MaybeRelocatable::from(scalar))
+        .map_err(VirtualMachineError::MemoryError)
 }
 
 #[cfg(test)]
@@ -666,6 +815,236 @@ mod tests {
             Some(&PyValueType::BigInt(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
             )))
+        );
+    }
+
+    #[test]
+    fn run_fast_ec_add_assign_new_x_ok() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx0 = pack(ids.point0.x, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0, ids.point1.x and ids.slope into memory
+        vm.memory = memory![
+            //ids.point0
+            ((1, 0), 89712),
+            ((1, 1), 56),
+            ((1, 2), 1233409),
+            ((1, 3), 980126),
+            ((1, 4), 10),
+            ((1, 5), 8793),
+            //ids.point0.x
+            ((1, 6), 1235216451),
+            ((1, 7), 5967),
+            ((1, 8), 2171381),
+            //ids.slope
+            ((1, 9), 67470097831679799377177424_i128),
+            ((1, 10), 43370026683122492246392730_i128),
+            ((1, 11), 16032182557092050689870202_i128)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 20));
+
+        //Create ids
+        let ids = ids!["point0", "point1", "slope"];
+
+        //Create references
+        vm.references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -15,
+                    offset2: 0,
+                    dereference: false,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -9,
+                    offset2: 0,
+                    dereference: false,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+            (
+                2,
+                HintReference {
+                    register: Register::AP,
+                    offset1: -11,
+                    offset2: 0,
+                    dereference: false,
+                    inner_dereference: false,
+                    immediate: None,
+                    ap_tracking_data: Some(ApTracking {
+                        group: 1,
+                        offset: 0,
+                    }),
+                },
+            ),
+        ]);
+
+        //Create ap tracking
+        let ap_tracking = ApTracking {
+            group: 1,
+            offset: 0,
+        };
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Check 'new_x' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ap_tracking),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+            )))
+        );
+
+        //Check 'new_x' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_fast_ec_add_assign_new_y_ok() {
+        let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        //Insert 'slope' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "slope",
+            PyValueType::BigInt(bigint_str!(
+                b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
+            )),
+        );
+
+        //Insert 'x0' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "x0",
+            PyValueType::BigInt(bigint_str!(
+                b"838083498911032969414721426845751663479194726707495046"
+            )),
+        );
+
+        //Insert 'new_x' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "new_x",
+            PyValueType::BigInt(bigint_str!(
+                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+            )),
+        );
+
+        //Insert 'y0' into vm scope
+        vm.exec_scopes.assign_or_update_variable(
+            "y0",
+            PyValueType::BigInt(bigint_str!(
+                b"4310143708685312414132851373791311001152018708061750480"
+            )),
+        );
+
+        //Check 'value' is not defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            None
+        );
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor.execute_hint(
+                &mut vm,
+                hint_code,
+                &HashMap::<String, BigInt>::new(),
+                &ApTracking::new()
+            ),
+            Ok(())
+        );
+
+        //Check 'value' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("value"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+            )))
+        );
+
+        //Check 'new_y' is defined in the vm scope
+        assert_eq!(
+            vm.exec_scopes.get_local_variables().unwrap().get("new_y"),
+            Some(&PyValueType::BigInt(bigint_str!(
+                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+            )))
+        );
+    }
+
+    #[test]
+    fn run_ec_mul_inner_ok() {
+        let hint_code = "memory[ap] = (ids.scalar % PRIME) % 2";
+        let mut vm = vm_with_range_check!();
+
+        let scalar = 89712 + &vm.prime;
+        //Insert ids.scalar into memory
+        vm.memory = memory![((1, 0), scalar)];
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 1));
+
+        //Initialize ap
+        vm.run_context.ap = MaybeRelocatable::from((1, 2));
+
+        //Create ids
+        let ids = ids!["scalar"];
+
+        //Create references
+        vm.references = references!(1);
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check hint memory inserts
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint_str!(b"0"))))
         );
     }
 }
