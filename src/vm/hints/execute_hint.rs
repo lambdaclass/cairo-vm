@@ -43,11 +43,11 @@ use crate::vm::hints::secp::{
     },
     signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
 };
+use crate::vm::hints::sha256_utils::{sha256_input, sha256_main};
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::vm::hints::sha256_utils::{sha256_main, sha256_input};
 use crate::vm::vm_core::VirtualMachine;
 
 #[derive(Debug, PartialEq, Clone)]

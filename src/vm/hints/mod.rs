@@ -12,7 +12,7 @@ pub mod memset_utils;
 pub mod pow_utils;
 pub mod secp;
 pub mod set;
+pub mod sha256_utils;
 pub mod squash_dict_utils;
 pub mod uint256_utils;
 pub mod usort;
-pub mod sha256_utils;
