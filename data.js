@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1659979286117,
+  "lastUpdate": 1659983778683,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -17759,6 +17759,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 220104872,
             "range": "± 666937",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fa19e3d0b22345fc43b5461657db8254697b27c4",
+          "message": "Merge pull request #350 from lambdaclass/fast-ec-add-and-ec-mul-inner-hints\n\n# [HINTS]Add implementation for hints on functions fast_ec_add and ec_mul_inner (cairo_secp/ec.cairo)",
+          "timestamp": "2022-08-08T15:24:25-03:00",
+          "tree_id": "4677952af690791d6e44074433e1dda913fc9005",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/fa19e3d0b22345fc43b5461657db8254697b27c4"
+        },
+        "date": 1659983775528,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1727901635,
+            "range": "± 7447470",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 604918725,
+            "range": "± 1717985",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 302900747,
+            "range": "± 767740",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1482058391,
+            "range": "± 3302986",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 226146140,
+            "range": "± 823983",
             "unit": "ns/iter"
           }
         ]
