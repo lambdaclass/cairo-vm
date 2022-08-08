@@ -13,6 +13,7 @@ use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
+use std::ops::BitAnd;
 
 /*
 Implements hint:
@@ -332,7 +333,7 @@ pub fn fast_ec_add_assign_new_x(
     let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime);
     let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime);
 
-    let value = (slope.pow(2).mod_floor(&SECP_P) - &x0 - x1).mod_floor(&SECP_P);
+    let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
     vm.exec_scopes
@@ -396,7 +397,7 @@ pub fn ec_mul_inner(
         hint_ap_tracking,
     )?
     .mod_floor(&vm.prime)
-    .mod_floor(&bigint!(2));
+    .bitand(bigint!(1));
 
     vm.memory
         .insert(&vm.run_context.ap, &MaybeRelocatable::from(scalar))
