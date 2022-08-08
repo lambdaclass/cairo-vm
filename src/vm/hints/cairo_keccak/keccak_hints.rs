@@ -159,6 +159,14 @@ pub fn block_permutation(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
+    // these checks may not make sense now, but will when constants are
+    // deserialized from the compiled JSON programs.
+    if KECCAK_STATE_SIZE_FELTS >= 100 {
+        return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
+            KECCAK_STATE_SIZE_FELTS,
+        ));
+    }
+
     let keccak_ptr = get_ptr_from_var_name(
         "keccak_ptr",
         ids,
@@ -167,12 +175,6 @@ pub fn block_permutation(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-
-    if KECCAK_STATE_SIZE_FELTS >= 100 {
-        return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
-            KECCAK_STATE_SIZE_FELTS,
-        ));
-    }
 
     let values = vm
         .memory
@@ -214,6 +216,8 @@ pub fn cairo_keccak_finalize(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
+    // these checks may not make sense now, but will when constants are
+    // deserialized from the compiled JSON programs.
     if KECCAK_STATE_SIZE_FELTS >= 100 {
         return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
             KECCAK_STATE_SIZE_FELTS,
@@ -233,7 +237,7 @@ pub fn cairo_keccak_finalize(
     let base_padding = padding.clone();
 
     for _ in 0..(BLOCK_SIZE - 1) {
-        padding.extend(base_padding.clone());
+        padding.extend_from_slice(base_padding.as_slice());
     }
 
     let keccak_ptr_end = get_ptr_from_var_name(
@@ -263,7 +267,7 @@ fn maybe_reloc_vec_to_u64_array(
             if let Some(MaybeRelocatable::Int(num)) = n {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
             } else {
-                Err(VirtualMachineError::NoneInMemoryRange)
+                Err(VirtualMachineError::ExpectedIntAtRange(n.cloned()))
             }
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?

@@ -110,6 +110,7 @@ pub enum VirtualMachineError {
     IdNotFound(String),
     InvalidKeccakStateSizeFelts(usize),
     InvalidBlockSize(usize),
+    SliceToArrayError,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -311,6 +312,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::IdNotFound(var_name) => write!(f, "{} key was not found in the hint references. This may be caused because of a parsing error that resulted in a default value being returned. Please be sure to check this.", var_name),
             VirtualMachineError::InvalidKeccakStateSizeFelts(size) => write!(f, "Expected size to be in the range from [0, 100), got: {:?}", size),
             VirtualMachineError::InvalidBlockSize(size) => write!(f, "Expected size to be in range from [0, 10), got: {}", size),
+            VirtualMachineError::SliceToArrayError => write!(f, "Could not convert slice to array"),
         }
     }
 }
