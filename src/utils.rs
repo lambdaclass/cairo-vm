@@ -106,6 +106,31 @@ pub mod test_utils {
     }
     pub(crate) use memory_inner;
 
+    macro_rules! check_memory {
+        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+            $(
+                check_memory_address!($mem, ($si, $off), $val);
+            )*
+        };
+    }
+    pub(crate) use check_memory;
+
+    macro_rules! check_memory_address {
+        ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
+            assert_eq!(
+                $mem.get(&mayberelocatable!($si, $off)),
+                Ok(Some(&mayberelocatable!($sival, $offval)))
+            )
+        };
+        ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
+            assert_eq!(
+                $mem.get(&mayberelocatable!($si, $off)),
+                Ok(Some(&mayberelocatable!($val)))
+            )
+        };
+    }
+    pub(crate) use check_memory_address;
+
     macro_rules! mayberelocatable {
         ($val1 : expr, $val2 : expr) => {
             MaybeRelocatable::from(($val1, $val2))

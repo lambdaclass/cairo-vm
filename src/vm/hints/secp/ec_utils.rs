@@ -917,9 +917,6 @@ mod tests {
         );
 
         //Check hint memory inserts
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(b"0"))))
-        );
+        check_memory![&vm.memory, ((1, 2), 0)];
     }
 }
