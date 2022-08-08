@@ -13,8 +13,9 @@ use crate::{
 
 use num_bigint::BigInt;
 use num_traits::{One, ToPrimitive, Zero};
-use sha2::{Digest, Sha256};
+use sha2::compress256;
 use std::collections::HashMap;
+use generic_array::GenericArray;
 
 const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
 
@@ -53,8 +54,8 @@ pub fn sha256_main(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    const BYTE_STEP: usize = 4;
-    const STRING_SIZE_SHA: usize = 32;
+    //const BYTE_STEP: usize = 8;
+    //const STRING_SIZE_SHA: usize = 32;
 
     if SHA256_INPUT_CHUNK_SIZE_FELTS > 100 {
         return Err(VirtualMachineError::ShaInputChunkOutOfBounds(
@@ -84,19 +85,23 @@ pub fn sha256_main(
         );
     }
 
-    let mut hasher = Sha256::new();
-    println!("{:?}", message);
-    hasher.update(&message);
-    let new_state = hasher.finalize();
-    println!("{:?}", new_state);
+     let mut iv:[u32;8] = [0x6A09E667,
+    0xBB67AE85,
+    0x3C6EF372,
+    0xA54FF53A,
+    0x510E527F,
+    0x9B05688C,
+    0x1F83D9AB,
+    0x5BE0CD19];
+    let new_message = GenericArray::clone_from_slice(&message);
+    compress256(&mut iv, &[new_message]);
 
     let mut output: Vec<BigInt> = Vec::new();
 
-    for i in (0..STRING_SIZE_SHA).step_by(BYTE_STEP) {
-        let aux: [u8; 4] = new_state[i..i + BYTE_STEP]
-            .try_into()
-            .expect("slice with incorrect length");
-        output.push(bigint!(u32::from_be_bytes(aux)));
+    for i in 0..8{
+            //.try_into()
+            //.expect("slice with incorrect length");
+        output.push(bigint!(iv[i]));
     }
 
     let output_base = get_ptr_from_var_name(

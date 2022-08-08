@@ -214,6 +214,7 @@ dependencies = [
  "bincode",
  "clap 3.2.15",
  "criterion",
+ "generic-array",
  "hex",
  "lazy_static",
  "mimalloc",
@@ -226,7 +227,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "sha256",
+ "sha2 0.10.2",
  "sha3",
  "starknet-crypto",
 ]
@@ -429,9 +430,9 @@ checksum = "c1fd087255f739f4f1aeea69f11b72f8080e9c2e7645cd06955dad4a178a49e3"
 
 [[package]]
 name = "generic-array"
-version = "0.14.5"
+version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd48d33ec7f05fbfa152300fdad764757cbded343c1aa1cff2fbaf4134851803"
+checksum = "bff49e947297f3312447abdca79f45f4738097cc82b06e72054d2223f601f1b9"
 dependencies = [
  "typenum",
  "version_check",
@@ -1016,13 +1017,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha256"
-version = "1.0.3"
+name = "sha2"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e84a7f596c081d359de5e06a83877138bc3c4483591e1af1916e1472e6e146e"
+checksum = "55deaec60f81eefe3cce0dc50bda92d6d8e88f2a27df7c5033b42afeb1ed2676"
 dependencies = [
- "hex",
- "sha2",
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.3",
 ]
 
 [[package]]
@@ -1048,7 +1050,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rfc6979",
- "sha2",
+ "sha2 0.9.9",
  "starknet-ff",
  "thiserror",
  "zeroize",
