@@ -36,7 +36,7 @@ use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
     ec_utils::{
         compute_doubling_slope, compute_slope, ec_double_assign_new_x, ec_double_assign_new_y,
-        ec_negate,
+        ec_mul_inner, ec_negate, fast_ec_add_assign_new_x, fast_ec_add_assign_new_y,
     },
     field_utils::{
         is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
@@ -186,6 +186,11 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_X => {
+                fast_ec_add_assign_new_x(vm, ids, Some(ap_tracking))
+            }
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(vm),
+            hint_code::EC_MUL_INNER => ec_mul_inner(vm, ids, Some(ap_tracking)),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }
