@@ -453,6 +453,32 @@ value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
 pub(crate) const EC_DOUBLE_ASSIGN_NEW_Y: &str =
     r#"value = new_y = (slope * (x - new_x) - y) % SECP_P"#;
 
+pub(crate) const KECCAK_WRITE_ARGS: &str = r#"segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])
+segments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])"#;
+
+pub(crate) const COMPARE_BYTES_IN_WORD_NONDET: &str =
+    r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)"#;
+
+pub(crate) const COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET: &str =
+    r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"#;
+
+pub(crate) const BLOCK_PERMUTATION: &str = r#"from starkware.cairo.common.cairo_keccak.keccak_utils import keccak_func
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+assert 0 <= _keccak_state_size_felts < 100
+
+output_values = keccak_func(memory.get_range(
+    ids.keccak_ptr - _keccak_state_size_felts, _keccak_state_size_felts))
+segments.write_arg(ids.keccak_ptr, output_values)"#;
+
+pub(crate) const CAIRO_KECCAK_FINALIZE: &str = r#"# Add dummy pairs of input and output.
+_keccak_state_size_felts = int(ids.KECCAK_STATE_SIZE_FELTS)
+_block_size = int(ids.BLOCK_SIZE)
+assert 0 <= _keccak_state_size_felts < 100
+assert 0 <= _block_size < 10
+inp = [0] * _keccak_state_size_felts
+padding = (inp + keccak_func(inp)) * _block_size
+segments.write_arg(ids.keccak_ptr_end, padding)"#;
+
 pub(crate) const FAST_EC_ADD_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
 slope = pack(ids.slope, PRIME)

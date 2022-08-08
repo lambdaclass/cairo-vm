@@ -8,7 +8,7 @@ use nom::{
     combinator::{map_res, opt, value},
     error::{ErrorKind, ParseError},
     sequence::{delimited, tuple},
-    IResult,
+    Err, IResult,
 };
 use num_bigint::{BigInt, ParseBigIntError};
 use num_integer::Integer;
@@ -98,23 +98,25 @@ fn offset(input: &str) -> IResult<&str, i32> {
         return Ok(("", 0));
     }
 
-    let (rem_input, _) = opt(alt((tag(" + "), tag(" - "))))(input)?;
+    let (rem_input, sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
     let (rem_input, num_opt) = opt(delimited(tag("("), take_until(")"), tag(")")))(rem_input)?;
 
-    if let Some(num) = num_opt {
-        let parsed_num: i32 = match num.parse() {
-            Ok(parsed_num) => parsed_num,
-            Err(_) => {
-                return Err(nom::Err::Error(ParseError::from_error_kind(
-                    num,
-                    ErrorKind::MapRes,
-                )))
-            }
-        };
-
-        Ok((rem_input, parsed_num))
+    let sign = if let Some(" - ") = sign {
+        -1_i32
     } else {
-        map_res(digit1, i32::from_str)(rem_input)
+        1_i32
+    };
+
+    if let Some(num) = num_opt {
+        let parsed_num: i32 = num
+            .parse()
+            .map_err(|_| Err::Error(ParseError::from_error_kind(num, ErrorKind::MapRes)))?;
+
+        Ok((rem_input, sign * parsed_num))
+    } else {
+        let (rem_input, parsed_num) = map_res(digit1, i32::from_str)(rem_input)?;
+
+        Ok((rem_input, sign * parsed_num))
     }
 }
 
@@ -235,6 +237,10 @@ mod tests {
         let value_2 = " + 1";
         let parsed_2 = offset(value_2);
         assert_eq!(parsed_2, Ok(("", 1_i32)));
+
+        let value_3 = " - 1";
+        let parsed_3 = offset(value_3);
+        assert_eq!(parsed_3, Ok(("", -1_i32)));
     }
 
     #[test]

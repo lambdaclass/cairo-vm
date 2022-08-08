@@ -215,6 +215,7 @@ dependencies = [
  "clap 3.2.15",
  "criterion",
  "hex",
+ "keccak",
  "lazy_static",
  "mimalloc",
  "nom",

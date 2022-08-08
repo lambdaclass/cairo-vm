@@ -106,6 +106,11 @@ impl Relocatable {
         Ok(relocatable!(self.segment_index, new_offset))
     }
 
+    pub fn add(&self, other: usize) -> Result<Self, VirtualMachineError> {
+        let new_offset = self.offset + other;
+        Ok(relocatable!(self.segment_index, new_offset))
+    }
+
     pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {
         if self.segment_index != other.segment_index {
             return Err(VirtualMachineError::DiffIndexSub);
