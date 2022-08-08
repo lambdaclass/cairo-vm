@@ -537,7 +537,7 @@ mod tests {
         let ids = ids!["point0", "point1"];
 
         //Create references
-        vm.references = no_continues_references![-14, -8];
+        vm.references = not_continuous_references![-14, -8];
 
         //Check 'value' is not defined in the vm scope
         assert_eq!(
@@ -600,7 +600,7 @@ mod tests {
         let ids = ids!["point", "slope"];
 
         //Create references
-        vm.references = no_continues_references![-10, -4];
+        vm.references = not_continuous_references![-10, -4];
 
         //Check 'slope' is not defined in the vm scope
         assert_eq!(
@@ -779,7 +779,7 @@ mod tests {
         let ids = ids!["point0", "point1", "slope"];
 
         //Create references
-        vm.references = no_continues_references![-15, -9, -6];
+        vm.references = not_continuous_references![-15, -9, -6];
 
         //Check 'value' is not defined in the vm scope
         assert_eq!(

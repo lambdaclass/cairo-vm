@@ -152,7 +152,7 @@ pub mod test_utils {
     }
     pub(crate) use references;
 
-    macro_rules! no_continues_references {
+    macro_rules! not_continuous_references {
         ( $( $offset:expr ),*) => {
             {
             let mut references = HashMap::<usize, HintReference>::new();
@@ -166,7 +166,7 @@ pub mod test_utils {
         }
     };
     }
-    pub(crate) use no_continues_references;
+    pub(crate) use not_continuous_references;
 
     macro_rules! vm_with_range_check {
         () => {
