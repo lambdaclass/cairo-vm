@@ -408,7 +408,6 @@ mod tests {
     use super::*;
     use crate::bigint_str;
     use crate::types::exec_scope::PyValueType;
-    use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -538,38 +537,7 @@ mod tests {
         let ids = ids!["point0", "point1"];
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -14,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -8,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-        ]);
+        vm.references = no_continues_references![-14, -8];
 
         //Check 'value' is not defined in the vm scope
         assert_eq!(
@@ -628,51 +596,11 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 10));
-
         //Create ids
         let ids = ids!["point", "slope"];
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -10,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::AP,
-                    offset1: -4,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-        ]);
-
-        //Create ap tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
-        };
+        vm.references = no_continues_references![-10, -4];
 
         //Check 'slope' is not defined in the vm scope
         assert_eq!(
@@ -701,7 +629,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             vm.hint_executor
-                .execute_hint(&mut vm, &hint_code, &ids, &ap_tracking),
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -851,59 +779,7 @@ mod tests {
         let ids = ids!["point0", "point1", "slope"];
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -15,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -9,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::AP,
-                    offset1: -11,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-        ]);
-
-        //Create ap tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
-        };
+        vm.references = no_continues_references![-15, -9, -6];
 
         //Check 'value' is not defined in the vm scope
         assert_eq!(
@@ -920,7 +796,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             vm.hint_executor
-                .execute_hint(&mut vm, &hint_code, &ids, &ap_tracking),
+                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 

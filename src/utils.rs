@@ -127,6 +127,22 @@ pub mod test_utils {
     }
     pub(crate) use references;
 
+    macro_rules! no_continues_references {
+        ( $( $offset:expr ),*) => {
+            {
+            let mut references = HashMap::<usize, HintReference>::new();
+            let mut index = -1;
+
+            $(
+                index += 1;
+                references.insert(index as usize, HintReference::new_simple(($offset)));
+            )*
+        references
+        }
+    };
+    }
+    pub(crate) use no_continues_references;
+
     macro_rules! vm_with_range_check {
         () => {
             VirtualMachine::new(
