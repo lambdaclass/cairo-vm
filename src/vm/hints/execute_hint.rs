@@ -187,7 +187,7 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
-            hint_code::SHA256_MAIN => sha256_main(vm, ids, None),
+            hint_code::SHA256_MAIN => sha256_main(vm, ids, Some(ap_tracking)),
             hint_code::SHA256_INPUT => sha256_input(vm, ids, None),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }

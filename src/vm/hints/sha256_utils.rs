@@ -1,18 +1,19 @@
 use crate::{
-    bigint, bigint_str,
+    bigint,
     serde::deserialize_program::ApTracking,
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
-            get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
+            get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+            insert_value_from_var_name,
         },
         vm_core::VirtualMachine,
     },
 };
 
 use num_bigint::BigInt;
-use num_traits::{One, Zero};
-use sha256::digest_bytes;
+use num_traits::{One, ToPrimitive, Zero};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
@@ -52,8 +53,8 @@ pub fn sha256_main(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    const BYTE_STEP: usize = 8;
-    const STRING_SIZE_SHA: usize = 64;
+    const BYTE_STEP: usize = 4;
+    const STRING_SIZE_SHA: usize = 32;
 
     if SHA256_INPUT_CHUNK_SIZE_FELTS > 100 {
         return Err(VirtualMachineError::ShaInputChunkOutOfBounds(
@@ -77,19 +78,28 @@ pub fn sha256_main(
         message.extend(
             vm.memory
                 .get_integer(&(input_ptr + i))?
-                .to_signed_bytes_be(),
+                .to_u32()
+                .unwrap()
+                .to_be_bytes(),
         );
     }
 
-    let digested_message = digest_bytes(&message);
-    let new_state = digested_message.as_bytes();
+    let mut hasher = Sha256::new();
+    println!("{:?}", message);
+    hasher.update(&message);
+    let new_state = hasher.finalize();
+    println!("{:?}", new_state);
+
     let mut output: Vec<BigInt> = Vec::new();
 
-    for i in (0..STRING_SIZE_SHA - BYTE_STEP).step_by(BYTE_STEP) {
-        output.push(bigint_str!(&new_state[i..i + BYTE_STEP], 16));
+    for i in (0..STRING_SIZE_SHA).step_by(BYTE_STEP) {
+        let aux: [u8; 4] = new_state[i..i + BYTE_STEP]
+            .try_into()
+            .expect("slice with incorrect length");
+        output.push(bigint!(u32::from_be_bytes(aux)));
     }
 
-    let output_base = get_relocatable_from_var_name(
+    let output_base = get_ptr_from_var_name(
         "output",
         ids,
         &vm.memory,
@@ -98,7 +108,6 @@ pub fn sha256_main(
         hint_ap_tracking,
     )?;
 
-    println!("{}", &digested_message);
     vm.segments
         .write_arg(&mut vm.memory, &output_base, &output, Some(&vm.prime))
         .map_err(VirtualMachineError::MemoryError)?;
