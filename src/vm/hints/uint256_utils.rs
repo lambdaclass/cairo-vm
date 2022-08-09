@@ -10,7 +10,7 @@ use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
-use super::hint_utils::{insert_int_into_ap, insert_integer_from_var_name};
+use super::hint_utils::{insert_int_into_ap, insert_value_from_var_name};
 
 /*
 Implements hint:
@@ -52,8 +52,8 @@ pub fn uint256_add(
     } else {
         bigint!(0)
     };
-    insert_integer_from_var_name("carry_high", carry_high, ids, vm_proxy, hint_ap_tracking)?;
-    insert_integer_from_var_name("carry_low", carry_low, ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name("carry_high", carry_high, ids, vm_proxy, hint_ap_tracking)?;
+    insert_value_from_var_name("carry_low", carry_low, ids, vm_proxy, hint_ap_tracking)
 }
 
 /*
@@ -72,8 +72,8 @@ pub fn split_64(
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
     let high = digits.next().unwrap_or(0u64);
-    insert_integer_from_var_name("high", bigint!(high), ids, vm_proxy, hint_ap_tracking)?;
-    insert_integer_from_var_name("low", bigint!(low), ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name("high", bigint!(high), ids, vm_proxy, hint_ap_tracking)?;
+    insert_value_from_var_name("low", bigint!(low), ids, vm_proxy, hint_ap_tracking)
 }
 
 /*
@@ -113,8 +113,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm_proxy.memory.insert_integer(&root_addr, root)?;
-    vm_proxy.memory.insert_integer(&(root_addr + 1), bigint!(0))
+    vm_proxy.memory.insert_value(&root_addr, root)?;
+    vm_proxy.memory.insert_value(&(root_addr + 1), bigint!(0))
 }
 
 /*
@@ -191,130 +191,52 @@ pub fn uint256_unsigned_div_rem(
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
-    vm_proxy
-        .memory
-        .insert_integer(&quotient_addr, quotient_low)?;
+    vm_proxy.memory.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
     vm_proxy
         .memory
-        .insert_integer(&(quotient_addr + 1), quotient_high)?;
+        .insert_value(&(quotient_addr + 1), quotient_high)?;
     //Insert ids.remainder.low
     vm_proxy
         .memory
-        .insert_integer(&remainder_addr, remainder_low)?;
+        .insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
     vm_proxy
         .memory
-        .insert_integer(&(remainder_addr + 1), remainder_high)
+        .insert_value(&(remainder_addr + 1), remainder_high)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::bigint_str;
-    use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{execute_hint, get_vm_proxy, HintReference};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
+
     #[test]
     fn run_uint256_add_ok() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
+        let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
-
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("carry_high"), bigint!(2));
-        ids.insert(String::from("carry_low"), bigint!(3));
-
+        let ids = ids!["a", "b", "carry_high", "carry_low"];
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -6,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-6)),
+            (1, HintReference::new_simple(-4)),
+            (2, HintReference::new_simple(3)),
+            (3, HintReference::new_simple(2)),
         ]);
-
-        //Insert ids.a.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-        //Insert ids.b.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from(bigint!(4)),
-            )
-            .unwrap();
-        //Insert ids.b.high into memory
+        vm.memory = memory![((1, 4), 2), ((1, 5), 3), ((1, 6), 4)];
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 7)),
@@ -322,10 +244,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -342,15 +264,8 @@ mod tests {
 
     #[test]
     fn run_uint256_add_fail_inserts() {
-        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -359,58 +274,14 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("b"), bigint!(1));
-        ids.insert(String::from("carry_high"), bigint!(2));
-        ids.insert(String::from("carry_low"), bigint!(3));
+        let ids = ids!["a", "b", "carry_high", "carry_low"];
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -6,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-6)),
+            (1, HintReference::new_simple(-4)),
+            (2, HintReference::new_simple(3)),
+            (3, HintReference::new_simple(2)),
         ]);
 
         //Insert ids.a.low into memory
@@ -450,10 +321,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -466,15 +337,8 @@ mod tests {
 
     #[test]
     fn run_split_64_ok() {
-        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -483,46 +347,13 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["a", "high", "low"];
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-3)),
+            (1, HintReference::new_simple(1)),
+            (2, HintReference::new_simple(0)),
         ]);
 
         //Insert ids.a into memory
@@ -533,10 +364,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -559,15 +390,8 @@ mod tests {
 
     #[test]
     fn run_split_64_memory_error() {
-        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -576,46 +400,13 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let ids = ids!["a", "high", "low"];
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-3)),
+            (1, HintReference::new_simple(1)),
+            (2, HintReference::new_simple(0)),
         ]);
 
         //Insert ids.a into memory
@@ -634,10 +425,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -650,15 +441,8 @@ mod tests {
 
     #[test]
     fn run_uint256_sqrt_ok() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -667,56 +451,18 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 5));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n"), bigint!(0));
-        ids.insert(String::from("root"), bigint!(1));
+        let ids = ids!["n", "root"];
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -5,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-5)),
+            (1, HintReference::new_simple(0)),
         ]);
-
-        //Insert  ids.n.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
-
-        //Insert ids.n.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(7)),
-            )
-            .unwrap();
-
-        let mut variables = get_vm_proxy(&mut vm);
+        vm.memory = memory![((1, 0), 17), ((1, 1), 7)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -737,15 +483,8 @@ mod tests {
 
     #[test]
     fn run_uint256_sqrt_assert_error() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -754,44 +493,14 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 5));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n"), bigint!(0));
-        ids.insert(String::from("root"), bigint!(1));
+        let ids = ids!["n", "root"];
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -5,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-5)),
+            (1, HintReference::new_simple(0)),
         ]);
-
-        //Insert  ids.n.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
+        vm.memory = memory![((1, 0), 0)];
         //Insert ids.n.high into memory
         vm.memory
             .insert(
@@ -799,11 +508,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint_str!(b"340282366920938463463374607431768211458")),
             )
             .unwrap();
-
-        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -812,15 +520,8 @@ mod tests {
 
     #[test]
     fn run_uint256_invalid_memory_insert() {
-        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -829,64 +530,19 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 5));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n"), bigint!(0));
-        ids.insert(String::from("root"), bigint!(1));
-
+        let ids = ids!["n", "root"];
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -5,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-5)),
+            (1, HintReference::new_simple(0)),
         ]);
 
         //Insert  ids.n.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(17)),
-            )
-            .unwrap();
-
-        //Insert ids.n.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(7)),
-            )
-            .unwrap();
-
-        //Insert a value in the ids.root.low address so the hint insert fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        let mut variables = get_vm_proxy(&mut vm);
+        vm.memory = memory![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -899,15 +555,8 @@ mod tests {
 
     #[test]
     fn run_signed_nn_ok_result_one() {
-        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -917,21 +566,10 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 5));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        let ids = ids!["a"];
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-4))]);
 
         //Insert ids.a.high into memory
         vm.memory
@@ -943,8 +581,9 @@ mod tests {
 
         let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -958,15 +597,8 @@ mod tests {
 
     #[test]
     fn run_signed_nn_ok_result_zero() {
-        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -976,34 +608,24 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 5));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        let ids = ids!["a"];
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-4))]);
 
         //Insert ids.a.high into memory
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1).shl(127) + &vm.prime),
+                &MaybeRelocatable::from(bigint!(1).shl(127_i64) + &vm.prime),
             )
             .unwrap();
 
         let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1017,15 +639,8 @@ mod tests {
 
     #[test]
     fn run_signed_nn_ok_invalid_memory_insert() {
-        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
+        let mut vm = vm_with_range_check!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1035,21 +650,10 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 5));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
+        let ids = ids!["a"];
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -4,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-4))]);
 
         //Insert ids.a.high into memory
         vm.memory
@@ -1065,8 +669,9 @@ mod tests {
             .unwrap();
         let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -1079,110 +684,26 @@ mod tests {
 
     #[test]
     fn run_unsigned_div_rem_ok() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("div"), bigint!(1));
-        ids.insert(String::from("quotient"), bigint!(2));
-        ids.insert(String::from("remainder"), bigint!(3));
-
+        let ids = ids!["a", "div", "quotient", "remainder"];
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -6,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-6)),
+            (1, HintReference::new_simple(-4)),
+            (2, HintReference::new_simple(0)),
+            (3, HintReference::new_simple(2)),
         ]);
-
-        //Insert ids.a.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(89)),
-            )
-            .unwrap();
-        //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(72)),
-            )
-            .unwrap();
-        //Insert ids.div.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-        //Insert ids.div.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint!(7)),
-            )
-            .unwrap();
-
-        let mut variables = get_vm_proxy(&mut vm);
+        //Insert ids into memory
+        vm.memory = memory![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -1211,117 +732,33 @@ mod tests {
 
     #[test]
     fn run_unsigned_div_rem_invalid_memory_insert() {
-        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
+        let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(0));
-        ids.insert(String::from("div"), bigint!(1));
-        ids.insert(String::from("quotient"), bigint!(2));
-        ids.insert(String::from("remainder"), bigint!(3));
+        let ids = ids!["a", "div", "quotient", "remainder"];
 
         //Create references
         vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -6,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                3,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (0, HintReference::new_simple(-6)),
+            (1, HintReference::new_simple(-4)),
+            (2, HintReference::new_simple(0)),
+            (3, HintReference::new_simple(2)),
         ]);
-
-        //Insert ids.a.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(89)),
-            )
-            .unwrap();
-        //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(72)),
-            )
-            .unwrap();
-        //Insert ids.div.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-        //Insert ids.div.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint!(7)),
-            )
-            .unwrap();
-        //Insert a value in the ids.quotient.low address so the hint insert fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 10)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        let mut variables = get_vm_proxy(&mut vm);
+        //Insert ids into memory
+        vm.memory = memory![
+            ((1, 4), 89),
+            ((1, 5), 72),
+            ((1, 6), 3),
+            ((1, 7), 7),
+            ((1, 10), 0)
+        ];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),

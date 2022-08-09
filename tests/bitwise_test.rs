@@ -2,14 +2,19 @@ use std::path::Path;
 
 use cleopatra_cairo::{
     types::program::Program,
-    vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
+    vm::{
+        hints::execute_hint::BuiltinHintExecutor, runners::cairo_runner::CairoRunner,
+        trace::trace_entry::RelocatedTraceEntry,
+    },
 };
+
+static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
 #[test]
 fn bitwise_integration_test() {
     let program = Program::new(Path::new("cairo_programs/bitwise_builtin_test.json"))
         .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program, true);
+    let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
 

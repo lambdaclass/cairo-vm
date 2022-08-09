@@ -46,6 +46,12 @@ impl From<&Relocatable> for MaybeRelocatable {
     }
 }
 
+impl From<&Relocatable> for Relocatable {
+    fn from(other: &Relocatable) -> Self {
+        other.clone()
+    }
+}
+
 impl From<&BigInt> for MaybeRelocatable {
     fn from(val: &BigInt) -> Self {
         MaybeRelocatable::Int(val.clone())
@@ -62,6 +68,32 @@ impl Add<usize> for Relocatable {
     type Output = Relocatable;
     fn add(self, other: usize) -> Self {
         relocatable!(self.segment_index, self.offset + other)
+    }
+}
+
+impl TryInto<Relocatable> for MaybeRelocatable {
+    type Error = MemoryError;
+    fn try_into(self) -> Result<Relocatable, MemoryError> {
+        match self {
+            MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
+            _ => Err(MemoryError::AddressNotRelocatable),
+        }
+    }
+}
+
+impl From<&MaybeRelocatable> for MaybeRelocatable {
+    fn from(other: &MaybeRelocatable) -> Self {
+        other.clone()
+    }
+}
+
+impl TryFrom<&MaybeRelocatable> for Relocatable {
+    type Error = MemoryError;
+    fn try_from(other: &MaybeRelocatable) -> Result<Self, MemoryError> {
+        match other {
+            MaybeRelocatable::RelocatableValue(rel) => Ok(rel.clone()),
+            _ => Err(MemoryError::AddressNotRelocatable),
+        }
     }
 }
 

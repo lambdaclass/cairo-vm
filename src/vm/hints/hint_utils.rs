@@ -210,7 +210,6 @@ pub fn get_ptr_from_var_name(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
     let var_addr = get_relocatable_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)?;
-    let value = vm_proxy.memory.get_relocatable(&var_addr)?;
     //Add immediate if present in reference
     let index = ids
         .get(&String::from(var_name))
@@ -223,14 +222,20 @@ pub fn get_ptr_from_var_name(
                 .ok_or(VirtualMachineError::BigintToUsizeFail)?,
         )
         .ok_or(VirtualMachineError::FailedToGetIds)?;
-    if let Some(immediate) = &hint_reference.immediate {
-        let modified_value = relocatable!(
-            value.segment_index,
-            value.offset + bigint_to_usize(immediate)?
-        );
-        return Ok(modified_value);
+    if hint_reference.dereference {
+        let value = vm_proxy.memory.get_relocatable(&var_addr)?;
+        if let Some(immediate) = &hint_reference.immediate {
+            let modified_value = relocatable!(
+                value.segment_index,
+                value.offset + bigint_to_usize(immediate)?
+            );
+            Ok(modified_value)
+        } else {
+            Ok(value.clone())
+        }
+    } else {
+        Ok(var_addr)
     }
-    Ok(value.clone())
 }
 
 fn apply_ap_tracking_correction(
@@ -303,10 +308,20 @@ pub fn compute_addr_from_reference(
 
             match memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
-                    return Ok(Some(MaybeRelocatable::from((
-                        dereferenced_addr.segment_index,
-                        (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
-                    ))))
+                    if let Some(imm) = &hint_reference.immediate {
+                        return Ok(Some(MaybeRelocatable::from((
+                            dereferenced_addr.segment_index,
+                            dereferenced_addr.offset
+                                + imm
+                                    .to_usize()
+                                    .ok_or(VirtualMachineError::BigintToUsizeFail)?,
+                        ))));
+                    } else {
+                        return Ok(Some(MaybeRelocatable::from((
+                            dereferenced_addr.segment_index,
+                            (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
+                        ))));
+                    }
                 }
 
                 _none_or_error => return Ok(None),
@@ -360,28 +375,15 @@ pub fn get_address_from_var_name(
     .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
-pub fn insert_integer_from_var_name(
+pub fn insert_value_from_var_name(
     var_name: &str,
-    int: BigInt,
+    value: impl Into<MaybeRelocatable>,
     ids: &HashMap<String, BigInt>,
     vm_proxy: &mut VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let var_address = get_relocatable_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)?;
-    vm_proxy.memory.insert_integer(&var_address, int)
-}
-
-pub fn insert_relocatable_from_var_name(
-    var_name: &str,
-    relocatable: Relocatable,
-    ids: &HashMap<String, BigInt>,
-    vm_proxy: &mut VMProxy,
-    hint_ap_tracking: Option<&ApTracking>,
-) -> Result<(), VirtualMachineError> {
-    let var_address = get_relocatable_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)?;
-    vm_proxy
-        .memory
-        .insert_relocatable(&var_address, &relocatable)
+    vm_proxy.memory.insert_value(&var_address, value)
 }
 
 //Gets the address of a variable name.
@@ -415,7 +417,7 @@ pub fn get_integer_from_var_name<'a>(
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     let new_segment_base =
-        MaybeRelocatable::RelocatableValue(vm_proxy.segments.add(vm_proxy.memory, None));
+        MaybeRelocatable::RelocatableValue(vm_proxy.segments.add(&mut vm_proxy.memory, None));
     vm_proxy
         .memory
         .insert(&vm_proxy.run_context.ap, &new_segment_base)
@@ -449,7 +451,6 @@ pub fn memcpy_enter_scope(
         String::from("n"),
         PyValueType::BigInt(len),
     )]));
-
     Ok(())
 }
 
@@ -470,7 +471,7 @@ pub fn memcpy_continue_copying(
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
-        insert_integer_from_var_name(
+        insert_value_from_var_name(
             "continue_copying",
             bigint!(1),
             ids,
@@ -478,7 +479,7 @@ pub fn memcpy_continue_copying(
             hint_ap_tracking,
         )?;
     } else {
-        insert_integer_from_var_name(
+        insert_value_from_var_name(
             "continue_copying",
             bigint!(0),
             ids,
@@ -494,18 +495,16 @@ pub fn memcpy_continue_copying(
 
 #[cfg(test)]
 mod tests {
-    use crate::vm::{hints::execute_hint::get_vm_proxy, vm_core::VirtualMachine};
-
     use super::*;
+    use crate::utils::test_utils::*;
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor};
     use num_bigint::Sign;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn get_integer_from_var_name_valid() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
+        let mut vm = vm!();
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
 
@@ -513,17 +512,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         let var_name: &str = "variable";
 
@@ -547,11 +536,7 @@ mod tests {
 
     #[test]
     fn get_integer_from_var_name_invalid_expected_integer() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
+        let mut vm = vm!();
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
 
@@ -559,17 +544,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
 
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
         let var_name: &str = "variable";
 

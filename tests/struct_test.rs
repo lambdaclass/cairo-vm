@@ -2,14 +2,17 @@ use std::path::Path;
 
 use cleopatra_cairo::{
     types::program::Program,
+    vm::hints::execute_hint::BuiltinHintExecutor,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };
+
+static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
 #[test]
 fn struct_integration_test() {
     let program = Program::new(Path::new("cairo_programs/struct.json"))
         .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program, true);
+    let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
 

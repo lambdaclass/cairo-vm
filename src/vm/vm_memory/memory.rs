@@ -26,105 +26,91 @@ impl Memory {
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
     /// Will panic if the segment index given by the address corresponds to a non-allocated segment
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
-    pub fn insert(
-        &mut self,
-        key: &MaybeRelocatable,
-        val: &MaybeRelocatable,
-    ) -> Result<(), MemoryError> {
-        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
-            //Check that the memory segment exists
-            if self.data.len() < value_index + 1 {
-                return Err(MemoryError::UnallocatedSegment(
-                    value_index,
-                    self.data.len(),
-                ));
-            }
-            //Check if the element is inserted next to the last one on the segment
-            //Forgoing this check would allow data to be inserted in a different index
-            if self.data[value_index].len() < value_offset {
-                //Insert none values to represent gaps in memory
-                for _ in 0..(value_offset - self.data[value_index].len()) {
-                    self.data[value_index].push(None)
+    pub fn insert<'a, K: 'a, V: 'a>(&mut self, key: &'a K, val: &'a V) -> Result<(), MemoryError>
+    where
+        Relocatable: TryFrom<&'a K>,
+        MaybeRelocatable: From<&'a K>,
+        MaybeRelocatable: From<&'a V>,
+    {
+        let relocatable: Relocatable = key
+            .try_into()
+            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let val = MaybeRelocatable::from(val);
+        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
+        let data_len = self.data.len();
+        let segment = self
+            .data
+            .get_mut(value_index)
+            .ok_or(MemoryError::UnallocatedSegment(value_index, data_len))?;
+        //Check if the element is inserted next to the last one on the segment
+        //Forgoing this check would allow data to be inserted in a different index
+        if segment.len() <= value_offset {
+            segment.resize(value_offset + 1, None);
+        }
+        // At this point there's *something* in there
+        match segment[value_offset] {
+            None => segment[value_offset] = Some(val),
+            Some(ref current_value) => {
+                if current_value != &val {
+                    //Existing memory cannot be changed
+                    return Err(MemoryError::InconsistentMemory(
+                        relocatable.into(),
+                        current_value.to_owned(),
+                        val,
+                    ));
                 }
             }
-            if self.data[value_index].len() > value_offset {
-                match self.data[value_index][value_offset] {
-                    Some(ref current_value) => {
-                        if current_value != val {
-                            //Existing memory cannot be changed
-                            return Err(MemoryError::InconsistentMemory(
-                                key.to_owned(),
-                                current_value.to_owned(),
-                                val.to_owned(),
-                            ));
-                        }
-                    }
-                    //Fill existing memory gaps
-                    None => self.data[value_index][value_offset] = Some(val.to_owned()),
-                };
-            } else {
-                //Value inserted netxt to last element
-                self.data[value_index].push(Some(val.clone()))
-            }
-        } else {
-            return Err(MemoryError::AddressNotRelocatable);
-        }
-        self.validate_memory_cell(key)
+        };
+        self.validate_memory_cell(&MaybeRelocatable::from(key))
     }
 
-    pub fn get(&self, key: &MaybeRelocatable) -> Result<Option<&MaybeRelocatable>, MemoryError> {
-        if let MaybeRelocatable::RelocatableValue(relocatable) = key {
-            let (i, j) = from_relocatable_to_indexes(relocatable.clone());
-            if self.data.len() > i && self.data[i].len() > j {
-                if let Some(ref element) = self.data[i][j] {
-                    return Ok(Some(element));
-                }
+    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    where
+        Relocatable: TryFrom<&'a K>,
+    {
+        let relocatable: Relocatable = key
+            .try_into()
+            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let (i, j) = from_relocatable_to_indexes(relocatable);
+        if self.data.len() > i && self.data[i].len() > j {
+            if let Some(ref element) = self.data[i][j] {
+                return Ok(Some(element));
             }
-            Ok(None)
-        } else {
-            Err(MemoryError::AddressNotRelocatable)
         }
+        Ok(None)
     }
 
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
     pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        match self.get(&MaybeRelocatable::from((key.segment_index, key.offset))) {
-            Ok(Some(MaybeRelocatable::Int(int))) => Ok(int),
-            Ok(_) => Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((key.segment_index, key.offset)),
-            )),
-            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
+        if let Some(MaybeRelocatable::Int(int)) =
+            self.get(key).map_err(VirtualMachineError::MemoryError)?
+        {
+            Ok(int)
+        } else {
+            Err(VirtualMachineError::ExpectedInteger(
+                MaybeRelocatable::from(key),
+            ))
         }
     }
 
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
-        match self.get(&MaybeRelocatable::from((key.segment_index, key.offset))) {
+        match self.get(key) {
             Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
             Ok(_) => Err(VirtualMachineError::ExpectedRelocatable(
-                MaybeRelocatable::from((key.segment_index, key.offset)),
+                MaybeRelocatable::from(key),
             )),
             Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
     }
 
-    pub fn insert_relocatable(
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
         key: &Relocatable,
-        val: &Relocatable,
+        val: T,
     ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
-            .map_err(VirtualMachineError::MemoryError)
-    }
-
-    pub fn insert_integer(
-        &mut self,
-        key: &Relocatable,
-        val: BigInt,
-    ) -> Result<(), VirtualMachineError> {
-        self.insert(&MaybeRelocatable::from(key), &MaybeRelocatable::from(val))
+        self.insert(key, &val.into())
             .map_err(VirtualMachineError::MemoryError)
     }
 

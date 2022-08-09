@@ -7,7 +7,7 @@ use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
 use super::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, insert_integer_from_var_name,
+    get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
 };
 
 pub fn set_add(
@@ -25,7 +25,6 @@ pub fn set_add(
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
-
     let elm = vm_proxy
         .memory
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
@@ -50,14 +49,14 @@ pub fn set_add(
             .map_err(VirtualMachineError::MemoryError)?;
 
         if set_iter == elm {
-            insert_integer_from_var_name(
+            insert_value_from_var_name(
                 "index",
                 bigint!(i / elm_size),
                 ids,
                 vm_proxy,
                 hint_ap_tracking,
             )?;
-            return insert_integer_from_var_name(
+            return insert_value_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
                 ids,
@@ -66,23 +65,23 @@ pub fn set_add(
             );
         }
     }
-    insert_integer_from_var_name("is_elm_in_set", bigint!(0), ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name("is_elm_in_set", bigint!(0), ids, vm_proxy, hint_ap_tracking)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::hint_executor::HintExecutor;
     use crate::types::instruction::Register;
-    use crate::vm::hints::execute_hint::get_vm_proxy;
+    use crate::utils::test_utils::*;
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::vm::{
-        hints::execute_hint::{execute_hint, HintReference},
-        runners::builtin_runner::OutputBuiltinRunner,
-    };
     use num_bigint::Sign;
 
-    const HINT_CODE: &[u8] = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0".as_bytes();
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+
+    const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
     fn init_vm_ids(
         set_ptr: Option<&MaybeRelocatable>,
@@ -90,14 +89,7 @@ mod tests {
         elm_a: Option<&MaybeRelocatable>,
         elm_b: Option<&MaybeRelocatable>,
     ) -> (VirtualMachine, HashMap<String, BigInt>) {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            vec![(
-                "range_check".to_string(),
-                Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-            )],
-            false,
-        );
+        let mut vm = vm_with_range_check!();
 
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
@@ -175,6 +167,7 @@ mod tests {
             (
                 0,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -5,
                     offset2: 0,
@@ -183,31 +176,12 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -4,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (1, HintReference::new_simple(-4)),
+            (2, HintReference::new_simple(-3)),
             (
                 3,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -2,
                     offset2: 0,
@@ -219,6 +193,7 @@ mod tests {
             (
                 4,
                 HintReference {
+                    dereference: true,
                     register: Register::FP,
                     offset1: -1,
                     offset2: 0,
@@ -227,17 +202,7 @@ mod tests {
                     immediate: None,
                 },
             ),
-            (
-                5,
-                HintReference {
-                    register: Register::FP,
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
+            (5, HintReference::new_simple(0)),
         ]);
 
         let mut ids = HashMap::<String, BigInt>::new();
@@ -261,9 +226,9 @@ mod tests {
     #[test]
     fn set_add_new_elem() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -281,9 +246,9 @@ mod tests {
             Some(&MaybeRelocatable::from(bigint!(1))),
             Some(&MaybeRelocatable::from(bigint!(3))),
         );
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -301,9 +266,9 @@ mod tests {
     #[test]
     fn elm_size_not_int() {
         let (mut vm, ids) = init_vm_ids(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 3))
             ))
@@ -315,9 +280,9 @@ mod tests {
         let int = bigint!(-2);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
@@ -327,18 +292,18 @@ mod tests {
         let int = bigint!(0);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ValueNotPositive(int))
         );
     }
     #[test]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids) = init_vm_ids(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
-        let mut variables = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Err(VirtualMachineError::InvalidSetRange(
                 MaybeRelocatable::from((1, 3)),
                 MaybeRelocatable::from((1, 2)),
@@ -349,38 +314,11 @@ mod tests {
     #[test]
     fn find_elm_failed_ids_get_addres() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        vm.references.insert(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -7,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        );
-        let mut variables = get_vm_proxy(&mut vm);
+        vm.references.insert(0, HintReference::new_simple(-7));
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
             Err(VirtualMachineError::FailedToGetIds)
         );
-    }
-
-    #[test]
-    fn range_check_not_first_builtin() {
-        let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        _ = vm.builtin_runners.pop();
-        vm.builtin_runners.push((
-            "output".to_string(),
-            Box::new(OutputBuiltinRunner::new(true)),
-        ));
-
-        vm.builtin_runners.push((
-            "range_check".to_string(),
-            Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
-        ));
-        let mut variables = get_vm_proxy(&mut vm);
-        assert!(execute_hint(&mut variables, HINT_CODE, ids, &ApTracking::new()).is_ok());
     }
 }

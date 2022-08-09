@@ -139,10 +139,7 @@ pub fn unsafe_keccak_finalize(
     ----------------------------- */
 
     let keccak_state_ptr =
-        match get_relocatable_from_var_name("keccak_state", ids, vm_proxy, hint_ap_tracking) {
-            Ok(relocatable) => relocatable,
-            Err(e) => return Err(e),
-        };
+        get_relocatable_from_var_name("keccak_state", ids, vm_proxy, hint_ap_tracking)?;
 
     // as `keccak_state` is a struct, the pointer to the struct is the same as the pointer to the first element.
     // this is why to get the pointer stored in the field `start_ptr` it is enough to pass the variable name as

@@ -51,6 +51,16 @@ pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
+    use lazy_static::lazy_static;
+    use num_bigint::BigInt;
+
+    lazy_static! {
+        pub static ref VM_PRIME: BigInt = BigInt::parse_bytes(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+            10,
+        )
+        .unwrap();
+    }
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
         {
@@ -105,6 +115,65 @@ pub mod test_utils {
         };
     }
     pub(crate) use mayberelocatable;
+
+    macro_rules! references {
+        ($num: expr) => {{
+            let mut references = HashMap::<usize, HintReference>::new();
+            for i in 0..$num {
+                references.insert(i, HintReference::new_simple((i as i32 - $num)));
+            }
+            references
+        }};
+    }
+    pub(crate) use references;
+
+    macro_rules! vm_with_range_check {
+        () => {
+            VirtualMachine::new(
+                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+                vec![(
+                    "range_check".to_string(),
+                    Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                )],
+                false,
+            )
+        };
+    }
+    pub(crate) use vm_with_range_check;
+
+    macro_rules! vm {
+        () => {
+            VirtualMachine::new(
+                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+                vec![],
+                false,
+            )
+        };
+    }
+    pub(crate) use vm;
+
+    macro_rules! ids {
+        ( $( $name: expr ),* ) => {
+            {
+                let mut ids = HashMap::<String, BigInt>::new();
+                let mut num = -1;
+                $(
+                    num += 1;
+                    ids_inner!($name, num, ids);
+
+                )*
+                ids
+            }
+        };
+    }
+    pub(crate) use ids;
+
+    macro_rules! ids_inner {
+        ( $name: expr, $num: expr, $ids: expr ) => {
+            $ids.insert(String::from($name), bigint!($num))
+        };
+    }
+    pub(crate) use ids_inner;
 }
 
 #[cfg(test)]

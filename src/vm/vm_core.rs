@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::hint_executor::HintExecutor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
@@ -17,7 +18,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
-use super::hints::execute_hint::{execute_hint, get_vm_proxy, HintReference};
+use super::hints::execute_hint::{get_vm_proxy, HintReference};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -32,7 +33,7 @@ struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
 #[derive(Clone, Debug)]
 
 pub struct HintData {
-    pub hint_code: Vec<u8>,
+    pub hint_code: String,
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
     pub ap_tracking_data: ApTracking,
@@ -56,17 +57,13 @@ pub struct VirtualMachine {
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
     pub exec_scopes: ExecutionScopes,
-    //enter_scope:
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     pub references: HashMap<usize, HintReference>,
     //hint_locals: HashMap<..., ...>,
-    //hint_pc_and_index: HashMap<i64, (MaybeRelocatable, i64)>,
     //static_locals: Option<HashMap<..., ...>>,
     //intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
     //debug_file_contents: HashMap<String, String>,
     //error_message_attributes: Vec<VmAttributeScope>,
-    //program: ProgramBase,
-    //auto_deduction: HashMap<BigInt, Vec<(Rule, ())>>,
     //Some(accessed_addresses) == proof mode enabled
     accessed_addresses: Option<Vec<MaybeRelocatable>>,
     //None if trace is not enabled, Some otherwise
@@ -78,12 +75,12 @@ pub struct VirtualMachine {
 
 impl HintData {
     pub fn new(
-        hint_code: Vec<u8>,
+        hint_code: &str,
         ids: HashMap<String, BigInt>,
         ap_tracking_data: ApTracking,
     ) -> HintData {
         HintData {
-            hint_code,
+            hint_code: hint_code.to_string(),
             ids,
             ap_tracking_data,
         }
@@ -497,14 +494,17 @@ impl VirtualMachine {
         }
     }
 
-    pub fn step(&mut self) -> Result<(), VirtualMachineError> {
+    pub fn step(
+        &mut self,
+        hint_executor: &'static dyn HintExecutor,
+    ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
                 let mut vm_proxy = get_vm_proxy(self);
-                execute_hint(
+                hint_executor.execute_hint(
                     &mut vm_proxy,
                     &hint_data.hint_code,
-                    hint_data.ids.clone(),
+                    &hint_data.ids,
                     &hint_data.ap_tracking_data,
                 )?
             }
@@ -697,7 +697,9 @@ impl VirtualMachine {
 mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
+    use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::runners::builtin_runner::{
         BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
     };
@@ -707,6 +709,8 @@ mod tests {
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
     use std::collections::HashSet;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
@@ -2255,7 +2259,7 @@ mod tests {
 
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
-        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
     }
 
@@ -2521,7 +2525,7 @@ mod tests {
                 &MaybeRelocatable::from((3, 0)),
             )
             .unwrap();
-        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         let trace = vm.trace.unwrap();
         assert_eq!(
             trace[0],
@@ -2664,7 +2668,7 @@ mod tests {
         let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
         while vm.run_context.pc != final_pc {
-            assert_eq!(vm.step(), Ok(()));
+            assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         }
         //Check final register values
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
@@ -2863,11 +2867,7 @@ mod tests {
                 MaybeRelocatable::Int(bigint!(0x14)),
             ),
         ];
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
+        let mut vm = vm!();
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
@@ -2875,7 +2875,7 @@ mod tests {
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
-        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 2)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
 
@@ -2883,7 +2883,7 @@ mod tests {
             vm.memory.get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
-        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 3)));
 
@@ -2892,7 +2892,7 @@ mod tests {
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
-        assert_eq!(vm.step(), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 6)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 4)));
 
@@ -3601,7 +3601,7 @@ mod tests {
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
             vec![HintData::new(
-                "memory[ap] = segments.add()".as_bytes().to_vec(),
+                "memory[ap] = segments.add()",
                 HashMap::new(),
                 ApTracking::new(),
             )],
@@ -3687,7 +3687,7 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
-            assert_eq!(vm.step(), Ok(()));
+            assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         }
         //Compare trace
         let trace = vm.trace.unwrap();

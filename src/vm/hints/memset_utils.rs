@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_integer_from_var_name;
 use super::hint_utils::insert_int_into_scope;
-use super::hint_utils::insert_integer_from_var_name;
+use super::hint_utils::insert_value_from_var_name;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -44,7 +44,7 @@ pub fn memset_continue_loop(
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = bigint!(new_n.is_positive() as i32);
-    insert_integer_from_var_name(
+    insert_value_from_var_name(
         "continue_loop",
         should_continue,
         ids,
@@ -59,101 +59,54 @@ pub fn memset_continue_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::test_utils::*;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        types::{instruction::Register, relocatable::MaybeRelocatable},
+        types::relocatable::MaybeRelocatable,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{execute_hint, get_vm_proxy, HintReference},
+            hints::execute_hint::{get_vm_proxy, HintReference},
             vm_core::VirtualMachine,
         },
     };
     use num_bigint::Sign;
 
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
+
     #[test]
     fn memset_enter_scope_valid() {
-        let hint_code = "vm_enter_scope({'n': ids.n})".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
+        let hint_code = "vm_enter_scope({'n': ids.n})";
+        let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
-
-        // insert ids.n into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n"), bigint!(0));
-
+        // insert ids into memory
+        vm.memory = memory![((0, 1), 5)];
+        let ids = ids!["n"];
         //Create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-
-        let mut variables = get_vm_proxy(&mut vm);
-        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .is_ok());
     }
 
     #[test]
     fn memset_enter_scope_invalid() {
-        let hint_code = "vm_enter_scope({'n': ids.n})".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
+        let hint_code = "vm_enter_scope({'n': ids.n})";
+        let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
-
         // insert ids.n into memory
         // insert a relocatable value in the address of ids.len so that it raises an error.
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((0, 0)),
-            )
-            .unwrap();
-
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n"), bigint!(0));
-
+        vm.memory = memory![((0, 1), (0, 0))];
+        let ids = ids!["n"];
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-        let mut variables = get_vm_proxy(&mut vm);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -162,50 +115,25 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_1() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
+        let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
-
         // initialize vm scope with variable `n` = 1
         vm.exec_scopes
             .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
-
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
+        vm.memory = memory![((0, 2), 5)];
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("continue_loop"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-
-        let mut variables = get_vm_proxy(&mut vm);
-        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .is_ok());
 
         // assert ids.continue_loop = 0
         assert_eq!(
@@ -216,16 +144,8 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_valid_continue_loop_equal_5() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
+        let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
@@ -235,31 +155,17 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 2), 5)];
 
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("continue_loop"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-
-        let mut variables = get_vm_proxy(&mut vm);
-        assert!(execute_hint(&mut variables, hint_code, ids, &ApTracking::new()).is_ok());
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .is_ok());
 
         // assert ids.continue_loop = 1
         assert_eq!(
@@ -270,15 +176,8 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_variable_not_in_scope_error() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
+        let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
@@ -288,31 +187,16 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
+        vm.memory = memory![((0, 2), 5)];
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("continue_loop"), bigint!(0));
 
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-        let mut variables = get_vm_proxy(&mut vm);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -321,50 +205,23 @@ mod tests {
 
     #[test]
     fn memset_continue_loop_insert_error() {
-        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0".as_bytes();
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-        );
-
-        // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-
+        let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
+        let mut vm = vm!();
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
-
         // initialize with variable `n`
         vm.exec_scopes
             .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
-
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
+        vm.memory = memory![((0, 1), 5)];
         let mut ids = HashMap::<String, BigInt>::new();
         ids.insert(String::from("continue_loop"), bigint!(0));
-
         // create references
-        vm.references = HashMap::from([(
-            0,
-            HintReference {
-                register: Register::FP,
-                offset1: -2,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        )]);
-        let mut variables = get_vm_proxy(&mut vm);
+        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            execute_hint(&mut variables, hint_code, ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

@@ -55,6 +55,8 @@ pub enum VirtualMachineError {
     DiffIndexComp(Relocatable, Relocatable),
     ValueOutside250BitRange(BigInt),
     SqrtNegative(BigInt),
+    SafeDivFail(BigInt, BigInt),
+    DividedByZero,
     FailedToGetSqrt(BigInt),
     AssertNotZero(BigInt, BigInt),
     MainScopeError(ExecScopeError),
@@ -105,6 +107,7 @@ pub enum VirtualMachineError {
     InvalidKeccakInputLength(BigInt),
     NoneInMemoryRange,
     ExpectedIntAtRange(Option<MaybeRelocatable>),
+    IdNotFound(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -205,6 +208,8 @@ impl fmt::Display for VirtualMachineError {
             },
             VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
             VirtualMachineError::SqrtNegative(value) => write!(f, "Can't calculate the square root of negative number: {:?})", value),
+            VirtualMachineError::SafeDivFail(x, y) => write!(f, "{} is not divisible by {}", x, y),
+            VirtualMachineError::DividedByZero => write!(f, "Attempted to devide by zero"),
             VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
             VirtualMachineError::AssertNotZero(value, prime) => {
                 write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
@@ -301,6 +306,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidKeccakInputLength(length) => write!(f, "Invalid input length, Got: length={:?}", length),
             VirtualMachineError::NoneInMemoryRange => write!(f, "None value was found in memory range cell"),
             VirtualMachineError::ExpectedIntAtRange(maybe_relocatable) => write!(f, "Expected integer, found: {:?}", maybe_relocatable.as_ref().unwrap()),
+            VirtualMachineError::IdNotFound(var_name) => write!(f, "{} key was not found in the hint references. This may be caused because of a parsing error that resulted in a default value being returned. Please be sure to check this.", var_name),
         }
     }
 }

@@ -1,15 +1,31 @@
 use crate::bigint;
+use crate::bigint_str;
 use crate::math_utils::as_int;
+use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
+use crate::vm::vm_core::VMProxy;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};
+use std::collections::HashMap;
 
 lazy_static! {
     pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
     pub static ref BASE_86_MAX: BigInt = &*BASE_86 - bigint!(1);
+    pub static ref SECP_P: BigInt = (bigint!(1) << (256))
+        - (1_i64 << 32)
+        - (1 << 9)
+        - (1 << 8)
+        - (1 << 7)
+        - (1 << 6)
+        - (1 << 4)
+        - 1;
+    pub static ref N: BigInt = bigint_str!(
+        b"115792089237316195423570985008687907852837564279074904382605163141518161494337"
+    );
+    pub static ref BETA: BigInt = bigint!(7);
 }
-
 /*
 Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
@@ -46,6 +62,21 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
         .enumerate()
         .map(|(idx, value)| as_int(value, prime) << (idx * 86))
         .sum()
+}
+
+pub fn pack_from_var_name(
+    name: &str,
+    ids: &HashMap<String, BigInt>,
+    vm_proxy: &VMProxy,
+    hint_ap_tracking: Option<&ApTracking>,
+) -> Result<BigInt, VirtualMachineError> {
+    let to_pack = get_relocatable_from_var_name(name, ids, &vm_proxy, hint_ap_tracking)?;
+
+    let d0 = vm_proxy.memory.get_integer(&to_pack)?;
+    let d1 = vm_proxy.memory.get_integer(&(&to_pack + 1))?;
+    let d2 = vm_proxy.memory.get_integer(&(&to_pack + 2))?;
+
+    Ok(pack(d0, d1, d2, &vm_proxy.prime))
 }
 
 #[cfg(test)]
