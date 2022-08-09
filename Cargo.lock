@@ -216,6 +216,7 @@ dependencies = [
  "criterion",
  "generic-array",
  "hex",
+ "keccak",
  "lazy_static",
  "mimalloc",
  "nom",

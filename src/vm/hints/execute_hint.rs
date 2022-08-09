@@ -32,11 +32,15 @@ use crate::vm::hints::uint256_utils::{
     split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
 };
 
+use crate::vm::hints::cairo_keccak::keccak_hints::{
+    block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
+    compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+};
 use crate::vm::hints::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
     ec_utils::{
         compute_doubling_slope, compute_slope, ec_double_assign_new_x, ec_double_assign_new_y,
-        ec_negate,
+        ec_mul_inner, ec_negate, fast_ec_add_assign_new_x, fast_ec_add_assign_new_y,
     },
     field_utils::{
         is_zero_assign_scope_variables, is_zero_nondet, is_zero_pack, reduce, verify_zero,
@@ -190,6 +194,18 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::SHA256_MAIN => sha256_main(vm, ids, Some(ap_tracking)),
             hint_code::SHA256_INPUT => sha256_input(vm, ids, None),
             hint_code::SHA256_FINALIZE => sha256_finalize(vm, ids, None),
+            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm, ids, Some(ap_tracking)),
+            hint_code::COMPARE_BYTES_IN_WORD_NONDET => compare_bytes_in_word_nondet(vm, ids, None),
+            hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
+                compare_keccak_full_rate_in_bytes_nondet(vm, ids, None)
+            }
+            hint_code::BLOCK_PERMUTATION => block_permutation(vm, ids, None),
+            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm, ids, None),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_X => {
+                fast_ec_add_assign_new_x(vm, ids, Some(ap_tracking))
+            }
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(vm),
+            hint_code::EC_MUL_INNER => ec_mul_inner(vm, ids, Some(ap_tracking)),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }

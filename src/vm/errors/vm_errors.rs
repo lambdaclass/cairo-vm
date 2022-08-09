@@ -110,6 +110,9 @@ pub enum VirtualMachineError {
     IdNotFound(String),
     ShaInputChunkOutOfBounds(usize),
     BlockSizeOutOfBounds(usize),
+    InvalidKeccakStateSizeFelts(usize),
+    InvalidBlockSize(usize),
+    SliceToArrayError,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -311,6 +314,9 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::IdNotFound(var_name) => write!(f, "{} key was not found in the hint references. This may be caused because of a parsing error that resulted in a default value being returned. Please be sure to check this.", var_name),
             VirtualMachineError::ShaInputChunkOutOfBounds(sha_chunk_size) => write!(f, "SHA input chunk size must be 0 <= x < 100, got {}", sha_chunk_size),
             VirtualMachineError::BlockSizeOutOfBounds(block_size) => write!(f, "Block size must be 0 <= x < 20, got {}", block_size),
+            VirtualMachineError::InvalidKeccakStateSizeFelts(size) => write!(f, "Expected size to be in the range from [0, 100), got: {:?}", size),
+            VirtualMachineError::InvalidBlockSize(size) => write!(f, "Expected size to be in range from [0, 10), got: {}", size),
+            VirtualMachineError::SliceToArrayError => write!(f, "Could not convert slice to array"),
         }
     }
 }
