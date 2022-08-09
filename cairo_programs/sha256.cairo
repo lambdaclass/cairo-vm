@@ -1,5 +1,4 @@
-%builtins output range_check bitwise
-from starkware.cairo.common.serialize import serialize_word
+%builtins range_check bitwise
 from cairo_programs.packed_sha256 import BLOCK_SIZE, compute_message_schedule, sha2_compress, get_round_constants
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.registers import get_fp_and_pc
@@ -280,7 +279,7 @@ func finalize_sha256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
     return ()
 end
 
-func main{output_ptr: felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
+func main{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     alloc_locals
     let input_len = 3
     let input:felt* = alloc()
@@ -293,14 +292,14 @@ func main{output_ptr: felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     let sha256_ptr = sha256_ptr_start
 
     let (local output : felt*) = sha256{sha256_ptr=sha256_ptr}(input, n_bytes)
-    serialize_word(output[0])
-    serialize_word(output[1])
-    serialize_word(output[2])
-    serialize_word(output[3])
-    serialize_word(output[4])
-    serialize_word(output[5])
-    serialize_word(output[6])
-    serialize_word(output[7])
+    assert output[0] = 1693223114
+    assert output[1] = 11692261
+    assert output[2] = 3122279783
+    assert output[3] = 2317046550
+    assert output[4] = 3524457715
+    assert output[5] = 1722959730
+    assert output[6] = 844319370
+    assert output[7] = 3970137916
 
     finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr)
 
