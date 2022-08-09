@@ -5,9 +5,7 @@ use crate::{
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::{
-            hint_utils::{
-                get_int_ref_from_scope, get_integer_from_var_name, insert_int_into_scope,
-            },
+            hint_utils::get_integer_from_var_name,
             secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
         },
         vm_core::VMProxy,

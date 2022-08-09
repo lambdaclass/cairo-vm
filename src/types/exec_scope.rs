@@ -29,27 +29,44 @@ impl ExecutionScopesProxy<'_> {
         self.scopes.exit_scope()
     }
     pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
-        self.scopes.data[self.current_scope].insert(var_name.to_string(), var_value);
+        if let Some(local_variables) = self.get_local_variables_mut() {
+            local_variables.insert(var_name.to_string(), var_value);
+        }
     }
 
     pub fn delete_variable(&mut self, var_name: &str) {
         self.scopes.data[self.current_scope].remove(var_name);
     }
+    pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
+        if self.scopes.data.len() > self.current_scope {
+            return Some(&mut self.scopes.data[self.current_scope]);
+        }
+        None
+    }
+
+    pub fn get_local_variables(&self) -> Option<&HashMap<String, PyValueType>> {
+        if self.scopes.data.len() > self.current_scope {
+            return Some(&self.scopes.data[self.current_scope]);
+        }
+        None
+    }
     //Returns the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
         let mut val: Option<BigInt> = None;
-        if let Some(PyValueType::BigInt(py_val)) = self.scopes.data[self.current_scope].get(name) {
-            val = Some(py_val.clone());
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+                val = Some(py_val.clone());
+            }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
     //Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_int_ref<'a>(&self, name: &'a str) -> Result<&'a BigInt, VirtualMachineError> {
         let mut val: Option<&BigInt> = None;
-        if let Some(PyValueType::BigInt(ref py_val)) =
-            self.scopes.data[self.current_scope].get(name)
-        {
-            val = Some(py_val);
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
+                val = Some(py_val);
+            }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
@@ -59,17 +76,16 @@ impl ExecutionScopesProxy<'_> {
         name: &'a str,
     ) -> Result<&'a mut BigInt, VirtualMachineError> {
         let mut val: Option<&mut BigInt> = None;
-        if let Some(PyValueType::BigInt(py_val)) =
-            self.scopes.data[self.current_scope].get_mut(name)
-        {
-            val = Some(py_val);
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::BigInt(py_val)) = variables.get_mut(name) {
+                val = Some(py_val);
+            }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
     //Inserts the value in scope as a BigInt value type
     pub fn insert_int(&mut self, name: &str, value: BigInt) {
-        self.scopes
-            .assign_or_update_variable(name, PyValueType::BigInt(value));
+        self.assign_or_update_variable(name, PyValueType::BigInt(value));
     }
 }
 

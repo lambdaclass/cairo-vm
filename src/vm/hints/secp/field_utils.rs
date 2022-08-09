@@ -4,8 +4,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_scope,
-    insert_value_from_var_name, insert_value_into_ap,
+    get_relocatable_from_var_name, insert_value_from_var_name, insert_value_into_ap,
 };
 use crate::vm::hints::secp::secp_utils::SECP_P;
 use crate::vm::vm_core::VMProxy;

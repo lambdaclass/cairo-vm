@@ -1200,10 +1200,12 @@ mod tests {
         vm.references = references!(1);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1247,10 +1249,12 @@ mod tests {
         vm.references = references!(1);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
