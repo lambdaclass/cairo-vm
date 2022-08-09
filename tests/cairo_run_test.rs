@@ -184,7 +184,7 @@ fn cairo_run_split_felt() {
 #[test]
 fn cairo_run_is_le_felt() {
     cairo_run::cairo_run(
-        Path::new("cairo_programs/math_cmp_is_le_felt.json"),
+        Path::new("cairo_programs/math_cmp.json"),
         false,
         &HINT_EXECUTOR,
     )
