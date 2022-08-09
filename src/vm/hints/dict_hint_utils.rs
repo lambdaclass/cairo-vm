@@ -87,7 +87,7 @@ pub fn dict_read(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(&key)?;
@@ -108,7 +108,7 @@ pub fn dict_write(
     let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
     let new_value =
         get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     //Get tracker for dictionary
     let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
@@ -149,7 +149,7 @@ pub fn dict_update(
         get_integer_from_var_name("prev_value", ids, vm_proxy, hint_ap_tracking)?.clone();
     let new_value =
         get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
     //Get tracker for dictionary
     let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
@@ -157,7 +157,7 @@ pub fn dict_update(
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
+            prev_value,
             current_value.clone(),
             key.clone(),
         ));
