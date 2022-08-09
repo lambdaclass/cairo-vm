@@ -215,6 +215,7 @@ dependencies = [
  "clap 3.2.15",
  "criterion",
  "hex",
+ "keccak",
  "lazy_static",
  "mimalloc",
  "nom",
@@ -699,9 +700,9 @@ checksum = "648001efe5d5c0102d8cea768e348da85d90af8ba91f0bea908f157951493cd4"
 
 [[package]]
 name = "parse-hyperlinks"
-version = "0.23.3"
+version = "0.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1218d8a546efe31f9d3f490a1272ae76a66201d82bbf2a39f8dd0eacca5d712"
+checksum = "0181d37c4d5ae35cc8be7cf823c1a933005661da6a08bcb2855aa392c9a54b8e"
 dependencies = [
  "html-escape",
  "nom",

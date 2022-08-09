@@ -236,9 +236,6 @@ impl CairoRunner {
         let mut references = HashMap::<usize, HintReference>::new();
 
         for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
-            if i == 153 {
-                println!("REFERENCE MALA: {:?}", reference.value_address);
-            }
             if let Some(register) = &reference.value_address.register {
                 references.insert(
                     i,
