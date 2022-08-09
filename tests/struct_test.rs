@@ -7,7 +7,6 @@ use cleopatra_cairo::{
 };
 
 static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-
 #[test]
 fn struct_integration_test() {
     let program = Program::new(Path::new("cairo_programs/struct.json"))

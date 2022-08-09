@@ -9,7 +9,6 @@ use cleopatra_cairo::{
 };
 
 static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-
 #[test]
 fn bitwise_integration_test() {
     let program = Program::new(Path::new("cairo_programs/bitwise_builtin_test.json"))
