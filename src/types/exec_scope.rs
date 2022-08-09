@@ -35,7 +35,9 @@ impl ExecutionScopesProxy<'_> {
     }
 
     pub fn delete_variable(&mut self, var_name: &str) {
-        self.scopes.data[self.current_scope].remove(var_name);
+        if let Some(local_variables) = self.get_local_variables_mut() {
+            local_variables.remove(var_name);
+        }
     }
     pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
         if self.scopes.data.len() > self.current_scope {
