@@ -55,12 +55,6 @@ pub fn sha256_main(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    if SHA256_INPUT_CHUNK_SIZE_FELTS >= 100 {
-        return Err(VirtualMachineError::ShaInputChunkOutOfBounds(
-            SHA256_INPUT_CHUNK_SIZE_FELTS,
-        ));
-    }
-
     let sha256_start = get_relocatable_from_var_name(
         "sha256_start",
         ids,
@@ -112,15 +106,6 @@ pub fn sha256_finalize(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    if BLOCK_SIZE >= 20 {
-        return Err(VirtualMachineError::BlockSizeOutOfBounds(BLOCK_SIZE));
-    }
-    if SHA256_INPUT_CHUNK_SIZE_FELTS >= 100 {
-        return Err(VirtualMachineError::ShaInputChunkOutOfBounds(
-            SHA256_INPUT_CHUNK_SIZE_FELTS,
-        ));
-    }
-
     let message: Vec<u8> = vec![0; 64];
 
     let mut iv: [u32; SHA256_STATE_SIZE_FELTS] = [
@@ -165,11 +150,117 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::HintReference;
+    use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::Sign;
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
-    fn sha256_input() {
+    #[test]
+    fn sha256_input_one() {
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((0,0), 7)];
-        let ids = ids![
+        vm.memory = memory![((0, 1), 7)];
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        let ids = ids!["full_word", "n_bytes"];
+        vm.references = references!(2);
+
+        assert_eq!(
+            sha256_input(&mut vm, &ids, Some(&ApTracking::new())),
+            Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::from(BigInt::one())))
+        );
+    }
+
+    #[test]
+    fn sha256_input_zero() {
+        let mut vm = vm_with_range_check!();
+        vm.memory = memory![((0, 1), 3)];
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        let ids = ids!["full_word", "n_bytes"];
+        vm.references = references!(2);
+
+        assert_eq!(
+            sha256_input(&mut vm, &ids, Some(&ApTracking::new())),
+            Ok(())
+        );
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            Ok(Some(&MaybeRelocatable::from(BigInt::zero())))
+        );
+    }
+
+    #[test]
+    fn sha256_ok() {
+        let mut vm = vm_with_range_check!();
+
+        vm.memory = memory![
+            ((0, 0), (1, 0)),
+            ((0, 1), (2, 0)),
+            ((1, 0), 22),
+            ((1, 1), 22),
+            ((1, 2), 22),
+            ((1, 3), 22),
+            ((1, 4), 22),
+            ((1, 5), 22),
+            ((1, 6), 22),
+            ((1, 7), 22),
+            ((1, 8), 22),
+            ((1, 9), 22),
+            ((1, 10), 22),
+            ((1, 11), 22),
+            ((1, 12), 22),
+            ((1, 13), 22),
+            ((1, 14), 22),
+            ((1, 15), 22),
+            ((2, 9), 0)
+        ];
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.references = references!(2);
+
+        let ids = ids!["sha256_start", "output"];
+
+        assert_eq!(sha256_main(&mut vm, &ids, Some(&ApTracking::new())), Ok(()));
+
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 0))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(3704205499_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(2308112482_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 2))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(3022351583_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 3))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(174314172_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 4))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(1762869695_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 5))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(1649521060_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 6))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(2811202336_u32))))
+        );
+        assert_eq!(
+            vm.memory.get(&MaybeRelocatable::from((2, 7))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(4231099170_u32))))
+        );
     }
 }
