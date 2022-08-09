@@ -89,8 +89,8 @@ pub fn sha256_main(
 
     let mut output: Vec<BigInt> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
-    for i in 0..SHA256_STATE_SIZE_FELTS {
-        output.push(bigint!(iv[i]));
+    for new_state in iv {
+        output.push(bigint!(new_state));
     }
 
     let output_base = get_ptr_from_var_name(
@@ -136,8 +136,8 @@ pub fn sha256_finalize(
 
     let mut output: Vec<BigInt> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
-    for i in 0..SHA256_STATE_SIZE_FELTS {
-        output.push(bigint!(iv[i]));
+    for new_state in iv {
+        output.push(bigint!(new_state));
     }
 
     let sha256_ptr_end = get_ptr_from_var_name(
