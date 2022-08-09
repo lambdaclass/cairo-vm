@@ -34,15 +34,14 @@ pub fn sha256_input(
         &vm.run_context,
         hint_ap_tracking,
     )?;
-    let full_word = if n_bytes >= &bigint!(4) {
-        BigInt::one()
-    } else {
-        BigInt::zero()
-    };
 
     insert_value_from_var_name(
         "full_word",
-        full_word,
+        if n_bytes >= &bigint!(4) {
+            BigInt::one()
+        } else {
+            BigInt::zero()
+        },
         ids,
         &mut vm.memory,
         &vm.references,
@@ -161,4 +160,16 @@ pub fn sha256_finalize(
         .write_arg(&mut vm.memory, &sha256_ptr_end, &padding, Some(&vm.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::test_utils::*;
+
+    fn sha256_input() {
+        let mut vm = vm_with_range_check!();
+        vm.memory = memory![((0,0), 7)];
+        let ids = ids![
+    }
 }
