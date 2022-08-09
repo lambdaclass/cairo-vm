@@ -103,6 +103,6 @@ func run_tests(len : felt, n : felt) -> ():
 end
 
 func main():
-    run_tests(100, 50)
+    run_tests(10, 10)
     return ()
 end
