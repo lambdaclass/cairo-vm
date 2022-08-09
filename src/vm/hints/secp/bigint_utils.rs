@@ -51,6 +51,7 @@ pub fn bigint_to_uint256(
 
 #[cfg(test)]
 mod tests {
+    use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
 
     use super::*;

@@ -34,6 +34,7 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 

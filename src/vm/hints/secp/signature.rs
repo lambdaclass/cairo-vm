@@ -78,14 +78,12 @@ mod tests {
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference},
+            hints::execute_hint::{get_vm_proxy, HintReference},
             vm_core::VirtualMachine,
             vm_memory::memory::Memory,
         },
     };
     use num_bigint::Sign;
-
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn safe_div_ok() {

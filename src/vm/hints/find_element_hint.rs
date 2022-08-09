@@ -474,7 +474,7 @@ mod tests {
     fn search_sorted_lower() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -498,7 +498,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(7)),
         )]));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -589,7 +589,7 @@ mod tests {
             MaybeRelocatable::from((7, 8)),
         )]));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -610,7 +610,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(0)),
         )]));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -629,7 +629,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -648,7 +648,7 @@ mod tests {
             MaybeRelocatable::from((1, 2)),
         )]));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -669,7 +669,7 @@ mod tests {
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -686,7 +686,7 @@ mod tests {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
         vm.exec_scopes = ExecutionScopes::new();
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
@@ -704,7 +704,7 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("find_element_max_size", PyValueType::BigInt(bigint!(1)));
 
-        let vm_proxy = get_vm_proxy(&mut vm);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,

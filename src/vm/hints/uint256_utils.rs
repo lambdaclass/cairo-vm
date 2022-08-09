@@ -215,6 +215,7 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 
@@ -578,8 +579,6 @@ mod tests {
                 &MaybeRelocatable::from(&vm.prime + i128::MAX),
             )
             .unwrap();
-
-        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
@@ -621,7 +620,6 @@ mod tests {
             )
             .unwrap();
 
-        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
@@ -667,7 +665,6 @@ mod tests {
         vm.memory
             .insert(&mut vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
             .unwrap();
-        let mut variables = get_vm_proxy(&mut vm);
         //Execute the hint
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(

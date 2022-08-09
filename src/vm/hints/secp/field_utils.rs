@@ -146,6 +146,8 @@ mod tests {
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
     use crate::types::hint_executor::HintExecutor;

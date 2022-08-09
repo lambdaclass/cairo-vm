@@ -498,10 +498,9 @@ pub fn memcpy_continue_copying(
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor};
+    use crate::vm::hints::execute_hint::get_vm_proxy;
+    use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
-
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn get_integer_from_var_name_valid() {

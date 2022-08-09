@@ -220,6 +220,7 @@ pub fn dict_squash_update_ptr(
 
 #[cfg(test)]
 mod tests {
+    use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
 
     use num_bigint::{BigInt, Sign};
@@ -276,7 +277,6 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
         //ids and references are not needed for this test
-        let mut variables = get_vm_proxy(&mut vm);
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
@@ -297,7 +297,6 @@ mod tests {
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         vm.memory = memory![((0, 0), 1)];
         //ids and references are not needed for this test
-        let mut variables = get_vm_proxy(&mut vm);
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
