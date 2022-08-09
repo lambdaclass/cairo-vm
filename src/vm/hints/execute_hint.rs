@@ -126,106 +126,147 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::ASSERT_NN => assert_nn(vm_proxy, ids, None),
             hint_code::SQRT => sqrt(vm_proxy, ids, None),
             hint_code::ASSERT_NOT_ZERO => assert_not_zero(vm_proxy, ids, None),
-            hint_code::VM_EXIT_SCOPE => exit_scope(vm_proxy),
-            hint_code::MEMCPY_ENTER_SCOPE => memcpy_enter_scope(vm_proxy, ids, Some(ap_tracking)),
-            hint_code::MEMSET_ENTER_SCOPE => memset_enter_scope(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::VM_EXIT_SCOPE => exit_scope(vm_proxy, exec_scopes_proxy),
+            hint_code::MEMCPY_ENTER_SCOPE => {
+                memcpy_enter_scope(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::MEMSET_ENTER_SCOPE => {
+                memset_enter_scope(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+            }
             hint_code::MEMCPY_CONTINUE_COPYING => {
-                memcpy_continue_copying(vm_proxy, ids, Some(ap_tracking))
+                memcpy_continue_copying(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::MEMSET_CONTINUE_LOOP => {
-                memset_continue_loop(vm_proxy, ids, Some(ap_tracking))
+                memset_continue_loop(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::SPLIT_FELT => split_felt(vm_proxy, ids, None),
             hint_code::UNSIGNED_DIV_REM => unsigned_div_rem(vm_proxy, ids, None),
             hint_code::SIGNED_DIV_REM => signed_div_rem(vm_proxy, ids, None),
             hint_code::ASSERT_LT_FELT => assert_lt_felt(vm_proxy, ids, None),
-            hint_code::FIND_ELEMENT => find_element(vm_proxy, ids, None),
-            hint_code::SEARCH_SORTED_LOWER => search_sorted_lower(vm_proxy, ids, None),
+            hint_code::FIND_ELEMENT => find_element(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::SEARCH_SORTED_LOWER => {
+                search_sorted_lower(vm_proxy, exec_scopes_proxy, ids, None)
+            }
             hint_code::POW => pow(vm_proxy, ids, Some(ap_tracking)),
             hint_code::SET_ADD => set_add(vm_proxy, ids, None),
-            hint_code::DICT_NEW => dict_new(vm_proxy),
-            hint_code::DICT_READ => dict_read(vm_proxy, ids, None),
-            hint_code::DICT_WRITE => dict_write(vm_proxy, ids, None),
-            hint_code::DEFAULT_DICT_NEW => default_dict_new(vm_proxy, ids, Some(ap_tracking)),
-            hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => {
-                squash_dict_inner_first_iteration(vm_proxy, ids, Some(ap_tracking))
+            hint_code::DICT_NEW => dict_new(vm_proxy, exec_scopes_proxy),
+            hint_code::DICT_READ => dict_read(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::DICT_WRITE => dict_write(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::DEFAULT_DICT_NEW => {
+                default_dict_new(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
-            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm_proxy),
-            hint_code::USORT_BODY => usort_body(vm_proxy, ids, None),
-            hint_code::USORT_VERIFY => verify_usort(vm_proxy, ids, None),
+            hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => squash_dict_inner_first_iteration(
+                vm_proxy,
+                exec_scopes_proxy,
+                ids,
+                Some(ap_tracking),
+            ),
+            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm_proxy, exec_scopes_proxy),
+            hint_code::USORT_BODY => usort_body(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::USORT_VERIFY => verify_usort(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => verify_multiplicity_assert(vm_proxy),
             hint_code::USORT_VERIFY_MULTIPLICITY_BODY => {
-                verify_multiplicity_body(vm_proxy, ids, None)
+                verify_multiplicity_body(vm_proxy, exec_scopes_proxy, ids, None)
             }
             hint_code::BLAKE2S_COMPUTE => compute_blake2s(vm_proxy, ids, Some(ap_tracking)),
             hint_code::VERIFY_ZERO => verify_zero(vm_proxy, ids, Some(ap_tracking)),
-            hint_code::NONDET_BIGINT3 => nondet_bigint3(vm_proxy, ids, Some(ap_tracking)),
-            hint_code::REDUCE => reduce(vm_proxy, ids, None),
+            hint_code::NONDET_BIGINT3 => {
+                nondet_bigint3(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::REDUCE => reduce(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::BLAKE2S_FINALIZE => finalize_blake2s(vm_proxy, ids, Some(ap_tracking)),
             hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256(vm_proxy, ids, Some(ap_tracking)),
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => {
                 blake2s_add_uint256_bigend(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::UNSAFE_KECCAK => unsafe_keccak(vm_proxy, ids, None),
+            hint_code::UNSAFE_KECCAK => unsafe_keccak(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize(vm_proxy, ids, None),
             hint_code::SQUASH_DICT_INNER_SKIP_LOOP => {
-                squash_dict_inner_skip_loop(vm_proxy, ids, Some(ap_tracking))
+                squash_dict_inner_skip_loop(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::SQUASH_DICT_INNER_CHECK_ACCESS_INDEX => {
-                squash_dict_inner_check_access_index(vm_proxy, ids, Some(ap_tracking))
+                squash_dict_inner_check_access_index(
+                    vm_proxy,
+                    exec_scopes_proxy,
+                    ids,
+                    Some(ap_tracking),
+                )
             }
             hint_code::SQUASH_DICT_INNER_CONTINUE_LOOP => {
-                squash_dict_inner_continue_loop(vm_proxy, ids, Some(ap_tracking))
+                squash_dict_inner_continue_loop(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => {
-                squash_dict_inner_assert_len_keys(vm_proxy)
+                squash_dict_inner_assert_len_keys(vm_proxy, exec_scopes_proxy)
             }
             hint_code::SQUASH_DICT_INNER_LEN_ASSERT => squash_dict_inner_len_assert(vm_proxy),
             hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
-                squash_dict_inner_used_accesses_assert(vm_proxy, ids, Some(ap_tracking))
+                squash_dict_inner_used_accesses_assert(
+                    vm_proxy,
+                    exec_scopes_proxy,
+                    ids,
+                    Some(ap_tracking),
+                )
             }
             hint_code::SQUASH_DICT_INNER_NEXT_KEY => {
-                squash_dict_inner_next_key(vm_proxy, ids, Some(ap_tracking))
+                squash_dict_inner_next_key(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
-            hint_code::SQUASH_DICT => squash_dict(vm_proxy, ids, Some(ap_tracking)),
-            hint_code::VM_ENTER_SCOPE => enter_scope(vm_proxy),
-            hint_code::DICT_UPDATE => dict_update(vm_proxy, ids, None),
+            hint_code::SQUASH_DICT => {
+                squash_dict(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::VM_ENTER_SCOPE => enter_scope(vm_proxy, exec_scopes_proxy),
+            hint_code::DICT_UPDATE => dict_update(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::DICT_SQUASH_COPY_DICT => {
-                dict_squash_copy_dict(vm_proxy, ids, Some(ap_tracking))
+                dict_squash_copy_dict(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::DICT_SQUASH_UPDATE_PTR => {
-                dict_squash_update_ptr(vm_proxy, ids, Some(ap_tracking))
+                dict_squash_update_ptr(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::UINT256_ADD => uint256_add(vm_proxy, ids, None),
             hint_code::SPLIT_64 => split_64(vm_proxy, ids, None),
             hint_code::UINT256_SQRT => uint256_sqrt(vm_proxy, ids, None),
             hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm_proxy, ids, None),
             hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm_proxy, ids, None),
-            hint_code::BIGINT_TO_UINT256 => bigint_to_uint256(vm_proxy, ids, None),
-            hint_code::IS_ZERO_PACK => is_zero_pack(vm_proxy, ids, None),
-            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm_proxy),
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm_proxy),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(vm_proxy, ids, None),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm_proxy),
-            hint_code::GET_POINT_FROM_X => get_point_from_x(vm_proxy, ids, Some(ap_tracking)),
-            hint_code::EC_NEGATE => ec_negate(vm_proxy, ids, None),
-            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm_proxy, ids, None),
-            hint_code::COMPUTE_SLOPE => compute_slope(vm_proxy, ids, None),
+            hint_code::BIGINT_TO_UINT256 => {
+                bigint_to_uint256(vm_proxy, exec_scopes_proxy, ids, None)
+            }
+            hint_code::IS_ZERO_PACK => is_zero_pack(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm_proxy, exec_scopes_proxy),
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => {
+                is_zero_assign_scope_variables(vm_proxy, exec_scopes_proxy)
+            }
+            hint_code::DIV_MOD_N_PACKED_DIVMOD => {
+                div_mod_n_packed_divmod(vm_proxy, exec_scopes_proxy, ids, None)
+            }
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm_proxy, exec_scopes_proxy),
+            hint_code::GET_POINT_FROM_X => {
+                get_point_from_x(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::EC_NEGATE => ec_negate(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::EC_DOUBLE_SCOPE => {
+                compute_doubling_slope(vm_proxy, exec_scopes_proxy, ids, None)
+            }
+            hint_code::COMPUTE_SLOPE => compute_slope(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
-                ec_double_assign_new_x(vm_proxy, ids, Some(ap_tracking))
+                ec_double_assign_new_x(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm_proxy),
-            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::KECCAK_WRITE_ARGS => {
+                keccak_write_args(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+            }
             hint_code::COMPARE_BYTES_IN_WORD_NONDET => {
-                compare_bytes_in_word_nondet(vm_proxy, ids, None)
+                compare_bytes_in_word_nondet(vm_proxy, exec_scopes_proxy, ids, None)
             }
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
-                compare_keccak_full_rate_in_bytes_nondet(vm_proxy, ids, None)
+                compare_keccak_full_rate_in_bytes_nondet(vm_proxy, exec_scopes_proxy, ids, None)
             }
-            hint_code::BLOCK_PERMUTATION => block_permutation(vm_proxy, ids, None),
-            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm_proxy, ids, None),
+            hint_code::BLOCK_PERMUTATION => {
+                block_permutation(vm_proxy, exec_scopes_proxy, ids, None)
+            }
+            hint_code::CAIRO_KECCAK_FINALIZE => {
+                cairo_keccak_finalize(vm_proxy, exec_scopes_proxy, ids, None)
+            }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => {
-                fast_ec_add_assign_new_x(vm_proxy, ids, Some(ap_tracking))
+                fast_ec_add_assign_new_x(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(vm_proxy),
             hint_code::EC_MUL_INNER => ec_mul_inner(vm_proxy, ids, Some(ap_tracking)),
@@ -708,7 +749,8 @@ mod tests {
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
 
-        vm.exec_scopes
+        let exec_scopes = ExecutionScopes::new();
+        exec_scopes
             .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(500)));
 
         //Create references
@@ -742,10 +784,11 @@ mod tests {
         ]);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert!(HINT_EXECUTOR
             .execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()

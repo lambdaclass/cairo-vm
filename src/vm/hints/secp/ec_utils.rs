@@ -4,8 +4,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::{ExecutionScopesProxy, PyValueType};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
-    insert_int_into_scope, insert_value_into_ap,
+    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VMProxy;
@@ -40,7 +39,7 @@ pub fn ec_negate(
         vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
     );
     let value = (-pack(y_d0, y_d1, y_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(exec_scopes_proxy, "value", value);
+    exec_scopes_proxy.insert_int("value", value);
     Ok(())
 }
 
@@ -82,8 +81,8 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-    insert_int_into_scope(exec_scopes_proxy, "value", value.clone());
-    insert_int_into_scope(exec_scopes_proxy, "slope", value);
+    exec_scopes_proxy.insert_int("value", value.clone());
+    exec_scopes_proxy.insert_int("slope", value);
     Ok(())
 }
 
@@ -142,8 +141,8 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-    insert_int_into_scope(exec_scopes_proxy, "value", value.clone());
-    insert_int_into_scope(exec_scopes_proxy, "slope", value);
+    exec_scopes_proxy.insert_int("value", value.clone());
+    exec_scopes_proxy.insert_int("slope", value);
     Ok(())
 }
 
@@ -193,11 +192,11 @@ pub fn ec_double_assign_new_x(
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    insert_int_into_scope(exec_scopes_proxy, "slope", slope);
-    insert_int_into_scope(exec_scopes_proxy, "x", x);
-    insert_int_into_scope(exec_scopes_proxy, "y", y);
-    insert_int_into_scope(exec_scopes_proxy, "value", value.clone());
-    insert_int_into_scope(exec_scopes_proxy, "new_x", value);
+    exec_scopes_proxy.insert_int("slope", slope);
+    exec_scopes_proxy.insert_int("x", x);
+    exec_scopes_proxy.insert_int("y", y);
+    exec_scopes_proxy.insert_int("value", value.clone());
+    exec_scopes_proxy.insert_int("new_x", value);
     Ok(())
 }
 
@@ -205,18 +204,21 @@ pub fn ec_double_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn ec_double_assign_new_y(
+    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        get_int_from_scope(exec_scopes_proxy, "slope")?,
-        get_int_from_scope(exec_scopes_proxy, "x")?,
-        get_int_from_scope(exec_scopes_proxy, "new_x")?,
-        get_int_from_scope(exec_scopes_proxy, "y")?,
+        exec_scopes_proxy.get_int("slope")?,
+        exec_scopes_proxy.get_int("x")?,
+        exec_scopes_proxy.get_int("new_x")?,
+        exec_scopes_proxy.get_int("y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    insert_int_into_scope(exec_scopes_proxy, "value", value.clone());
-    insert_int_into_scope(exec_scopes_proxy, "new_y", value);
+    exec_scopes_proxy.insert_int("value", value.clone());
+    exec_scopes_proxy.insert_int("new_y", value);
     Ok(())
 }
 
@@ -294,13 +296,16 @@ pub fn fast_ec_add_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
-pub fn fast_ec_add_assign_new_y(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn fast_ec_add_assign_new_y(
+    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        get_int_from_scope(exec_scopes_proxy, "slope")?,
-        get_int_from_scope(exec_scopes_proxy, "x0")?,
-        get_int_from_scope(exec_scopes_proxy, "new_x")?,
-        get_int_from_scope(exec_scopes_proxy, "y0")?,
+        exec_scopes_proxy.get_int("slope")?,
+        exec_scopes_proxy.get_int("x0")?,
+        exec_scopes_proxy.get_int("new_x")?,
+        exec_scopes_proxy.get_int("y0")?,
     );
 
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);

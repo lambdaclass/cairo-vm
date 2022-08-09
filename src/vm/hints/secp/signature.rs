@@ -34,10 +34,10 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-    insert_int_into_scope(exec_scopes_proxy, "a", a);
-    insert_int_into_scope(exec_scopes_proxy, "b", b);
-    insert_int_into_scope(exec_scopes_proxy, "value", value.clone());
-    insert_int_into_scope(exec_scopes_proxy, "res", value);
+    exec_scopes_proxy.insert_int("a", a);
+    exec_scopes_proxy.insert_int("b", b);
+    exec_scopes_proxy.insert_int("value", value.clone());
+    exec_scopes_proxy.insert_int("res", value);
     Ok(())
 }
 
@@ -47,13 +47,13 @@ pub fn div_mod_n_safe_div(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_int_ref_from_scope(exec_scopes_proxy, "a")?;
-    let b = get_int_ref_from_scope(exec_scopes_proxy, "b")?;
-    let res = get_int_ref_from_scope(exec_scopes_proxy, "res")?;
+    let a = exec_scopes_proxy.get_int_ref("a")?;
+    let b = exec_scopes_proxy.get_int_ref("b")?;
+    let res = exec_scopes_proxy.get_int_ref("res")?;
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    insert_int_into_scope(exec_scopes_proxy, "value", value);
+    exec_scopes_proxy.insert_int("value", value);
     Ok(())
 }
 
@@ -71,7 +71,7 @@ pub fn get_point_from_x(
     if v % 2_i32 != &y % 2_i32 {
         y = -y % &*SECP_P;
     }
-    insert_int_into_scope(exec_scopes_proxy, "value", y);
+    exec_scopes_proxy.insert_int("value", y);
     Ok(())
 }
 

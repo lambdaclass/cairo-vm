@@ -2,9 +2,7 @@ use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{
-    get_int_ref_from_scope, get_relocatable_from_var_name, insert_value_from_var_name,
-};
+use crate::vm::hints::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
 use crate::vm::hints::secp::secp_utils::split;
 use crate::vm::hints::secp::secp_utils::BASE_86;
 use crate::vm::vm_core::VMProxy;
@@ -28,7 +26,7 @@ pub fn nondet_bigint3(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", ids, vm_proxy, hint_ap_tracking)?;
-    let value = get_int_ref_from_scope(exec_scopes_proxy, "value")?;
+    let value = exec_scopes_proxy.get_int_ref("value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm_proxy
         .segments

@@ -47,7 +47,7 @@ pub fn unsafe_keccak(
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", ids, vm_proxy, hint_ap_tracking)?;
 
-    if let Ok(keccak_max_size) = get_int_from_scope(exec_scopes_proxy, "__keccak_max_size") {
+    if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
         if length > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.clone(),

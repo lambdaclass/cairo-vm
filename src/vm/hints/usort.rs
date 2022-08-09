@@ -132,7 +132,7 @@ pub fn verify_usort(
             .collect();
 
     exec_scopes_proxy.assign_or_update_variable("positions", PyValueType::ListU64(positions));
-    insert_int_into_scope(exec_scopes_proxy, "last_pos", bigint!(0));
+    exec_scopes_proxy.insert_int("last_pos", bigint!(0));
     Ok(())
 }
 
@@ -154,9 +154,9 @@ pub fn verify_multiplicity_body(
     let current_pos = get_list_u64_from_scope_mut(exec_scopes_proxy, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - get_int_from_scope(exec_scopes_proxy, "last_pos")?;
+    let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, ids, vm_proxy, hint_ap_tracking)?;
-    insert_int_into_scope(exec_scopes_proxy, "last_pos", bigint!(current_pos + 1));
+    exec_scopes_proxy.insert_int("last_pos", bigint!(current_pos + 1));
     Ok(())
 }
 

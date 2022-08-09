@@ -39,7 +39,7 @@ pub fn memset_continue_loop(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(exec_scopes_proxy, "n")?;
+    let n = exec_scopes_proxy.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
@@ -54,7 +54,7 @@ pub fn memset_continue_loop(
     )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    insert_int_into_scope(exec_scopes_proxy, "n", new_n);
+    exec_scopes_proxy.insert_int("n", new_n);
     Ok(())
 }
 #[cfg(test)]

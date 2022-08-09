@@ -72,7 +72,7 @@ pub fn reduce(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
-    insert_int_into_scope(exec_scopes_proxy, "value", value);
+    exec_scopes_proxy.insert_int("value", value);
     Ok(())
 }
 
@@ -97,7 +97,7 @@ pub fn is_zero_pack(
     let x_d2 = vm_proxy.memory.get_integer(&(&x_reloc + 2))?;
 
     let x = (pack(x_d0, x_d1, x_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(exec_scopes_proxy, "x", x);
+    exec_scopes_proxy.insert_int("x", x);
     Ok(())
 }
 /*
@@ -113,7 +113,7 @@ pub fn is_zero_nondet(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = get_int_from_scope(exec_scopes_proxy, "x")?;
+    let x = exec_scopes_proxy.get_int("x")?;
 
     let value = bigint!(x.is_zero() as usize);
     insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
@@ -133,11 +133,11 @@ pub fn is_zero_assign_scope_variables(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = get_int_from_scope(exec_scopes_proxy, "x")?;
+    let x = exec_scopes_proxy.get_int("x")?;
 
     let value = div_mod(&bigint!(1), &x, &SECP_P);
-    insert_int_into_scope(exec_scopes_proxy, "value", value.clone());
-    insert_int_into_scope(exec_scopes_proxy, "x_inv", value);
+    exec_scopes_proxy.insert_int("value", value.clone());
+    exec_scopes_proxy.insert_int("x_inv", value);
     Ok(())
 }
 
