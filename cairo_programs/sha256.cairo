@@ -1,6 +1,6 @@
 %builtins output range_check bitwise
 from starkware.cairo.common.serialize import serialize_word
-from packed_sha256 import BLOCK_SIZE, compute_message_schedule, sha2_compress, get_round_constants
+from cairo_programs.packed_sha256 import BLOCK_SIZE, compute_message_schedule, sha2_compress, get_round_constants
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.registers import get_fp_and_pc
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
@@ -100,6 +100,186 @@ func _sha256_input{range_check_ptr, sha256_ptr : felt*}(
     return ()
 end
 
+# Handles n blocks of BLOCK_SIZE SHA256 instances.
+func _finalize_sha256_inner{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
+        sha256_ptr : felt*, n : felt, round_constants : felt*):
+    if n == 0:
+        return ()
+    end
+
+    alloc_locals
+
+    local MAX_VALUE = 2 ** 32 - 1
+
+    let sha256_start = sha256_ptr
+
+    let (local message_start : felt*) = alloc()
+    let (local input_state_start : felt*) = alloc()
+
+    # Handle message.
+
+    tempvar message = message_start
+    tempvar sha256_ptr = sha256_ptr
+    tempvar range_check_ptr = range_check_ptr
+    tempvar m = SHA256_INPUT_CHUNK_SIZE_FELTS
+
+    message_loop:
+    tempvar x0 = sha256_ptr[0 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 0] = x0
+    assert [range_check_ptr + 1] = MAX_VALUE - x0
+    tempvar x1 = sha256_ptr[1 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 2] = x1
+    assert [range_check_ptr + 3] = MAX_VALUE - x1
+    tempvar x2 = sha256_ptr[2 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 4] = x2
+    assert [range_check_ptr + 5] = MAX_VALUE - x2
+    tempvar x3 = sha256_ptr[3 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 6] = x3
+    assert [range_check_ptr + 7] = MAX_VALUE - x3
+    tempvar x4 = sha256_ptr[4 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 8] = x4
+    assert [range_check_ptr + 9] = MAX_VALUE - x4
+    tempvar x5 = sha256_ptr[5 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 10] = x5
+    assert [range_check_ptr + 11] = MAX_VALUE - x5
+    tempvar x6 = sha256_ptr[6 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 12] = x6
+    assert [range_check_ptr + 13] = MAX_VALUE - x6
+    assert message[0] = x0 + 2 ** 35 * x1 + 2 ** (35 * 2) * x2 + 2 ** (35 * 3) * x3 +
+        2 ** (35 * 4) * x4 + 2 ** (35 * 5) * x5 + 2 ** (35 * 6) * x6
+
+    tempvar message = message + 1
+    tempvar sha256_ptr = sha256_ptr + 1
+    tempvar range_check_ptr = range_check_ptr + 14
+    tempvar m = m - 1
+    jmp message_loop if m != 0
+
+    # Handle input state.
+
+    tempvar input_state = input_state_start
+    tempvar sha256_ptr = sha256_ptr
+    tempvar range_check_ptr = range_check_ptr
+    tempvar m = SHA256_STATE_SIZE_FELTS
+
+    input_state_loop:
+    tempvar x0 = sha256_ptr[0 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 0] = x0
+    assert [range_check_ptr + 1] = MAX_VALUE - x0
+    tempvar x1 = sha256_ptr[1 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 2] = x1
+    assert [range_check_ptr + 3] = MAX_VALUE - x1
+    tempvar x2 = sha256_ptr[2 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 4] = x2
+    assert [range_check_ptr + 5] = MAX_VALUE - x2
+    tempvar x3 = sha256_ptr[3 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 6] = x3
+    assert [range_check_ptr + 7] = MAX_VALUE - x3
+    tempvar x4 = sha256_ptr[4 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 8] = x4
+    assert [range_check_ptr + 9] = MAX_VALUE - x4
+    tempvar x5 = sha256_ptr[5 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 10] = x5
+    assert [range_check_ptr + 11] = MAX_VALUE - x5
+    tempvar x6 = sha256_ptr[6 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 12] = x6
+    assert [range_check_ptr + 13] = MAX_VALUE - x6
+    assert input_state[0] = x0 + 2 ** 35 * x1 + 2 ** (35 * 2) * x2 + 2 ** (35 * 3) * x3 +
+        2 ** (35 * 4) * x4 + 2 ** (35 * 5) * x5 + 2 ** (35 * 6) * x6
+
+    tempvar input_state = input_state + 1
+    tempvar sha256_ptr = sha256_ptr + 1
+    tempvar range_check_ptr = range_check_ptr + 14
+    tempvar m = m - 1
+    jmp input_state_loop if m != 0
+
+    # Run sha256 on the 7 instances.
+
+    local sha256_ptr : felt* = sha256_ptr
+    local range_check_ptr = range_check_ptr
+    compute_message_schedule(message_start)
+    let (outputs) = sha2_compress(input_state_start, message_start, round_constants)
+    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
+
+    # Handle outputs.
+
+    tempvar outputs = outputs
+    tempvar sha256_ptr = sha256_ptr
+    tempvar range_check_ptr = range_check_ptr
+    tempvar m = SHA256_STATE_SIZE_FELTS
+
+    output_loop:
+    tempvar x0 = sha256_ptr[0 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr] = x0
+    assert [range_check_ptr + 1] = MAX_VALUE - x0
+    tempvar x1 = sha256_ptr[1 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 2] = x1
+    assert [range_check_ptr + 3] = MAX_VALUE - x1
+    tempvar x2 = sha256_ptr[2 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 4] = x2
+    assert [range_check_ptr + 5] = MAX_VALUE - x2
+    tempvar x3 = sha256_ptr[3 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 6] = x3
+    assert [range_check_ptr + 7] = MAX_VALUE - x3
+    tempvar x4 = sha256_ptr[4 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 8] = x4
+    assert [range_check_ptr + 9] = MAX_VALUE - x4
+    tempvar x5 = sha256_ptr[5 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 10] = x5
+    assert [range_check_ptr + 11] = MAX_VALUE - x5
+    tempvar x6 = sha256_ptr[6 * SHA256_INSTANCE_SIZE]
+    assert [range_check_ptr + 12] = x6
+    assert [range_check_ptr + 13] = MAX_VALUE - x6
+    assert outputs[0] = x0 + 2 ** 35 * x1 + 2 ** (35 * 2) * x2 + 2 ** (35 * 3) * x3 +
+        2 ** (35 * 4) * x4 + 2 ** (35 * 5) * x5 + 2 ** (35 * 6) * x6
+
+    tempvar outputs = outputs + 1
+    tempvar sha256_ptr = sha256_ptr + 1
+    tempvar range_check_ptr = range_check_ptr + 14
+    tempvar m = m - 1
+    jmp output_loop if m != 0
+
+    return _finalize_sha256_inner(
+        sha256_ptr=sha256_start + SHA256_INSTANCE_SIZE * BLOCK_SIZE,
+        n=n - 1,
+        round_constants=round_constants)
+end
+
+func finalize_sha256{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(
+        sha256_ptr_start : felt*, sha256_ptr_end : felt*):
+    alloc_locals
+
+    let (__fp__, _) = get_fp_and_pc()
+
+    let (round_constants) = get_round_constants()
+
+    tempvar n = (sha256_ptr_end - sha256_ptr_start) / SHA256_INSTANCE_SIZE
+    if n == 0:
+        return ()
+    end
+
+    %{
+        # Add dummy pairs of input and output.
+        from starkware.cairo.common.cairo_sha256.sha256_utils import (
+            IV, compute_message_schedule, sha2_compress_function)
+
+        _block_size = int(ids.BLOCK_SIZE)
+        assert 0 <= _block_size < 20
+        _sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+        assert 0 <= _sha256_input_chunk_size_felts < 100
+
+        message = [0] * _sha256_input_chunk_size_felts
+        w = compute_message_schedule(message)
+        output = sha2_compress_function(IV, w)
+        padding = (message + IV + output) * (_block_size - 1)
+        segments.write_arg(ids.sha256_ptr_end, padding)
+    %}
+
+    # Compute the amount of blocks (rounded up).
+    let (local q, r) = unsigned_div_rem(n + BLOCK_SIZE - 1, BLOCK_SIZE)
+    _finalize_sha256_inner(sha256_ptr_start, n=q, round_constants=round_constants)
+    return ()
+end
+
 func main{output_ptr: felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     alloc_locals
     let input_len = 3
@@ -121,5 +301,8 @@ func main{output_ptr: felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     serialize_word(output[5])
     serialize_word(output[6])
     serialize_word(output[7])
+
+    finalize_sha256(sha256_ptr_start=sha256_ptr_start, sha256_ptr_end=sha256_ptr)
+
     return()
 end
