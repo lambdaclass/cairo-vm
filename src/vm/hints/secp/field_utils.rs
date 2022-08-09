@@ -3,8 +3,8 @@ use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_ap, insert_int_into_scope,
-    insert_value_from_var_name,
+    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_scope,
+    insert_value_from_var_name, insert_value_into_ap,
 };
 use crate::vm::hints::secp::secp_utils::SECP_P;
 use crate::vm::vm_core::VMProxy;
@@ -70,7 +70,7 @@ pub fn reduce(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm_proxy.exec_scopes, "value", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -87,14 +87,14 @@ pub fn is_zero_pack(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", ids, &vm_proxy, hint_ap_tracking)?;
+    let x_reloc = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;
 
     let x_d0 = vm_proxy.memory.get_integer(&x_reloc)?;
     let x_d1 = vm_proxy.memory.get_integer(&(&x_reloc + 1))?;
     let x_d2 = vm_proxy.memory.get_integer(&(&x_reloc + 2))?;
 
-    let x = (pack(x_d0, x_d1, x_d2, &vm_proxy.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm_proxy.exec_scopes, "x", x);
+    let x = (pack(x_d0, x_d1, x_d2, vm_proxy.prime)).mod_floor(&SECP_P);
+    insert_int_into_scope(vm_proxy.exec_scopes, "x", x);
     Ok(())
 }
 /*
@@ -110,7 +110,7 @@ pub fn is_zero_nondet(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError>
     let x = get_int_from_scope(vm_proxy.exec_scopes, "x")?;
 
     let value = bigint!(x.is_zero() as usize);
-    insert_int_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 /*
@@ -124,11 +124,11 @@ Implements hint:
 */
 pub fn is_zero_assign_scope_variables(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = get_int_from_scope(&vm_proxy.exec_scopes, "x")?;
+    let x = get_int_from_scope(vm_proxy.exec_scopes, "x")?;
 
     let value = div_mod(&bigint!(1), &x, &SECP_P);
-    insert_int_into_scope(&mut vm_proxy.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm_proxy.exec_scopes, "x_inv", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "x_inv", value);
     Ok(())
 }
 

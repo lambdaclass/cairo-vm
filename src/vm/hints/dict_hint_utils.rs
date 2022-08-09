@@ -10,6 +10,7 @@ use crate::{
 
 use super::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+    insert_value_into_ap,
 };
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
@@ -42,10 +43,7 @@ pub fn dict_new(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     let base = vm_proxy
         .dict_manager
         .new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
-    vm_proxy
-        .memory
-        .insert(&vm_proxy.run_context.ap, &base)
-        .map_err(VirtualMachineError::MemoryError)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
 }
 
 /*Implements hint:
@@ -75,10 +73,7 @@ pub fn default_dict_new(
         &default_value,
         initial_dict,
     )?;
-    vm_proxy
-        .memory
-        .insert(&vm_proxy.run_context.ap, &base)
-        .map_err(VirtualMachineError::MemoryError)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
 }
 
 /* Implements hint:

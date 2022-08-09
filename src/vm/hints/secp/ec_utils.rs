@@ -36,7 +36,7 @@ pub fn ec_negate(
         vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
     );
     let value = (-pack(y_d0, y_d1, y_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm_proxy.exec_scopes, "value", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
     Ok(())
 }
 

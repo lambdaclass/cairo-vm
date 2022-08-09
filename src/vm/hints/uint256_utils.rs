@@ -10,7 +10,7 @@ use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
-use super::hint_utils::{insert_int_into_ap, insert_value_from_var_name};
+use super::hint_utils::{insert_value_from_var_name, insert_value_into_ap};
 
 /*
 Implements hint:
@@ -136,7 +136,7 @@ pub fn uint256_signed_nn(
         } else {
             bigint!(0)
         };
-    insert_int_into_ap(vm_proxy.memory, vm_proxy.run_context, result)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, result)
 }
 
 /*

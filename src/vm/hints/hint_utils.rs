@@ -28,17 +28,6 @@ pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
     bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
-//Inserts value into ap
-pub fn insert_int_into_ap(
-    memory: &mut Memory,
-    run_context: &RunContext,
-    value: BigInt,
-) -> Result<(), VirtualMachineError> {
-    memory
-        .insert(&run_context.ap, &MaybeRelocatable::from(value))
-        .map_err(VirtualMachineError::MemoryError)
-}
-
 //Inserts the value in scope as a BigInt value type
 pub fn insert_int_into_scope(exec_scopes: &mut ExecutionScopes, name: &str, value: BigInt) {
     exec_scopes.assign_or_update_variable(name, PyValueType::BigInt(value));
@@ -386,6 +375,21 @@ pub fn insert_value_from_var_name(
     vm_proxy.memory.insert_value(&var_address, value)
 }
 
+//Inserts value into ap
+pub fn insert_value_into_ap(
+    memory: &mut Memory,
+    run_context: &RunContext,
+    value: impl Into<MaybeRelocatable>,
+) -> Result<(), VirtualMachineError> {
+    memory.insert_value(
+        &(run_context
+            .ap
+            .try_into()
+            .map_err(VirtualMachineError::MemoryError)?),
+        value,
+    )
+}
+
 //Gets the address of a variable name.
 //If the address is an MaybeRelocatable::Relocatable(Relocatable) return Relocatable
 //else raises Err
@@ -416,12 +420,8 @@ pub fn get_integer_from_var_name<'a>(
 
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    let new_segment_base =
-        MaybeRelocatable::RelocatableValue(vm_proxy.segments.add(&mut vm_proxy.memory, None));
-    vm_proxy
-        .memory
-        .insert(&vm_proxy.run_context.ap, &new_segment_base)
-        .map_err(VirtualMachineError::MemoryError)
+    let new_segment_base = vm_proxy.segments.add(vm_proxy.memory, None);
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, new_segment_base)
 }
 
 //Implements hint: vm_enter_scope()

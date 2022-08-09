@@ -70,13 +70,13 @@ pub fn pack_from_var_name(
     vm_proxy: &VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<BigInt, VirtualMachineError> {
-    let to_pack = get_relocatable_from_var_name(name, ids, &vm_proxy, hint_ap_tracking)?;
+    let to_pack = get_relocatable_from_var_name(name, ids, vm_proxy, hint_ap_tracking)?;
 
     let d0 = vm_proxy.memory.get_integer(&to_pack)?;
     let d1 = vm_proxy.memory.get_integer(&(&to_pack + 1))?;
     let d2 = vm_proxy.memory.get_integer(&(&to_pack + 2))?;
 
-    Ok(pack(d0, d1, d2, &vm_proxy.prime))
+    Ok(pack(d0, d1, d2, vm_proxy.prime))
 }
 
 #[cfg(test)]
