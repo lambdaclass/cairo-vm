@@ -1,5 +1,6 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::vm_core::VMProxy;
 use crate::vm::{
     errors::vm_errors::VirtualMachineError,
@@ -18,6 +19,7 @@ use super::hint_utils::insert_value_from_var_name;
 
 pub fn find_element(
     vm_proxy: &mut VMProxy,
+    xec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -25,7 +27,7 @@ pub fn find_element(
     let elm_size_bigint = get_integer_from_var_name("elm_size", ids, vm_proxy, hint_ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", ids, vm_proxy, hint_ap_tracking)?;
     let array_start = get_ptr_from_var_name("array_ptr", ids, vm_proxy, hint_ap_tracking)?;
-    let find_element_index = get_int_from_scope(vm_proxy.exec_scopes, "find_element_index").ok();
+    let find_element_index = get_int_from_scope(exec_scopes_proxy, "find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
@@ -56,7 +58,7 @@ pub fn find_element(
             vm_proxy,
             hint_ap_tracking,
         )?;
-        vm_proxy.exec_scopes.delete_variable("find_element_index");
+        exec_scopes_proxy.delete_variable("find_element_index");
         Ok(())
     } else {
         if n_elms.is_negative() {
@@ -64,7 +66,7 @@ pub fn find_element(
         }
 
         if let Ok(find_element_max_size) =
-            get_int_ref_from_scope(vm_proxy.exec_scopes, "find_element_max_size")
+            get_int_ref_from_scope(exec_scopes_proxy, "find_element_max_size")
         {
             if n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
@@ -100,10 +102,11 @@ pub fn find_element(
 
 pub fn search_sorted_lower(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = get_int_from_scope(vm_proxy.exec_scopes, "find_element_max_size");
+    let find_element_max_size = get_int_from_scope(exec_scopes_proxy, "find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", ids, vm_proxy, hint_ap_tracking)?;
     let rel_array_ptr =
         get_relocatable_from_var_name("array_ptr", ids, vm_proxy, hint_ap_tracking)?;
@@ -152,10 +155,11 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::exec_scope::PyValueType;
+    use crate::types::exec_scope::{get_exec_scopes_proxy, PyValueType};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
     use crate::utils::test_utils::vm;
+    use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::hints::{
         execute_hint::{BuiltinHintExecutor, HintReference},
@@ -258,9 +262,15 @@ mod tests {
     fn element_found_by_search() {
         assert_eq!(hint_code::FIND_ELEMENT, FIND_ELEMENT_HINT);
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -273,11 +283,19 @@ mod tests {
     #[test]
     fn element_found_by_oracle() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        vm.exec_scopes
+        let exec_scopes = ExecutionScopes::new();
+        exec_scopes
             .assign_or_update_variable("find_element_index", PyValueType::BigInt(bigint!(1)));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -293,9 +311,15 @@ mod tests {
             "key".to_string(),
             MaybeRelocatable::from(bigint!(7)),
         )]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::NoValueForKey(bigint!(7)))
         );
     }
@@ -303,11 +327,19 @@ mod tests {
     #[test]
     fn element_not_found_oracle() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        vm.exec_scopes
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes
             .assign_or_update_variable("find_element_index", PyValueType::BigInt(bigint!(2)));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::KeyNotFound)
         );
     }
@@ -327,9 +359,15 @@ mod tests {
                 immediate: None,
             },
         );
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -361,9 +399,15 @@ mod tests {
         {
             ids.insert(s.to_string(), bigint!(i as i32));
         }
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -376,9 +420,15 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::from((7, 8)),
         )]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -391,9 +441,15 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::Int(bigint!(0)),
         )]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
         );
     }
@@ -404,9 +460,15 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -416,9 +478,15 @@ mod tests {
         let relocatable = MaybeRelocatable::from((0, 2));
         let (mut vm, ids) =
             init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(relocatable))
         );
     }
@@ -429,9 +497,15 @@ mod tests {
             "n_elms".to_string(),
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -439,10 +513,15 @@ mod tests {
     #[test]
     fn find_elm_empty_scope() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        vm.exec_scopes = ExecutionScopes::new();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
     }
@@ -450,11 +529,19 @@ mod tests {
     #[test]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        vm.exec_scopes
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes
             .assign_or_update_variable("find_element_max_size", PyValueType::BigInt(bigint!(1)));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );
     }
@@ -463,9 +550,15 @@ mod tests {
     fn find_elm_key_not_int() {
         let relocatable = MaybeRelocatable::from((0, 4));
         let (mut vm, ids) = init_vm_ids(HashMap::from([("key".to_string(), relocatable.clone())]));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, FIND_ELEMENT_HINT, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                FIND_ELEMENT_HINT,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(relocatable))
         );
     }
@@ -474,10 +567,11 @@ mod tests {
     fn search_sorted_lower() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -498,10 +592,12 @@ mod tests {
             MaybeRelocatable::Int(bigint!(7)),
         )]));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes_ref!());
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -530,10 +626,11 @@ mod tests {
                 immediate: None,
             },
         );
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -570,10 +667,11 @@ mod tests {
             ids.insert(s.to_string(), bigint!(i as i32));
         }
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -589,10 +687,11 @@ mod tests {
             MaybeRelocatable::from((7, 8)),
         )]));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -610,10 +709,11 @@ mod tests {
             MaybeRelocatable::Int(bigint!(0)),
         )]));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -629,10 +729,11 @@ mod tests {
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -648,10 +749,11 @@ mod tests {
             MaybeRelocatable::from((1, 2)),
         )]));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -669,10 +771,11 @@ mod tests {
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -684,12 +787,11 @@ mod tests {
     #[test]
     fn search_sorted_lower_empty_scope() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        vm.exec_scopes = ExecutionScopes::new();
-
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()
@@ -701,13 +803,16 @@ mod tests {
     #[test]
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        vm.exec_scopes
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes
             .assign_or_update_variable("find_element_max_size", PyValueType::BigInt(bigint!(1)));
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 SEARCH_SORTED_LOWER_HINT,
                 &ids,
                 &ApTracking::new()

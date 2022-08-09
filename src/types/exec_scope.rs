@@ -7,6 +7,36 @@ pub struct ExecutionScopes {
     pub data: Vec<HashMap<String, PyValueType>>,
 }
 
+pub struct ExecutionScopesProxy<'a> {
+    scopes: &'a mut ExecutionScopes,
+    current_scope: usize,
+}
+
+pub fn get_exec_scopes_proxy<'a>(exec_scopes: &'a mut ExecutionScopes) -> ExecutionScopesProxy<'a> {
+    ExecutionScopesProxy {
+        scopes: exec_scopes,
+        //Len will always be > 1 as execution scopes are always created with a main scope
+        current_scope: exec_scopes.data.len() - 1,
+    }
+}
+
+impl ExecutionScopesProxy<'_> {
+    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, PyValueType>) {
+        self.scopes.enter_scope(new_scope_locals)
+    }
+
+    pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
+        self.scopes.exit_scope()
+    }
+    pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
+        self.scopes.data[self.current_scope].insert(var_name.to_string(), var_value);
+    }
+
+    pub fn delete_variable(&mut self, var_name: &str) {
+        self.scopes.data[self.current_scope].remove(var_name);
+    }
+}
+
 #[derive(Eq, PartialEq, Debug)]
 pub enum PyValueType {
     BigInt(BigInt),

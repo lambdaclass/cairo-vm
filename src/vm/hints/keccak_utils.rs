@@ -5,7 +5,9 @@ use super::hint_utils::{
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
+    types::{
+        exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable, relocatable::Relocatable,
+    },
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 use num_bigint::{BigInt, Sign};
@@ -39,12 +41,13 @@ use std::{cmp, collections::HashMap, ops::Shl};
 */
 pub fn unsafe_keccak(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", ids, vm_proxy, hint_ap_tracking)?;
 
-    if let Ok(keccak_max_size) = get_int_from_scope(vm_proxy.exec_scopes, "__keccak_max_size") {
+    if let Ok(keccak_max_size) = get_int_from_scope(exec_scopes_proxy, "__keccak_max_size") {
         if length > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.clone(),

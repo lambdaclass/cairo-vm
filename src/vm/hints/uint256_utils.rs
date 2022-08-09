@@ -245,10 +245,16 @@ mod tests {
             )
             .unwrap();
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -322,10 +328,16 @@ mod tests {
             )
             .unwrap();
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -365,10 +377,16 @@ mod tests {
             )
             .unwrap();
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -426,10 +444,16 @@ mod tests {
             )
             .unwrap();
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -461,9 +485,15 @@ mod tests {
         ]);
         vm.memory = memory![((1, 0), 17), ((1, 1), 7)];
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -510,9 +540,15 @@ mod tests {
             )
             .unwrap();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -541,9 +577,15 @@ mod tests {
         //Insert  ids.n.low into memory
         vm.memory = memory![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -580,9 +622,15 @@ mod tests {
             )
             .unwrap();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -621,9 +669,15 @@ mod tests {
             .unwrap();
 
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -666,9 +720,15 @@ mod tests {
             .insert(&mut vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
             .unwrap();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -698,9 +758,15 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -753,9 +819,15 @@ mod tests {
             ((1, 10), 0)
         ];
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),

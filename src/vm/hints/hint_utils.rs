@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
@@ -426,16 +427,21 @@ pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
 }
 
 //Implements hint: vm_enter_scope()
-pub fn enter_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    vm_proxy.exec_scopes.enter_scope(HashMap::new());
+pub fn enter_scope(
+    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
+    exec_scopes_proxy.enter_scope(HashMap::new());
     Ok(())
 }
 
 //  Implements hint:
 //  %{ vm_exit_scope() %}
-pub fn exit_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    vm_proxy
-        .exec_scopes
+pub fn exit_scope(
+    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
+    exec_scopes_proxy
         .exit_scope()
         .map_err(VirtualMachineError::MainScopeError)
 }
@@ -444,11 +450,12 @@ pub fn exit_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let len = get_integer_from_var_name("len", ids, vm_proxy, hint_ap_tracking)?.clone();
-    vm_proxy.exec_scopes.enter_scope(HashMap::from([(
+    exec_scopes_proxy.enter_scope(HashMap::from([(
         String::from("n"),
         PyValueType::BigInt(len),
     )]));
@@ -462,11 +469,12 @@ pub fn memcpy_enter_scope(
 // %}
 pub fn memcpy_continue_copying(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(vm_proxy.exec_scopes, "n")?;
+    let n = get_int_ref_from_scope(exec_scopes_proxy, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if it is positive, insert 1 in the address of `continue_copying`
@@ -488,9 +496,7 @@ pub fn memcpy_continue_copying(
             hint_ap_tracking,
         )?;
     }
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(new_n));
+    exec_scopes_proxy.assign_or_update_variable("n", PyValueType::BigInt(new_n));
     Ok(())
 }
 
@@ -559,7 +565,7 @@ mod tests {
                 &MaybeRelocatable::from((0, 1)),
             )
             .unwrap();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(var_name, &ids, &mut vm_proxy, None),
             Err(VirtualMachineError::ExpectedInteger(

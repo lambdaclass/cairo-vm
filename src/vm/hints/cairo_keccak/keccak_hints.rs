@@ -1,7 +1,7 @@
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    types::relocatable::MaybeRelocatable,
+    types::{exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable},
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
@@ -31,6 +31,7 @@ Implements hint:
 */
 pub fn keccak_write_args(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -75,6 +76,7 @@ Implements hint:
 */
 pub fn compare_bytes_in_word_nondet(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -99,6 +101,7 @@ Implements hint:
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -122,6 +125,7 @@ Implements hint:
 */
 pub fn block_permutation(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -178,6 +182,7 @@ pub fn block_permutation(
 */
 pub fn cairo_keccak_finalize(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -248,6 +253,8 @@ fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::hint_executor::HintExecutor;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -282,9 +289,16 @@ mod tests {
         //Create ids
         let ids = ids!["low", "high", "inputs"];
         vm.references = references!(3);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
     }
@@ -306,8 +320,14 @@ mod tests {
         //Create ids
         let ids = ids!["low", "high", "inputs"];
         vm.references = references!(3);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
-        let error = HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new());
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let error = HINT_EXECUTOR.execute_hint(
+            &mut vm_proxy,
+            exec_scopes_proxy_ref!(),
+            hint_code,
+            &ids,
+            &ApTracking::new(),
+        );
 
         assert!(matches!(error, Err(VirtualMachineError::MemoryError(_))));
     }
@@ -326,9 +346,15 @@ mod tests {
 
         let ids = ids!["n_bytes"];
         vm.references = references!(1);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
     }
@@ -348,9 +374,15 @@ mod tests {
 
         let ids = ids!["n_bytes"];
         vm.references = references!(1);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
     }
@@ -369,9 +401,15 @@ mod tests {
 
         let ids = ids!["n_bytes"];
         vm.references = references!(1);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
     }

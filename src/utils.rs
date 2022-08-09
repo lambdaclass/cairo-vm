@@ -174,6 +174,20 @@ pub mod test_utils {
         };
     }
     pub(crate) use ids_inner;
+
+    macro_rules! exec_scopes_ref {
+        () => {
+            &mut ExecutionScopes::new()
+        };
+    }
+    pub(crate) use exec_scopes_ref;
+
+    macro_rules! exec_scopes_proxy_ref {
+        () => {
+            &mut get_exec_scopes_proxy(&mut ExecutionScopes::new())
+        };
+    }
+    pub(crate) use exec_scopes_proxy_ref;
 }
 
 #[cfg(test)]

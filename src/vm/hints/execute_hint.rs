@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::types::{hint_executor::HintExecutor, instruction::Register};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::blake2s_utils::{
@@ -69,7 +70,6 @@ pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
         memory: &mut vm.memory,
         segments: &mut vm.segments,
         run_context: &mut vm.run_context,
-        exec_scopes: &mut vm.exec_scopes,
         dict_manager: &mut vm.dict_manager,
         builtin_runners: &vm.builtin_runners,
         references: &vm.references,
@@ -107,6 +107,7 @@ impl HintExecutor for BuiltinHintExecutor {
     fn execute_hint(
         &self,
         vm_proxy: &mut VMProxy,
+        exec_scopes_proxy: &mut ExecutionScopesProxy,
         code: &str,
         ids: &HashMap<String, BigInt>,
         ap_tracking: &ApTracking,
@@ -236,7 +237,7 @@ impl HintExecutor for BuiltinHintExecutor {
 #[cfg(test)]
 mod tests {
     use crate::bigint;
-    use crate::types::exec_scope::PyValueType;
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
@@ -252,10 +253,11 @@ mod tests {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
         //ids and references are not needed for this test
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
             .execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::new(),
@@ -280,10 +282,11 @@ mod tests {
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
         //ids and references are not needed for this test
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
             .execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::new(),
@@ -315,10 +318,11 @@ mod tests {
             )
             .unwrap();
         //ids and references are not needed for this test
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::new()
@@ -337,10 +341,11 @@ mod tests {
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::new()
@@ -374,9 +379,15 @@ mod tests {
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
     }
 
@@ -405,9 +416,15 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -426,8 +443,8 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         // initialize vm scope with variable `n`
-        vm.exec_scopes
-            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        let exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
 
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
@@ -444,9 +461,16 @@ mod tests {
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
     }
 
@@ -479,9 +503,15 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -500,8 +530,8 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         // initialize with variable `n`
-        vm.exec_scopes
-            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        let exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
 
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
@@ -517,9 +547,16 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -535,18 +572,21 @@ mod tests {
         let hint_code = "vm_exit_scope()";
         let mut vm = vm!();
 
-        // create new vm scope with dummy variable
-        vm.exec_scopes.enter_scope(HashMap::from([(
+        // Create new vm scope with dummy variable
+        let exec_scopes = ExecutionScopes::new();
+        exec_scopes.enter_scope(HashMap::from([(
             String::from("a"),
             PyValueType::BigInt(bigint!(1)),
         )]));
 
-        // initialize memory segments
+        // Initialize memory segments
         vm.segments.add(&mut vm.memory, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert!(HINT_EXECUTOR
             .execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::new()
@@ -564,10 +604,11 @@ mod tests {
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::new()
@@ -583,11 +624,14 @@ mod tests {
         let hint_code = "vm_enter_scope()";
         //Create vm
         let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -596,7 +640,7 @@ mod tests {
         );
         //Check exec_scopes
         let expected_scope = vec![HashMap::new(), HashMap::new()];
-        assert_eq!(vm.exec_scopes.data, expected_scope)
+        assert_eq!(exec_scopes.data, expected_scope)
     }
 
     #[test]
@@ -697,9 +741,15 @@ mod tests {
             (3, HintReference::new_simple(0)),
         ]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
     }
 
@@ -767,9 +817,8 @@ mod tests {
         ids.insert(String::from("data"), bigint!(1));
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
-
-        vm.exec_scopes
-            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
+        let exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
 
         //Create references
         vm.references = HashMap::from([
@@ -800,9 +849,16 @@ mod tests {
             ),
             (3, HintReference::new_simple(0)),
         ]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
@@ -902,9 +958,15 @@ mod tests {
             (3, HintReference::new_simple(0)),
         ]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_err());
     }
 
@@ -1005,9 +1067,15 @@ mod tests {
             ),
             (3, HintReference::new_simple(0)),
         ]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
         );
     }
@@ -1106,9 +1174,15 @@ mod tests {
             ),
         ]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
     }
 
@@ -1198,9 +1272,15 @@ mod tests {
                 },
             ),
         ]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::NoneInMemoryRange)
         );
     }
@@ -1300,9 +1380,15 @@ mod tests {
             ),
         ]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_err());
     }
 }
