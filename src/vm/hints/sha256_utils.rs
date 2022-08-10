@@ -69,7 +69,9 @@ pub fn sha256_main(
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        message.extend(bigint_to_u32(vm.memory.get_integer(&(input_ptr + i))?)?.to_be_bytes());
+        let input_element = vm.memory.get_integer(&(input_ptr + i))?;
+        let bytes = bigint_to_u32(input_element)?.to_be_bytes();
+        message.extend(bytes);
     }
 
     let mut iv: [u32; SHA256_STATE_SIZE_FELTS] = [
