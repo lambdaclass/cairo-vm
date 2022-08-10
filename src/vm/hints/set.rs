@@ -71,6 +71,8 @@ pub fn set_add(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::hint_executor::HintExecutor;
     use crate::types::instruction::Register;
     use crate::utils::test_utils::*;
@@ -230,7 +232,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_ref!(),
+                exec_scopes_proxy_ref!(),
                 HINT_CODE,
                 &ids,
                 &ApTracking::new()
@@ -256,7 +258,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_ref!(),
+                exec_scopes_proxy_ref!(),
                 HINT_CODE,
                 &ids,
                 &ApTracking::new()
@@ -282,7 +284,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_ref!(),
+                exec_scopes_proxy_ref!(),
                 HINT_CODE,
                 &ids,
                 &ApTracking::new()
@@ -302,7 +304,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_ref!(),
+                exec_scopes_proxy_ref!(),
                 HINT_CODE,
                 &ids,
                 &ApTracking::new()
@@ -313,14 +315,14 @@ mod tests {
 
     #[test]
     fn elm_size_zero() {
-        let int = bigint!(0);
+        let int = bigint!(0_i32);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_ref!(),
+                exec_scopes_proxy_ref!(),
                 HINT_CODE,
                 &ids,
                 &ApTracking::new()
@@ -335,7 +337,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_ref!(),
+                exec_scopes_proxy_ref!(),
                 HINT_CODE,
                 &ids,
                 &ApTracking::new()

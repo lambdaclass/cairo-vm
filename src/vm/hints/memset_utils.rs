@@ -8,9 +8,7 @@ use num_bigint::BigInt;
 use num_traits::Signed;
 use std::collections::HashMap;
 
-use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_integer_from_var_name;
-use super::hint_utils::insert_int_into_scope;
 use super::hint_utils::insert_value_from_var_name;
 
 //  Implements hint:

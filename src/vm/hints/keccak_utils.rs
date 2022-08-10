@@ -1,6 +1,5 @@
 use super::hint_utils::{
-    get_int_from_scope, get_integer_from_var_name, get_ptr_from_var_name,
-    get_relocatable_from_var_name,
+    get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
 };
 use crate::{
     bigint,

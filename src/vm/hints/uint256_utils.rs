@@ -210,6 +210,8 @@ pub fn uint256_unsigned_div_rem(
 mod tests {
     use super::*;
     use crate::bigint_str;
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;

@@ -28,6 +28,8 @@ pub fn pow(
 #[cfg(test)]
 mod tests {
 
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;

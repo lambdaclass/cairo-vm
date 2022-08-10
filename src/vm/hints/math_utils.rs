@@ -410,6 +410,8 @@ pub fn assert_lt_felt(
 
 #[cfg(test)]
 mod tests {
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor};

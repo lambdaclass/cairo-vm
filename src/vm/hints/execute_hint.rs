@@ -126,7 +126,7 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::ASSERT_NN => assert_nn(vm_proxy, ids, None),
             hint_code::SQRT => sqrt(vm_proxy, ids, None),
             hint_code::ASSERT_NOT_ZERO => assert_not_zero(vm_proxy, ids, None),
-            hint_code::VM_EXIT_SCOPE => exit_scope(vm_proxy, exec_scopes_proxy),
+            hint_code::VM_EXIT_SCOPE => exit_scope(exec_scopes_proxy),
             hint_code::MEMCPY_ENTER_SCOPE => {
                 memcpy_enter_scope(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
@@ -150,8 +150,8 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::POW => pow(vm_proxy, ids, Some(ap_tracking)),
             hint_code::SET_ADD => set_add(vm_proxy, ids, None),
             hint_code::DICT_NEW => dict_new(vm_proxy, exec_scopes_proxy),
-            hint_code::DICT_READ => dict_read(vm_proxy, exec_scopes_proxy, ids, None),
-            hint_code::DICT_WRITE => dict_write(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::DICT_READ => dict_read(vm_proxy, ids, None),
+            hint_code::DICT_WRITE => dict_write(vm_proxy, ids, None),
             hint_code::DEFAULT_DICT_NEW => {
                 default_dict_new(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
@@ -161,10 +161,12 @@ impl HintExecutor for BuiltinHintExecutor {
                 ids,
                 Some(ap_tracking),
             ),
-            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm_proxy, exec_scopes_proxy),
+            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(exec_scopes_proxy),
             hint_code::USORT_BODY => usort_body(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::USORT_VERIFY => verify_usort(vm_proxy, exec_scopes_proxy, ids, None),
-            hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => verify_multiplicity_assert(vm_proxy),
+            hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => {
+                verify_multiplicity_assert(exec_scopes_proxy)
+            }
             hint_code::USORT_VERIFY_MULTIPLICITY_BODY => {
                 verify_multiplicity_body(vm_proxy, exec_scopes_proxy, ids, None)
             }
@@ -196,9 +198,11 @@ impl HintExecutor for BuiltinHintExecutor {
                 squash_dict_inner_continue_loop(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => {
-                squash_dict_inner_assert_len_keys(vm_proxy, exec_scopes_proxy)
+                squash_dict_inner_assert_len_keys(exec_scopes_proxy)
             }
-            hint_code::SQUASH_DICT_INNER_LEN_ASSERT => squash_dict_inner_len_assert(vm_proxy),
+            hint_code::SQUASH_DICT_INNER_LEN_ASSERT => {
+                squash_dict_inner_len_assert(exec_scopes_proxy)
+            }
             hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
                 squash_dict_inner_used_accesses_assert(
                     vm_proxy,
@@ -213,31 +217,29 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::SQUASH_DICT => {
                 squash_dict(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
-            hint_code::VM_ENTER_SCOPE => enter_scope(vm_proxy, exec_scopes_proxy),
-            hint_code::DICT_UPDATE => dict_update(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::VM_ENTER_SCOPE => enter_scope(exec_scopes_proxy),
+            hint_code::DICT_UPDATE => dict_update(vm_proxy, ids, None),
             hint_code::DICT_SQUASH_COPY_DICT => {
                 dict_squash_copy_dict(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::DICT_SQUASH_UPDATE_PTR => {
-                dict_squash_update_ptr(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
+                dict_squash_update_ptr(vm_proxy, ids, Some(ap_tracking))
             }
             hint_code::UINT256_ADD => uint256_add(vm_proxy, ids, None),
             hint_code::SPLIT_64 => split_64(vm_proxy, ids, None),
             hint_code::UINT256_SQRT => uint256_sqrt(vm_proxy, ids, None),
             hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm_proxy, ids, None),
             hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm_proxy, ids, None),
-            hint_code::BIGINT_TO_UINT256 => {
-                bigint_to_uint256(vm_proxy, exec_scopes_proxy, ids, None)
-            }
+            hint_code::BIGINT_TO_UINT256 => bigint_to_uint256(vm_proxy, ids, None),
             hint_code::IS_ZERO_PACK => is_zero_pack(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm_proxy, exec_scopes_proxy),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => {
-                is_zero_assign_scope_variables(vm_proxy, exec_scopes_proxy)
+                is_zero_assign_scope_variables(exec_scopes_proxy)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD => {
                 div_mod_n_packed_divmod(vm_proxy, exec_scopes_proxy, ids, None)
             }
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm_proxy, exec_scopes_proxy),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes_proxy),
             hint_code::GET_POINT_FROM_X => {
                 get_point_from_x(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
@@ -249,26 +251,20 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
                 ec_double_assign_new_x(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
-            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm_proxy),
-            hint_code::KECCAK_WRITE_ARGS => {
-                keccak_write_args(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
-            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes_proxy),
+            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm_proxy, ids, Some(ap_tracking)),
             hint_code::COMPARE_BYTES_IN_WORD_NONDET => {
-                compare_bytes_in_word_nondet(vm_proxy, exec_scopes_proxy, ids, None)
+                compare_bytes_in_word_nondet(vm_proxy, ids, None)
             }
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
-                compare_keccak_full_rate_in_bytes_nondet(vm_proxy, exec_scopes_proxy, ids, None)
+                compare_keccak_full_rate_in_bytes_nondet(vm_proxy, ids, None)
             }
-            hint_code::BLOCK_PERMUTATION => {
-                block_permutation(vm_proxy, exec_scopes_proxy, ids, None)
-            }
-            hint_code::CAIRO_KECCAK_FINALIZE => {
-                cairo_keccak_finalize(vm_proxy, exec_scopes_proxy, ids, None)
-            }
+            hint_code::BLOCK_PERMUTATION => block_permutation(vm_proxy, ids, None),
+            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm_proxy, ids, None),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => {
                 fast_ec_add_assign_new_x(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(vm_proxy),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes_proxy),
             hint_code::EC_MUL_INNER => ec_mul_inner(vm_proxy, ids, Some(ap_tracking)),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
@@ -484,7 +480,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         // initialize vm scope with variable `n`
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
 
         // initialize ids.continue_copying
@@ -571,7 +567,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         // initialize with variable `n`
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
 
         // initialize ids.continue_copying
@@ -614,7 +610,7 @@ mod tests {
         let mut vm = vm!();
 
         // Create new vm scope with dummy variable
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.enter_scope(HashMap::from([(
             String::from("a"),
             PyValueType::BigInt(bigint!(1)),
@@ -749,7 +745,7 @@ mod tests {
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
             .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(500)));
 
@@ -860,7 +856,7 @@ mod tests {
         ids.insert(String::from("data"), bigint!(1));
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
 
         //Create references
@@ -1077,8 +1073,8 @@ mod tests {
         ids.insert(String::from("data"), bigint!(1));
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
-
-        vm.exec_scopes
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes
             .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(10)));
 
         //Create references
@@ -1111,10 +1107,11 @@ mod tests {
             (3, HintReference::new_simple(0)),
         ]);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()

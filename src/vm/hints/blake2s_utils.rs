@@ -250,6 +250,8 @@ pub fn blake2s_add_uint256_bigend(
 mod tests {
     use super::*;
     use crate::relocatable;
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::vm_core::VirtualMachine;

@@ -12,11 +12,11 @@ pub struct ExecutionScopesProxy<'a> {
     current_scope: usize,
 }
 
-pub fn get_exec_scopes_proxy<'a>(exec_scopes: &'a mut ExecutionScopes) -> ExecutionScopesProxy<'a> {
+pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScopesProxy {
     ExecutionScopesProxy {
-        scopes: exec_scopes,
         //Len will always be > 1 as execution scopes are always created with a main scope
         current_scope: exec_scopes.data.len() - 1,
+        scopes: exec_scopes,
     }
 }
 
@@ -63,7 +63,7 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
     //Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int_ref<'a>(&self, name: &'a str) -> Result<&'a BigInt, VirtualMachineError> {
+    pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
         let mut val: Option<&BigInt> = None;
         if let Some(variables) = self.get_local_variables() {
             if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
@@ -73,21 +73,136 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
     //Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_mut_int_ref<'a>(
-        &mut self,
-        name: &'a str,
-    ) -> Result<&'a mut BigInt, VirtualMachineError> {
+    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
         let mut val: Option<&mut BigInt> = None;
-        if let Some(variables) = self.get_local_variables() {
+        if let Some(variables) = self.get_local_variables_mut() {
             if let Some(PyValueType::BigInt(py_val)) = variables.get_mut(name) {
                 val = Some(py_val);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
+    //Returns the value in the current execution scope that matches the name and is of type List
+    pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
+        let mut val: Option<Vec<BigInt>> = None;
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::List(py_val)) = variables.get(name) {
+                val = Some(py_val.clone());
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+    //Returns a reference to the value in the current execution scope that matches the name and is of type List
+    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
+        let mut val: Option<&Vec<BigInt>> = None;
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::List(py_val)) = variables.get(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
+    pub fn get_mut_list_ref(
+        &mut self,
+        name: &str,
+    ) -> Result<&mut Vec<BigInt>, VirtualMachineError> {
+        let mut val: Option<&mut Vec<BigInt>> = None;
+        if let Some(variables) = self.get_local_variables_mut() {
+            if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    //Returns the value in the current execution scope that matches the name and is of type ListU64
+    pub fn get_listu64(&self, name: &str) -> Result<Vec<u64>, VirtualMachineError> {
+        let mut val: Option<Vec<u64>> = None;
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
+                val = Some(py_val.clone());
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+    //Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
+    pub fn get_listu64_ref(&self, name: &str) -> Result<&Vec<u64>, VirtualMachineError> {
+        let mut val: Option<&Vec<u64>> = None;
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type ListU64
+    pub fn get_mut_listu64_ref(
+        &mut self,
+        name: &str,
+    ) -> Result<&mut Vec<u64>, VirtualMachineError> {
+        let mut val: Option<&mut Vec<u64>> = None;
+        if let Some(variables) = self.get_local_variables_mut() {
+            if let Some(PyValueType::ListU64(py_val)) = variables.get_mut(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    //Returns the value in the current execution scope that matches the name and is of type ListU64
+    pub fn get_u64(&self, name: &str) -> Result<u64, VirtualMachineError> {
+        let mut val: Option<u64> = None;
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::U64(ref py_val)) = variables.get(name) {
+                val = Some(*py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+    //Returns a reference to the value in the current execution scope that matches the name and is of type U64
+    pub fn get_u64_ref(&self, name: &str) -> Result<&u64, VirtualMachineError> {
+        let mut val: Option<&u64> = None;
+        if let Some(variables) = self.get_local_variables() {
+            if let Some(PyValueType::U64(py_val)) = variables.get(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
+    pub fn get_mut_u64_ref(&mut self, name: &str) -> Result<&mut u64, VirtualMachineError> {
+        let mut val: Option<&mut u64> = None;
+        if let Some(variables) = self.get_local_variables_mut() {
+            if let Some(PyValueType::U64(py_val)) = variables.get_mut(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64
+    pub fn get_mut_dict_int_list_u64_ref(
+        &mut self,
+        name: &str,
+    ) -> Result<&mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
+        let mut val: Option<&mut HashMap<BigInt, Vec<u64>>> = None;
+        if let Some(variables) = self.get_local_variables_mut() {
+            if let Some(PyValueType::DictBigIntListU64(py_val)) = variables.get_mut(name) {
+                val = Some(py_val);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
     //Inserts the value in scope as a BigInt value type
     pub fn insert_int(&mut self, name: &str, value: BigInt) {
         self.assign_or_update_variable(name, PyValueType::BigInt(value));
+    }
+
+    //Inserts the List in scope as a List value type
+    pub fn insert_list(&mut self, name: &str, value: Vec<BigInt>) {
+        self.assign_or_update_variable(name, PyValueType::List(value));
     }
 }
 

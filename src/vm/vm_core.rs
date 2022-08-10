@@ -696,6 +696,7 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;

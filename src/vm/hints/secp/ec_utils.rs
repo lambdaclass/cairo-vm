@@ -205,7 +205,6 @@ Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
 pub fn ec_double_assign_new_y(
-    vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
@@ -297,7 +296,6 @@ Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
 pub fn fast_ec_add_assign_new_y(
-    vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
@@ -408,7 +406,7 @@ mod tests {
         //Create references
         vm.references = references!(1);
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -502,7 +500,7 @@ mod tests {
             ),
         ]);
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -602,7 +600,7 @@ mod tests {
             offset: 0,
         };
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);

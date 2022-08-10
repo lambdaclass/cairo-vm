@@ -42,7 +42,6 @@ pub fn div_mod_n_packed_divmod(
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
 pub fn div_mod_n_safe_div(
-    vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     let a = exec_scopes_proxy.get_int_ref("a")?;
@@ -127,28 +126,24 @@ mod tests {
             ("a".to_string(), bigint!(0_i32)),
             ("b".to_string(), bigint!(3_i32)),
         ]);
+        let mut exec_scopes = ExecutionScopes::new();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            div_mod_n_packed_divmod(vm_proxy, exec_scopes_proxy_ref!(), &ids, None),
+            div_mod_n_packed_divmod(vm_proxy, exec_scopes_proxy, &ids, None),
             Ok(())
         );
-        assert_eq!(
-            div_mod_n_safe_div(vm_proxy, exec_scopes_proxy_ref!()),
-            Ok(())
-        );
+        assert_eq!(div_mod_n_safe_div(exec_scopes_proxy), Ok(()));
     }
 
     #[test]
     fn safe_div_fail() {
-        let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("a", PyValueType::BigInt(bigint!(0_usize)));
         exec_scopes.assign_or_update_variable("b", PyValueType::BigInt(bigint!(1_usize)));
         exec_scopes.assign_or_update_variable("res", PyValueType::BigInt(bigint!(1_usize)));
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(vm_proxy, exec_scopes_proxy));
+        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
     }
 
     #[test]

@@ -128,7 +128,6 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(
-    vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
@@ -219,7 +218,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
                 exec_scopes_proxy_ref!(),
                 hint_code,
                 &ids,
@@ -320,7 +319,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
                 exec_scopes_proxy_ref!(),
                 hint_code,
                 &ids,
@@ -426,7 +425,7 @@ mod tests {
         //Execute the hint
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
                 exec_scopes_proxy_ref!(),
                 hint_code,
                 &ids,
@@ -497,7 +496,7 @@ mod tests {
             )
             .unwrap();
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         //Execute the hint
@@ -611,7 +610,7 @@ mod tests {
             ((1, 12), 232113757366008801543585_i128)
         ];
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -701,7 +700,7 @@ mod tests {
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 15));
 
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
         exec_scopes.assign_or_update_variable("x", PyValueType::BigInt(bigint!(0i32)));
 
@@ -811,7 +810,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 15));
 
         //Initialize vm scope with variable `x`
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("x", PyValueType::BigInt(bigint!(0)));
 
         //Execute the hint
@@ -841,7 +840,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Initialize vm scope with variable `x`
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "x",
             PyValueType::BigInt(bigint_str!(

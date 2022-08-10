@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::{
     serde::deserialize_program::ApTracking,
-    types::exec_scope::{ExecutionScopes, ExecutionScopesProxy, PyValueType},
+    types::exec_scope::{ExecutionScopesProxy, PyValueType},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
@@ -15,9 +15,11 @@ use super::hint_utils::{
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt, BigInt>> {
+fn copy_initial_dict(
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
-    if let Some(variables) = exec_scopes.get_local_variables() {
+    if let Some(variables) = exec_scopes_proxy.get_local_variables() {
         if let Some(PyValueType::Dictionary(py_initial_dict)) = variables.get("initial_dict") {
             initial_dict = Some(py_initial_dict.clone());
         }
@@ -87,7 +89,6 @@ pub fn default_dict_new(
 */
 pub fn dict_read(
     vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -107,7 +108,6 @@ pub fn dict_read(
 */
 pub fn dict_write(
     vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -147,7 +147,6 @@ pub fn dict_write(
 */
 pub fn dict_update(
     vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -212,7 +211,6 @@ pub fn dict_squash_copy_dict(
 */
 pub fn dict_squash_update_ptr(
     vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -230,6 +228,7 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
 
@@ -255,7 +254,7 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
         //Store initial dict in scope
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         //ids and references are not needed for this test
@@ -401,7 +400,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
                 exec_scopes_proxy_ref!(),
                 hint_code,
                 &ids,
@@ -1200,7 +1199,7 @@ mod tests {
         vm.references = references!(1);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
@@ -1249,7 +1248,7 @@ mod tests {
         vm.references = references!(1);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(

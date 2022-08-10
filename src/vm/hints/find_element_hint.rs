@@ -4,22 +4,19 @@ use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::vm_core::VMProxy;
 use crate::vm::{
     errors::vm_errors::VirtualMachineError,
-    hints::hint_utils::{
-        get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
-    },
+    hints::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name},
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 use super::hint_utils::bigint_to_usize;
-use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_ptr_from_var_name;
 use super::hint_utils::insert_value_from_var_name;
 
 pub fn find_element(
     vm_proxy: &mut VMProxy,
-    xec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -281,7 +278,7 @@ mod tests {
     #[test]
     fn element_found_by_oracle() {
         let (mut vm, ids) = init_vm_ids(HashMap::new());
-        let exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
             .assign_or_update_variable("find_element_index", PyValueType::BigInt(bigint!(1)));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -591,7 +588,6 @@ mod tests {
         )]));
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes_ref!());
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
