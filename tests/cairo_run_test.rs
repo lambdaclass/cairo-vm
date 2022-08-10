@@ -182,9 +182,9 @@ fn cairo_run_split_felt() {
 }
 
 #[test]
-fn cairo_run_is_le_felt() {
+fn cairo_run_math_cmp() {
     cairo_run::cairo_run(
-        Path::new("cairo_programs/math_cmp_is_le_felt.json"),
+        Path::new("cairo_programs/math_cmp.json"),
         false,
         &HINT_EXECUTOR,
     )
@@ -506,6 +506,16 @@ fn cairo_run_finalize_keccak() {
 fn cairo_run_sha256() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/sha256.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_math_cmp_and_pow_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/math_cmp_and_pow_integration_tests.json"),
         false,
         &HINT_EXECUTOR,
     )
