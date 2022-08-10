@@ -73,12 +73,7 @@ pub fn sha256_main(
 
     vm_proxy
         .segments
-        .write_arg(
-            vm_proxy.memory,
-            &output_base,
-            &output,
-            Some(&vm_proxy.prime),
-        )
+        .write_arg(vm_proxy.memory, &output_base, &output, Some(vm_proxy.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
