@@ -511,3 +511,23 @@ fn cairo_run_operations_with_data() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_sha256() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/sha256.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_memory_module_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/memory_integration_tests.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
