@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::{ExecutionScopesProxy, PyValueType};
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
@@ -278,15 +278,15 @@ pub fn fast_ec_add_assign_new_x(
     let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.assign_or_update_variable("slope", PyValueType::BigInt(slope));
+    exec_scopes_proxy.assign_or_update_variable("slope", &slope);
 
-    exec_scopes_proxy.assign_or_update_variable("x0", PyValueType::BigInt(x0));
+    exec_scopes_proxy.assign_or_update_variable("x0", &x0);
 
-    exec_scopes_proxy.assign_or_update_variable("y0", PyValueType::BigInt(y0));
+    exec_scopes_proxy.assign_or_update_variable("y0", &y0);
 
-    exec_scopes_proxy.assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+    exec_scopes_proxy.assign_or_update_variable("value", &value);
 
-    exec_scopes_proxy.assign_or_update_variable("new_x", PyValueType::BigInt(value));
+    exec_scopes_proxy.assign_or_update_variable("new_x", &value);
 
     Ok(())
 }
@@ -308,9 +308,9 @@ pub fn fast_ec_add_assign_new_y(
 
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
 
-    exec_scopes_proxy.assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
+    exec_scopes_proxy.assign_or_update_variable("value", &value);
 
-    exec_scopes_proxy.assign_or_update_variable("new_y", PyValueType::BigInt(value));
+    exec_scopes_proxy.assign_or_update_variable("new_y", &value);
 
     Ok(())
 }
@@ -335,7 +335,7 @@ pub fn ec_mul_inner(
 mod tests {
     use super::*;
     use crate::bigint_str;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType};
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
@@ -377,10 +377,10 @@ mod tests {
         );
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
-            )))
+            ))
         );
     }
 

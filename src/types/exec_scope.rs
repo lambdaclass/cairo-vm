@@ -1,18 +1,17 @@
 use crate::vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
-#[derive(Eq, PartialEq, Debug)]
-pub struct ExecutionScopes {
-    pub data: Vec<HashMap<String, PyValueType>>,
+pub struct ExecutionScopes<'a> {
+    pub data: Vec<HashMap<String, Box<dyn Any + 'a>>>,
 }
 
 pub struct ExecutionScopesProxy<'a> {
-    scopes: &'a mut ExecutionScopes,
+    scopes: &'a mut ExecutionScopes<'a>,
     current_scope: usize,
 }
 
-pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScopesProxy {
+pub fn get_exec_scopes_proxy<'a>(exec_scopes: &'a mut ExecutionScopes) -> ExecutionScopesProxy<'a> {
     ExecutionScopesProxy {
         //Len will always be > 1 as execution scopes are always created with a main scope
         current_scope: exec_scopes.data.len() - 1,
@@ -21,43 +20,51 @@ pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScop
 }
 
 impl ExecutionScopesProxy<'_> {
-    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, PyValueType>) {
+    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
         self.scopes.enter_scope(new_scope_locals)
     }
 
     pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
         self.scopes.exit_scope()
     }
-    pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
-        if let Some(local_variables) = self.get_local_variables_mut() {
-            local_variables.insert(var_name.to_string(), var_value);
+    pub fn assign_or_update_variable<'a>(&'a mut self, var_name: &str, var_value: &'a dyn Any) {
+        if let Ok(local_variables) = self.get_local_variables_mut() {
+            local_variables.insert(var_name.to_string(), Box::new(var_value));
         }
     }
 
     pub fn delete_variable(&mut self, var_name: &str) {
-        if let Some(local_variables) = self.get_local_variables_mut() {
+        if let Ok(local_variables) = self.get_local_variables_mut() {
             local_variables.remove(var_name);
         }
     }
-    pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
+    pub fn get_local_variables_mut(
+        &mut self,
+    ) -> Result<&mut HashMap<String, Box<dyn Any>>, VirtualMachineError> {
         if self.scopes.data.len() > self.current_scope {
-            return Some(&mut self.scopes.data[self.current_scope]);
+            return Ok(&mut self.scopes.data[self.current_scope]);
         }
-        None
+        Err(VirtualMachineError::MainScopeError(
+            ExecScopeError::NoScopeError,
+        ))
     }
 
-    pub fn get_local_variables(&self) -> Option<&HashMap<String, PyValueType>> {
+    pub fn get_local_variables(
+        &self,
+    ) -> Result<&HashMap<String, Box<dyn Any>>, VirtualMachineError> {
         if self.scopes.data.len() > self.current_scope {
-            return Some(&self.scopes.data[self.current_scope]);
+            return Ok(&self.scopes.data[self.current_scope]);
         }
-        None
+        Err(VirtualMachineError::MainScopeError(
+            ExecScopeError::NoScopeError,
+        ))
     }
     //Returns the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
         let mut val: Option<BigInt> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
-                val = Some(py_val.clone());
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(int) = variable.downcast_ref::<BigInt>() {
+                val = Some(int.clone());
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -65,9 +72,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
         let mut val: Option<&BigInt> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(int) = variable.downcast_ref::<BigInt>() {
+                val = Some(int);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -75,9 +82,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
         let mut val: Option<&mut BigInt> = None;
-        if let Some(variables) = self.get_local_variables_mut() {
-            if let Some(PyValueType::BigInt(py_val)) = variables.get_mut(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get_mut(name) {
+            if let Some(int) = variable.downcast_mut::<BigInt>() {
+                val = Some(int);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -85,9 +92,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns the value in the current execution scope that matches the name and is of type List
     pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
         let mut val: Option<Vec<BigInt>> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::List(py_val)) = variables.get(name) {
-                val = Some(py_val.clone());
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+                val = Some(list);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -95,9 +102,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns a reference to the value in the current execution scope that matches the name and is of type List
     pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
         let mut val: Option<&Vec<BigInt>> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::List(py_val)) = variables.get(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+                val = Some(list);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -108,9 +115,9 @@ impl ExecutionScopesProxy<'_> {
         name: &str,
     ) -> Result<&mut Vec<BigInt>, VirtualMachineError> {
         let mut val: Option<&mut Vec<BigInt>> = None;
-        if let Some(variables) = self.get_local_variables_mut() {
-            if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(list) = variable.downcast_mut::<Vec<BigInt>>() {
+                val = Some(list);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -119,9 +126,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_listu64(&self, name: &str) -> Result<Vec<u64>, VirtualMachineError> {
         let mut val: Option<Vec<u64>> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
-                val = Some(py_val.clone());
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(list) = variable.downcast_ref::<Vec<u64>>() {
+                val = Some(list.clone());
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -129,9 +136,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_listu64_ref(&self, name: &str) -> Result<&Vec<u64>, VirtualMachineError> {
         let mut val: Option<&Vec<u64>> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(list) = variable.downcast_ref::<Vec<u64>>() {
+                val = Some(list);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -142,9 +149,9 @@ impl ExecutionScopesProxy<'_> {
         name: &str,
     ) -> Result<&mut Vec<u64>, VirtualMachineError> {
         let mut val: Option<&mut Vec<u64>> = None;
-        if let Some(variables) = self.get_local_variables_mut() {
-            if let Some(PyValueType::ListU64(py_val)) = variables.get_mut(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(list) = variable.downcast_mut::<Vec<u64>>() {
+                val = Some(list);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -153,9 +160,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_u64(&self, name: &str) -> Result<u64, VirtualMachineError> {
         let mut val: Option<u64> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::U64(ref py_val)) = variables.get(name) {
-                val = Some(*py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(num) = variable.downcast_ref::<u64>() {
+                val = Some(*num);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -163,9 +170,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns a reference to the value in the current execution scope that matches the name and is of type U64
     pub fn get_u64_ref(&self, name: &str) -> Result<&u64, VirtualMachineError> {
         let mut val: Option<&u64> = None;
-        if let Some(variables) = self.get_local_variables() {
-            if let Some(PyValueType::U64(py_val)) = variables.get(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(num) = variable.downcast_ref::<u64>() {
+                val = Some(num);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -173,9 +180,9 @@ impl ExecutionScopesProxy<'_> {
     //Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
     pub fn get_mut_u64_ref(&mut self, name: &str) -> Result<&mut u64, VirtualMachineError> {
         let mut val: Option<&mut u64> = None;
-        if let Some(variables) = self.get_local_variables_mut() {
-            if let Some(PyValueType::U64(py_val)) = variables.get_mut(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(num) = variable.downcast_mut::<u64>() {
+                val = Some(num);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
@@ -187,45 +194,28 @@ impl ExecutionScopesProxy<'_> {
         name: &str,
     ) -> Result<&mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
         let mut val: Option<&mut HashMap<BigInt, Vec<u64>>> = None;
-        if let Some(variables) = self.get_local_variables_mut() {
-            if let Some(PyValueType::DictBigIntListU64(py_val)) = variables.get_mut(name) {
-                val = Some(py_val);
+        if let Some(variable) = self.get_local_variables()?.get(name) {
+            if let Some(dict) = variable.downcast_mut::<HashMap<BigInt, Vec<u64>>>() {
+                val = Some(dict);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
     //Inserts the value in scope as a BigInt value type
-    pub fn insert_int(&mut self, name: &str, value: BigInt) {
-        self.assign_or_update_variable(name, PyValueType::BigInt(value));
-    }
-
-    //Inserts the List in scope as a List value type
-    pub fn insert_list(&mut self, name: &str, value: Vec<BigInt>) {
-        self.assign_or_update_variable(name, PyValueType::List(value));
+    pub fn insert_value<T>(&mut self, name: &str, value: &T) {
+        self.assign_or_update_variable(name, value as &dyn Any);
     }
 }
 
-#[derive(Eq, PartialEq, Debug)]
-pub enum PyValueType {
-    BigInt(BigInt),
-    List(Vec<BigInt>),
-    Dictionary(HashMap<BigInt, BigInt>),
-    KeyToListMap(HashMap<BigInt, Vec<BigInt>>),
-    U64(u64),
-    ListU64(Vec<u64>),
-    DictBigIntListU64(HashMap<BigInt, Vec<u64>>),
-    None,
-}
-
-impl ExecutionScopes {
-    pub fn new() -> ExecutionScopes {
+impl<'a> ExecutionScopes<'a> {
+    pub fn new() -> ExecutionScopes<'a> {
         ExecutionScopes {
             data: vec![HashMap::new()],
         }
     }
 
-    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, PyValueType>) {
+    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
         self.data.push(new_scope_locals);
     }
 
@@ -238,15 +228,15 @@ impl ExecutionScopes {
         Ok(())
     }
 
-    pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, PyValueType>> {
+    pub fn get_local_variables_mut(&mut self) -> Option<&mut HashMap<String, Box<dyn Any>>> {
         self.data.last_mut()
     }
 
-    pub fn get_local_variables(&self) -> Option<&HashMap<String, PyValueType>> {
+    pub fn get_local_variables(&self) -> Option<&HashMap<String, Box<dyn Any>>> {
         self.data.last()
     }
 
-    pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: PyValueType) {
+    pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: Box<dyn Any>) {
         if let Some(local_variables) = self.get_local_variables_mut() {
             local_variables.insert(var_name.to_string(), var_value);
         }
@@ -259,7 +249,7 @@ impl ExecutionScopes {
     }
 }
 
-impl Default for ExecutionScopes {
+impl Default for ExecutionScopes<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -267,8 +257,9 @@ impl Default for ExecutionScopes {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::bigint;
+
+    use super::*;
 
     #[test]
     fn initialize_execution_scopes() {
@@ -285,7 +276,7 @@ mod tests {
     #[test]
     fn get_local_variables_test() {
         let var_name = String::from("a");
-        let var_value = PyValueType::BigInt(bigint!(2));
+        let var_value = Box::new(bigint!(2) as Any);
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -293,27 +284,27 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(2)))])
+            &HashMap::from([(String::from("a"), Box::new(bigint!(2) as Any))])
         );
     }
 
     #[test]
     fn enter_new_scope_test() {
         let var_name = String::from("a");
-        let var_value = PyValueType::BigInt(bigint!(2));
+        let var_value = Box::new(bigint!(2) as Any);
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes {
             data: vec![HashMap::from([(
                 String::from("b"),
-                PyValueType::BigInt(bigint!(1)),
+                Box::new(bigint!(1) as Any),
             )])],
         };
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("b"), PyValueType::BigInt(bigint!(1)))])
+            &HashMap::from([(String::from("b"), Box::new(bigint!(2) as Any))])
         );
 
         scopes.enter_scope(new_scope);
@@ -323,14 +314,14 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(2)))])
+            &HashMap::from([(String::from("a"), Box::new(bigint!(2) as Any))])
         );
     }
 
     #[test]
     fn exit_scope_test() {
         let var_name = String::from("a");
-        let var_value = PyValueType::BigInt(bigint!(2));
+        let var_value = Box::new(bigint!(2) as Any);
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
@@ -342,7 +333,7 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap(),
-            &HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(2)))])
+            &HashMap::from([(String::from("a"), Box::new(bigint!(2) as Any))])
         );
 
         // exit the current scope
@@ -359,7 +350,7 @@ mod tests {
 
     #[test]
     fn assign_local_variable_test() {
-        let var_value = PyValueType::BigInt(bigint!(2));
+        let var_value = Box::new(bigint!(2) as Any);
 
         let mut scopes = ExecutionScopes::new();
 
@@ -367,31 +358,31 @@ mod tests {
 
         assert_eq!(
             scopes.get_local_variables().unwrap().get("a").unwrap(),
-            &PyValueType::BigInt(bigint!(2))
+            Box::new(bigint!(2) as Any)
         );
     }
 
     #[test]
     fn re_assign_local_variable_test() {
         let var_name = String::from("a");
-        let var_value = PyValueType::BigInt(bigint!(2));
+        let var_value = Box::new(bigint!(2) as Any);
 
         let scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes { data: vec![scope] };
 
-        scopes.assign_or_update_variable("a", PyValueType::BigInt(bigint!(3)));
+        scopes.assign_or_update_variable("a", Box::new(bigint!(3) as Any));
 
         assert_eq!(
             scopes.get_local_variables().unwrap().get("a").unwrap(),
-            &PyValueType::BigInt(bigint!(3))
+            &Box::new(bigint!(3) as Any)
         );
     }
 
     #[test]
     fn delete_local_variable_test() {
         let var_name = String::from("a");
-        let var_value = PyValueType::BigInt(bigint!(2));
+        let var_value = Box::new(bigint!(2) as Any);
 
         let scope = HashMap::from([(var_name, var_value)]);
 

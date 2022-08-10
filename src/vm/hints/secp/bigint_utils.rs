@@ -55,7 +55,7 @@ mod tests {
     use num_bigint::Sign;
 
     use super::*;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType};
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::hint_executor::HintExecutor;
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::get_vm_proxy;
@@ -79,7 +79,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "value",
-            PyValueType::BigInt(bigint_str!(
+            Box::new(bigint_str!(
                 b"7737125245533626718119526477371252455336267181195264773712524553362"
             )),
         );
@@ -165,7 +165,7 @@ mod tests {
 
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("value", PyValueType::BigInt(bigint!(-1)));
+        exec_scopes.assign_or_update_variable("value", Box::new(bigint!(-1)));
         let ids = ids!["res"];
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(5))]);
