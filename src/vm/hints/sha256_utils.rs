@@ -20,6 +20,9 @@ use std::collections::HashMap;
 const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
 const SHA256_STATE_SIZE_FELTS: usize = 8;
 const BLOCK_SIZE: usize = 7;
+const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
+    0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
+];
 
 pub fn sha256_input(
     vm: &mut VirtualMachine,
@@ -72,11 +75,7 @@ pub fn sha256_main(
         message.extend(bytes);
     }
 
-    let mut iv: [u32; SHA256_STATE_SIZE_FELTS] = [
-        0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB,
-        0x5BE0CD19,
-    ];
-
+    let mut iv = IV;
     let new_message = GenericArray::clone_from_slice(&message);
     compress256(&mut iv, &[new_message]);
 
@@ -108,10 +107,7 @@ pub fn sha256_finalize(
 ) -> Result<(), VirtualMachineError> {
     let message: Vec<u8> = vec![0; 64];
 
-    let mut iv: [u32; SHA256_STATE_SIZE_FELTS] = [
-        0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB,
-        0x5BE0CD19,
-    ];
+    let mut iv = IV;
 
     let iv_static: Vec<BigInt> = iv.iter().map(|n| bigint!(*n)).collect();
 
