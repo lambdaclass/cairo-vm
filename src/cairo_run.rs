@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{self, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
 
-pub fn cairo_run(
+pub fn cairo_run<'a>(
     path: &Path,
     trace_enabled: bool,
     hint_executor: &'static dyn HintExecutor,

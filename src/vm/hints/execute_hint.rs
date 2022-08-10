@@ -274,11 +274,12 @@ impl HintExecutor for BuiltinHintExecutor {
 #[cfg(test)]
 mod tests {
     use crate::bigint;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType};
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use num_bigint::{BigInt, Sign};
+    use std::any::Any;
 
     use super::*;
 
@@ -481,7 +482,7 @@ mod tests {
 
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        exec_scopes.assign_or_update_variable("n", bigint!(1));
 
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
@@ -524,7 +525,7 @@ mod tests {
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));  */
+        .assign_or_update_variable("n",  bigint!(1)));  */
 
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
@@ -568,7 +569,7 @@ mod tests {
 
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        exec_scopes.assign_or_update_variable("n", bigint!(1));
 
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
@@ -611,10 +612,8 @@ mod tests {
 
         // Create new vm scope with dummy variable
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.enter_scope(HashMap::from([(
-            String::from("a"),
-            PyValueType::BigInt(bigint!(1)),
-        )]));
+        let a_value: Box<dyn Any> = Box::new(bigint!(1));
+        exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
 
         // Initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -637,7 +636,7 @@ mod tests {
         let mut vm = vm!();
 
         // new vm scope is not created so that the hint raises an error:
-        //vm.exec_scopes.enter_scope(HashMap::from([(String::from("a"), PyValueType::BigInt(bigint!(1)))]));
+        //vm.exec_scopes.enter_scope(HashMap::from([(String::from("a"),  bigint!(1)))]));
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
@@ -676,8 +675,9 @@ mod tests {
             Ok(())
         );
         //Check exec_scopes
-        let expected_scope = vec![HashMap::new(), HashMap::new()];
-        assert_eq!(exec_scopes.data, expected_scope)
+        assert_eq!(exec_scopes.data.len(), 2);
+        assert!(exec_scopes.data[0].is_empty());
+        assert!(exec_scopes.data[1].is_empty());
     }
 
     #[test]
@@ -746,8 +746,7 @@ mod tests {
         ids.insert(String::from("low"), bigint!(3));
 
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes
-            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(500)));
+        exec_scopes.assign_or_update_variable("__keccak_max_size", bigint!(500));
 
         //Create references
         vm.references = HashMap::from([
@@ -857,7 +856,7 @@ mod tests {
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
+        exec_scopes.assign_or_update_variable("__keccak_max_size", bigint!(2));
 
         //Create references
         vm.references = HashMap::from([
@@ -1074,8 +1073,7 @@ mod tests {
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes
-            .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(10)));
+        exec_scopes.assign_or_update_variable("__keccak_max_size", bigint!(10));
 
         //Create references
         vm.references = HashMap::from([

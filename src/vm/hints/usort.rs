@@ -1,7 +1,7 @@
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    types::exec_scope::{ExecutionScopesProxy, PyValueType},
+    types::exec_scope::ExecutionScopesProxy,
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
@@ -12,18 +12,18 @@ use crate::{
 };
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 pub fn usort_enter_scope(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
-    let usort_max_size = exec_scopes_proxy
-        .get_u64("usort_max_size")
-        .map_or(PyValueType::None, PyValueType::U64);
-    exec_scopes_proxy.enter_scope(HashMap::from([(
-        "usort_max_size".to_string(),
-        usort_max_size,
-    )]));
+    if let Ok(usort_max_size) = exec_scopes_proxy.get_int("usort_max_size") {
+        let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
+        exec_scopes_proxy.enter_scope(HashMap::from([(
+            "usort_max_size".to_string(),
+            boxed_max_size,
+        )]));
+    }
     Ok(())
 }
 
@@ -71,11 +71,7 @@ pub fn usort_body(
     for k in output.iter() {
         multiplicities.push(positions_dict[k].len());
     }
-
-    exec_scopes_proxy.assign_or_update_variable(
-        "positions_dict",
-        PyValueType::DictBigIntListU64(positions_dict),
-    );
+    exec_scopes_proxy.insert_value("positions_dict", &positions_dict);
     let output_base = vm_proxy.segments.add(vm_proxy.memory, Some(output.len()));
     let multiplicities_base = vm_proxy
         .segments
@@ -119,16 +115,13 @@ pub fn verify_usort(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let positions: Vec<u64> = exec_scopes_proxy
+    let mut positions = exec_scopes_proxy
         .get_mut_dict_int_list_u64_ref("positions_dict")?
         .remove(&value)
-        .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
-        .into_iter()
-        .rev()
-        .collect();
-
-    exec_scopes_proxy.assign_or_update_variable("positions", PyValueType::ListU64(positions));
-    exec_scopes_proxy.insert_int("last_pos", bigint!(0));
+        .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
+    positions.reverse();
+    exec_scopes_proxy.insert_value("positions", &positions);
+    exec_scopes_proxy.insert_value("last_pos", &bigint!(0));
     Ok(())
 }
 
@@ -155,7 +148,7 @@ pub fn verify_multiplicity_body(
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, ids, vm_proxy, hint_ap_tracking)?;
-    exec_scopes_proxy.insert_int("last_pos", bigint!(current_pos + 1));
+    exec_scopes_proxy.insert_value("last_pos", &bigint!(current_pos + 1));
     Ok(())
 }
 
@@ -199,7 +192,8 @@ mod tests {
         }
         let ids = ids!["input", "input_len"];
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("usort_max_size", PyValueType::U64(1));
+        let max_size: Box<dyn Any> = Box::new(1);
+        exec_scopes.assign_or_update_variable("usort_max_size", max_size);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
