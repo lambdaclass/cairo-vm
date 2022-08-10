@@ -40,40 +40,40 @@ func test_is_nn{range_check_ptr}(base_array: felt*, new_array: felt*, iter: felt
     return test_is_nn(base_array, new_array, iter + 1, last)
 end
 
-func test_is_le{range_check_ptr}(base_array: felt*, new_array: felt*, constant: felt ,iter: felt, last: felt) -> ():
+func test_is_le{range_check_ptr}(base_array: felt*, new_array: felt*, iter: felt, last: felt) -> ():
     if iter == last:
         return()
     end
-    let (res) = is_le(base_array[iter], constant )
+    let (res) = is_le(base_array[iter], CONSTANT )
     assert new_array[iter] = res
-    return test_is_le(base_array, new_array, constant, iter + 1, last)
+    return test_is_le(base_array, new_array, iter + 1, last)
 end
 
-func test_is_nn_le{range_check_ptr}(base_array: felt*, new_array: felt*, constant: felt ,iter: felt, last: felt) -> ():
+func test_is_nn_le{range_check_ptr}(base_array: felt*, new_array: felt*, iter: felt, last: felt) -> ():
     if iter == last:
         return()
     end
-    let (res) = is_nn_le(base_array[iter], constant )
+    let (res) = is_nn_le(base_array[iter], CONSTANT )
     assert new_array[iter] = res
-    return test_is_nn_le(base_array, new_array, constant, iter + 1, last)
+    return test_is_nn_le(base_array, new_array, iter + 1, last)
 end
 
-func test_is_in_range{range_check_ptr}(base_array: felt*, new_array: felt*, constant: felt, iter: felt, last: felt) -> ():
+func test_is_in_range{range_check_ptr}(base_array: felt*, new_array: felt*, iter: felt, last: felt) -> ():
     if iter == last:
         return()
     end
-    let (res) = is_in_range(constant , base_array[iter], base_array[iter + 1] )
+    let (res) = is_in_range(CONSTANT , base_array[iter], base_array[iter + 1] )
     assert new_array[iter] = res
-    return test_is_in_range(base_array, new_array, constant, iter + 1, last)
+    return test_is_in_range(base_array, new_array, iter + 1, last)
 end
 
-func test_is_le_felt{range_check_ptr}(base_array: felt*, new_array: felt*, constant: felt, iter: felt, last: felt) -> ():
+func test_is_le_felt{range_check_ptr}(base_array: felt*, new_array: felt*, iter: felt, last: felt) -> ():
     if iter == last:
         return()
     end
-    let (res) = is_le_felt(base_array[iter], constant )
+    let (res) = is_le_felt(base_array[iter], CONSTANT )
     assert new_array[iter] = res
-    return test_is_le_felt(base_array, new_array, constant, iter + 1, last)
+    return test_is_le_felt(base_array, new_array, iter + 1, last)
 end
 
 func run_tests{range_check_ptr}(array_len: felt) -> ():
@@ -88,16 +88,16 @@ func run_tests{range_check_ptr}(array_len: felt) -> ():
     test_is_nn(array, array_is_nn, 0, array_len)
 
     let (array_is_le: felt*) = alloc()
-    test_is_le(array, array_is_le, CONSTANT, 0, array_len)
+    test_is_le(array, array_is_le, 0, array_len)
     
     let (array_is_nn_le: felt*) = alloc()
-    test_is_nn_le(array, array_is_nn_le, CONSTANT, 0, array_len)
+    test_is_nn_le(array, array_is_nn_le, 0, array_len)
 
     let (array_is_in_range: felt*) = alloc()
-    test_is_in_range(array, array_is_in_range, CONSTANT, 0, array_len-1)
+    test_is_in_range(array, array_is_in_range, 0, array_len-1)
 
     let (array_is_le_felt: felt*) = alloc()
-    test_is_le_felt(array, array_is_le_felt, CONSTANT, 0, array_len)
+    test_is_le_felt(array, array_is_le_felt, 0, array_len)
 
     return()
 end
