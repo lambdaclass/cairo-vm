@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1660146546069,
+  "lastUpdate": 1660148167270,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -18821,6 +18821,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 262735619,
             "range": "± 2459282",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8af787af81b7d82bf2a06ea9819fafea0964ad31",
+          "message": "[HINTS] Sha256 hint (#357)\n\n* Add sha256 to dependencies\r\n\r\n* Start sha256\r\n\r\n* Save work\r\n\r\n* Pre-merge\r\n\r\n* Before merge\r\n\r\n* Run cargo fmt\r\n\r\n* Fix bug and change crate\r\n\r\n* Fixed sha\r\n\r\n* Add finalize hint; add integration test\r\n\r\n* Run cargo clippy\r\n\r\n* Modify test\r\n\r\n* Save work\r\n\r\n* Add unit tests\r\n\r\n* Initialize vector with capacity\r\n\r\n* Split into variables\r\n\r\n* Change clones for slices\r\n\r\n* Use memory check macro\r\n\r\n* Split cairo functions\r\n\r\n* Use get_ptr_from_var_name\r\n\r\n* Make IV a constant",
+          "timestamp": "2022-08-10T13:04:01-03:00",
+          "tree_id": "650e18d7c225a1ea215f09f178e0d2f0f04b0034",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/8af787af81b7d82bf2a06ea9819fafea0964ad31"
+        },
+        "date": 1660148165362,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1743555318,
+            "range": "± 14337411",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 615201447,
+            "range": "± 1080813",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 303652653,
+            "range": "± 567684",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1510813323,
+            "range": "± 1496001",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 227213190,
+            "range": "± 467977",
             "unit": "ns/iter"
           }
         ]
