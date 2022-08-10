@@ -176,10 +176,7 @@ mod tests {
             Ok(())
         );
 
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
-            Ok(Some(&MaybeRelocatable::from(BigInt::one())))
-        );
+        check_memory![&vm.memory, ((0, 0), 1)];
     }
 
     #[test]
@@ -195,10 +192,7 @@ mod tests {
             Ok(())
         );
 
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
-            Ok(Some(&MaybeRelocatable::from(BigInt::zero())))
-        );
+        check_memory![&vm.memory, ((0, 0), 0)];
     }
 
     #[test]
@@ -233,37 +227,16 @@ mod tests {
 
         assert_eq!(sha256_main(&mut vm, &ids, Some(&ApTracking::new())), Ok(()));
 
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(3704205499_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(2308112482_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(3022351583_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(174314172_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 4))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1762869695_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1649521060_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 6))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(2811202336_u32))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 7))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(4231099170_u32))))
-        );
+        check_memory![
+            &vm.memory,
+            ((2, 0), 3704205499_u32),
+            ((2, 1), 2308112482_u32),
+            ((2, 2), 3022351583_u32),
+            ((2, 3), 174314172_u32),
+            ((2, 4), 1762869695_u32),
+            ((2, 5), 1649521060_u32),
+            ((2, 6), 2811202336_u32),
+            ((2, 7), 4231099170_u32)
+        ];
     }
 }
