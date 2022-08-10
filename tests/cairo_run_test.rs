@@ -501,3 +501,13 @@ fn cairo_run_finalize_keccak() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_operations_with_data() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/operations_with_data.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
