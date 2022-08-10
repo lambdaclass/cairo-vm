@@ -108,6 +108,31 @@ pub mod test_utils {
     }
     pub(crate) use memory_inner;
 
+    macro_rules! check_memory {
+        ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* ) => {
+            $(
+                check_memory_address!($mem, ($si, $off), $val);
+            )*
+        };
+    }
+    pub(crate) use check_memory;
+
+    macro_rules! check_memory_address {
+        ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
+            assert_eq!(
+                $mem.get(&mayberelocatable!($si, $off)),
+                Ok(Some(&mayberelocatable!($sival, $offval)))
+            )
+        };
+        ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
+            assert_eq!(
+                $mem.get(&mayberelocatable!($si, $off)),
+                Ok(Some(&mayberelocatable!($val)))
+            )
+        };
+    }
+    pub(crate) use check_memory_address;
+
     macro_rules! mayberelocatable {
         ($val1 : expr, $val2 : expr) => {
             MaybeRelocatable::from(($val1, $val2))
@@ -128,6 +153,22 @@ pub mod test_utils {
         }};
     }
     pub(crate) use references;
+
+    macro_rules! not_continuous_references {
+        ( $( $offset:expr ),*) => {
+            {
+            let mut references = HashMap::<usize, HintReference>::new();
+            let mut index = -1;
+
+            $(
+                index += 1;
+                references.insert(index as usize, HintReference::new_simple(($offset)));
+            )*
+        references
+        }
+    };
+    }
+    pub(crate) use not_continuous_references;
 
     macro_rules! vm_with_range_check {
         () => {
@@ -182,9 +223,13 @@ pub mod test_utils {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
+    use crate::types::instruction::Register;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::HintReference;
     use crate::{types::relocatable::MaybeRelocatable, vm::vm_memory::memory::Memory};
+    use std::collections::HashMap;
 
     #[test]
     fn to_field_element_no_change_a() {
@@ -270,5 +315,84 @@ mod test {
             .unwrap();
         let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
         assert_eq!(memory.data, mem.data);
+    }
+
+    #[test]
+    fn check_memory_macro_test() {
+        let mut memory = Memory::new();
+        for _ in 0..2 {
+            memory.data.push(Vec::new());
+        }
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        check_memory![memory, ((1, 1), (1, 0)), ((1, 2), 1)];
+    }
+
+    #[test]
+    fn check_memory_address_macro_test() {
+        let mut memory = Memory::new();
+        for _ in 0..2 {
+            memory.data.push(Vec::new());
+        }
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 0)),
+            )
+            .unwrap();
+
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from(bigint!(1)),
+            )
+            .unwrap();
+
+        check_memory_address!(memory, (1, 1), (1, 0));
+        check_memory_address!(memory, (1, 2), 1);
+    }
+
+    #[test]
+    fn check_not_continuous_references_macro_test() {
+        let references = HashMap::from([
+            (
+                0,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -10,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                    dereference: true,
+                },
+            ),
+            (
+                1,
+                HintReference {
+                    register: Register::FP,
+                    offset1: -23,
+                    offset2: 0,
+                    inner_dereference: false,
+                    ap_tracking_data: None,
+                    immediate: None,
+                    dereference: true,
+                },
+            ),
+        ]);
+
+        assert_eq!(references, not_continuous_references![-10, -23])
     }
 }
