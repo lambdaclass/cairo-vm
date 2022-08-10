@@ -77,7 +77,7 @@ func test_is_le_felt{range_check_ptr}(base_array: felt*, new_array: felt*, const
 end
 
 func run_tests{range_check_ptr}(array_len: felt) -> ():
-    alloc_locals
+
     let (array: felt*) = alloc()
     fill_array_with_pow(array, 0, 3, 3, 0, array_len)
 
