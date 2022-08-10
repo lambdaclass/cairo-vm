@@ -66,7 +66,7 @@ pub fn sha256_main(
 
     let input_ptr = vm.memory.get_relocatable(&sha256_start)?;
 
-    let mut message: Vec<u8> = Vec::new();
+    let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
         message.extend(bigint_to_u32(vm.memory.get_integer(&(input_ptr + i))?)?.to_be_bytes());
