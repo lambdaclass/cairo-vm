@@ -136,11 +136,12 @@ pub fn sha256_finalize(
     )?;
 
     let mut padding: Vec<BigInt> = Vec::new();
+    let zero_vector_message = vec![BigInt::zero(); 16];
 
     for _ in 0..BLOCK_SIZE - 1 {
-        padding.extend(vec![BigInt::zero(); 16]);
-        padding.extend(iv_static.clone());
-        padding.extend(output.clone());
+        padding.extend_from_slice(zero_vector_message.as_slice());
+        padding.extend_from_slice(iv_static.as_slice());
+        padding.extend_from_slice(output.as_slice());
     }
 
     vm.segments
