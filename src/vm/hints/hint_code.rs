@@ -453,6 +453,34 @@ value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#;
 pub(crate) const EC_DOUBLE_ASSIGN_NEW_Y: &str =
     r#"value = new_y = (slope * (x - new_x) - y) % SECP_P"#;
 
+pub(crate) const SHA256_INPUT: &str = r#"ids.full_word = int(ids.n_bytes >= 4)"#;
+
+pub(crate) const SHA256_MAIN: &str = r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (
+    IV, compute_message_schedule, sha2_compress_function)
+
+_sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _sha256_input_chunk_size_felts < 100
+
+w = compute_message_schedule(memory.get_range(
+    ids.sha256_start, _sha256_input_chunk_size_felts))
+new_state = sha2_compress_function(IV, w)
+segments.write_arg(ids.output, new_state)"#;
+
+pub(crate) const SHA256_FINALIZE: &str = r#"# Add dummy pairs of input and output.
+from starkware.cairo.common.cairo_sha256.sha256_utils import (
+    IV, compute_message_schedule, sha2_compress_function)
+
+_block_size = int(ids.BLOCK_SIZE)
+assert 0 <= _block_size < 20
+_sha256_input_chunk_size_felts = int(ids.SHA256_INPUT_CHUNK_SIZE_FELTS)
+assert 0 <= _sha256_input_chunk_size_felts < 100
+
+message = [0] * _sha256_input_chunk_size_felts
+w = compute_message_schedule(message)
+output = sha2_compress_function(IV, w)
+padding = (message + IV + output) * (_block_size - 1)
+segments.write_arg(ids.sha256_ptr_end, padding)"#;
+
 pub(crate) const KECCAK_WRITE_ARGS: &str = r#"segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])
 segments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])"#;
 
