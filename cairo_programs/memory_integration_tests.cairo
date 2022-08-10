@@ -35,7 +35,7 @@ end
 # ---------------------------------------------------------------------------------- #
 
 # Test functions
-func test_memcpy(src : felt*, len : felt, iter : felt) -> ():
+func test_memcpy_different_segments(src : felt*, len : felt, iter : felt) -> ():
     alloc_locals
     if iter == len:
         return ()
@@ -47,10 +47,25 @@ func test_memcpy(src : felt*, len : felt, iter : felt) -> ():
     let result : felt = compare_arrays(src, dst, len, 0)
     assert result = TRUE
 
-    return test_memcpy(src, len, iter + 1)
+    return test_memcpy_different_segments(src, len, iter + 1)
 end
 
-func test_memset(n : felt, iter : felt) -> ():
+func test_memcpy_same_segment(src : felt*, dst : felt*, len : felt, iter : felt) -> ():
+    alloc_locals
+    if iter == len:
+        return ()
+    end
+
+    let new_dst : felt* = dst + len * iter
+    memcpy(dst=new_dst, src=src, len=len)
+
+    let result : felt = compare_arrays(src, new_dst, len, 0)
+    assert result = TRUE
+
+    return test_memcpy_same_segment(src, dst, len, iter + 1)
+end
+
+func test_memset_different_segments(n : felt, iter : felt) -> ():
     alloc_locals
     if iter == n:
         return ()
@@ -62,9 +77,24 @@ func test_memset(n : felt, iter : felt) -> ():
     let result : felt =  check_array(dst, 1234, n, 0)
     assert result = TRUE
 
-    return test_memset(n, iter + 1)
+    return test_memset_different_segments(n, iter + 1)
 end
 
+func test_memset_same_segment(dst : felt*, n : felt, iter : felt) -> ():
+    alloc_locals
+    if iter == n:
+        return ()
+    end
+
+    let new_dst : felt* = dst + n * iter
+    memset(dst=new_dst, value=1234, n=n)
+
+    let result : felt =  check_array(new_dst, 1234, n, 0)
+    assert result = TRUE
+
+    return test_memset_same_segment(dst, n, iter + 1)
+end
+ 
 func test_integration(src : felt*, len : felt, n : felt, iter : felt) -> ():
     alloc_locals
     if iter == len:
@@ -95,8 +125,16 @@ func run_tests(len : felt, n : felt) -> ():
     let (array : felt*) = alloc()
     fill_array(array, 7, 3, len, 0)
 
-    test_memcpy(array, len, 0) 
-    test_memset(n, 0)
+    test_memcpy_different_segments(array, len, 0) 
+
+    let (dst_1 : felt*) = alloc()
+    test_memcpy_same_segment(array, dst_1, len, 0) 
+
+    test_memset_different_segments(n, 0)
+
+    let (dst_2 : felt*) = alloc()
+    test_memset_same_segment(dst_2, n, 0)
+
     test_integration(array, len, n, 0)
 
     return ()
