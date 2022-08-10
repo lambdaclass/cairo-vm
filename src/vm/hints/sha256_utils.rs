@@ -5,7 +5,7 @@ use crate::{
         errors::vm_errors::VirtualMachineError,
         hints::hint_utils::{
             bigint_to_u32, get_integer_from_var_name, get_ptr_from_var_name,
-            get_relocatable_from_var_name, insert_value_from_var_name,
+            insert_value_from_var_name,
         },
         vm_core::VirtualMachine,
     },
@@ -55,7 +55,7 @@ pub fn sha256_main(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let sha256_start = get_relocatable_from_var_name(
+    let input_ptr = get_ptr_from_var_name(
         "sha256_start",
         ids,
         &vm.memory,
@@ -64,12 +64,10 @@ pub fn sha256_main(
         hint_ap_tracking,
     )?;
 
-    let input_ptr = vm.memory.get_relocatable(&sha256_start)?;
-
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        let input_element = vm.memory.get_integer(&(input_ptr + i))?;
+        let input_element = vm.memory.get_integer(&(&input_ptr + i))?;
         let bytes = bigint_to_u32(input_element)?.to_be_bytes();
         message.extend(bytes);
     }
