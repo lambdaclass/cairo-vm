@@ -531,3 +531,13 @@ fn cairo_run_memory_module_integration() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_dict_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/dict_integration_tests.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
