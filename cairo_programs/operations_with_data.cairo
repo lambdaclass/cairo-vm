@@ -49,17 +49,7 @@ func fill_bike_array{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}(arr: Bi
     return fill_bike_array(arr, len, index + 1)
 end
 
-func main{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}() -> ():
-    alloc_locals
-    let bike_arr:Bicycle* = alloc()
-    fill_bike_array(bike_arr, 30, 0)
-    let (element_ptr : Bicycle*) = find_element(
-        array_ptr=bike_arr,
-        elm_size=Bicycle.SIZE,
-        n_elms=30,
-        key=29,
-    )
-
+func assert_find_element(element_ptr: Bicycle*):
     assert element_ptr.gear_ratios.crankset = 0
     assert element_ptr.gear_ratios.cogset = 3
     assert element_ptr.basket[0] = 29
