@@ -69,7 +69,7 @@ func assert_sorting(sorted_basket: felt*):
     return()
 end
 
-func run_test{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}(iter: felt, stop: felt):
+func run_tests{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}(iter: felt, stop: felt):
     alloc_locals
     if iter == stop:
         return ()
@@ -105,12 +105,12 @@ func run_test{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}(iter: felt, st
 
     assert elem_ptr_lower.id = 10
 
-    return run_test(iter + 1, stop)
+    return run_tests(iter + 1, stop)
 end 
 
 func main{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}():
     alloc_locals
-    run_test(0, 10)
+    run_tests(0, 10)
 
     return ()
 end
