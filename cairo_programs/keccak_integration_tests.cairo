@@ -47,6 +47,8 @@ func test_integration{range_check_ptr : felt, bitwise_ptr : BitwiseBuiltin*}(ite
     let (data_3 : felt*) = alloc()
 
 
+    # This is done to make sure that the numbers inserted in data_3
+    # fit in a u64
     let (q, r) = unsigned_div_rem(res_1.low, 18446744073709551615)
     assert data_3[0] = q 
     let (q, r) = unsigned_div_rem(res_1.high, 18446744073709551615)
