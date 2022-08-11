@@ -23,6 +23,8 @@ pub fn usort_enter_scope(
             "usort_max_size".to_string(),
             boxed_max_size,
         )]));
+    } else {
+        exec_scopes_proxy.enter_scope(HashMap::new());
     }
     Ok(())
 }
