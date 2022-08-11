@@ -57,13 +57,37 @@ func assert_find_element(element_ptr: Bicycle*):
     assert element_ptr.basket[2] = 288
     assert element_ptr.basket[3] = 256
     assert element_ptr.basket[4] = 0
-
-    let (basket_len, sorted_basket, multiplicities) = usort(5, element_ptr.basket)
+    return()
+end
+    
+func assert_sorting(sorted_basket: felt*):
     assert sorted_basket[0] = 0
     assert sorted_basket[1] = 29
     assert sorted_basket[2] = 116
     assert sorted_basket[3] = 256
     assert sorted_basket[4] = 288
+    return()
+end
+
+func run_test{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}(iter: felt, stop: felt):
+    alloc_locals
+    if iter == stop:
+        return ()
+    end
+
+    let bike_arr:Bicycle* = alloc()
+    fill_bike_array(bike_arr, 30, 0)
+    let (element_ptr : Bicycle*) = find_element(
+        array_ptr=bike_arr,
+        elm_size=Bicycle.SIZE,
+        n_elms=30,
+        key=29,
+    )
+
+    assert_find_element(element_ptr)
+
+    let (basket_len, sorted_basket, multiplicities) = usort(5, element_ptr.basket)
+    assert_sorting(sorted_basket)
 
     let bike_small_array:Bicycle* = alloc()
     assert bike_small_array[0] = bike_arr[0]
@@ -80,6 +104,13 @@ func assert_find_element(element_ptr: Bicycle*):
     )
 
     assert elem_ptr_lower.id = 10
+
+    return run_test(iter + 1, stop)
+end 
+
+func main{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}():
+    alloc_locals
+    run_test(0, 10)
 
     return ()
 end
