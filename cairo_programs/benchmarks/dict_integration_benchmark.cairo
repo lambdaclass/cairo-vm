@@ -1,7 +1,7 @@
-from dict_integration_tests import test_integration 
+from dict_integration_tests import run_tests
 
 func main{range_check_ptr : felt}():
-    test_integration(10000)
+    run_tests(100)
 
     return ()
 end

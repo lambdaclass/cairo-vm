@@ -53,8 +53,11 @@ func check_squashed_dictionary{dict_end : DictAccess*}(iter : felt, last : felt,
     return check_squashed_dictionary{dict_end=dict_end}(iter + 1, last, init_base, init_step, final_base, final_step) 
 end
 
-func test_integration{range_check_ptr : felt}(iters : felt) -> ():
+func test_integration{range_check_ptr : felt}(iter : felt, last : felt) -> ():
     alloc_locals
+    if iter == last:
+        return ()
+    end
 
     let init_base = 1
     let init_step = 2
@@ -65,17 +68,23 @@ func test_integration{range_check_ptr : felt}(iters : felt) -> ():
     let (local dict_start : DictAccess*) = default_dict_new(9998789)
     let dict_end = dict_start
 
-    fill_dictionary{dict_start=dict_end}(base=init_base, step=init_step, iter=0, last=iters)
-    update_dictionary{dict_start=dict_end}(base=final_base, step=final_step, iter=0, last=iters)
+    fill_dictionary{dict_start=dict_end}(base=init_base, step=init_step, iter=0, last=last)
+    update_dictionary{dict_start=dict_end}(base=final_base, step=final_step, iter=0, last=last)
 
-    let (_squashed_dict_start, squashed_dict_end) = dict_squash(dict_start, dict_end)
-    check_squashed_dictionary{dict_end=squashed_dict_end}(iter=0, last=iters, init_base=init_base, init_step=init_step, final_base=final_base, final_step=final_step)
+    let (squashed_dict_start, squashed_dict_end) = dict_squash(dict_start, dict_end)
+    check_squashed_dictionary{dict_end=squashed_dict_end}(iter=0, last=last, init_base=init_base, init_step=init_step, final_base=final_base, final_step=final_step)
 
-    return ()
+    return test_integration(iter + 1, last) 
+end
+
+func run_tests{range_check_ptr}(last : felt):
+    test_integration(0, last)
+
+    return()
 end
 
 func main{range_check_ptr : felt}():
-    test_integration(10)
+    run_tests(10)
 
     return ()
 end
