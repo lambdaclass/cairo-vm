@@ -505,7 +505,7 @@ fn cairo_run_finalize_keccak() {
 #[test]
 fn cairo_run_operations_with_data() {
     cairo_run::cairo_run(
-        Path::new("cairo_programs/operations_with_data.json"),
+        Path::new("cairo_programs/operations_with_data_structures.json"),
         false,
         &HINT_EXECUTOR,
     )
