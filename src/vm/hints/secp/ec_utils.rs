@@ -82,7 +82,7 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
     exec_scopes_proxy.insert_value("slope", any_box!(value));
     Ok(())
 }
@@ -142,7 +142,7 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
     exec_scopes_proxy.insert_value("slope", any_box!(value));
     Ok(())
 }
@@ -196,7 +196,7 @@ pub fn ec_double_assign_new_x(
     exec_scopes_proxy.insert_value("slope", any_box!(slope));
     exec_scopes_proxy.insert_value("x", any_box!(x));
     exec_scopes_proxy.insert_value("y", any_box!(y));
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
     exec_scopes_proxy.insert_value("new_x", any_box!(value));
     Ok(())
 }
@@ -217,7 +217,7 @@ pub fn ec_double_assign_new_y(
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
     exec_scopes_proxy.insert_value("new_y", any_box!(value));
     Ok(())
 }
@@ -285,7 +285,7 @@ pub fn fast_ec_add_assign_new_x(
 
     exec_scopes_proxy.assign_or_update_variable("y0", any_box!(y0));
 
-    exec_scopes_proxy.assign_or_update_variable("value", any_box!(value));
+    exec_scopes_proxy.assign_or_update_variable("value", any_box!(value.clone()));
 
     exec_scopes_proxy.assign_or_update_variable("new_x", any_box!(value));
 
@@ -307,7 +307,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes_proxy.get_int("y0")?,
     );
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
-    exec_scopes_proxy.assign_or_update_variable("value", any_box!(value));
+    exec_scopes_proxy.assign_or_update_variable("value", any_box!(value.clone()));
     exec_scopes_proxy.assign_or_update_variable("new_y", any_box!(value));
 
     Ok(())
@@ -658,29 +658,33 @@ mod tests {
         //Insert 'slope' into vm scope
         exec_scopes.assign_or_update_variable(
             "slope",
-            bigint_str!(
+            any_box!(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            ),
+            )),
         );
 
         //Insert 'x' into vm scope
         exec_scopes.assign_or_update_variable(
             "x",
-            bigint_str!(b"838083498911032969414721426845751663479194726707495046"),
+            any_box!(bigint_str!(
+                b"838083498911032969414721426845751663479194726707495046"
+            )),
         );
 
         //Insert 'new_x' into vm scope
         exec_scopes.assign_or_update_variable(
             "new_x",
-            bigint_str!(
+            any_box!(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            ),
+            )),
         );
 
         //Insert 'y' into vm scope
         exec_scopes.assign_or_update_variable(
             "y",
-            bigint_str!(b"4310143708685312414132851373791311001152018708061750480"),
+            any_box!(bigint_str!(
+                b"4310143708685312414132851373791311001152018708061750480"
+            )),
         );
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -836,29 +840,33 @@ mod tests {
         //Insert 'slope' into vm scope
         exec_scopes.assign_or_update_variable(
             "slope",
-            bigint_str!(
+            any_box!(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            ),
+            )),
         );
 
         //Insert 'x0' into vm scope
         exec_scopes.assign_or_update_variable(
             "x0",
-            bigint_str!(b"838083498911032969414721426845751663479194726707495046"),
+            any_box!(bigint_str!(
+                b"838083498911032969414721426845751663479194726707495046"
+            )),
         );
 
         //Insert 'new_x' into vm scope
         exec_scopes.assign_or_update_variable(
             "new_x",
-            bigint_str!(
+            any_box!(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            ),
+            )),
         );
 
         //Insert 'y0' into vm scope
         exec_scopes.assign_or_update_variable(
             "y0",
-            bigint_str!(b"4310143708685312414132851373791311001152018708061750480"),
+            any_box!(bigint_str!(
+                b"4310143708685312414132851373791311001152018708061750480"
+            )),
         );
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);

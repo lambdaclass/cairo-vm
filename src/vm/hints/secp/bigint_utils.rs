@@ -51,8 +51,10 @@ pub fn bigint_to_uint256(
 
 #[cfg(test)]
 mod tests {
+    use crate::any_box;
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
+    use std::any::Any;
 
     use super::*;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
@@ -79,7 +81,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "value",
-            Box::new(bigint_str!(
+            any_box!(bigint_str!(
                 b"7737125245533626718119526477371252455336267181195264773712524553362"
             )),
         );
@@ -165,7 +167,7 @@ mod tests {
 
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("value", Box::new(bigint!(-1)));
+        exec_scopes.assign_or_update_variable("value", any_box!(bigint!(-1)));
         let ids = ids!["res"];
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(5))]);

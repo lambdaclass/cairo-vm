@@ -273,11 +273,11 @@ impl HintExecutor for BuiltinHintExecutor {
 
 #[cfg(test)]
 mod tests {
-    use crate::bigint;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
+    use crate::{any_box, bigint};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
 
@@ -482,7 +482,7 @@ mod tests {
 
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", bigint!(1));
+        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
 
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
@@ -569,7 +569,7 @@ mod tests {
 
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", bigint!(1));
+        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
 
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
@@ -746,7 +746,7 @@ mod tests {
         ids.insert(String::from("low"), bigint!(3));
 
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", bigint!(500));
+        exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(500)));
 
         //Create references
         vm.references = HashMap::from([
@@ -856,7 +856,7 @@ mod tests {
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", bigint!(2));
+        exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(2)));
 
         //Create references
         vm.references = HashMap::from([
@@ -1073,7 +1073,7 @@ mod tests {
         ids.insert(String::from("high"), bigint!(2));
         ids.insert(String::from("low"), bigint!(3));
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", bigint!(10));
+        exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(10)));
 
         //Create references
         vm.references = HashMap::from([

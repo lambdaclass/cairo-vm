@@ -1,10 +1,11 @@
+use std::any::Any;
 use std::collections::HashMap;
 
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
 use crate::{
-    bigint,
+    any_box, bigint,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
@@ -23,8 +24,8 @@ fn get_access_indices<'a>(
 ) -> Result<&'a HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
     let mut access_indices: Option<&HashMap<BigInt, Vec<BigInt>>> = None;
     if let Some(variable) = exec_scopes_proxy
-        .get_local_variables()?
-        .get("access_indices")
+        .get_local_variables_mut()?
+        .get_mut("access_indices")
     {
         if let Some(py_access_indices) = variable.downcast_mut::<HashMap<BigInt, Vec<BigInt>>>() {
             access_indices = Some(py_access_indices);
@@ -62,8 +63,8 @@ pub fn squash_dict_inner_first_iteration(
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
-    exec_scopes_proxy.insert_value("current_access_indices", &current_access_indices);
-    exec_scopes_proxy.insert_value("current_access_index", &first_val);
+    exec_scopes_proxy.insert_value("current_access_indices", any_box!(current_access_indices));
+    exec_scopes_proxy.insert_value("current_access_index", any_box!(first_val.clone()));
     //Insert current_accesss_index into range_check_ptr
     vm_proxy.memory.insert_value(&range_check_ptr, first_val)
 }
@@ -120,8 +121,8 @@ pub fn squash_dict_inner_check_access_index(
         vm_proxy,
         hint_ap_tracking,
     )?;
-    exec_scopes_proxy.insert_value("new_access_index", &new_access_index);
-    exec_scopes_proxy.insert_value("current_access_index", &new_access_index);
+    exec_scopes_proxy.insert_value("new_access_index", any_box!(new_access_index.clone()));
+    exec_scopes_proxy.insert_value("current_access_index", any_box!(new_access_index));
     Ok(())
 }
 
@@ -223,7 +224,7 @@ pub fn squash_dict_inner_next_key(
         hint_ap_tracking,
     )?;
     //Update local variables
-    exec_scopes_proxy.insert_value("key", &next_key);
+    exec_scopes_proxy.insert_value("key", any_box!(next_key));
     Ok(())
 }
 
@@ -304,9 +305,9 @@ pub fn squash_dict(
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     insert_value_from_var_name("first_key", key.clone(), ids, vm_proxy, hint_ap_tracking)?;
     //Insert local variables into scope
-    exec_scopes_proxy.assign_or_update_variable("access_indices", &access_indices);
-    exec_scopes_proxy.insert_value("keys", &keys);
-    exec_scopes_proxy.insert_value("key", &key);
+    exec_scopes_proxy.assign_or_update_variable("access_indices", any_box!(access_indices));
+    exec_scopes_proxy.insert_value("keys", any_box!(keys));
+    exec_scopes_proxy.insert_value("key", any_box!(key));
     Ok(())
 }
 
@@ -353,11 +354,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        let boxed_access_indices: Box<dyn Any> = Box::new(access_indices);
-        let boxed_key: Box<dyn Any> = Box::new(bigint!(5));
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("access_indices", boxed_access_indices);
-        exec_scopes.assign_or_update_variable("key", boxed_key);
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (range_check_ptr)
@@ -418,9 +417,8 @@ mod tests {
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
-        let boxed_access_indices: Box<dyn Any> = Box::new(access_indices);
-        exec_scopes.assign_or_update_variable("access_indices", boxed_access_indices);
-        exec_scopes.assign_or_update_variable("key", bigint!(5));
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (range_check_ptr)
@@ -816,10 +814,8 @@ mod tests {
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
-        let boxed_access_indices: Box<dyn Any> = Box::new(access_indices);
-        exec_scopes.assign_or_update_variable("access_indices", boxed_access_indices);
-        let boxed_key: Box<dyn Any> = Box::new(bigint!(5));
-        exec_scopes.assign_or_update_variable("key", boxed_key);
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (n_used_accesses)
@@ -864,10 +860,8 @@ mod tests {
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
-        let boxed_access_indices: Box<dyn Any> = Box::new(access_indices);
-        exec_scopes.assign_or_update_variable("access_indices", boxed_access_indices);
-        let boxed_key: Box<dyn Any> = Box::new(bigint!(5));
-        exec_scopes.assign_or_update_variable("key", boxed_key);
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (n_used_accesses)
@@ -915,10 +909,8 @@ mod tests {
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
-        let boxed_access_indices: Box<dyn Any> = Box::new(access_indices);
-        exec_scopes.assign_or_update_variable("access_indices", boxed_access_indices);
-        let boxed_key: Box<dyn Any> = Box::new(bigint!(5));
-        exec_scopes.assign_or_update_variable("key", boxed_key);
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (n_used_accesses)

@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
@@ -8,9 +7,11 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::hints::secp::secp_utils::SECP_P;
 use crate::vm::vm_core::VMProxy;
+use crate::{any_box, bigint};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
+use std::any::Any;
 use std::collections::HashMap;
 
 use super::secp_utils::{pack, pack_from_var_name};
@@ -71,7 +72,7 @@ pub fn reduce(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", &value);
+    exec_scopes_proxy.insert_value("value", any_box!(value));
     Ok(())
 }
 
@@ -96,7 +97,7 @@ pub fn is_zero_pack(
     let x_d2 = vm_proxy.memory.get_integer(&(&x_reloc + 2))?;
 
     let x = (pack(x_d0, x_d1, x_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("x", &x);
+    exec_scopes_proxy.insert_value("x", any_box!(x));
     Ok(())
 }
 /*
@@ -134,8 +135,8 @@ pub fn is_zero_assign_scope_variables(
     let x = exec_scopes_proxy.get_int("x")?;
 
     let value = div_mod(&bigint!(1), &x, &SECP_P);
-    exec_scopes_proxy.insert_value("value", &value);
-    exec_scopes_proxy.insert_value("x_inv", &value);
+    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
+    exec_scopes_proxy.insert_value("x_inv", any_box!(value));
     Ok(())
 }
 
@@ -701,7 +702,7 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
-        exec_scopes.assign_or_update_variable("x", bigint!(0i32));
+        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0i32)));
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -740,7 +741,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", bigint!(123890i32));
+        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -810,7 +811,7 @@ mod tests {
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("x", bigint!(0));
+        exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0)));
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -842,7 +843,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(
             "x",
-            bigint_str!(b"52621538839140286024584685587354966255185961783273479086367"),
+            any_box!(bigint_str!(
+                b"52621538839140286024584685587354966255185961783273479086367"
+            )),
         );
 
         //Execute the hint

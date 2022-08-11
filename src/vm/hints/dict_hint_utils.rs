@@ -230,6 +230,7 @@ pub fn dict_squash_update_ptr(
 
 #[cfg(test)]
 mod tests {
+    use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::vm_memory::memory::Memory;
@@ -259,7 +260,7 @@ mod tests {
         //Store initial dict in scope
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
-            .assign_or_update_variable("initial_dict", Box::new(&HashMap::<BigInt, BigInt>::new()));
+            .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         //ids and references are not needed for this test
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
@@ -311,7 +312,7 @@ mod tests {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
-            .assign_or_update_variable("initial_dict", Box::new(&HashMap::<BigInt, BigInt>::new()));
+            .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         vm.memory = memory![((0, 0), 1)];
         //ids and references are not needed for this test
         let vm_proxy = &mut get_vm_proxy(&mut vm);
