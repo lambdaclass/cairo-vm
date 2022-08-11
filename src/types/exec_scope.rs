@@ -228,10 +228,7 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
     //Returns a mutable reference to the dict manager
-    pub fn get_dict_manager_mut(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut DictManager, VirtualMachineError> {
+    pub fn get_dict_manager_mut(&mut self) -> Result<&mut DictManager, VirtualMachineError> {
         let mut val: Option<&mut DictManager> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut("dict_manager") {
             if let Some(dict_manager) = variable.downcast_mut::<DictManager>() {

@@ -8,9 +8,12 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
-use super::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
-    insert_value_into_ap,
+use super::{
+    dict_manager::DictManager,
+    hint_utils::{
+        get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+        insert_value_into_ap,
+    },
 };
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
@@ -49,9 +52,15 @@ pub fn dict_new(
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict =
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
-    let base = vm_proxy
-        .dict_manager
-        .new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
+    //Check if there is a dict manager in scope, create it if there isnt one
+    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager_mut() {
+        dict_manager.new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?
+    } else {
+        let mut dict_manager = DictManager::new();
+        let base = dict_manager.new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
+        exec_scopes_proxy.insert_value("dict_manager", dict_manager);
+        base
+    };
     insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
 }
 
@@ -76,13 +85,25 @@ pub fn default_dict_new(
         get_integer_from_var_name("default_value", ids, vm_proxy, hint_ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
-
-    let base = vm_proxy.dict_manager.new_default_dict(
-        vm_proxy.segments,
-        vm_proxy.memory,
-        &default_value,
-        initial_dict,
-    )?;
+    //Check if there is a dict manager in scope, create it if there isnt one
+    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager_mut() {
+        dict_manager.new_default_dict(
+            vm_proxy.segments,
+            vm_proxy.memory,
+            &default_value,
+            initial_dict,
+        )?
+    } else {
+        let mut dict_manager = DictManager::new();
+        let base = dict_manager.new_default_dict(
+            vm_proxy.segments,
+            vm_proxy.memory,
+            &default_value,
+            initial_dict,
+        )?;
+        exec_scopes_proxy.insert_value("dict_manager", dict_manager);
+        base
+    };
     insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
 }
 
@@ -93,12 +114,15 @@ pub fn default_dict_new(
 */
 pub fn dict_read(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
-    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = exec_scopes_proxy
+        .get_dict_manager_mut()?
+        .get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), ids, vm_proxy, hint_ap_tracking)
@@ -112,6 +136,7 @@ pub fn dict_read(
 */
 pub fn dict_write(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -120,7 +145,9 @@ pub fn dict_write(
         get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     //Get tracker for dictionary
-    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = exec_scopes_proxy
+        .get_dict_manager_mut()?
+        .get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value = dict_ptr + 1;
@@ -151,6 +178,7 @@ pub fn dict_write(
 */
 pub fn dict_update(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -162,7 +190,9 @@ pub fn dict_update(
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
     //Get tracker for dictionary
-    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = exec_scopes_proxy
+        .get_dict_manager_mut()?
+        .get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
@@ -197,8 +227,8 @@ pub fn dict_squash_copy_dict(
     let dict_accesses_end =
         get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
     let dict_copy: Box<dyn Any> = Box::new(
-        vm_proxy
-            .dict_manager
+        exec_scopes_proxy
+            .get_dict_manager_mut()?
             .get_tracker(&dict_accesses_end)?
             .get_dictionary_copy(),
     );
@@ -214,6 +244,7 @@ pub fn dict_squash_copy_dict(
 */
 pub fn dict_squash_update_ptr(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -221,8 +252,8 @@ pub fn dict_squash_update_ptr(
         get_ptr_from_var_name("squashed_dict_start", ids, vm_proxy, hint_ap_tracking)?;
     let squashed_dict_end =
         get_ptr_from_var_name("squashed_dict_end", ids, vm_proxy, hint_ap_tracking)?;
-    vm_proxy
-        .dict_manager
+    exec_scopes_proxy
+        .get_dict_manager_mut()?
         .get_tracker(&squashed_dict_start)?
         .current_ptr = squashed_dict_end;
     Ok(())
@@ -283,7 +314,11 @@ mod tests {
         //Check the dict manager has a tracker for segment 0,
         //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
-            vm.dict_manager.trackers.get(&0),
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&0),
             Some(&DictTracker::new_empty(&relocatable!(0, 0)))
         );
     }
@@ -347,19 +382,21 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["key", "value", "dict_ptr"];
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.references = references!(3);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -373,7 +410,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -393,7 +436,6 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
         //Insert ids into memory
         vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
         //Create ids
@@ -401,11 +443,14 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -415,14 +460,15 @@ mod tests {
     }
     #[test]
     fn run_dict_read_no_tracker() {
-        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]"
-            ;
+        let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]";
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         //Create manager
         let dict_manager = DictManager::new();
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -435,7 +481,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -456,11 +502,13 @@ mod tests {
         let ids = ids!["default_value"];
         //Create references
         vm.references = references!(1);
+        let mut exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
             .execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new(),
@@ -476,7 +524,11 @@ mod tests {
         //Check the dict manager has a tracker for segment 0,
         //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
-            vm.dict_manager.trackers.get(&0),
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
                 &bigint!(17),
@@ -522,7 +574,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 17)];
         vm.segments.add(&mut vm.memory, None);
@@ -546,7 +600,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -555,7 +609,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -564,7 +620,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the default_value (2)
@@ -588,7 +650,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -606,7 +670,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -615,7 +679,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -624,7 +690,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
@@ -648,7 +720,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -666,7 +740,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -675,7 +749,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -684,7 +760,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
@@ -706,7 +788,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -724,7 +808,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -747,7 +831,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 20), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -764,7 +850,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -773,7 +859,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -782,7 +870,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -801,7 +895,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -818,7 +914,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -827,7 +923,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -836,7 +934,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -855,7 +959,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 11), ((0, 2), 20), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -872,7 +978,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -900,7 +1006,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 6), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -917,7 +1025,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -941,7 +1049,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 20), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -958,7 +1068,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -967,7 +1077,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -976,7 +1088,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -996,7 +1114,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -1013,7 +1133,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1022,7 +1142,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1031,7 +1153,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -1051,7 +1179,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 11), ((0, 2), 10), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -1068,7 +1198,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1096,7 +1226,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 6), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -1113,7 +1245,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1139,7 +1271,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), 20), ((0, 3), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -1156,7 +1290,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1165,7 +1299,9 @@ mod tests {
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1174,7 +1310,13 @@ mod tests {
         );
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
-            vm.dict_manager.trackers.get(&1).unwrap().current_ptr,
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
+                .trackers
+                .get(&1)
+                .unwrap()
+                .current_ptr,
             relocatable!(1, 3)
         );
     }
@@ -1193,7 +1335,6 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
         //ids.dict_access
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
@@ -1205,6 +1346,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
@@ -1246,7 +1388,6 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
@@ -1257,6 +1398,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
@@ -1293,7 +1435,9 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create manager
         let dict_manager = DictManager::new();
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
@@ -1305,7 +1449,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1322,7 +1466,9 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         //Create manager
         let dict_manager = DictManager::new();
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
@@ -1334,7 +1480,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1358,7 +1504,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         //ids.squash_dict_start
         vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
         vm.segments.add(&mut vm.memory, None);
@@ -1371,7 +1519,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()
@@ -1380,7 +1528,9 @@ mod tests {
         );
         //Check the updated pointer
         assert_eq!(
-            vm.dict_manager
+            exec_scopes_proxy
+                .get_dict_manager_mut()
+                .unwrap()
                 .get_tracker(&relocatable!(1, 3))
                 .unwrap()
                 .current_ptr,
@@ -1403,7 +1553,9 @@ mod tests {
         //Create manager
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(1, tracker);
-        vm.dict_manager = dict_manager;
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
+        add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((0, 0), (1, 3)), ((0, 1), (1, 6))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
@@ -1415,7 +1567,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
                 vm_proxy,
-                exec_scopes_proxy_ref!(),
+                &mut exec_scopes_proxy,
                 hint_code,
                 &ids,
                 &ApTracking::new()

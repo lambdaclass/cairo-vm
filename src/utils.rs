@@ -195,6 +195,13 @@ pub mod test_utils {
         };
     }
     pub(crate) use exec_scopes_proxy_ref;
+
+    macro_rules! add_dict_manager {
+        ($es_proxy:expr, $dict:expr) => {
+            $es_proxy.insert_value("dict_manager", $dict)
+        };
+    }
+    pub(crate) use add_dict_manager;
 }
 
 #[cfg(test)]
