@@ -1,4 +1,7 @@
-use crate::vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError};
+use crate::{
+    any_box,
+    vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+};
 use num_bigint::BigInt;
 use std::{any::Any, collections::HashMap};
 
@@ -225,9 +228,13 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    //Inserts the value in scope as a BigInt value type
-    pub fn insert_value(&mut self, name: &str, value: Box<dyn Any>) {
+    //Inserts the boxed value in scope
+    pub fn insert_box(&mut self, name: &str, value: Box<dyn Any>) {
         self.assign_or_update_variable(name, value);
+    }
+    //Inserts the value in scope
+    pub fn insert_value<T: 'static>(&mut self, name: &str, value: T) {
+        self.assign_or_update_variable(name, any_box!(value));
     }
 }
 

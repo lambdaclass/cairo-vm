@@ -1,4 +1,3 @@
-use crate::any_box;
 use crate::bigint;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
@@ -342,7 +341,7 @@ pub fn memcpy_continue_copying(
             hint_ap_tracking,
         )?;
     }
-    exec_scopes_proxy.assign_or_update_variable("n", any_box!(new_n));
+    exec_scopes_proxy.insert_value("n", new_n);
     Ok(())
 }
 

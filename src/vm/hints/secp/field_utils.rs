@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
@@ -7,11 +8,9 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::hints::secp::secp_utils::SECP_P;
 use crate::vm::vm_core::VMProxy;
-use crate::{any_box, bigint};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
-use std::any::Any;
 use std::collections::HashMap;
 
 use super::secp_utils::{pack, pack_from_var_name};
@@ -72,7 +71,7 @@ pub fn reduce(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
 
@@ -97,7 +96,7 @@ pub fn is_zero_pack(
     let x_d2 = vm_proxy.memory.get_integer(&(&x_reloc + 2))?;
 
     let x = (pack(x_d0, x_d1, x_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("x", any_box!(x));
+    exec_scopes_proxy.insert_value("x", x);
     Ok(())
 }
 /*
@@ -135,14 +134,15 @@ pub fn is_zero_assign_scope_variables(
     let x = exec_scopes_proxy.get_int("x")?;
 
     let value = div_mod(&bigint!(1), &x, &SECP_P);
-    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
-    exec_scopes_proxy.insert_value("x_inv", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("x_inv", value);
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::bigint;
     use crate::bigint_str;
     use crate::types::exec_scope::get_exec_scopes_proxy;
@@ -157,6 +157,7 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
+    use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
     use crate::types::hint_executor::HintExecutor;

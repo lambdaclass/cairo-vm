@@ -1,5 +1,4 @@
 use crate::{
-    any_box,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
@@ -13,7 +12,6 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use std::any::Any;
 use std::collections::HashMap;
 
 /* Implements hint:
@@ -34,10 +32,10 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-    exec_scopes_proxy.insert_value("a", any_box!(a));
-    exec_scopes_proxy.insert_value("b", any_box!(b));
-    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
-    exec_scopes_proxy.insert_value("res", any_box!(value));
+    exec_scopes_proxy.insert_value("a", a);
+    exec_scopes_proxy.insert_value("b", b);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("res", value);
     Ok(())
 }
 
@@ -52,7 +50,7 @@ pub fn div_mod_n_safe_div(
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
 
@@ -70,7 +68,7 @@ pub fn get_point_from_x(
     if v % 2_i32 != &y % 2_i32 {
         y = -y % &*SECP_P;
     }
-    exec_scopes_proxy.insert_value("value", any_box!(y));
+    exec_scopes_proxy.insert_value("value", y);
     Ok(())
 }
 
@@ -78,7 +76,7 @@ pub fn get_point_from_x(
 mod tests {
     use super::*;
     use crate::{
-        any_box, bigint, bigint_str,
+        bigint, bigint_str,
         types::{
             exec_scope::{get_exec_scopes_proxy, ExecutionScopes},
             instruction::Register,
@@ -142,9 +140,9 @@ mod tests {
     fn safe_div_fail() {
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        exec_scopes_proxy.insert_value("a", any_box!(bigint!(0_usize)));
-        exec_scopes_proxy.insert_value("b", any_box!(bigint!(1_usize)));
-        exec_scopes_proxy.insert_value("res", any_box!(bigint!(1_usize)));
+        exec_scopes_proxy.insert_value("a", bigint!(0_usize));
+        exec_scopes_proxy.insert_value("b", bigint!(1_usize));
+        exec_scopes_proxy.insert_value("res", bigint!(1_usize));
         assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
     }
 

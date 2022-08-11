@@ -1,4 +1,3 @@
-use crate::any_box;
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
@@ -55,12 +54,13 @@ pub fn memset_continue_loop(
     )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    exec_scopes_proxy.insert_value("n", any_box!(new_n));
+    exec_scopes_proxy.insert_value("n", new_n);
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;

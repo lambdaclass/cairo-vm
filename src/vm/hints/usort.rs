@@ -1,5 +1,5 @@
 use crate::{
-    any_box, bigint,
+    bigint,
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
     vm::{
@@ -67,7 +67,7 @@ pub fn usort_body(
     for k in output.iter() {
         multiplicities.push(positions_dict[k].len());
     }
-    exec_scopes_proxy.insert_value("positions_dict", any_box!(positions_dict));
+    exec_scopes_proxy.insert_value("positions_dict", positions_dict);
     let output_base = vm_proxy.segments.add(vm_proxy.memory, Some(output.len()));
     let multiplicities_base = vm_proxy
         .segments
@@ -115,8 +115,8 @@ pub fn verify_usort(
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();
-    exec_scopes_proxy.insert_value("positions", any_box!(positions));
-    exec_scopes_proxy.insert_value("last_pos", any_box!(bigint!(0)));
+    exec_scopes_proxy.insert_value("positions", positions);
+    exec_scopes_proxy.insert_value("last_pos", bigint!(0));
     Ok(())
 }
 
@@ -143,13 +143,14 @@ pub fn verify_multiplicity_body(
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, ids, vm_proxy, hint_ap_tracking)?;
-    exec_scopes_proxy.insert_value("last_pos", any_box!(bigint!(current_pos + 1)));
+    exec_scopes_proxy.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;

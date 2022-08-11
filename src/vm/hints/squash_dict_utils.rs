@@ -1,11 +1,10 @@
-use std::any::Any;
 use std::collections::HashMap;
 
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
 use crate::{
-    any_box, bigint,
+    bigint,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
@@ -63,8 +62,8 @@ pub fn squash_dict_inner_first_iteration(
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
-    exec_scopes_proxy.insert_value("current_access_indices", any_box!(current_access_indices));
-    exec_scopes_proxy.insert_value("current_access_index", any_box!(first_val.clone()));
+    exec_scopes_proxy.insert_value("current_access_indices", current_access_indices);
+    exec_scopes_proxy.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
     vm_proxy.memory.insert_value(&range_check_ptr, first_val)
 }
@@ -121,8 +120,8 @@ pub fn squash_dict_inner_check_access_index(
         vm_proxy,
         hint_ap_tracking,
     )?;
-    exec_scopes_proxy.insert_value("new_access_index", any_box!(new_access_index.clone()));
-    exec_scopes_proxy.insert_value("current_access_index", any_box!(new_access_index));
+    exec_scopes_proxy.insert_value("new_access_index", new_access_index.clone());
+    exec_scopes_proxy.insert_value("current_access_index", new_access_index);
     Ok(())
 }
 
@@ -224,7 +223,7 @@ pub fn squash_dict_inner_next_key(
         hint_ap_tracking,
     )?;
     //Update local variables
-    exec_scopes_proxy.insert_value("key", any_box!(next_key));
+    exec_scopes_proxy.insert_value("key", next_key);
     Ok(())
 }
 
@@ -305,9 +304,9 @@ pub fn squash_dict(
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     insert_value_from_var_name("first_key", key.clone(), ids, vm_proxy, hint_ap_tracking)?;
     //Insert local variables into scope
-    exec_scopes_proxy.assign_or_update_variable("access_indices", any_box!(access_indices));
-    exec_scopes_proxy.insert_value("keys", any_box!(keys));
-    exec_scopes_proxy.insert_value("key", any_box!(key));
+    exec_scopes_proxy.insert_value("access_indices", access_indices);
+    exec_scopes_proxy.insert_value("keys", keys);
+    exec_scopes_proxy.insert_value("key", key);
     Ok(())
 }
 
@@ -316,13 +315,13 @@ mod tests {
     use std::any::Any;
 
     use super::*;
-    use crate::bigint;
     use crate::serde::deserialize_program::ApTracking;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::{any_box, bigint};
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};

@@ -1,3 +1,4 @@
+use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
@@ -7,10 +8,8 @@ use crate::vm::hints::hint_utils::{
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VMProxy;
-use crate::{any_box, bigint};
 use num_bigint::BigInt;
 use num_integer::Integer;
-use std::any::Any;
 use std::collections::HashMap;
 use std::ops::BitAnd;
 
@@ -40,7 +39,7 @@ pub fn ec_negate(
         vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
     );
     let value = (-pack(y_d0, y_d1, y_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
 
@@ -82,8 +81,8 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
-    exec_scopes_proxy.insert_value("slope", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("slope", value);
     Ok(())
 }
 
@@ -142,8 +141,8 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
-    exec_scopes_proxy.insert_value("slope", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("slope", value);
     Ok(())
 }
 
@@ -193,11 +192,11 @@ pub fn ec_double_assign_new_x(
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.insert_value("slope", any_box!(slope));
-    exec_scopes_proxy.insert_value("x", any_box!(x));
-    exec_scopes_proxy.insert_value("y", any_box!(y));
-    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
-    exec_scopes_proxy.insert_value("new_x", any_box!(value));
+    exec_scopes_proxy.insert_value("slope", slope);
+    exec_scopes_proxy.insert_value("x", x);
+    exec_scopes_proxy.insert_value("y", y);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_x", value);
     Ok(())
 }
 
@@ -217,8 +216,8 @@ pub fn ec_double_assign_new_y(
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", any_box!(value.clone()));
-    exec_scopes_proxy.insert_value("new_y", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_y", value);
     Ok(())
 }
 
@@ -279,15 +278,11 @@ pub fn fast_ec_add_assign_new_x(
     let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.assign_or_update_variable("slope", any_box!(slope));
-
-    exec_scopes_proxy.assign_or_update_variable("x0", any_box!(x0));
-
-    exec_scopes_proxy.assign_or_update_variable("y0", any_box!(y0));
-
-    exec_scopes_proxy.assign_or_update_variable("value", any_box!(value.clone()));
-
-    exec_scopes_proxy.assign_or_update_variable("new_x", any_box!(value));
+    exec_scopes_proxy.insert_value("slope", slope);
+    exec_scopes_proxy.insert_value("x0", x0);
+    exec_scopes_proxy.insert_value("y0", y0);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_x", value);
 
     Ok(())
 }
@@ -307,8 +302,8 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes_proxy.get_int("y0")?,
     );
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
-    exec_scopes_proxy.assign_or_update_variable("value", any_box!(value.clone()));
-    exec_scopes_proxy.assign_or_update_variable("new_y", any_box!(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_y", value);
 
     Ok(())
 }
@@ -332,7 +327,6 @@ pub fn ec_mul_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint_str;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
@@ -342,7 +336,9 @@ mod tests {
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::{any_box, bigint_str};
     use num_bigint::{BigInt, Sign};
+    use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
     use crate::types::hint_executor::HintExecutor;
