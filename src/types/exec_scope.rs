@@ -1,6 +1,9 @@
 use crate::{
     any_box,
-    vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+    vm::{
+        errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+        hints::dict_manager::DictManager,
+    },
 };
 use num_bigint::BigInt;
 use std::{any::Any, collections::HashMap};
@@ -212,6 +215,30 @@ impl ExecutionScopesProxy<'_> {
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    //Returns a reference to the value in the dict manager
+    pub fn get_dict_manager_ref(&self) -> Result<&DictManager, VirtualMachineError> {
+        let mut val: Option<&DictManager> = None;
+        if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
+            if let Some(dict_manager) = variable.downcast_ref::<DictManager>() {
+                val = Some(dict_manager);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
+    }
+    //Returns a mutable reference to the dict manager
+    pub fn get_dict_manager_mut(
+        &mut self,
+        name: &str,
+    ) -> Result<&mut DictManager, VirtualMachineError> {
+        let mut val: Option<&mut DictManager> = None;
+        if let Some(variable) = self.get_local_variables_mut()?.get_mut("dict_manager") {
+            if let Some(dict_manager) = variable.downcast_mut::<DictManager>() {
+                val = Some(dict_manager);
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
     //Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64
