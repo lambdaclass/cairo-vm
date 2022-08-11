@@ -11,7 +11,7 @@ pub struct ExecutionScopesProxy<'a> {
     current_scope: usize,
 }
 
-pub fn get_exec_scopes_proxy<'a>(exec_scopes: &'a mut ExecutionScopes) -> ExecutionScopesProxy<'a> {
+pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScopesProxy {
     ExecutionScopesProxy {
         //Len will always be > 1 as execution scopes are always created with a main scope
         current_scope: exec_scopes.data.len() - 1,
@@ -20,7 +20,7 @@ pub fn get_exec_scopes_proxy<'a>(exec_scopes: &'a mut ExecutionScopes) -> Execut
 }
 
 impl ExecutionScopesProxy<'_> {
-    pub fn enter_scope<'a>(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
+    pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
         self.scopes.enter_scope(new_scope_locals)
     }
 

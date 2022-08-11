@@ -39,8 +39,8 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
-    pub fn new<'a>(
-        program: &'a Program,
+    pub fn new(
+        program: &Program,
         trace_enabled: bool,
         hint_executor: &'static dyn HintExecutor,
     ) -> CairoRunner {
