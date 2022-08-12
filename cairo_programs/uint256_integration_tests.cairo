@@ -20,6 +20,7 @@ func fill_array(array_start: felt*, base: felt, step: felt, iter: felt, last: fe
     assert array_start[iter] = base + step
     return fill_array(array_start, base + step, step, iter + 1, last)
 end
+
 func fill_uint256_array{range_check_ptr: felt}(array: Uint256*, base: Uint256, step: Uint256, array_len: felt, iterator: felt):
     if iterator == array_len:
         return()
@@ -95,8 +96,8 @@ func test_integration{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(base_array:
     let (quotient: Uint256, remainder: Uint256) = uint256_unsigned_div_rem(add, Uint256(5,3))
     let (low: Uint256, high: Uint256) = uint256_mul(quotient, remainder)
     let (bitwise_or: Uint256) = uint256_or(low, high)
-    let (result1: Uint256) = uint256_reverse_endian(bitwise_or)
-    let (result: Uint256) = uint256_sqrt(result1)
+    let (reverse_endian: Uint256) = uint256_reverse_endian(bitwise_or)
+    let (result: Uint256) = uint256_sqrt(reverse_endian)
 
     assert new_array[iter] = result
     return test_integration(base_array, new_array, iter + 1, last)
@@ -130,6 +131,7 @@ func run_tests{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(array_len: felt) -
 end
 
 func main{range_check_ptr: felt, bitwise_ptr: BitwiseBuiltin*}():
-    run_tests(1000)
+    run_tests(10)
+    
     return()
 end
