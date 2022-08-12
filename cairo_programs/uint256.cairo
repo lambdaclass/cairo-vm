@@ -44,9 +44,13 @@ func main{range_check_ptr: felt}():
     assert b_quotient = Uint256(1,0)
     assert b_remainder = Uint256(340282366920938463463374607431768211377,0)
     
-    let (mult_low, mult_high) = uint256_mul(Uint256(59,2),  Uint256(10,0))
-    assert mult_low = Uint256(590,20)
-    assert mult_high = Uint256(0,0)
+    let (mult_low_a, mult_high_a) = uint256_mul(Uint256(59,2),  Uint256(10,0))
+    assert mult_low_a = Uint256(590,20)
+    assert mult_high_a = Uint256(0,0)
+
+    let (mult_low_b: Uint256, mult_high_b: Uint256) = uint256_mul(Uint256(271442546951262198976322048597925888860,0), Uint256(271442546951262198976322048597925888860,0))
+    assert mult_low_b = Uint256(42047520920204780886066537579778623760, 216529163594619381764978757921136443390)
+    assert mult_high_b = Uint256(0,0)
 
     let array_length = 100
     let (sum_array : Uint256*) = alloc()
