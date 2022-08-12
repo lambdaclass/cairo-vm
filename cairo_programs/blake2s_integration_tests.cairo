@@ -27,11 +27,6 @@ func test_integration{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(iter : fel
     let blake2s_ptr = blake2s_ptr_start
     let (res : Uint256) =  blake2s{range_check_ptr=range_check_ptr, blake2s_ptr=blake2s_ptr}(data, 9)
 
-    %{
-        print("RES1_LOW: ", ids.res.low)
-        print("RES1_HIGH: ", ids.res.high)
-    %}
-
     finalize_blake2s(blake2s_ptr_start, blake2s_ptr)
 
     let (local blake2s_ptr_start) = alloc()
@@ -43,11 +38,6 @@ func test_integration{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(iter : fel
 
     let (result) =  blake2s_felts{range_check_ptr=range_check_ptr, blake2s_ptr=blake2s_ptr}(2, data_2, TRUE)
 
-    %{
-        print("RES2_LOW: ", ids.result.low)
-        print("RES2_HIGH: ", ids.result.high)
-    %}
-
     finalize_blake2s(blake2s_ptr_start, blake2s_ptr)
 
     if iter == last - 1 and last == 10:
@@ -55,6 +45,13 @@ func test_integration{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(iter : fel
         assert res.high = 28077572547397067729112288485703133566
         assert result.low = 323710308182296053867309835081443411626
         assert result.high = 159988406782415793602959692147600111481
+    end
+
+    if iter == last - 1 and last == 100:
+        assert res.low = 26473789897582596397897414631405692327
+        assert res.high = 35314462001555260569814614879256292984
+        assert result.low = 256911263205530722270005922452382996929
+        assert result.high = 248798531786594770765531047659644061441
     end
 
     return test_integration(iter+1, last)
@@ -68,6 +65,7 @@ func run_tests{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(last : felt):
 end
 
 func main{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
-    run_tests(100)
+    run_tests(10)
+
     return ()
 end
