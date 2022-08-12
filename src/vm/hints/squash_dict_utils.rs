@@ -173,16 +173,16 @@ pub fn squash_dict_inner_used_accesses_assert(
 ) -> Result<(), VirtualMachineError> {
     let key = exec_scopes_proxy.get_int("key")?;
     let n_used_accesses =
-        get_integer_from_var_name("n_used_accesses", ids, vm_proxy, hint_ap_tracking)?.clone();
+        get_integer_from_var_name("n_used_accesses", ids, vm_proxy, hint_ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    if n_used_accesses != bigint!(access_indices_at_key.len()) {
+    if n_used_accesses != &bigint!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
-            n_used_accesses,
+            n_used_accesses.clone(),
             access_indices_at_key.len(),
             key,
         ));
@@ -280,7 +280,7 @@ pub fn squash_dict(
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
-        let key_addr = address.clone() + DICT_ACCESS_SIZE * i;
+        let key_addr = &address + DICT_ACCESS_SIZE * i;
         let key = vm_proxy
             .memory
             .get_integer(&key_addr)

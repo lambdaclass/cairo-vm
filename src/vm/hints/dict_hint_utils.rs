@@ -121,7 +121,7 @@ pub fn dict_read(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
@@ -143,9 +143,8 @@ pub fn dict_write(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let new_value =
-        get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
@@ -185,11 +184,9 @@ pub fn dict_update(
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let prev_value =
-        get_integer_from_var_name("prev_value", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let new_value =
-        get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
+    let prev_value = get_integer_from_var_name("prev_value", ids, vm_proxy, hint_ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
     //Get tracker for dictionary
@@ -198,9 +195,9 @@ pub fn dict_update(
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
-    if current_value != &prev_value {
+    if current_value != prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value,
+            prev_value.clone(),
             current_value.clone(),
             key.clone(),
         ));
