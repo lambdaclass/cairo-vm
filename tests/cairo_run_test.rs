@@ -535,7 +535,7 @@ fn cairo_run_math_cmp_and_pow_integration() {
 #[test]
 fn cairo_run_uint256_integration() {
     cairo_run::cairo_run(
-        Path::new("cairo_programs/uint256_integration_test.json"),
+        Path::new("cairo_programs/uint256_integration_tests.json"),
         false,
         &HINT_EXECUTOR,
     )
