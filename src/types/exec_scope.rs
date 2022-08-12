@@ -27,7 +27,7 @@ pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScop
 
 impl ExecutionScopesProxy<'_> {
     pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
-        self.scopes.enter_scope(new_scope_locals)
+        self.scopes.enter_scope(new_scope_locals);
     }
 
     pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
@@ -215,6 +215,17 @@ impl ExecutionScopesProxy<'_> {
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    //Returns the value in the dict manager
+    pub fn get_dict_manager_copy(&self) -> Result<DictManager, VirtualMachineError> {
+        let mut val: Option<DictManager> = None;
+        if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
+            if let Some(dict_manager) = variable.downcast_ref::<DictManager>() {
+                val = Some(dict_manager.clone());
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
     //Returns a reference to the value in the dict manager

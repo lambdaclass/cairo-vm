@@ -3,6 +3,7 @@ use std::{any::Any, collections::HashMap};
 use num_bigint::BigInt;
 
 use crate::{
+    any_box,
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
@@ -58,7 +59,7 @@ pub fn dict_new(
     } else {
         let mut dict_manager = DictManager::new();
         let base = dict_manager.new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
-        exec_scopes_proxy.insert_value("dict_manager", dict_manager);
+        exec_scopes_proxy.insert_value("dict_manager", &mut dict_manager);
         base
     };
     insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
@@ -122,7 +123,7 @@ pub fn dict_read(
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     let tracker = exec_scopes_proxy
         .get_dict_manager_mut()?
-        .get_tracker(&dict_ptr)?;
+        .get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), ids, vm_proxy, hint_ap_tracking)
@@ -147,7 +148,7 @@ pub fn dict_write(
     //Get tracker for dictionary
     let tracker = exec_scopes_proxy
         .get_dict_manager_mut()?
-        .get_tracker(&dict_ptr)?;
+        .get_tracker_mut(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value = dict_ptr + 1;
@@ -192,7 +193,7 @@ pub fn dict_update(
     //Get tracker for dictionary
     let tracker = exec_scopes_proxy
         .get_dict_manager_mut()?
-        .get_tracker(&dict_ptr)?;
+        .get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
@@ -226,14 +227,16 @@ pub fn dict_squash_copy_dict(
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end =
         get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
+    let dict_manager = exec_scopes_proxy.get_dict_manager_copy()?;
     let dict_copy: Box<dyn Any> = Box::new(
-        exec_scopes_proxy
-            .get_dict_manager_mut()?
+        dict_manager
             .get_tracker(&dict_accesses_end)?
             .get_dictionary_copy(),
     );
-
-    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("initial_dict"), dict_copy)]));
+    exec_scopes_proxy.enter_scope(HashMap::from([
+        (String::from("dict_manager"), any_box!(dict_manager.clone())),
+        (String::from("initial_dict"), dict_copy),
+    ]));
     Ok(())
 }
 
@@ -254,7 +257,7 @@ pub fn dict_squash_update_ptr(
         get_ptr_from_var_name("squashed_dict_end", ids, vm_proxy, hint_ap_tracking)?;
     exec_scopes_proxy
         .get_dict_manager_mut()?
-        .get_tracker(&squashed_dict_start)?
+        .get_tracker_mut(&squashed_dict_start)?
         .current_ptr = squashed_dict_end;
     Ok(())
 }
@@ -1361,7 +1364,7 @@ mod tests {
         assert_eq!(exec_scopes.data.len(), 2);
         //Check that this scope contains the expected initial-dict
         let variables = exec_scopes.get_local_variables().unwrap();
-        assert_eq!(variables.len(), 1);
+        assert_eq!(variables.len(), 2); //Two of them, as DictManager is also there
         assert_eq!(
             variables
                 .get("initial_dict")
@@ -1413,7 +1416,7 @@ mod tests {
         assert_eq!(exec_scopes.data.len(), 2);
         //Check that this scope contains the expected initial-dict
         let variables = exec_scopes.get_local_variables().unwrap();
-        assert_eq!(variables.len(), 1);
+        assert_eq!(variables.len(), 2); //Two of them, as DictManager is also there
         assert_eq!(
             variables
                 .get("initial_dict")
