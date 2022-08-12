@@ -496,7 +496,6 @@ impl VirtualMachine {
             for hint_data in hint_list.clone().iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 let mut vm_proxy = get_vm_proxy(self);
-                println!("HintCode: {:?}", hint_data.hint_code);
                 hint_executor.execute_hint(
                     &mut vm_proxy,
                     &mut exec_scopes_proxy,

@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 pub struct ExecutionScopes {
     pub data: Vec<HashMap<String, Box<dyn Any>>>,
@@ -218,32 +218,11 @@ impl ExecutionScopesProxy<'_> {
     }
 
     //Returns the value in the dict manager
-    pub fn get_dict_manager_copy(&self) -> Result<DictManager, VirtualMachineError> {
-        let mut val: Option<DictManager> = None;
+    pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, VirtualMachineError> {
+        let mut val: Option<Rc<RefCell<DictManager>>> = None;
         if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
-            if let Some(dict_manager) = variable.downcast_ref::<DictManager>() {
+            if let Some(dict_manager) = variable.downcast_ref::<Rc<RefCell<DictManager>>>() {
                 val = Some(dict_manager.clone());
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
-    }
-
-    //Returns a reference to the value in the dict manager
-    pub fn get_dict_manager_ref(&self) -> Result<&DictManager, VirtualMachineError> {
-        let mut val: Option<&DictManager> = None;
-        if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
-            if let Some(dict_manager) = variable.downcast_ref::<DictManager>() {
-                val = Some(dict_manager);
-            }
-        }
-        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
-    }
-    //Returns a mutable reference to the dict manager
-    pub fn get_dict_manager_mut(&mut self) -> Result<&mut DictManager, VirtualMachineError> {
-        let mut val: Option<&mut DictManager> = None;
-        if let Some(variable) = self.get_local_variables_mut()?.get_mut("dict_manager") {
-            if let Some(dict_manager) = variable.downcast_mut::<DictManager>() {
-                val = Some(dict_manager);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))

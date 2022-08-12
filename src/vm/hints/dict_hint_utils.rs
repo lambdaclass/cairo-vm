@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use num_bigint::BigInt;
 
@@ -54,12 +54,14 @@ pub fn dict_new(
     let initial_dict =
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
-    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager_mut() {
-        dict_manager.new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?
+    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
+        dict_manager
+            .borrow_mut()
+            .new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
         let base = dict_manager.new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
-        exec_scopes_proxy.insert_value("dict_manager", &mut dict_manager);
+        exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
     insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
@@ -87,8 +89,8 @@ pub fn default_dict_new(
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
-    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager_mut() {
-        dict_manager.new_default_dict(
+    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
+        dict_manager.borrow_mut().new_default_dict(
             vm_proxy.segments,
             vm_proxy.memory,
             &default_value,
@@ -102,7 +104,7 @@ pub fn default_dict_new(
             &default_value,
             initial_dict,
         )?;
-        exec_scopes_proxy.insert_value("dict_manager", dict_manager);
+        exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
     insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
@@ -121,9 +123,9 @@ pub fn dict_read(
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
-    let tracker = exec_scopes_proxy
-        .get_dict_manager_mut()?
-        .get_tracker_mut(&dict_ptr)?;
+    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let mut dict = dict_manager_ref.borrow_mut();
+    let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), ids, vm_proxy, hint_ap_tracking)
@@ -146,9 +148,9 @@ pub fn dict_write(
         get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     //Get tracker for dictionary
-    let tracker = exec_scopes_proxy
-        .get_dict_manager_mut()?
-        .get_tracker_mut(&dict_ptr)?;
+    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let mut dict = dict_manager_ref.borrow_mut();
+    let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value = dict_ptr + 1;
@@ -191,9 +193,9 @@ pub fn dict_update(
     let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
     //Get tracker for dictionary
-    let tracker = exec_scopes_proxy
-        .get_dict_manager_mut()?
-        .get_tracker_mut(&dict_ptr)?;
+    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let mut dict = dict_manager_ref.borrow_mut();
+    let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
@@ -227,14 +229,18 @@ pub fn dict_squash_copy_dict(
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end =
         get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
-    let dict_manager = exec_scopes_proxy.get_dict_manager_copy()?;
+    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let dict_manager = dict_manager_ref.borrow();
     let dict_copy: Box<dyn Any> = Box::new(
         dict_manager
             .get_tracker(&dict_accesses_end)?
             .get_dictionary_copy(),
     );
     exec_scopes_proxy.enter_scope(HashMap::from([
-        (String::from("dict_manager"), any_box!(dict_manager.clone())),
+        (
+            String::from("dict_manager"),
+            any_box!(exec_scopes_proxy.get_dict_manager()?),
+        ),
         (String::from("initial_dict"), dict_copy),
     ]));
     Ok(())
@@ -256,7 +262,8 @@ pub fn dict_squash_update_ptr(
     let squashed_dict_end =
         get_ptr_from_var_name("squashed_dict_end", ids, vm_proxy, hint_ap_tracking)?;
     exec_scopes_proxy
-        .get_dict_manager_mut()?
+        .get_dict_manager()?
+        .borrow_mut()
         .get_tracker_mut(&squashed_dict_start)?
         .current_ptr = squashed_dict_end;
     Ok(())
@@ -318,8 +325,9 @@ mod tests {
         //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&0),
             Some(&DictTracker::new_empty(&relocatable!(0, 0)))
@@ -414,8 +422,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -528,8 +537,9 @@ mod tests {
         //and that tracker contains the ptr (0,0) and an empty dict
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&0),
             Some(&DictTracker::new_default_dict(
@@ -613,8 +623,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -624,8 +635,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -683,8 +695,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -694,8 +707,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -753,8 +767,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 17)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -764,8 +779,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -863,8 +879,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -874,8 +891,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -927,8 +945,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -938,8 +957,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -1081,8 +1101,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1092,8 +1113,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -1146,8 +1168,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1157,8 +1180,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -1303,8 +1327,9 @@ mod tests {
         //Check that the dictionary was updated with the new key-value pair (5, 20)
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow_mut()
                 .trackers
                 .get_mut(&1)
                 .unwrap()
@@ -1314,8 +1339,9 @@ mod tests {
         //Check that the tracker's current_ptr has moved accordingly
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .trackers
                 .get(&1)
                 .unwrap()
@@ -1532,8 +1558,9 @@ mod tests {
         //Check the updated pointer
         assert_eq!(
             exec_scopes_proxy
-                .get_dict_manager_mut()
+                .get_dict_manager()
                 .unwrap()
+                .borrow()
                 .get_tracker(&relocatable!(1, 3))
                 .unwrap()
                 .current_ptr,
