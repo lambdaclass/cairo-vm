@@ -107,11 +107,16 @@ pub fn split_64(
         hint_ap_tracking,
     )?;
     let mut digits = a.iter_u64_digits();
-    let low = digits.next().unwrap_or(0u64);
-    let high = digits.next().unwrap_or(0u64);
+    let low = bigint!(digits.next().unwrap_or(0u64));
+    let high = if digits.len() <= 1 {
+        bigint!(digits.next().unwrap_or(0u64))
+    } else {
+        a.shr(64_usize)
+    };
+
     insert_value_from_var_name(
         "high",
-        bigint!(high),
+        high,
         ids,
         &mut vm.memory,
         &vm.references,
@@ -120,7 +125,7 @@ pub fn split_64(
     )?;
     insert_value_from_var_name(
         "low",
-        bigint!(low),
+        low,
         ids,
         &mut vm.memory,
         &vm.references,
@@ -435,6 +440,47 @@ mod tests {
             &vm.memory,
             ((1, 10), 7249717543555297151_u64),
             ((1, 11), 46131785404667_u64)
+        ];
+    }
+
+    #[test]
+    fn run_split_64_with_big_a() {
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
+        let mut vm = vm_with_range_check!();
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+
+        //Create ids
+        let ids = ids!["a", "high", "low"];
+
+        //Create references
+        vm.references = not_continuous_references!(-3, 1, 0);
+
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint_str!(b"400066369019890261321163226850167045262")),
+            )
+            .unwrap();
+
+        //Execute the hint
+        assert_eq!(
+            vm.hint_executor
+                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            Ok(())
+        );
+
+        //Check hint memory inserts
+        //ids.low, ids.high
+        check_memory![
+            &vm.memory,
+            ((1, 10), 2279400676465785998_u64),
+            ((1, 11), 21687641321487626429_u128)
         ];
     }
 
