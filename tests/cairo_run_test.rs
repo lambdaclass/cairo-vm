@@ -551,3 +551,13 @@ fn cairo_run_dict_integration() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_keccak_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/keccak_integration_tests.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
