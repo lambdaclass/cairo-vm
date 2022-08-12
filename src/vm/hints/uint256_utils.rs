@@ -107,11 +107,16 @@ pub fn split_64(
         hint_ap_tracking,
     )?;
     let mut digits = a.iter_u64_digits();
-    let low = digits.next().unwrap_or(0u64);
-    let high = digits.next().unwrap_or(0u64);
+    let low = bigint!(digits.next().unwrap_or(0u64));
+    let high = if digits.len() <= 1 {
+        bigint!(digits.next().unwrap_or(0u64))
+    } else {
+        a.shr(64_usize)
+    };
+
     insert_value_from_var_name(
         "high",
-        bigint!(high),
+        high,
         ids,
         &mut vm.memory,
         &vm.references,
@@ -120,7 +125,7 @@ pub fn split_64(
     )?;
     insert_value_from_var_name(
         "low",
-        bigint!(low),
+        low,
         ids,
         &mut vm.memory,
         &vm.references,
