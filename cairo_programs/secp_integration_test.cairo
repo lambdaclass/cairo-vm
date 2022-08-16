@@ -115,6 +115,6 @@ func run_tests{range_check_ptr}(index:felt, stop:felt):
 end
 
 func main{range_check_ptr}():
-    run_tests(0, 10)
+    run_tests(0, 5)
     return()
 end
