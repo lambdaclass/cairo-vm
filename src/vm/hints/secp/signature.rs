@@ -14,7 +14,6 @@ use crate::{
 };
 use num_bigint::BigInt;
 use std::collections::HashMap;
-
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
 from starkware.python.math_utils import div_mod, safe_div
