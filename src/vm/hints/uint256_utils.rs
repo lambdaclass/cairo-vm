@@ -261,14 +261,7 @@ mod tests {
         );
 
         //Check hint memory inserts
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 12))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 13))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![&vm.memory, ((1, 12), 0), ((1, 13), 1)];
     }
 
     #[test]
@@ -393,20 +386,12 @@ mod tests {
         );
 
         //Check hint memory inserts
-        //ids.low
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 10))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"7249717543555297151"
-            ))))
-        );
-        //ids.high
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 11))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"46131785404667"
-            ))))
-        );
+        //ids.low, ids.high
+        check_memory![
+            &vm.memory,
+            ((1, 10), 7249717543555297151_u64),
+            ((1, 11), 46131785404667_u64)
+        ];
     }
 
     #[test]
@@ -500,18 +485,8 @@ mod tests {
         );
 
         //Check hint memory inserts
-        //ids.root.low
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"48805497317890012913"
-            ))))
-        );
-        //ids.root.high
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 6))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        //ids.root.low, ids.root.high
+        check_memory![&vm.memory, ((1, 5), 48805497317890012913_u128), ((1, 6), 0)];
     }
 
     #[test]
@@ -638,10 +613,7 @@ mod tests {
 
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![&vm.memory, ((1, 5), 1)];
     }
 
     #[test]
@@ -685,10 +657,7 @@ mod tests {
 
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![&vm.memory, ((1, 5), 0)];
     }
 
     #[test]
@@ -773,26 +742,15 @@ mod tests {
         );
 
         //Check hint memory inserts
-        //ids.quotient.low
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 10))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(10))))
-        );
-        //ids.quotient.high
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 11))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        //ids.remainder.low
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 12))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(59))))
-        );
-        //ids.remainder.high
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 13))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(2))))
-        );
+        //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
+
+        check_memory![
+            &vm.memory,
+            ((1, 10), 10),
+            ((1, 11), 0),
+            ((1, 12), 59),
+            ((1, 13), 2)
+        ];
     }
 
     #[test]
