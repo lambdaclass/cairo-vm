@@ -43,9 +43,9 @@ pub fn keccak_write_args(
     let high_args = [high & bigint!(u64::MAX), high >> 64];
 
     vm_proxy
-        .segments
+        .memory
         .write_arg(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &inputs_ptr,
             &low_args.to_vec(),
             Some(vm_proxy.prime),
@@ -53,9 +53,9 @@ pub fn keccak_write_args(
         .map_err(VirtualMachineError::MemoryError)?;
 
     vm_proxy
-        .segments
+        .memory
         .write_arg(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &inputs_ptr.add(2)?,
             &high_args.to_vec(),
             Some(vm_proxy.prime),
@@ -86,7 +86,7 @@ pub fn compare_bytes_in_word_nondet(
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
     let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 /*
@@ -152,9 +152,9 @@ pub fn block_permutation(
     let bigint_values = u64_array_to_bigint_vec(&u64_values);
 
     vm_proxy
-        .segments
+        .memory
         .write_arg(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &keccak_ptr,
             &bigint_values,
             Some(vm_proxy.prime),
@@ -208,9 +208,9 @@ pub fn cairo_keccak_finalize(
     let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", ids, vm_proxy, hint_ap_tracking)?;
 
     vm_proxy
-        .segments
+        .memory
         .write_arg(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &keccak_ptr_end,
             &padding,
             Some(vm_proxy.prime),

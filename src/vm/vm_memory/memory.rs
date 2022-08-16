@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::collections::{HashMap, HashSet};
 
 use crate::types::relocatable::Relocatable;
@@ -5,6 +6,8 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
 use num_bigint::BigInt;
+
+use super::memory_segments::MemorySegmentManager;
 
 pub struct ValidationRule(
     pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
@@ -220,6 +223,27 @@ impl MemoryProxy<'_> {
         size: usize,
     ) -> Result<Vec<&BigInt>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
+    }
+
+    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    where
+        Relocatable: TryFrom<&'a K>,
+    {
+        self.memory.get(key)
+    }
+
+    pub fn write_arg(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        ptr: &Relocatable,
+        arg: &dyn Any,
+        prime: Option<&BigInt>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        segments.write_arg(self.memory, ptr, arg, prime)
+    }
+
+    pub fn add(&mut self, segments: &mut MemorySegmentManager) -> Relocatable {
+        segments.add(self.memory, None)
     }
 }
 

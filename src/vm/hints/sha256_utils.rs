@@ -110,9 +110,9 @@ pub fn sha256_finalize(
     }
 
     vm_proxy
-        .segments
+        .memory
         .write_arg(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &sha256_ptr_end,
             &padding,
             Some(vm_proxy.prime),
