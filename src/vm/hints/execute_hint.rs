@@ -48,6 +48,7 @@ use crate::vm::hints::secp::{
     },
     signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
 };
+use crate::vm::hints::sha256_utils::{sha256_finalize, sha256_input, sha256_main};
 use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
@@ -255,6 +256,9 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::COMPARE_BYTES_IN_WORD_NONDET => {
                 compare_bytes_in_word_nondet(vm_proxy, ids, None)
             }
+            hint_code::SHA256_MAIN => sha256_main(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::SHA256_INPUT => sha256_input(vm_proxy, ids, None),
+            hint_code::SHA256_FINALIZE => sha256_finalize(vm_proxy, ids, None),
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
                 compare_keccak_full_rate_in_bytes_nondet(vm_proxy, ids, None)
             }
