@@ -503,6 +503,16 @@ fn cairo_run_finalize_keccak() {
 }
 
 #[test]
+fn cairo_run_operations_with_data() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/operations_with_data_structures.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_sha256() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/sha256.json"),
@@ -545,7 +555,17 @@ fn cairo_run_dict_integration() {
 #[test]
 fn cairo_run_secp_integration() {
     cairo_run::cairo_run(
-        Path::new("cairo_programs/secp_integration_test.json"),
+        Path::new("cairo_programs/secp_integration_test.json"),    
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_keccak_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/keccak_integration_tests.json"),
         false,
         &HINT_EXECUTOR,
     )

@@ -1,5 +1,3 @@
-%builtins range_check
-
 from secp_integration_test import run_tests
 
 func main{range_check_ptr}():
