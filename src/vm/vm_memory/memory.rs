@@ -183,6 +183,12 @@ impl Default for Memory {
     }
 }
 
+pub fn get_memory_proxy(memory: &mut Memory) -> MemoryProxy {
+    MemoryProxy {
+        memory: &mut memory,
+    }
+}
+
 impl MemoryProxy<'_> {
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
