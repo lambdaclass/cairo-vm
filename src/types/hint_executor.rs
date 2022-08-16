@@ -8,11 +8,6 @@ use std::collections::HashMap;
 
 use super::exec_scope::ExecutionScopesProxy;
 
-pub struct HintProcessorData {
-    pub code: String,
-    pub ap_tracking: ApTracking,
-    pub ids_data: HashMap<String, HintReference>,
-}
 pub trait HintExecutor {
     fn execute_hint(
         &self,

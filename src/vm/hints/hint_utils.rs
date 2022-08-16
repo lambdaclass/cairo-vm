@@ -46,13 +46,13 @@ pub fn get_range_check_builtin(
 
 pub fn get_ptr_from_var_name(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
     vm_proxy: &VMProxy,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let var_addr = get_relocatable_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)?;
+    let var_addr = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
     //Add immediate if present in reference
-    let index = ids
+    let index = ids_data
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     let hint_reference = vm_proxy
@@ -104,7 +104,9 @@ pub fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
     memory: &MemoryProxy,
+    //TODO: Check if this option is necessary
     hint_ap_tracking: Option<&ApTracking>,
+    //TODO: Change this to Result
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
@@ -173,57 +175,31 @@ pub fn compute_addr_from_reference(
     Ok(None)
 }
 
-///Computes the memory address given by the reference id
-pub fn get_address_from_reference(
-    reference_id: &BigInt,
-    references: &HashMap<usize, HintReference>,
-    run_context: &RunContext,
-    memory: &MemoryProxy,
-    hint_ap_tracking: Option<&ApTracking>,
-) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-    if let Some(index) = reference_id.to_usize() {
-        if index < references.len() {
-            if let Some(hint_reference) = references.get(&index) {
-                return compute_addr_from_reference(
-                    hint_reference,
-                    run_context,
-                    memory,
-                    hint_ap_tracking,
-                );
-            }
-        }
-    }
-    Ok(None)
-}
-
 pub fn get_address_from_var_name(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
     vm_proxy: &VMProxy,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
-    let var_ref = ids
-        .get(&String::from(var_name))
-        .ok_or(VirtualMachineError::FailedToGetIds)?;
-    get_address_from_reference(
-        var_ref,
-        vm_proxy.references,
+    compute_addr_from_reference(
+        ids_data
+            .get(var_name)
+            .ok_or(VirtualMachineError::FailedToGetIds)?,
         vm_proxy.run_context,
         &vm_proxy.memory,
-        hint_ap_tracking,
-    )
-    .map_err(|_| VirtualMachineError::FailedToGetIds)?
+        Some(ap_tracking),
+    )?
     .ok_or(VirtualMachineError::FailedToGetIds)
 }
 
 pub fn insert_value_from_var_name(
     var_name: &str,
     value: impl Into<MaybeRelocatable>,
-    ids: &HashMap<String, BigInt>,
     vm_proxy: &mut VMProxy,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let var_address = get_relocatable_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)?;
+    let var_address = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
     vm_proxy.memory.insert_value(&var_address, value)
 }
 
@@ -248,11 +224,11 @@ pub fn insert_value_into_ap(
 //else raises Err
 pub fn get_relocatable_from_var_name(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
     vm_proxy: &VMProxy,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    match get_address_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)? {
+    match get_address_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)? {
         MaybeRelocatable::RelocatableValue(relocatable) => Ok(relocatable),
         address => Err(VirtualMachineError::ExpectedRelocatable(address)),
     }
@@ -263,11 +239,11 @@ pub fn get_relocatable_from_var_name(
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
     vm_proxy: &'a VMProxy,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    let relocatable = get_relocatable_from_var_name(var_name, ids, vm_proxy, hint_ap_tracking)?;
+    let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
     vm_proxy.memory.get_integer(&relocatable)
 }
 

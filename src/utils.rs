@@ -218,6 +218,21 @@ pub mod test_utils {
     }
     pub(crate) use ids;
 
+    macro_rules! ids_data {
+        ( $( $name: expr ),* ) => {
+            {
+                let ids_names = vec![$( $name ),*];
+                let references = references!(ids_names.len());
+                let mut ids_data = HashMap::<String, HintReference>::new();
+                for (i, name) in ids_names {
+                    ids_data.insert(name, references.get(i).unwrap());
+                }
+                ids_data
+            }
+        };
+    }
+    pub(crate) use ids_data;
+
     macro_rules! ids_inner {
         ( $name: expr, $num: expr, $ids: expr ) => {
             $ids.insert(String::from($name), bigint!($num))

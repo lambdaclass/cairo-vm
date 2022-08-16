@@ -36,8 +36,8 @@ pub fn keccak_write_args(
 ) -> Result<(), VirtualMachineError> {
     let inputs_ptr = get_ptr_from_var_name("inputs", ids, vm_proxy, hint_ap_tracking)?;
 
-    let low = get_integer_from_var_name("low", ids, vm_proxy, hint_ap_tracking)?;
-    let high = get_integer_from_var_name("high", ids, vm_proxy, hint_ap_tracking)?;
+    let low = get_integer_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
+    let high = get_integer_from_var_name("high", vm_proxy, hint_ap_tracking)?;
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];

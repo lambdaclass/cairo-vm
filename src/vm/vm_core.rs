@@ -494,14 +494,10 @@ impl VirtualMachine {
         hint_executor: &'static dyn HintExecutor,
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = self.hint_data.get(
-            &self
-                .run_context
-                .pc
-                .try_into::<Relocatable>()
-                .unwrap()
-                .offset,
-        ) {
+        if let Some(hint_list) = self
+            .hint_data
+            .get(&Relocatable::try_from(&self.run_context.pc)?.offset)
+        {
             for hint_data in hint_list.clone().iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 let mut vm_proxy = get_vm_proxy(self);
