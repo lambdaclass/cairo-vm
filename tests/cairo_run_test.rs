@@ -543,6 +543,16 @@ fn cairo_run_uint256_integration() {
 }
 
 #[test]
+fn cairo_run_set_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/set_integration_tests.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_memory_module_integration() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/memory_integration_tests.json"),
