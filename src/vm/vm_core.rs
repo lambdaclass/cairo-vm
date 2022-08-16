@@ -496,7 +496,12 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self
             .hint_data
-            .get(&Relocatable::try_from(&self.run_context.pc)?.offset)
+            //TODO: Convert this error to infallible / remove once run_context refactor
+            .get(
+                &Relocatable::try_from(&self.run_context.pc)
+                    .map_err(|_| VirtualMachineError::FailedToGetIds)?
+                    .offset,
+            )
         {
             for hint_data in hint_list.clone().iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
@@ -695,12 +700,12 @@ mod tests {
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintProcessorData};
     use crate::vm::runners::builtin_runner::{
         BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
     };
 
-    use crate::bigint_str;
+    use crate::{any_box, bigint_str};
     use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
@@ -3591,13 +3596,12 @@ mod tests {
             Vec::new(),
             true,
         );
-        vm.hints.insert(
-            MaybeRelocatable::from((0, 0)),
-            vec![HintData::new(
-                "memory[ap] = segments.add()",
+        vm.hint_data.insert(
+            0,
+            vec![&any_box!(HintProcessorData::new_default(
+                "memory[ap] = segments.add()".to_string(),
                 HashMap::new(),
-                ApTracking::new(),
-            )],
+            ))],
         );
 
         //Create program and execution segments

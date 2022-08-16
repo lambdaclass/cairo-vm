@@ -3,6 +3,7 @@ use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::execute_hint::HintReference;
 use crate::vm::hints::hint_utils::{
     get_relocatable_from_var_name, insert_value_from_var_name, insert_value_into_ap,
 };
@@ -27,10 +28,10 @@ Implements hint:
 */
 pub fn verify_zero(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let val_reloc = get_relocatable_from_var_name("val", ids, vm_proxy, hint_ap_tracking)?;
+    let val_reloc = get_relocatable_from_var_name("val", &vm_proxy, ids_data, ap_tracking)?;
 
     let val_d0 = vm_proxy.memory.get_integer(&val_reloc)?;
     let val_d1 = vm_proxy.memory.get_integer(&(val_reloc.clone() + 1))?;
@@ -50,9 +51,9 @@ pub fn verify_zero(
     insert_value_from_var_name(
         "q",
         q.mod_floor(vm_proxy.prime),
-        ids,
         vm_proxy,
-        hint_ap_tracking,
+        ids_data,
+        ap_tracking,
     )
 }
 
@@ -67,10 +68,10 @@ Implements hint:
 pub fn reduce(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
+    let value = pack_from_var_name("x", &vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
@@ -86,10 +87,10 @@ Implements hint:
 pub fn is_zero_pack(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;
+    let x_reloc = get_relocatable_from_var_name("x", &vm_proxy, ids_data, ap_tracking)?;
 
     let x_d0 = vm_proxy.memory.get_integer(&x_reloc)?;
     let x_d1 = vm_proxy.memory.get_integer(&(&x_reloc + 1))?;
@@ -152,6 +153,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
@@ -171,14 +173,10 @@ mod tests {
 
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
-
-        //Create ids
-        let ids = ids!["val", "q"];
-
-        //Create references
-        vm.references = HashMap::from([
+        //Create hint data
+        let ids_data = HashMap::from([
             (
-                0,
+                "val".to_string(),
                 HintReference {
                     dereference: true,
                     register: Register::FP,
@@ -193,7 +191,7 @@ mod tests {
                 },
             ),
             (
-                1,
+                "q".to_string(),
                 HintReference {
                     dereference: true,
                     register: Register::AP,
@@ -208,23 +206,19 @@ mod tests {
                 },
             ),
         ]);
-
-        //Create AP tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
+        let hint_data = HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ApTracking {
+                group: 1,
+                offset: 0,
+            },
+            ids_data,
         };
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ap_tracking
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
 
@@ -249,14 +243,10 @@ mod tests {
 
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
-
-        //Create ids
-        let ids = ids!["val", "q"];
-
-        //Create references
-        vm.references = HashMap::from([
+        //Create hint data
+        let ids_data = HashMap::from([
             (
-                0,
+                "val".to_string(),
                 HintReference {
                     dereference: true,
                     register: Register::FP,
@@ -271,7 +261,7 @@ mod tests {
                 },
             ),
             (
-                1,
+                "q".to_string(),
                 HintReference {
                     dereference: true,
                     register: Register::AP,
@@ -286,13 +276,14 @@ mod tests {
                 },
             ),
         ]);
-
-        //Create AP tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
+        let hint_data = HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ApTracking {
+                group: 1,
+                offset: 0,
+            },
+            ids_data,
         };
-
         //Insert ids.val.d0 into memory
         vm.memory
             .insert(
@@ -319,13 +310,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ap_tracking
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::SecpVerifyZero(
                 bigint!(0),
                 bigint!(0),
@@ -348,13 +333,10 @@ mod tests {
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
 
-        //Create ids
-        let ids = ids!["val", "q"];
-
-        //Create references
-        vm.references = HashMap::from([
+        //Create hint data
+        let ids_data = HashMap::from([
             (
-                0,
+                "val".to_string(),
                 HintReference {
                     dereference: true,
                     register: Register::FP,
@@ -369,7 +351,7 @@ mod tests {
                 },
             ),
             (
-                1,
+                "q".to_string(),
                 HintReference {
                     dereference: true,
                     register: Register::AP,
@@ -384,11 +366,13 @@ mod tests {
                 },
             ),
         ]);
-
-        //Create AP tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
+        let hint_data = HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ApTracking {
+                group: 1,
+                offset: 0,
+            },
+            ids_data,
         };
 
         //Insert ids.val.d0 into memory
@@ -425,13 +409,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ap_tracking
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
@@ -453,12 +431,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 25));
 
-        //Create ids
-        let ids = ids!["x"];
-
-        //Create references
-        vm.references = HashMap::from([(
-            0,
+        //Create hint data
+        let ids_data = HashMap::from([(
+            "x".to_string(),
             HintReference {
                 dereference: true,
                 register: Register::FP,
@@ -472,7 +447,7 @@ mod tests {
                 }),
             },
         )]);
-
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Insert ids.x.d0 into memory
         vm.memory
             .insert(
@@ -502,13 +477,7 @@ mod tests {
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
 
@@ -532,12 +501,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 25));
 
-        //Create ids
-        let ids = ids!["x"];
-
-        //Create references
-        vm.references = HashMap::from([(
-            0,
+        //Create hint data
+        let ids_data = HashMap::from([(
+            "x".to_string(),
             HintReference {
                 dereference: true,
                 register: Register::FP,
@@ -551,6 +517,7 @@ mod tests {
                 }),
             },
         )]);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         //Skip ids.x values insert so the hint fails.
         // vm.memory
@@ -563,13 +530,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
             ))
@@ -584,12 +545,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 15));
 
-        //Create ids
-        let ids = ids!["x"];
-
-        //Create references
-        vm.references = HashMap::from([(
-            0,
+        //Create hint data
+        let ids_data = HashMap::from([(
+            "x".to_string(),
             HintReference {
                 dereference: true,
                 register: Register::FP,
@@ -603,6 +561,7 @@ mod tests {
                 }),
             },
         )]);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         //Insert ids.x.d0, ids.x.d1, ids.x.d2 into memory
         vm.memory = memory![
@@ -617,13 +576,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
 
@@ -644,13 +597,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 15));
 
-        //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("x"), bigint!(0i32));
-
-        //Create references
-        vm.references = HashMap::from([(
-            0,
+        //Create hint data
+        let ids_data = HashMap::from([(
+            "x".to_string(),
             HintReference {
                 dereference: true,
                 register: Register::FP,
@@ -664,6 +613,7 @@ mod tests {
                 }),
             },
         )]);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         //Skip ids.x.d0, ids.x.d1, ids.x.d2 inserts so the hints fails
         // vm.memory = memory![
@@ -675,13 +625,7 @@ mod tests {
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -704,18 +648,13 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0i32)));
-
+        //Create hint data
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &HashMap::<String, BigInt>::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
 
@@ -743,18 +682,13 @@ mod tests {
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
-
+        //Create hint data
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &HashMap::<String, BigInt>::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
 
@@ -782,17 +716,12 @@ mod tests {
         //Skip `x` assignment
         // exec_scopes
         //     .assign_or_update_variable("x", bigint!(123890)));
-
+        //Create hint data
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &HashMap::<String, BigInt>::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "x".to_string()
             ))
@@ -813,18 +742,13 @@ mod tests {
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0)));
-
+        //Create hint data
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &HashMap::<String, BigInt>::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     vm.run_context.ap,
@@ -848,18 +772,13 @@ mod tests {
                 b"52621538839140286024584685587354966255185961783273479086367"
             )),
         );
-
+        //Create hint data
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &HashMap::<String, BigInt>::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
 
@@ -888,17 +807,12 @@ mod tests {
         //Skip `x` assignment
         // exec_scopes
         //     .assign_or_update_variable("x", bigint_str!(b"52621538839140286024584685587354966255185961783273479086367")));
-
+        //Create hint data
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &HashMap::<String, BigInt>::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "x".to_string()
             ))

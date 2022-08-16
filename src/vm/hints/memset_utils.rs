@@ -17,11 +17,11 @@ use super::hint_utils::insert_value_from_var_name;
 pub fn memset_enter_scope(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?.clone());
+        Box::new(get_integer_from_var_name("n", &vm_proxy, ids_data, ap_tracking)?.clone());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
@@ -35,8 +35,8 @@ pub fn memset_enter_scope(
 pub fn memset_continue_loop(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
     let n = exec_scopes_proxy.get_int_ref("n")?;

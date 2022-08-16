@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
+use std::collections::HashMap;
 
 use crate::{
     bigint,
@@ -12,6 +11,7 @@ use crate::{
 
 use super::{
     dict_hint_utils::DICT_ACCESS_SIZE,
+    execute_hint::HintReference,
     hint_utils::{
         get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
         get_relocatable_from_var_name, insert_value_from_var_name,
@@ -42,13 +42,13 @@ fn get_access_indices<'a>(
 pub fn squash_dict_inner_first_iteration(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
     let key = exec_scopes_proxy.get_int("key")?;
     let range_check_ptr =
-        get_ptr_from_var_name("range_check_ptr", ids, vm_proxy, hint_ap_tracking)?;
+        get_ptr_from_var_name("range_check_ptr", &vm_proxy, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
@@ -72,8 +72,8 @@ pub fn squash_dict_inner_first_iteration(
 pub fn squash_dict_inner_skip_loop(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes_proxy.get_list("current_access_indices")?;
@@ -100,8 +100,8 @@ pub fn squash_dict_inner_skip_loop(
 pub fn squash_dict_inner_check_access_index(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
     let current_access_index = exec_scopes_proxy.get_int("current_access_index")?;
@@ -129,13 +129,13 @@ pub fn squash_dict_inner_check_access_index(
 pub fn squash_dict_inner_continue_loop(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
     let loop_temps_addr =
-        get_relocatable_from_var_name("loop_temps", ids, vm_proxy, hint_ap_tracking)?;
+        get_relocatable_from_var_name("loop_temps", &vm_proxy, ids_data, ap_tracking)?;
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes_proxy.get_list_ref("current_access_indices")?;
     //Main Logic
@@ -168,12 +168,12 @@ pub fn squash_dict_inner_len_assert(
 pub fn squash_dict_inner_used_accesses_assert(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let key = exec_scopes_proxy.get_int("key")?;
     let n_used_accesses =
-        get_integer_from_var_name("n_used_accesses", ids, vm_proxy, hint_ap_tracking)?;
+        get_integer_from_var_name("n_used_accesses", &vm_proxy, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Main Logic
     let access_indices_at_key = access_indices
@@ -208,8 +208,8 @@ pub fn squash_dict_inner_assert_len_keys(
 pub fn squash_dict_inner_next_key(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
     let keys = exec_scopes_proxy.get_mut_list_ref("keys")?;
@@ -251,13 +251,13 @@ pub fn squash_dict_inner_next_key(
 pub fn squash_dict(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let address = get_ptr_from_var_name("dict_accesses", ids, vm_proxy, hint_ap_tracking)?;
-    let ptr_diff = get_integer_from_var_name("ptr_diff", ids, vm_proxy, hint_ap_tracking)?;
-    let n_accesses = get_integer_from_var_name("n_accesses", ids, vm_proxy, hint_ap_tracking)?;
+    let address = get_ptr_from_var_name("dict_accesses", &vm_proxy, ids_data, ap_tracking)?;
+    let ptr_diff = get_integer_from_var_name("ptr_diff", &vm_proxy, ids_data, ap_tracking)?;
+    let n_accesses = get_integer_from_var_name("n_accesses", &vm_proxy, ids_data, ap_tracking)?;
     //Get range_check_builtin
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();
@@ -300,9 +300,9 @@ pub fn squash_dict(
     } else {
         bigint!(0)
     };
-    insert_value_from_var_name("big_keys", big_keys, ids, vm_proxy, hint_ap_tracking)?;
+    insert_value_from_var_name("big_keys", big_keys, &vm_proxy, ids_data, ap_tracking)?;
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
-    insert_value_from_var_name("first_key", key.clone(), ids, vm_proxy, hint_ap_tracking)?;
+    insert_value_from_var_name("first_key", key.clone(), &vm_proxy, ids_data, ap_tracking)?;
     //Insert local variables into scope
     exec_scopes_proxy.insert_value("access_indices", access_indices);
     exec_scopes_proxy.insert_value("keys", keys);
@@ -374,13 +374,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check scope variables
@@ -436,13 +430,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -510,13 +498,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -550,13 +532,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -593,13 +569,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check scope variables
@@ -656,13 +626,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -691,13 +655,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -731,13 +689,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -834,13 +786,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -879,13 +825,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -928,13 +868,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -1036,13 +970,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the value of ids.next_key
@@ -1081,13 +1009,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -1185,13 +1107,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check scope variables
@@ -1354,13 +1270,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check scope variables
@@ -1487,13 +1397,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check scope variables
@@ -1617,13 +1521,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -1939,13 +1837,7 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::default()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check scope variables

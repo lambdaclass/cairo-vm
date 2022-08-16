@@ -4,8 +4,9 @@ use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{
         errors::vm_errors::VirtualMachineError,
-        hints::hint_utils::{
-            get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap,
+        hints::{
+            execute_hint::HintReference,
+            hint_utils::{get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap},
         },
         vm_core::VMProxy,
     },
@@ -31,13 +32,13 @@ Implements hint:
 */
 pub fn keccak_write_args(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let inputs_ptr = get_ptr_from_var_name("inputs", ids, vm_proxy, hint_ap_tracking)?;
+    let inputs_ptr = get_ptr_from_var_name("inputs", &vm_proxy, ids_data, ap_tracking)?;
 
     let low = get_integer_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
-    let high = get_integer_from_var_name("high", vm_proxy, hint_ap_tracking)?;
+    let high = get_integer_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
@@ -75,10 +76,10 @@ Implements hint:
 */
 pub fn compare_bytes_in_word_nondet(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", &vm_proxy, ids_data, ap_tracking)?;
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
@@ -99,10 +100,10 @@ Implements hint:
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", &vm_proxy, ids_data, ap_tracking)?;
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
@@ -122,8 +123,8 @@ Implements hint:
 */
 pub fn block_permutation(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // these checks may not make sense now, but will when constants are
     // deserialized from the compiled JSON programs.
@@ -133,7 +134,7 @@ pub fn block_permutation(
         ));
     }
 
-    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", &vm_proxy, ids_data, ap_tracking)?;
 
     let values = vm_proxy
         .memory
@@ -178,8 +179,8 @@ pub fn block_permutation(
 */
 pub fn cairo_keccak_finalize(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // these checks may not make sense now, but will when constants are
     // deserialized from the compiled JSON programs.
@@ -205,7 +206,7 @@ pub fn cairo_keccak_finalize(
         padding.extend_from_slice(base_padding.as_slice());
     }
 
-    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", ids, vm_proxy, hint_ap_tracking)?;
+    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", &vm_proxy, ids_data, ap_tracking)?;
 
     vm_proxy
         .memory
@@ -248,6 +249,7 @@ fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::hint_executor::HintExecutor;
@@ -255,11 +257,13 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::hints::execute_hint::HintReference;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
+    use std::any::Any;
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
@@ -282,18 +286,12 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         //Create ids
-        let ids = ids!["low", "high", "inputs"];
-        vm.references = references!(3);
+        let ids_data = ids_data!["low", "high", "inputs"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
 
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -313,16 +311,11 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         //Create ids
-        let ids = ids!["low", "high", "inputs"];
-        vm.references = references!(3);
+        let ids_data = ids_data!["low", "high", "inputs"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let error = HINT_EXECUTOR.execute_hint(
-            vm_proxy,
-            exec_scopes_proxy_ref!(),
-            hint_code,
-            &ids,
-            &ApTracking::new(),
-        );
+        let error =
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data));
 
         assert!(matches!(error, Err(VirtualMachineError::MemoryError(_))));
     }
@@ -338,18 +331,11 @@ mod tests {
 
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         vm.run_context.ap = MaybeRelocatable::from((0, 1));
-
-        let ids = ids!["n_bytes"];
-        vm.references = references!(1);
+        let ids_data = ids_data!["n_bytes"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -367,17 +353,11 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         vm.run_context.ap = MaybeRelocatable::from((0, 1));
 
-        let ids = ids!["n_bytes"];
-        vm.references = references!(1);
+        let ids_data = ids_data!["n_bytes"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -394,17 +374,11 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         vm.run_context.ap = MaybeRelocatable::from((0, 1));
 
-        let ids = ids!["n_bytes"];
-        vm.references = references!(1);
+        let ids_data = ids_data!["n_bytes"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }

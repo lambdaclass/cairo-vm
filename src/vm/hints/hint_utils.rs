@@ -274,11 +274,11 @@ pub fn exit_scope(exec_scopes_proxy: &mut ExecutionScopesProxy) -> Result<(), Vi
 pub fn memcpy_enter_scope(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let len: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("len", ids, vm_proxy, hint_ap_tracking)?.clone());
+        Box::new(get_integer_from_var_name("len", &vm_proxy, ids_data, ap_tracking)?.clone());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), len)]));
     Ok(())
 }
@@ -291,8 +291,8 @@ pub fn memcpy_enter_scope(
 pub fn memcpy_continue_copying(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
     let n = exec_scopes_proxy.get_int_ref("n")?;

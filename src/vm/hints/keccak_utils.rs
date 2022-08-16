@@ -41,10 +41,10 @@ use std::{cmp, collections::HashMap, ops::Shl};
 pub fn unsafe_keccak(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let length = get_integer_from_var_name("length", ids, vm_proxy, hint_ap_tracking)?;
+    let length = get_integer_from_var_name("length", &vm_proxy, ids_data, ap_tracking)?;
 
     if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
         if length > &keccak_max_size {
@@ -56,10 +56,10 @@ pub fn unsafe_keccak(
     }
 
     // `data` is an array, represented by a pointer to the first element.
-    let data = get_ptr_from_var_name("data", ids, vm_proxy, hint_ap_tracking)?;
+    let data = get_ptr_from_var_name("data", &vm_proxy, ids_data, ap_tracking)?;
 
-    let high_addr = get_relocatable_from_var_name("high", ids, vm_proxy, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", ids, vm_proxy, hint_ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", &vm_proxy, ids_data, ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", &vm_proxy, ids_data, ap_tracking)?;
 
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
@@ -118,8 +118,8 @@ Implements hint:
  */
 pub fn unsafe_keccak_finalize(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     /* -----------------------------
     Just for reference (cairo code):
@@ -130,12 +130,12 @@ pub fn unsafe_keccak_finalize(
     ----------------------------- */
 
     let keccak_state_ptr =
-        get_relocatable_from_var_name("keccak_state", ids, vm_proxy, hint_ap_tracking)?;
+        get_relocatable_from_var_name("keccak_state", &vm_proxy, ids_data, ap_tracking)?;
 
     // as `keccak_state` is a struct, the pointer to the struct is the same as the pointer to the first element.
     // this is why to get the pointer stored in the field `start_ptr` it is enough to pass the variable name as
     // `keccak_state`, which is the one that appears in the reference manager of the compiled JSON.
-    let start_ptr = get_ptr_from_var_name("keccak_state", ids, vm_proxy, hint_ap_tracking)?;
+    let start_ptr = get_ptr_from_var_name("keccak_state", &vm_proxy, ids_data, ap_tracking)?;
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
@@ -182,8 +182,8 @@ pub fn unsafe_keccak_finalize(
 
     let hashed = hasher.finalize();
 
-    let high_addr = get_relocatable_from_var_name("high", ids, vm_proxy, hint_ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", ids, vm_proxy, hint_ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", &vm_proxy, ids_data, ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", &vm_proxy, ids_data, ap_tracking)?;
 
     let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);

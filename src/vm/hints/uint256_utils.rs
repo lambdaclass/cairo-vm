@@ -23,13 +23,13 @@ Implements hint:
 */
 pub fn uint256_add(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_relocatable = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
-    let b_relocatable = get_relocatable_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
+    let a_relocatable = get_relocatable_from_var_name("a", &vm_proxy, ids_data, ap_tracking)?;
+    let b_relocatable = get_relocatable_from_var_name("b", &vm_proxy, ids_data, ap_tracking)?;
     let a_low = vm_proxy.memory.get_integer(&a_relocatable)?;
     let a_high = vm_proxy.memory.get_integer(&(a_relocatable + 1))?;
     let b_low = vm_proxy.memory.get_integer(&b_relocatable)?;
@@ -52,8 +52,8 @@ pub fn uint256_add(
     } else {
         bigint!(0)
     };
-    insert_value_from_var_name("carry_high", carry_high, ids, vm_proxy, hint_ap_tracking)?;
-    insert_value_from_var_name("carry_low", carry_low, ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name("carry_high", carry_high, &vm_proxy, ids_data, ap_tracking)?;
+    insert_value_from_var_name("carry_low", carry_low, &vm_proxy, ids_data, ap_tracking)
 }
 
 /*
@@ -65,15 +65,15 @@ Implements hint:
 */
 pub fn split_64(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
+    let a = get_integer_from_var_name("a", &vm_proxy, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = digits.next().unwrap_or(0u64);
     let high = digits.next().unwrap_or(0u64);
-    insert_value_from_var_name("high", bigint!(high), ids, vm_proxy, hint_ap_tracking)?;
-    insert_value_from_var_name("low", bigint!(low), ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name("high", bigint!(high), &vm_proxy, ids_data, ap_tracking)?;
+    insert_value_from_var_name("low", bigint!(low), &vm_proxy, ids_data, ap_tracking)
 }
 
 /*
@@ -89,11 +89,11 @@ Implements hint:
 */
 pub fn uint256_sqrt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_addr = get_relocatable_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?;
-    let root_addr = get_relocatable_from_var_name("root", ids, vm_proxy, hint_ap_tracking)?;
+    let n_addr = get_relocatable_from_var_name("n", &vm_proxy, ids_data, ap_tracking)?;
+    let root_addr = get_relocatable_from_var_name("root", &vm_proxy, ids_data, ap_tracking)?;
     let n_low = vm_proxy.memory.get_integer(&n_addr)?;
     let n_high = vm_proxy.memory.get_integer(&(n_addr + 1))?;
 
@@ -123,10 +123,10 @@ Implements hint:
 */
 pub fn uint256_signed_nn(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
+    let a_addr = get_relocatable_from_var_name("a", &vm_proxy, ids_data, ap_tracking)?;
     let a_high = vm_proxy.memory.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
@@ -154,14 +154,15 @@ Implements hint:
 */
 pub fn uint256_unsigned_div_rem(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
-    let div_addr = get_relocatable_from_var_name("div", ids, vm_proxy, hint_ap_tracking)?;
-    let quotient_addr = get_relocatable_from_var_name("quotient", ids, vm_proxy, hint_ap_tracking)?;
+    let a_addr = get_relocatable_from_var_name("a", &vm_proxy, ids_data, ap_tracking)?;
+    let div_addr = get_relocatable_from_var_name("div", &vm_proxy, ids_data, ap_tracking)?;
+    let quotient_addr =
+        get_relocatable_from_var_name("quotient", &vm_proxy, ids_data, ap_tracking)?;
     let remainder_addr =
-        get_relocatable_from_var_name("remainder", ids, vm_proxy, hint_ap_tracking)?;
+        get_relocatable_from_var_name("remainder", &vm_proxy, ids_data, ap_tracking)?;
 
     let a_low = vm_proxy.memory.get_integer(&a_addr)?;
     let a_high = vm_proxy.memory.get_integer(&(a_addr + 1))?;

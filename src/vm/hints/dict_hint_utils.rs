@@ -11,6 +11,7 @@ use crate::{
 
 use super::{
     dict_manager::DictManager,
+    execute_hint::HintReference,
     hint_utils::{
         get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
         insert_value_into_ap,
@@ -80,12 +81,12 @@ is not available, an empty dict is created always
 pub fn default_dict_new(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+        get_integer_from_var_name("default_value", &vm_proxy, ids_data, ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -118,17 +119,17 @@ pub fn default_dict_new(
 pub fn dict_read(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &vm_proxy, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(key)?;
-    insert_value_from_var_name("value", value.clone(), ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name("value", value.clone(), &mut vm_proxy, ids_data, ap_tracking)
 }
 
 /* Implements hint:
@@ -140,12 +141,12 @@ pub fn dict_read(
 pub fn dict_write(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", &vm_proxy, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &vm_proxy, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
@@ -181,13 +182,13 @@ pub fn dict_write(
 pub fn dict_update(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
-    let prev_value = get_integer_from_var_name("prev_value", ids, vm_proxy, hint_ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
+    let prev_value = get_integer_from_var_name("prev_value", &vm_proxy, ids_data, ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", &vm_proxy, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", &vm_proxy, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
@@ -221,11 +222,11 @@ pub fn dict_update(
 pub fn dict_squash_copy_dict(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end =
-        get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
+        get_ptr_from_var_name("dict_accesses_end", &vm_proxy, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let dict_manager = dict_manager_ref.borrow();
     let dict_copy: Box<dyn Any> = Box::new(
@@ -251,13 +252,13 @@ pub fn dict_squash_copy_dict(
 pub fn dict_squash_update_ptr(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let squashed_dict_start =
-        get_ptr_from_var_name("squashed_dict_start", ids, vm_proxy, hint_ap_tracking)?;
+        get_ptr_from_var_name("squashed_dict_start", &vm_proxy, ids_data, ap_tracking)?;
     let squashed_dict_end =
-        get_ptr_from_var_name("squashed_dict_end", ids, vm_proxy, hint_ap_tracking)?;
+        get_ptr_from_var_name("squashed_dict_end", &vm_proxy, ids_data, ap_tracking)?;
     exec_scopes_proxy
         .get_dict_manager()?
         .borrow_mut()
@@ -271,6 +272,7 @@ mod tests {
     use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
 
@@ -300,16 +302,12 @@ mod tests {
         exec_scopes
             .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         //ids and references are not needed for this test
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         HINT_EXECUTOR
-            .execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &HashMap::new(),
-                &ApTracking::new(),
-            )
+            .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 1);
@@ -336,15 +334,10 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
         //ids and references are not needed for this test
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &HashMap::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
@@ -358,16 +351,11 @@ mod tests {
             .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         vm.memory = memory![((0, 0), 1)];
         //ids and references are not needed for this test
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &HashMap::new(),
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -393,22 +381,15 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //Create ids
-        let ids = ids!["key", "value", "dict_ptr"];
+        let ids_data = ids_data!["key", "value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
-        vm.references = references!(3);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that value variable (at address (0,1)) contains the proper value
@@ -447,23 +428,15 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         //Insert ids into memory
         vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
-        //Create ids
-        let ids = ids!["key", "value", "dict_ptr"];
-        //Create references
-        vm.references = references!(3);
+        let ids_data = ids_data!["key", "value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
@@ -481,20 +454,12 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //Create ids
-        let ids = ids!["key", "value", "dict_ptr"];
-        //Create references
-        vm.references = references!(3);
+        let ids_data = ids_data!["key", "value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -507,21 +472,13 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 1));
         //insert ids.default_value into memory
         vm.memory = memory![((1, 0), 17)];
-        //Create ids
-        let ids = ids!["default_value"];
-        //Create references
-        vm.references = references!(1);
+        let ids_data = ids_data!["default_value"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
-            .execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new(),
-            )
+            .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.memory.data.len(), 3);
@@ -553,19 +510,11 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        //Create ids
-        let ids = ids!["default_value"];
-        //Create references
-        vm.references = references!(1);
+        let ids_data = ids_data!["key", "value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -601,20 +550,12 @@ mod tests {
                 &MaybeRelocatable::from((1, 0)),
             )
             .unwrap();
-        //Create ids
-        let ids = ids!["key", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(3);
+        let ids_data = ids_data!["key", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -673,20 +614,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(3);
+        let ids_data = ids_data!["key", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -745,20 +678,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(3);
+        let ids_data = ids_data!["key", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -815,20 +740,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(3);
+        let ids_data = ids_data!["key", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -857,20 +774,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -923,20 +832,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -989,20 +890,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -1036,20 +929,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoValueForKey(bigint!(6),))
         );
     }
@@ -1079,20 +964,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1146,20 +1023,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1213,20 +1082,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -1260,20 +1121,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 bigint!(17),
@@ -1305,20 +1158,12 @@ mod tests {
         //  dict_ptr.key = (1, 1)
         //  dict_ptr.prev_value = (1, 2)
         //  dict_ptr.new_value = (1, 3)
-        //Create ids
-        let ids = ids!["key", "prev_value", "new_value", "dict_ptr"];
-        //Create references
-        vm.references = references!(4);
+        let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1364,23 +1209,15 @@ mod tests {
         //ids.dict_access
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //Create ids
-        let ids = ids!["dict_accesses_end"];
-        //Create references
-        vm.references = references!(1);
+        let ids_data = ids_data!["dict_access_end"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -1416,23 +1253,15 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //Create ids
-        let ids = ids!["dict_accesses_end"];
-        //Create references
-        vm.references = references!(1);
+        let ids_data = ids_data!["dict_access_end"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -1466,20 +1295,12 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //Create ids
-        let ids = ids!["dict_accesses_end"];
-        //Create references
-        vm.references = references!(1);
+        let ids_data = ids_data!["dict_accesses_end"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -1498,19 +1319,12 @@ mod tests {
         vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let ids = ids!["squashed_dict_start", "squashed_dict_end"];
-        //Create references
-        vm.references = references!(2);
+        let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -1537,19 +1351,12 @@ mod tests {
         vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let ids = ids!["squashed_dict_start", "squashed_dict_end"];
-        //Create references
-        vm.references = references!(2);
+        let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the updated pointer
@@ -1586,19 +1393,12 @@ mod tests {
         vm.memory = memory![((0, 0), (1, 3)), ((0, 1), (1, 6))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
-        let ids = ids!["squashed_dict_start", "squashed_dict_end"];
-        //Create references
-        vm.references = references!(2);
+        let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                &mut exec_scopes_proxy,
-                hint_code,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MismatchedDictPtr(
                 relocatable!(1, 0),
                 relocatable!(1, 3)

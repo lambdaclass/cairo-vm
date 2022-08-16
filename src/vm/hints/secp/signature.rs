@@ -5,13 +5,13 @@ use crate::{
     vm::{
         errors::vm_errors::VirtualMachineError,
         hints::{
+            execute_hint::HintReference,
             hint_utils::get_integer_from_var_name,
             secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
         },
         vm_core::VMProxy,
     },
 };
-use num_bigint::BigInt;
 use std::collections::HashMap;
 
 /* Implements hint:
@@ -25,11 +25,11 @@ value = res = div_mod(a, b, N)
 pub fn div_mod_n_packed_divmod(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = pack_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
-    let b = pack_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
+    let a = pack_from_var_name("a", &vm_proxy, ids_data, ap_tracking)?;
+    let b = pack_from_var_name("b", &vm_proxy, ids_data, ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
     exec_scopes_proxy.insert_value("a", a);
@@ -57,14 +57,14 @@ pub fn div_mod_n_safe_div(
 pub fn get_point_from_x(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int = pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)? % &*SECP_P;
+    let x_cube_int = pack_from_var_name("x_cube", &vm_proxy, ids_data, ap_tracking)? % &*SECP_P;
     let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
-    let v = get_integer_from_var_name("v", ids, vm_proxy, hint_ap_tracking)?;
+    let v = get_integer_from_var_name("v", &vm_proxy, ids_data, ap_tracking)?;
     if v % 2_i32 != &y % 2_i32 {
         y = -y % &*SECP_P;
     }
@@ -79,7 +79,6 @@ mod tests {
         bigint, bigint_str,
         types::{
             exec_scope::{get_exec_scopes_proxy, ExecutionScopes},
-            instruction::Register,
             relocatable::MaybeRelocatable,
         },
         utils::test_utils::*,
@@ -90,6 +89,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
+    use num_bigint::BigInt;
     use num_bigint::Sign;
 
     #[test]
@@ -105,32 +105,20 @@ mod tests {
             ((0, 5), 1)
         ];
         vm.run_context.fp = mayberelocatable!(0, 3);
-
-        vm.references = HashMap::new();
-        for i in 0..=3 {
-            vm.references.insert(
-                i,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: i as i32 - 3,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            );
-        }
-
-        let ids: HashMap<String, BigInt> = HashMap::from([
-            ("a".to_string(), bigint!(0_i32)),
-            ("b".to_string(), bigint!(3_i32)),
+        let ids_data = HashMap::from([
+            ("a".to_string(), HintReference::new_simple(-3)),
+            ("b".to_string(), HintReference::new_simple(0)),
         ]);
         let mut exec_scopes = ExecutionScopes::new();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            div_mod_n_packed_divmod(vm_proxy, exec_scopes_proxy, &ids, None),
+            div_mod_n_packed_divmod(
+                vm_proxy,
+                exec_scopes_proxy,
+                &ids_data,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         assert_eq!(div_mod_n_safe_div(exec_scopes_proxy), Ok(()));
@@ -156,28 +144,17 @@ mod tests {
             ((0, 3), 2147483647)
         ];
         vm.run_context.fp = mayberelocatable!(0, 1);
-
-        vm.references = HashMap::new();
-        for i in 0..=1 {
-            vm.references.insert(
-                i,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: i as i32 - 1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            );
-        }
-
-        let ids: HashMap<String, BigInt> = HashMap::from([
-            ("v".to_string(), bigint!(0_i32)),
-            ("x_cube".to_string(), bigint!(1_i32)),
+        let ids_data = HashMap::from([
+            ("v".to_string(), HintReference::new_simple(-1)),
+            ("x_cube".to_string(), HintReference::new_simple(0)),
         ]);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(get_point_from_x(vm_proxy, exec_scopes_proxy_ref!(), &ids, None).is_ok());
+        assert!(get_point_from_x(
+            vm_proxy,
+            exec_scopes_proxy_ref!(),
+            &ids_data,
+            &ApTracking::default()
+        )
+        .is_ok());
     }
 }

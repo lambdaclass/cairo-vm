@@ -12,15 +12,15 @@ use super::hint_utils::{
 
 pub fn set_add(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
-    hint_ap_tracking: Option<&ApTracking>,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let set_ptr = get_ptr_from_var_name("set_ptr", ids, vm_proxy, hint_ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", ids, vm_proxy, hint_ap_tracking)?
+    let set_ptr = get_ptr_from_var_name("set_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", &vm_proxy, ids_data, ap_tracking)?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-    let elm_ptr = get_ptr_from_var_name("elm_ptr", ids, vm_proxy, hint_ap_tracking)?;
-    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", &vm_proxy, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
@@ -65,7 +65,13 @@ pub fn set_add(
             );
         }
     }
-    insert_value_from_var_name("is_elm_in_set", bigint!(0), ids, vm_proxy, hint_ap_tracking)
+    insert_value_from_var_name(
+        "is_elm_in_set",
+        bigint!(0),
+        &vm_proxy,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 #[cfg(test)]

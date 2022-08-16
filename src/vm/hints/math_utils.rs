@@ -450,7 +450,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -475,7 +475,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -512,7 +512,7 @@ mod tests {
             .unwrap();
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -539,7 +539,7 @@ mod tests {
         vm.memory = memory![((0, 0), 1)];
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -559,7 +559,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         //Create ids_data & hint_data
         let ids_data = ids_data!["b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -581,7 +581,7 @@ mod tests {
         //Dont insert ids into memory
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -604,7 +604,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -626,7 +626,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -647,7 +647,7 @@ mod tests {
         vm.memory = memory![((0, 0), 1), ((0, 1), 2)];
         vm.segments.add(&mut vm.memory, None);
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -668,7 +668,7 @@ mod tests {
         vm.memory = memory![((0, 0), 1), ((0, 1), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -692,7 +692,7 @@ mod tests {
         vm.memory = memory![((0, 0), 1), ((0, 1), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "c"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
@@ -710,7 +710,7 @@ mod tests {
         vm.memory = memory![((0, 0), 1)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -730,7 +730,7 @@ mod tests {
         vm.memory = memory![((0, 0), (-1))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -748,7 +748,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (-1))];
         let ids_data = ids_data!["incorrect_id"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -766,7 +766,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (-1))];
         let ids_data = HashMap::from([("a", HintReference::new_simple(10))]);
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -784,7 +784,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (10, 10))];
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -804,7 +804,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 1)];
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -821,7 +821,7 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -841,7 +841,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 2), ((0, 1), 1), ((0, 3), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -859,7 +859,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -883,7 +883,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (0, 0)), ((0, 1), 1), ((0, 3), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -903,7 +903,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 1), ((0, 1), (0, 0)), ((0, 3), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -927,7 +927,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -952,7 +952,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -973,7 +973,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 1), ((0, 1), 1)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -995,7 +995,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 1), ((0, 1), 3)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1032,7 +1032,7 @@ mod tests {
             )
             .unwrap();
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1056,7 +1056,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (0, 0)), ((0, 1), (0, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1078,7 +1078,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (0, 1)), ((0, 1), (0, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1097,7 +1097,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (0, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1119,7 +1119,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 1)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1145,7 +1145,7 @@ mod tests {
         vm.memory = memory![((0, 0), 5)];
         //Create ids
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1168,7 +1168,7 @@ mod tests {
         vm.memory = memory![((0, 0), 0)];
         //Create ids
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1197,7 +1197,7 @@ mod tests {
             .unwrap();
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1223,7 +1223,7 @@ mod tests {
         vm.memory = memory![((0, 0), 5)];
         //Create invalid id value
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
@@ -1245,7 +1245,7 @@ mod tests {
         vm.memory = memory![((0, 0), 0)];
         //Create invalid id key
         let ids_data = ids_data!["incorrect_id"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1267,7 +1267,7 @@ mod tests {
         vm.memory = memory![((0, 0), (0, 0))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
@@ -1287,7 +1287,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 1)];
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1306,7 +1306,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 0)];
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1328,7 +1328,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         let ids_data = ids_data!["output", "value", "base", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1359,7 +1359,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         let ids_data = ids_data!["output", "value", "base", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1380,7 +1380,7 @@ mod tests {
         //Dont insert ids.is_positive as we need to modify it inside the hint
         //Create ids
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -1404,7 +1404,7 @@ mod tests {
         vm.memory = memory![((0, 0), (-250))];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
@@ -1439,7 +1439,7 @@ mod tests {
             .unwrap();
         //Dont insert ids.is_positive as we need to modify it inside the hint
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1476,7 +1476,7 @@ mod tests {
             )
             .unwrap();
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1501,7 +1501,7 @@ mod tests {
         vm.memory = memory![((0, 0), 81)];
         //Create ids
         let ids_data = ids_data!["value", "root"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1525,7 +1525,7 @@ mod tests {
         vm.memory = memory![((0, 0), (-81))];
         //Create ids
         let ids_data = ids_data!["value", "root"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1546,7 +1546,7 @@ mod tests {
         vm.memory = memory![((0, 0), 81), ((0, 1), 7)];
         //Create ids
         let ids_data = ids_data!["value", "root"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1572,7 +1572,7 @@ mod tests {
         vm.memory = memory![((0, 2), 5), ((0, 3), 7)];
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
@@ -1599,7 +1599,7 @@ mod tests {
         vm.memory = memory![((0, 2), (-5)), ((0, 3), 7)];
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1639,7 +1639,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 2), 5), ((0, 3), 7)];
         //Create ids
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1668,7 +1668,7 @@ mod tests {
         vm.memory = memory![((0, 2), 5), ((0, 3), 7)];
         //Create ids
         let ids_data = ids_data!["a", "b", "iv", "vlue"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1691,7 +1691,7 @@ mod tests {
         vm.memory = memory![((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
@@ -1718,7 +1718,7 @@ mod tests {
         vm.memory = memory![((0, 3), 7), ((0, 4), (-10)), ((0, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
@@ -1745,7 +1745,7 @@ mod tests {
         vm.memory = memory![((0, 3), (-5)), ((0, 4), 10), ((0, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1768,7 +1768,7 @@ mod tests {
         vm.memory = memory![((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
@@ -1787,7 +1787,7 @@ mod tests {
         vm.memory = memory![((0, 1), 10), ((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1813,7 +1813,7 @@ mod tests {
         vm.memory = memory![((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "b", "r", "d", "v", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1832,7 +1832,7 @@ mod tests {
         vm.memory = memory![((0, 0), 1)];
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1871,7 +1871,7 @@ mod tests {
             .unwrap();
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1916,7 +1916,7 @@ mod tests {
             ("high", HintReference::new(-3, 0, true, true)),
             ("low", HintReference::new(-3, 1, true, true)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1968,7 +1968,7 @@ mod tests {
         //Create incomplete ids
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2006,7 +2006,7 @@ mod tests {
 
         //Create ids_data & hint_data
         let ids_data = ids_data!["value", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2047,7 +2047,7 @@ mod tests {
             ("low", HintReference::new(-3, 0, true, true)),
             ("high", HintReference::new(-3, 1, true, true)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         // Override MaybeRelocatable::from((2, 0)) memory address so, the hint vm.memory.insert fails
         vm.memory
             .insert(
@@ -2188,7 +2188,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 3));
         vm.memory = memory![((1, 1), 3), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2225,7 +2225,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 3));
         vm.memory = memory![((1, 1), (1, 0)), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2245,7 +2245,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 3));
         vm.memory = memory![((1, 1), 1), ((1, 2), (1, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, ids_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(

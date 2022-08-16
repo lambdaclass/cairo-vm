@@ -1,13 +1,11 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::hint;
 
 use num_bigint::BigInt;
 
 use crate::any_box;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
-use crate::types::hint_executor::HintProcessorData;
 use crate::types::{hint_executor::HintExecutor, instruction::Register};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::blake2s_utils::{
