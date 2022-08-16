@@ -15,6 +15,10 @@ pub struct Memory {
     pub validation_rules: HashMap<usize, ValidationRule>,
 }
 
+pub struct MemoryProxy<'a> {
+    memory: &'a mut Memory,
+}
+
 impl Memory {
     pub fn new() -> Memory {
         Memory {
@@ -176,6 +180,40 @@ impl Memory {
 impl Default for Memory {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl MemoryProxy<'_> {
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
+        self.memory.insert_value(key, val)
+    }
+
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        self.memory.get_integer(key)
+    }
+
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
+        self.memory.get_relocatable(key)
+    }
+
+    pub fn get_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+        self.memory.get_range(addr, size)
+    }
+
+    pub fn get_integer_range(
+        &self,
+        addr: &Relocatable,
+        size: usize,
+    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+        self.memory.get_integer_range(addr, size)
     }
 }
 
