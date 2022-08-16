@@ -501,3 +501,13 @@ fn cairo_run_finalize_keccak() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_sha256() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/sha256.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}

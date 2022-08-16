@@ -105,24 +105,12 @@ mod tests {
             Ok(())
         );
         //Check hint memory inserts
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 11))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"773712524553362"
-            ))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 12))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"57408430697461422066401280"
-            ))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 13))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"1292469707114105"
-            ))))
-        );
+        check_memory![
+            &vm.memory,
+            ((1, 11), 773712524553362_u64),
+            ((1, 12), 57408430697461422066401280_u128),
+            ((1, 13), 1292469707114105_u64)
+        ];
     }
 
     #[test]

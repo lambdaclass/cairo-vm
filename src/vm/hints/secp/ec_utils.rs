@@ -336,7 +336,6 @@ mod tests {
     use super::*;
     use crate::bigint_str;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType};
-    use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -467,38 +466,7 @@ mod tests {
         let ids = ids!["point0", "point1"];
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -14,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -8,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-        ]);
+        vm.references = not_continuous_references![-14, -8];
 
         let mut exec_scopes = ExecutionScopes::new();
 
@@ -554,51 +522,11 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
 
-        //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 10));
-
         //Create ids
         let ids = ids!["point", "slope"];
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -10,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::AP,
-                    offset1: -4,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-        ]);
-
-        //Create ap tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
-        };
+        vm.references = not_continuous_references![-10, -4];
 
         let mut exec_scopes = ExecutionScopes::new();
 
@@ -606,7 +534,13 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
 
@@ -753,59 +687,7 @@ mod tests {
         let ids = ids!["point0", "point1", "slope"];
 
         //Create references
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -15,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -9,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-            (
-                2,
-                HintReference {
-                    register: Register::AP,
-                    offset1: -11,
-                    offset2: 0,
-                    dereference: false,
-                    inner_dereference: false,
-                    immediate: None,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 1,
-                        offset: 0,
-                    }),
-                },
-            ),
-        ]);
-
-        //Create ap tracking
-        let ap_tracking = ApTracking {
-            group: 1,
-            offset: 0,
-        };
+        vm.references = not_continuous_references![-15, -9, -6];
 
         let mut exec_scopes = ExecutionScopes::new();
 
@@ -813,7 +695,13 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
 
@@ -936,9 +824,6 @@ mod tests {
         );
 
         //Check hint memory inserts
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(b"0"))))
-        );
+        check_memory![&vm.memory, ((1, 2), 0)];
     }
 }
