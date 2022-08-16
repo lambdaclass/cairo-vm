@@ -3,8 +3,8 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
 use crate::types::hint_executor::HintExecutor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -15,6 +15,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
+use std::any::Any;
 use std::collections::HashMap;
 
 use super::hints::execute_hint::{get_vm_proxy, HintReference};
@@ -54,7 +55,7 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
-    pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
+    pub hint_data: HashMap<usize, Vec<Box<dyn Any>>>,
     pub references: HashMap<usize, HintReference>,
     //hint_locals: HashMap<..., ...>,
     //static_locals: Option<HashMap<..., ...>>,
@@ -106,7 +107,7 @@ impl VirtualMachine {
             run_context,
             prime,
             builtin_runners,
-            hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
+            hint_data: HashMap::<usize, Vec<Box<dyn Any>>>::new(),
             references: HashMap::<usize, HintReference>::new(),
             _program_base: None,
             memory: Memory::new(),
@@ -493,17 +494,18 @@ impl VirtualMachine {
         hint_executor: &'static dyn HintExecutor,
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
+        if let Some(hint_list) = self.hint_data.get(
+            &self
+                .run_context
+                .pc
+                .try_into::<Relocatable>()
+                .unwrap()
+                .offset,
+        ) {
             for hint_data in hint_list.clone().iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 let mut vm_proxy = get_vm_proxy(self);
-                hint_executor.execute_hint(
-                    &mut vm_proxy,
-                    &mut exec_scopes_proxy,
-                    &hint_data.hint_code,
-                    &hint_data.ids,
-                    &hint_data.ap_tracking_data,
-                )?
+                hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
             }
         }
         self.skip_instruction_execution = false;
@@ -2447,11 +2449,11 @@ mod tests {
         };
 
         let vm = VirtualMachine {
-            run_context: run_context,
+            run_context,
             prime: bigint!(127),
             _program_base: None,
             builtin_runners: Vec::new(),
-            hints: HashMap::<MaybeRelocatable, Vec<HintData>>::new(),
+            hint_data: HashMap::<usize, Vec<Box<dyn Any>>>::new(),
             references: HashMap::<usize, HintReference>::new(),
             memory: Memory::new(),
             accessed_addresses: Some(Vec::<MaybeRelocatable>::new()),

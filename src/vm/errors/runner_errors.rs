@@ -24,6 +24,7 @@ pub enum RunnerError {
     FailedMemoryGet(MemoryError),
     EcOpBuiltinScalarLimit(BigInt),
     FailedToParseIdsNameFromPath(String),
+    CompileHintFail(String),
 }
 
 impl fmt::Display for RunnerError {
@@ -78,6 +79,7 @@ impl fmt::Display for RunnerError {
                     path
                 )
             }
+            RunnerError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
         }
     }
 }

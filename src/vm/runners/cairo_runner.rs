@@ -17,8 +17,9 @@ use crate::vm::runners::builtin_runner::{
     RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
-use crate::vm::vm_core::{HintData, VirtualMachine};
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
+use std::any::Any;
 use std::collections::HashMap;
 use std::io;
 
@@ -228,8 +229,8 @@ impl CairoRunner {
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
-        self.vm.hints = self.get_hint_dictionary()?;
         self.vm.references = self.get_reference_list();
+        self.vm.hint_data = self.get_hint_data_dictionary()?;
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
@@ -262,52 +263,24 @@ impl CairoRunner {
         references
     }
 
-    fn get_hint_dictionary(&self) -> Result<HashMap<MaybeRelocatable, Vec<HintData>>, RunnerError> {
-        let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
+    //Gets the data used by the HintProcessor to execute each hint
+    fn get_hint_data_dictionary(&self) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, RunnerError> {
+        let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
         for (hint_index, hints) in self.program.hints.iter() {
-            for hint_data in hints.iter() {
-                //Key refers to the pc the where the hint should be called in step
-                //The segment index of pc will always be 0 as it lives in the program segment
-                let key = MaybeRelocatable::from((0, *hint_index));
-                if let Some(hint_list) = hint_dictionary.get_mut(&key) {
-                    //Add hint code to list of hints at given pc
-                    hint_list.push(HintData::new(
-                        &hint_data.code,
-                        CairoRunner::remove_path_from_reference_ids(
-                            &hint_data.flow_tracking_data.reference_ids,
-                        )?,
-                        hint_data.flow_tracking_data.ap_tracking.clone(),
-                    ));
-                } else {
-                    //Insert the first hint at a given pc
-                    hint_dictionary.insert(
-                        key,
-                        vec![HintData::new(
-                            &hint_data.code,
-                            CairoRunner::remove_path_from_reference_ids(
-                                &hint_data.flow_tracking_data.reference_ids,
-                            )?,
-                            hint_data.flow_tracking_data.ap_tracking.clone(),
-                        )],
-                    );
-                }
+            for hint in hints {
+                let hint_data = self.hint_executor.compile_hint(
+                    hint.code.clone(),
+                    &hint.flow_tracking_data.ap_tracking,
+                    &hint.flow_tracking_data.reference_ids,
+                    &self.vm.references,
+                );
+                hint_data_dictionary
+                    .entry(*hint_index)
+                    .or_insert(vec![])
+                    .push(hint_data.map_err(|_| RunnerError::CompileHintFail(hint.code.clone()))?);
             }
         }
-        Ok(hint_dictionary)
-    }
-
-    fn remove_path_from_reference_ids(
-        referece_ids: &HashMap<String, BigInt>,
-    ) -> Result<HashMap<String, BigInt>, RunnerError> {
-        let mut reference_ids_new = HashMap::<String, BigInt>::new();
-        for (path, value) in referece_ids {
-            if let Some(name) = path.rsplit('.').next() {
-                reference_ids_new.insert(name.to_string(), value.clone());
-            } else {
-                return Err(RunnerError::FailedToParseIdsNameFromPath(path.clone()));
-            }
-        }
-        Ok(reference_ids_new)
+        Ok(hint_data_dictionary)
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
