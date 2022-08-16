@@ -9,7 +9,7 @@ use crate::{
             },
             secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
         },
-        vm_core::VirtualMachine,
+        vm_core::VMProxy,
     },
 };
 use num_bigint::BigInt;
@@ -24,55 +24,48 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = pack_from_var_name("a", ids, vm, hint_ap_tracking)?;
-    let b = pack_from_var_name("b", ids, vm, hint_ap_tracking)?;
+    let a = pack_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
+    let b = pack_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-    insert_int_into_scope(&mut vm.exec_scopes, "a", a);
-    insert_int_into_scope(&mut vm.exec_scopes, "b", b);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm.exec_scopes, "res", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "a", a);
+    insert_int_into_scope(vm_proxy.exec_scopes, "b", b);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "res", value);
     Ok(())
 }
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
-pub fn div_mod_n_safe_div(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let a = get_int_ref_from_scope(&vm.exec_scopes, "a")?;
-    let b = get_int_ref_from_scope(&vm.exec_scopes, "b")?;
-    let res = get_int_ref_from_scope(&vm.exec_scopes, "res")?;
+pub fn div_mod_n_safe_div(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+    let a = get_int_ref_from_scope(vm_proxy.exec_scopes, "a")?;
+    let b = get_int_ref_from_scope(vm_proxy.exec_scopes, "b")?;
+    let res = get_int_ref_from_scope(vm_proxy.exec_scopes, "res")?;
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
     Ok(())
 }
 
 pub fn get_point_from_x(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int = pack_from_var_name("x_cube", ids, vm, hint_ap_tracking)? % &*SECP_P;
+    let x_cube_int = pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)? % &*SECP_P;
     let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
-    let v = get_integer_from_var_name(
-        "v",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let v = get_integer_from_var_name("v", ids, vm_proxy, hint_ap_tracking)?;
     if v % 2 != &y % 2 {
         y = -y % &*SECP_P;
     }
-    insert_int_into_scope(&mut vm.exec_scopes, "value", y);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", y);
     Ok(())
 }
 
@@ -85,26 +78,16 @@ mod tests {
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{BuiltinHintExecutor, HintReference},
+            hints::execute_hint::{get_vm_proxy, HintReference},
+            vm_core::VirtualMachine,
             vm_memory::memory::Memory,
         },
     };
     use num_bigint::Sign;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-
-    fn init_vm() -> VirtualMachine {
-        VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            false,
-            &HINT_EXECUTOR,
-        )
-    }
-
     #[test]
     fn safe_div_ok() {
-        let mut vm = init_vm();
+        let mut vm = vm!();
 
         vm.memory = memory![
             ((0, 0), 15),
@@ -136,13 +119,14 @@ mod tests {
             ("a".to_string(), bigint!(0_i32)),
             ("b".to_string(), bigint!(3_i32)),
         ]);
-        assert_eq!(div_mod_n_packed_divmod(&mut vm, &ids, None), Ok(()));
-        assert_eq!(div_mod_n_safe_div(&mut vm), Ok(()));
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert_eq!(div_mod_n_packed_divmod(&mut vm_proxy, &ids, None), Ok(()));
+        assert_eq!(div_mod_n_safe_div(&mut vm_proxy), Ok(()));
     }
 
     #[test]
     fn safe_div_fail() {
-        let mut vm = init_vm();
+        let mut vm = vm!();
 
         vm.exec_scopes
             .assign_or_update_variable("a", PyValueType::BigInt(bigint!(0_usize)));
@@ -151,12 +135,13 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("res", PyValueType::BigInt(bigint!(1_usize)));
 
-        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(&mut vm));
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(&mut vm_proxy));
     }
 
     #[test]
     fn get_point_from_x_ok() {
-        let mut vm = init_vm();
+        let mut vm = vm!();
         vm.memory = memory![
             ((0, 0), 18),
             ((0, 1), 2147483647),
@@ -185,7 +170,7 @@ mod tests {
             ("v".to_string(), bigint!(0_i32)),
             ("x_cube".to_string(), bigint!(1_i32)),
         ]);
-
-        assert!(get_point_from_x(&mut vm, &ids, None).is_ok());
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(get_point_from_x(&mut vm_proxy, &ids, None).is_ok());
     }
 }

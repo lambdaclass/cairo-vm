@@ -4,8 +4,10 @@ use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{
         errors::vm_errors::VirtualMachineError,
-        hints::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name},
-        vm_core::VirtualMachine,
+        hints::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap,
+        },
+        vm_core::VMProxy,
     },
 };
 use lazy_static::lazy_static;
@@ -28,54 +30,35 @@ Implements hint:
     %}
 */
 pub fn keccak_write_args(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let inputs_ptr = get_ptr_from_var_name(
-        "inputs",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let inputs_ptr = get_ptr_from_var_name("inputs", ids, vm_proxy, hint_ap_tracking)?;
 
-    let low = get_integer_from_var_name(
-        "low",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let high = get_integer_from_var_name(
-        "high",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let low = get_integer_from_var_name("low", ids, vm_proxy, hint_ap_tracking)?;
+    let high = get_integer_from_var_name("high", ids, vm_proxy, hint_ap_tracking)?;
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
 
-    vm.segments
+    vm_proxy
+        .segments
         .write_arg(
-            &mut vm.memory,
+            vm_proxy.memory,
             &inputs_ptr,
             &low_args.to_vec(),
-            Some(&vm.prime),
+            Some(vm_proxy.prime),
         )
         .map_err(VirtualMachineError::MemoryError)?;
 
-    vm.segments
+    vm_proxy
+        .segments
         .write_arg(
-            &mut vm.memory,
+            vm_proxy.memory,
             &inputs_ptr.add(2)?,
             &high_args.to_vec(),
-            Some(&vm.prime),
+            Some(vm_proxy.prime),
         )
         .map_err(VirtualMachineError::MemoryError)?;
 
@@ -91,18 +74,11 @@ Implements hint:
     memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)
 */
 pub fn compare_bytes_in_word_nondet(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name(
-        "n_bytes",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
@@ -110,10 +86,7 @@ pub fn compare_bytes_in_word_nondet(
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
     let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
-
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 /*
@@ -125,24 +98,14 @@ Implements hint:
     "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name(
-        "n_bytes",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
-
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(value))
-        .map_err(VirtualMachineError::MemoryError)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 /*
@@ -158,7 +121,7 @@ Implements hint:
     %}
 */
 pub fn block_permutation(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -170,16 +133,9 @@ pub fn block_permutation(
         ));
     }
 
-    let keccak_ptr = get_ptr_from_var_name(
-        "keccak_ptr",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
-    let values = vm
+    let values = vm_proxy
         .memory
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
@@ -195,8 +151,14 @@ pub fn block_permutation(
 
     let bigint_values = u64_array_to_bigint_vec(&u64_values);
 
-    vm.segments
-        .write_arg(&mut vm.memory, &keccak_ptr, &bigint_values, Some(&vm.prime))
+    vm_proxy
+        .segments
+        .write_arg(
+            vm_proxy.memory,
+            &keccak_ptr,
+            &bigint_values,
+            Some(vm_proxy.prime),
+        )
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -215,7 +177,7 @@ pub fn block_permutation(
     %}
 */
 pub fn cairo_keccak_finalize(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -243,17 +205,16 @@ pub fn cairo_keccak_finalize(
         padding.extend_from_slice(base_padding.as_slice());
     }
 
-    let keccak_ptr_end = get_ptr_from_var_name(
-        "keccak_ptr_end",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", ids, vm_proxy, hint_ap_tracking)?;
 
-    vm.segments
-        .write_arg(&mut vm.memory, &keccak_ptr_end, &padding, Some(&vm.prime))
+    vm_proxy
+        .segments
+        .write_arg(
+            vm_proxy.memory,
+            &keccak_ptr_end,
+            &padding,
+            Some(vm_proxy.prime),
+        )
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -287,11 +248,14 @@ fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::hint_executor::HintExecutor;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::hints::execute_hint::HintReference;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
@@ -318,10 +282,9 @@ mod tests {
         //Create ids
         let ids = ids!["low", "high", "inputs"];
         vm.references = references!(3);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -343,10 +306,8 @@ mod tests {
         //Create ids
         let ids = ids!["low", "high", "inputs"];
         vm.references = references!(3);
-
-        let error = vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new());
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let error = HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new());
 
         assert!(matches!(error, Err(VirtualMachineError::MemoryError(_))));
     }
@@ -365,10 +326,9 @@ mod tests {
 
         let ids = ids!["n_bytes"];
         vm.references = references!(1);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -388,10 +348,9 @@ mod tests {
 
         let ids = ids!["n_bytes"];
         vm.references = references!(1);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }
@@ -410,10 +369,9 @@ mod tests {
 
         let ids = ids!["n_bytes"];
         vm.references = references!(1);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
     }

@@ -4,19 +4,20 @@ use num_bigint::BigInt;
 
 use crate::{
     serde::deserialize_program::ApTracking,
-    types::exec_scope::PyValueType,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    types::exec_scope::{ExecutionScopes, PyValueType},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
 use super::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+    insert_value_into_ap,
 };
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn copy_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>> {
+fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
-    if let Some(variables) = vm.exec_scopes.get_local_variables() {
+    if let Some(variables) = exec_scopes.get_local_variables() {
         if let Some(PyValueType::Dictionary(py_initial_dict)) = variables.get("initial_dict") {
             initial_dict = Some(py_initial_dict.clone());
         }
@@ -35,15 +36,14 @@ fn copy_initial_dict(vm: &mut VirtualMachine) -> Option<HashMap<BigInt, BigInt>>
 For now, the functionality to create a dictionary from a previously defined initial_dict (using a hint)
 is not available
 */
-pub fn dict_new(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn dict_new(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
-    let initial_dict = copy_initial_dict(vm).ok_or(VirtualMachineError::NoInitialDict)?;
-    let base = vm
+    let initial_dict =
+        copy_initial_dict(vm_proxy.exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
+    let base = vm_proxy
         .dict_manager
-        .new_dict(&mut vm.segments, &mut vm.memory, initial_dict)?;
-    vm.memory
-        .insert(&vm.run_context.ap, &base)
-        .map_err(VirtualMachineError::MemoryError)
+        .new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
 }
 
 /*Implements hint:
@@ -57,32 +57,23 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available, an empty dict is created always
 */
 pub fn default_dict_new(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
-    let default_value = get_integer_from_var_name(
-        "default_value",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?
-    .clone();
+    let default_value =
+        get_integer_from_var_name("default_value", ids, vm_proxy, hint_ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
-    let initial_dict = copy_initial_dict(vm);
+    let initial_dict = copy_initial_dict(vm_proxy.exec_scopes);
 
-    let base = vm.dict_manager.new_default_dict(
-        &mut vm.segments,
-        &mut vm.memory,
+    let base = vm_proxy.dict_manager.new_default_dict(
+        vm_proxy.segments,
+        vm_proxy.memory,
         &default_value,
         initial_dict,
     )?;
-    vm.memory
-        .insert(&vm.run_context.ap, &base)
-        .map_err(VirtualMachineError::MemoryError)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
 }
 
 /* Implements hint:
@@ -91,38 +82,16 @@ pub fn default_dict_new(
    ids.value = dict_tracker.data[ids.key]
 */
 pub fn dict_read(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_ptr = get_ptr_from_var_name(
-        "dict_ptr",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
+    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(key)?;
-    insert_value_from_var_name(
-        "value",
-        value.clone(),
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )
+    let value = tracker.get_value(&key)?;
+    insert_value_from_var_name("value", value.clone(), ids, vm_proxy, hint_ap_tracking)
 }
 
 /* Implements hint:
@@ -132,48 +101,30 @@ pub fn dict_read(
     dict_tracker.data[ids.key] = ids.new_value
 */
 pub fn dict_write(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let new_value = get_integer_from_var_name(
-        "new_value",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_ptr = get_ptr_from_var_name(
-        "dict_ptr",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let new_value =
+        get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
     //Get tracker for dictionary
-    let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
     //dict_ptr.prev_value will be equal to dict_ptr + 1
     let dict_ptr_prev_value = dict_ptr + 1;
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(key)?.clone();
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm.memory.insert_value(&dict_ptr_prev_value, prev_value)?;
+    vm_proxy
+        .memory
+        .insert_value(&dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 
@@ -189,56 +140,30 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name(
-        "key",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let prev_value = get_integer_from_var_name(
-        "prev_value",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let new_value = get_integer_from_var_name(
-        "new_value",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_ptr = get_ptr_from_var_name(
-        "dict_ptr",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let prev_value =
+        get_integer_from_var_name("prev_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let new_value =
+        get_integer_from_var_name("new_value", ids, vm_proxy, hint_ap_tracking)?.clone();
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", ids, vm_proxy, hint_ap_tracking)?;
 
     //Get tracker for dictionary
-    let tracker = vm.dict_manager.get_tracker(&dict_ptr)?;
+    let tracker = vm_proxy.dict_manager.get_tracker(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key)?;
-    if current_value != prev_value {
+    let current_value = tracker.get_value(&key)?;
+    if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
+            prev_value,
             current_value.clone(),
             key.clone(),
         ));
     }
     //Update Value
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
@@ -254,24 +179,18 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let dict_accesses_end = get_ptr_from_var_name(
-        "dict_accesses_end",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let dict_copy = vm
+    let dict_accesses_end =
+        get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
+    let dict_copy = vm_proxy
         .dict_manager
         .get_tracker(&dict_accesses_end)?
         .get_dictionary_copy();
 
-    vm.exec_scopes.enter_scope(HashMap::from([(
+    vm_proxy.exec_scopes.enter_scope(HashMap::from([(
         String::from("initial_dict"),
         PyValueType::Dictionary(dict_copy),
     )]));
@@ -284,27 +203,16 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let squashed_dict_start = get_ptr_from_var_name(
-        "squashed_dict_start",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let squashed_dict_end = get_ptr_from_var_name(
-        "squashed_dict_end",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    vm.dict_manager
+    let squashed_dict_start =
+        get_ptr_from_var_name("squashed_dict_start", ids, vm_proxy, hint_ap_tracking)?;
+    let squashed_dict_end =
+        get_ptr_from_var_name("squashed_dict_end", ids, vm_proxy, hint_ap_tracking)?;
+    vm_proxy
+        .dict_manager
         .get_tracker(&squashed_dict_start)?
         .current_ptr = squashed_dict_end;
     Ok(())
@@ -312,17 +220,21 @@ pub fn dict_squash_update_ptr(
 
 #[cfg(test)]
 mod tests {
+    use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
 
     use num_bigint::{BigInt, Sign};
 
+    use crate::types::hint_executor::HintExecutor;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::dict_manager::{DictManager, DictTracker, Dictionary};
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
-    use crate::vm::vm_memory::memory::Memory;
+    use crate::vm::hints::dict_manager::DictTracker;
+    use crate::vm::hints::dict_manager::{DictManager, Dictionary};
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, relocatable};
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
@@ -336,8 +248,14 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         //ids and references are not needed for this test
-        vm.hint_executor
-            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        HINT_EXECUTOR
+            .execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new(),
+            )
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 1);
@@ -359,9 +277,14 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
         //ids and references are not needed for this test
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
@@ -374,9 +297,14 @@ mod tests {
             .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
         vm.memory = memory![((0, 0), 1)];
         //ids and references are not needed for this test
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -407,9 +335,9 @@ mod tests {
         let ids = ids!["key", "value", "dict_ptr"];
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that value variable (at address (0,1)) contains the proper value
@@ -447,9 +375,9 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
@@ -471,9 +399,9 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -490,8 +418,9 @@ mod tests {
         let ids = ids!["default_value"];
         //Create references
         vm.references = references!(1);
-        vm.hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
         assert_eq!(vm.memory.data.len(), 3);
@@ -522,9 +451,9 @@ mod tests {
         let ids = ids!["default_value"];
         //Create references
         vm.references = references!(1);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -563,9 +492,9 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -617,9 +546,9 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -671,9 +600,9 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -723,9 +652,9 @@ mod tests {
         //Create references
         vm.references = references!(3);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -757,9 +686,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -805,9 +734,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -853,9 +782,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -892,9 +821,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoValueForKey(bigint!(6),))
         );
     }
@@ -927,9 +856,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -976,9 +905,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1025,9 +954,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -1064,9 +993,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 bigint!(17),
@@ -1101,9 +1030,9 @@ mod tests {
         //Create references
         vm.references = references!(4);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1145,9 +1074,9 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -1186,9 +1115,9 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -1222,9 +1151,9 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -1245,9 +1174,9 @@ mod tests {
         //Create references
         vm.references = references!(2);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -1276,9 +1205,9 @@ mod tests {
         //Create references
         vm.references = references!(2);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check the updated pointer
@@ -1314,9 +1243,9 @@ mod tests {
         //Create references
         vm.references = references!(2);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MismatchedDictPtr(
                 relocatable!(1, 0),
                 relocatable!(1, 3)

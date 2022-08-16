@@ -7,7 +7,7 @@ use crate::{
             bigint_to_u32, get_integer_from_var_name, get_ptr_from_var_name,
             insert_value_from_var_name,
         },
-        vm_core::VirtualMachine,
+        vm_core::VMProxy,
     },
 };
 
@@ -25,18 +25,11 @@ const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
 ];
 
 pub fn sha256_input(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name(
-        "n_bytes",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
 
     insert_value_from_var_name(
         "full_word",
@@ -46,31 +39,22 @@ pub fn sha256_input(
             BigInt::zero()
         },
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )
 }
 
 pub fn sha256_main(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let input_ptr = get_ptr_from_var_name(
-        "sha256_start",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let input_ptr = get_ptr_from_var_name("sha256_start", ids, vm_proxy, hint_ap_tracking)?;
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        let input_element = vm.memory.get_integer(&(&input_ptr + i))?;
+        let input_element = vm_proxy.memory.get_integer(&(&input_ptr + i))?;
         let bytes = bigint_to_u32(input_element)?.to_be_bytes();
         message.extend(bytes);
     }
@@ -85,23 +69,17 @@ pub fn sha256_main(
         output.push(bigint!(new_state));
     }
 
-    let output_base = get_ptr_from_var_name(
-        "output",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let output_base = get_ptr_from_var_name("output", ids, vm_proxy, hint_ap_tracking)?;
 
-    vm.segments
-        .write_arg(&mut vm.memory, &output_base, &output, Some(&vm.prime))
+    vm_proxy
+        .segments
+        .write_arg(vm_proxy.memory, &output_base, &output, Some(vm_proxy.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
 
 pub fn sha256_finalize(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -120,14 +98,7 @@ pub fn sha256_finalize(
         output.push(bigint!(new_state));
     }
 
-    let sha256_ptr_end = get_ptr_from_var_name(
-        "sha256_ptr_end",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", ids, vm_proxy, hint_ap_tracking)?;
 
     let mut padding: Vec<BigInt> = Vec::new();
     let zero_vector_message = vec![BigInt::zero(); 16];
@@ -138,8 +109,14 @@ pub fn sha256_finalize(
         padding.extend_from_slice(output.as_slice());
     }
 
-    vm.segments
-        .write_arg(&mut vm.memory, &sha256_ptr_end, &padding, Some(&vm.prime))
+    vm_proxy
+        .segments
+        .write_arg(
+            vm_proxy.memory,
+            &sha256_ptr_end,
+            &padding,
+            Some(vm_proxy.prime),
+        )
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -150,12 +127,12 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::hints::execute_hint::HintReference;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
     fn sha256_input_one() {
@@ -164,9 +141,9 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         let ids = ids!["full_word", "n_bytes"];
         vm.references = references!(2);
-
+        let vm_proxy = &mut &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            sha256_input(&mut vm, &ids, Some(&ApTracking::new())),
+            sha256_input(vm_proxy, &ids, Some(&ApTracking::new())),
             Ok(())
         );
 
@@ -180,9 +157,9 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
         let ids = ids!["full_word", "n_bytes"];
         vm.references = references!(2);
-
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            sha256_input(&mut vm, &ids, Some(&ApTracking::new())),
+            sha256_input(vm_proxy, &ids, Some(&ApTracking::new())),
             Ok(())
         );
 
@@ -218,8 +195,11 @@ mod tests {
         vm.references = references!(2);
 
         let ids = ids!["sha256_start", "output"];
-
-        assert_eq!(sha256_main(&mut vm, &ids, Some(&ApTracking::new())), Ok(()));
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        assert_eq!(
+            sha256_main(vm_proxy, &ids, Some(&ApTracking::new())),
+            Ok(())
+        );
 
         check_memory![
             &vm.memory,

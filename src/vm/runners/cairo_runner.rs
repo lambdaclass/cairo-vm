@@ -33,6 +33,7 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
+    hint_executor: &'static dyn HintExecutor,
 }
 
 impl CairoRunner {
@@ -93,12 +94,7 @@ impl CairoRunner {
         CairoRunner {
             program: program.clone(),
             _layout: String::from("plain"),
-            vm: VirtualMachine::new(
-                program.prime.clone(),
-                builtin_runners,
-                trace_enabled,
-                hint_executor,
-            ),
+            vm: VirtualMachine::new(program.prime.clone(), builtin_runners, trace_enabled),
             final_pc: None,
             program_base: None,
             execution_base: None,
@@ -107,6 +103,7 @@ impl CairoRunner {
             initial_pc: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
+            hint_executor,
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
@@ -312,7 +309,7 @@ impl CairoRunner {
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
         while self.vm.run_context.pc != address {
-            self.vm.step()?;
+            self.vm.step(self.hint_executor)?;
         }
         Ok(())
     }
