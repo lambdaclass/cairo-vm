@@ -561,3 +561,13 @@ fn cairo_run_keccak_integration() {
     )
     .expect("Couldn't run program");
 }
+
+#[test]
+fn cairo_run_blake2s_integration() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/blake2s_integration_tests.json"),
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
