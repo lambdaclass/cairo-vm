@@ -606,6 +606,7 @@ fn cairo_run_math_cmp_and_pow_integration() {
 fn cairo_run_uint256_integration() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/uint256_integration_tests.json"),
+        "main",
         false,
         &HINT_EXECUTOR,
     )
@@ -649,6 +650,7 @@ fn cairo_run_keccak_integration() {
 fn cairo_run_blake2s_integration() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/blake2s_integration_tests.json"),
+        "main",
         false,
         &HINT_EXECUTOR,
     )
