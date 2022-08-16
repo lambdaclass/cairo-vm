@@ -187,9 +187,7 @@ impl Default for Memory {
 }
 
 pub fn get_memory_proxy(memory: &mut Memory) -> MemoryProxy {
-    MemoryProxy {
-        memory: &mut memory,
-    }
+    MemoryProxy { memory }
 }
 
 impl MemoryProxy<'_> {
@@ -242,8 +240,18 @@ impl MemoryProxy<'_> {
         segments.write_arg(self.memory, ptr, arg, prime)
     }
 
-    pub fn add(&mut self, segments: &mut MemorySegmentManager) -> Relocatable {
+    pub fn add_segment(&mut self, segments: &mut MemorySegmentManager) -> Relocatable {
         segments.add(self.memory, None)
+    }
+
+    ///Writes data into the memory at address ptr and returns the first address after the data.
+    pub fn load_data(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        ptr: &MaybeRelocatable,
+        data: Vec<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        segments.load_data(self.memory, ptr, data)
     }
 }
 

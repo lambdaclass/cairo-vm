@@ -35,7 +35,7 @@ pub fn is_nn(
     } else {
         bigint!(1)
     };
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
@@ -52,7 +52,7 @@ pub fn is_nn_out_of_range(
     } else {
         bigint!(1)
     };
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
 }
 //Implements hint:from starkware.cairo.common.math_utils import assert_integer
 //        assert_integer(ids.a)
@@ -99,7 +99,7 @@ pub fn is_le_felt(
     } else {
         bigint!(0)
     };
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 //Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue

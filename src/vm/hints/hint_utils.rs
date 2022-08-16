@@ -273,7 +273,7 @@ pub fn get_integer_from_var_name<'a>(
 
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    let new_segment_base = vm_proxy.memory.add(&mut vm_proxy.segments);
+    let new_segment_base = vm_proxy.memory.add_segment(vm_proxy.segments);
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, new_segment_base)
 }
 

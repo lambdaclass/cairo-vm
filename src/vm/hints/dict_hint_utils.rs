@@ -57,14 +57,14 @@ pub fn dict_new(
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
         dict_manager
             .borrow_mut()
-            .new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?
+            .new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(vm_proxy.segments, vm_proxy.memory, initial_dict)?;
+        let base = dict_manager.new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, base)
 }
 
 /*Implements hint:
@@ -92,7 +92,7 @@ pub fn default_dict_new(
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
         dict_manager.borrow_mut().new_default_dict(
             vm_proxy.segments,
-            vm_proxy.memory,
+            &mut vm_proxy.memory,
             &default_value,
             initial_dict,
         )?
@@ -100,14 +100,14 @@ pub fn default_dict_new(
         let mut dict_manager = DictManager::new();
         let base = dict_manager.new_default_dict(
             vm_proxy.segments,
-            vm_proxy.memory,
+            &mut vm_proxy.memory,
             &default_value,
             initial_dict,
         )?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, base)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, base)
 }
 
 /* Implements hint:

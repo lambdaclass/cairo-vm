@@ -105,7 +105,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 /*
