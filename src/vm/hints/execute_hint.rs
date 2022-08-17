@@ -134,6 +134,7 @@ impl HintExecutor for BuiltinHintExecutor {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(VirtualMachineError::WrongHintData)?;
+        println!("Hint: {:?}", hint_data.code);
         match &*hint_data.code {
             hint_code::ADD_SEGMENT => add_segment(vm_proxy),
             hint_code::IS_NN => is_nn(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),

@@ -498,9 +498,9 @@ impl VirtualMachine {
                     .offset,
             )
         {
+            let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                let mut vm_proxy = get_vm_proxy(self);
                 hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
             }
         }
