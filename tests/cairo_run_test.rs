@@ -617,6 +617,7 @@ fn cairo_run_uint256_integration() {
 fn cairo_run_set_integration() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/set_integration_tests.json"),
+        "main",
         false,
         &HINT_EXECUTOR,
     )
