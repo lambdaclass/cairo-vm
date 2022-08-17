@@ -1,11 +1,12 @@
 %builtins range_check
 
-from starkware.cairo.common.cairo_secp.bigint import BigInt3, bigint_mul, nondet_bigint3, bigint_to_uint256 
-from starkware.cairo.common.cairo_secp.signature import validate_signature_entry, div_mod_n
-from starkware.cairo.common.cairo_secp.constants import N0, N1, N2, BASE
-from starkware.cairo.common.cairo_secp.ec import EcPoint, ec_add, ec_mul, ec_negate, ec_double, fast_ec_add, compute_doubling_slope, compute_slope
+from starkware.cairo.common.cairo_secp.bigint import BigInt3, bigint_mul, nondet_bigint3, bigint_to_uint256, uint256_to_bigint
+from starkware.cairo.common.cairo_secp.signature import validate_signature_entry, div_mod_n, recover_public_key, get_point_from_x, verify_zero, reduce, unreduced_mul
+from starkware.cairo.common.cairo_secp.field import is_zero
+from starkware.cairo.common.cairo_secp.constants import N0, N1, N2, BASE, SECP_REM
+from starkware.cairo.common.cairo_secp.ec import EcPoint, ec_add, ec_mul, ec_negate, ec_double, fast_ec_add, compute_doubling_slope, compute_slope, ec_mul_inner
 from starkware.cairo.common.math import assert_nn_le, assert_not_zero
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, split_64, uint256_signed_nn, uint256_cond_neg, uint256_neg, uint256_add
 
 # Verifies a Secp256k1 ECDSA signature.
 # Soundness assumptions:
@@ -44,16 +45,31 @@ func test_operations{range_check_ptr}(point: EcPoint):
     assert negated = expect_negated
     
     let (doubling_slope) = compute_doubling_slope(expect_negated)
-    let (x) = bigint_to_uint256(doubling_slope)
-    assert x = Uint256(210595298772321355190833442581741248192, 
-        240982623677159887741301864838314149180)
 
     let (slope) = compute_slope(expect_negated, double_negated)
-    let (y) = bigint_to_uint256(slope)
-    assert y = Uint256(44107115930684365493932432911938496167, 
-        320252758622657325248330383435820962345)
+    let (slope_uint) = bigint_to_uint256(slope)
+    let (neg_slope) = uint256_neg(slope_uint)
+    let (zero_uint, _) = uint256_add(slope_uint, neg_slope)
+    let (zero) = uint256_to_bigint(zero_uint)
+
+    let (is_z) = is_zero(zero)
+    assert is_z = 1
+
+    let (pow2, scaled) = ec_mul_inner(point, 0, 0)
+    assert scaled = EcPoint(BigInt3(0, 0, 0), BigInt3(0, 0, 0))
+    assert pow2 = point
 
     return()
+end
+
+func get_valid_point{range_check_ptr}(noise: felt) -> (curve_point: EcPoint):
+    let (low, high) = split_64(SECP_REM + noise)
+    let uint = Uint256(low, high)
+    let (bigint) = uint256_to_bigint(uint)
+    let (unreduced) = unreduced_mul(bigint, BigInt3(1,0,0))
+    let (reduced) = reduce(unreduced)
+    let (curve_point) = get_point_from_x(reduced, noise)
+    return (curve_point)
 end
 
 func run_tests{range_check_ptr}(index:felt, stop:felt):
@@ -62,14 +78,13 @@ func run_tests{range_check_ptr}(index:felt, stop:felt):
         return()
     end
 
-    let public_key_pt = EcPoint(
-        BigInt3(0x35dec240d9f76e20b48b41, 0x27fcb378b533f57a6b585, 0xbff381888b165f92dd33d),
-        BigInt3(0x1711d8fb6fbbf53986b57f, 0x2e56f964d38cb8dbdeb30b, 0xe4be2a8547d802dc42041))
-    let r = BigInt3(0x2e6c77fee73f3ac9be1217, 0x3f0c0b121ac1dc3e5c03c6, 0xeee3e6f50c576c07d7e4a)
-    let s = BigInt3(0x20a4b46d3c5e24cda81f22, 0x967bf895824330d4273d0, 0x541e10c21560da25ada4c)
-    let msg_hash = BigInt3(
-        0x38a23ca66202c8c2a72277, 0x6730e765376ff17ea8385, 0xca1ad489ab60ea581e6c1)
-    let (point) = verify_ecdsa(public_key_pt=public_key_pt, msg_hash=msg_hash, r=r, s=s)
+    let r = BigInt3(4, 5, 6)
+    let (s) = get_valid_point(index)
+    let msg_hash = BigInt3(1, 2, 3)
+    let (public_key_pt) = recover_public_key(msg_hash=msg_hash, r=r, s=s.x, v=0)
+
+    let (point) = verify_ecdsa(public_key_pt=public_key_pt, msg_hash=msg_hash, r=r, s=s.x)
+
     test_operations(point)
     return run_tests(index + 1, stop)
 end
