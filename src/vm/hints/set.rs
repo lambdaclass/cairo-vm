@@ -12,7 +12,7 @@ use super::hint_utils::{
 
 pub fn set_add(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let set_ptr = get_ptr_from_var_name("set_ptr", ids, vm_proxy, hint_ap_tracking)?;
@@ -88,7 +88,7 @@ mod tests {
         elm_size: Option<&MaybeRelocatable>,
         elm_a: Option<&MaybeRelocatable>,
         elm_b: Option<&MaybeRelocatable>,
-    ) -> (VirtualMachine, HashMap<String, BigInt>) {
+    ) -> (VirtualMachine, HashMap<String, usize>) {
         let mut vm = vm_with_range_check!();
 
         for _ in 0..3 {
@@ -205,7 +205,7 @@ mod tests {
             (5, HintReference::new_simple(0)),
         ]);
 
-        let mut ids = HashMap::<String, BigInt>::new();
+        let mut ids = HashMap::<String, usize>::new();
         for (i, s) in [
             "is_elm_in_set",
             "index",
@@ -217,7 +217,7 @@ mod tests {
         .iter()
         .enumerate()
         {
-            ids.insert(s.to_string(), bigint!(i as i32));
+            ids.insert(s.to_string(), i);
         }
 
         (vm, ids)
