@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1660763093269,
+  "lastUpdate": 1660763145527,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -22465,6 +22465,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 232745247,
             "range": "± 8628245",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "d2ed29a89c73f660ca0f7e85c71231f531d0ee18",
+          "message": "Separate VM from Hint Execution: Phase 5 (MemoryProxy)",
+          "timestamp": "2022-08-15T09:06:05Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/371/commits/d2ed29a89c73f660ca0f7e85c71231f531d0ee18"
+        },
+        "date": 1660763143882,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1770354425,
+            "range": "± 5791826",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 626294620,
+            "range": "± 1107463",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 311023516,
+            "range": "± 675194",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1510795146,
+            "range": "± 1459724",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 228834004,
+            "range": "± 781990",
             "unit": "ns/iter"
           }
         ]
