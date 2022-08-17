@@ -481,16 +481,15 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = hint_data_dictionary
-            //TODO: Convert this error to infallible / remove once run_context refactor
-            .get(
-                &Relocatable::try_from(&self.run_context.pc)
-                    .map_err(|_| VirtualMachineError::FailedToGetIds)?
-                    .offset,
-            )
-        {
+        if let Some(hint_list) = hint_data_dictionary.get(
+            //This should never fail
+            &Relocatable::try_from(&self.run_context.pc)
+                .map_err(|_| VirtualMachineError::FailedToGetIds)?
+                .offset,
+        ) {
             let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
+                //We create a new proxy with every hint as the current scope can change
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
             }
