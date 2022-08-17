@@ -1,11 +1,12 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopesProxy,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    vm::errors::vm_errors::VirtualMachineError,
 };
 use std::collections::HashMap;
 
@@ -72,13 +73,11 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::{
         bigint, bigint_str,
-        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy,
-        types::{
-            exec_scope::{get_exec_scopes_proxy, ExecutionScopes},
-            relocatable::MaybeRelocatable,
-        },
+        hint_processor::proxies::vm_proxy::get_vm_proxy,
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,

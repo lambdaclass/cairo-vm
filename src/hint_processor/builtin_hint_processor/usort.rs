@@ -1,11 +1,10 @@
-use crate::hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::hint_utils::get_ptr_from_var_name;
-use crate::hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
-    bigint,
-    serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopesProxy,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
@@ -149,10 +148,12 @@ mod tests {
     use super::*;
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
-        get_vm_proxy, BuiltinHintProcessor, HintProcessorData,
+        BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_memory::memory::Memory;

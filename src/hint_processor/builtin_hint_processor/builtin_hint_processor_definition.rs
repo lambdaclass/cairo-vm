@@ -15,6 +15,7 @@ use crate::hint_processor::builtin_hint_processor::find_element_hint::{
     find_element, search_sorted_lower,
 };
 use crate::hint_processor::builtin_hint_processor::hint_code;
+use crate::hint_processor::builtin_hint_processor::hint_utils::bigint_to_usize;
 use crate::hint_processor::builtin_hint_processor::keccak_utils::{
     unsafe_keccak, unsafe_keccak_finalize,
 };
@@ -37,10 +38,8 @@ use crate::hint_processor::builtin_hint_processor::uint256_utils::{
     split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
 };
 use crate::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
-use crate::hint_processor::hint_utils::bigint_to_usize;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopesProxy;
-use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 
 use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
@@ -65,49 +64,12 @@ use crate::hint_processor::builtin_hint_processor::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::vm::vm_core::{VMProxy, VirtualMachine};
-use crate::vm::vm_memory::memory::get_memory_proxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
-}
-
-pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
-    VMProxy {
-        memory: get_memory_proxy(&mut vm.memory),
-        segments: &mut vm.segments,
-        run_context: &mut vm.run_context,
-        builtin_runners: &vm.builtin_runners,
-        prime: &vm.prime,
-    }
-}
-
-impl HintReference {
-    pub fn new_simple(offset1: i32) -> Self {
-        HintReference {
-            register: Register::FP,
-            offset1,
-            offset2: 0,
-            inner_dereference: false,
-            ap_tracking_data: None,
-            immediate: None,
-            dereference: true,
-        }
-    }
-
-    pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool) -> Self {
-        HintReference {
-            register: Register::FP,
-            offset1,
-            offset2,
-            inner_dereference,
-            ap_tracking_data: None,
-            immediate: None,
-            dereference,
-        }
-    }
 }
 
 impl HintProcessorData {
@@ -506,10 +468,13 @@ fn get_ids_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{any_box, bigint};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;

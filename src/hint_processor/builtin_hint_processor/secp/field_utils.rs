@@ -1,14 +1,14 @@
 use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::{
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_relocatable_from_var_name, insert_value_from_var_name, insert_value_into_ap,
 };
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
+use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -146,10 +146,10 @@ mod tests {
     use crate::any_box;
     use crate::bigint;
     use crate::bigint_str;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;

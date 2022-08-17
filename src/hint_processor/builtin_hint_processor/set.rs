@@ -1,15 +1,16 @@
+use crate::bigint;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::{bigint, vm::vm_core::VMProxy};
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::{
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
 };
+use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn set_add(
     vm_proxy: &mut VMProxy,
@@ -73,11 +74,11 @@ pub fn set_add(
 mod tests {
     use super::*;
     use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;

@@ -1,8 +1,11 @@
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
-    hint_processor::hint_utils::get_integer_from_var_name, serde::deserialize_program::ApTracking,
+    hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
+    serde::deserialize_program::ApTracking,
 };
 use num_bigint::BigInt;
 use num_traits::Signed;
@@ -10,9 +13,8 @@ use std::any::Any;
 use std::collections::HashMap;
 
 use crate::{
-    hint_processor::hint_utils::insert_value_into_ap,
-    types::exec_scope::ExecutionScopesProxy,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap,
+    vm::errors::vm_errors::VirtualMachineError,
 };
 
 ///Implements hint: memory[ap] = segments.add()
@@ -92,7 +94,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::vm_core::VirtualMachine;

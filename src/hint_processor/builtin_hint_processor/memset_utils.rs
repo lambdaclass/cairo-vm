@@ -1,17 +1,17 @@
 use crate::bigint;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopesProxy;
 
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;
 
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::hint_utils::insert_value_from_var_name;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -62,10 +62,11 @@ pub fn memset_continue_loop(
 mod tests {
     use super::*;
     use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{

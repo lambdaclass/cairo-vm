@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::{
+    hint_processor::proxies::memory_proxy::MemoryProxy,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
-        errors::vm_errors::VirtualMachineError,
-        vm_memory::{memory::MemoryProxy, memory_segments::MemorySegmentManager},
+        errors::vm_errors::VirtualMachineError, vm_memory::memory_segments::MemorySegmentManager,
     },
 };
 
@@ -209,8 +209,8 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{
-        bigint, relocatable,
-        vm::vm_memory::memory::{get_memory_proxy, Memory},
+        bigint, hint_processor::proxies::memory_proxy::get_memory_proxy, relocatable,
+        vm::vm_memory::memory::Memory,
     };
 
     #[test]

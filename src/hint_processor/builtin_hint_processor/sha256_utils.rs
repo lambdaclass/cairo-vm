@@ -1,11 +1,10 @@
-use crate::hint_processor::hint_utils::bigint_to_u32;
-use crate::hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::hint_utils::get_ptr_from_var_name;
-use crate::hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::bigint_to_u32;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
-    bigint,
-    serde::deserialize_program::ApTracking,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
 };
 
 use generic_array::GenericArray;
@@ -128,8 +127,8 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;

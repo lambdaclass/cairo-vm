@@ -1,14 +1,14 @@
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::{
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
 };
+use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    types::{
-        exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable, relocatable::Relocatable,
-    },
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
+    vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::Signed;

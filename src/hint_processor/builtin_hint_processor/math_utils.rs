@@ -1,4 +1,4 @@
-use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
 use std::{
     collections::HashMap,
     ops::{Neg, Shl, Shr},
@@ -8,7 +8,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{Signed, Zero};
 
-use crate::hint_processor::hint_utils::{
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
     get_range_check_builtin, insert_value_from_var_name, insert_value_into_ap,
 };
@@ -17,7 +17,7 @@ use crate::{
     math_utils::{as_int, isqrt},
     serde::deserialize_program::ApTracking,
     types::relocatable::MaybeRelocatable,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    vm::errors::vm_errors::VirtualMachineError,
 };
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
@@ -412,11 +412,11 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;

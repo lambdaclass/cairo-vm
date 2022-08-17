@@ -1,8 +1,9 @@
 use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
 use crate::hint_processor::hint_processor_definition::HintProcessor;
+use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
+use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -18,8 +19,6 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::any::Any;
 use std::collections::HashMap;
-
-use super::vm_memory::memory::MemoryProxy;
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -38,14 +37,6 @@ pub struct HintData {
     //Maps the name of the variable to its reference id
     pub ids: HashMap<String, BigInt>,
     pub ap_tracking_data: ApTracking,
-}
-
-pub struct VMProxy<'a> {
-    pub memory: MemoryProxy<'a>,
-    pub segments: &'a mut MemorySegmentManager,
-    pub run_context: &'a mut RunContext,
-    pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
-    pub prime: &'a BigInt,
 }
 pub struct VirtualMachine {
     pub run_context: RunContext,

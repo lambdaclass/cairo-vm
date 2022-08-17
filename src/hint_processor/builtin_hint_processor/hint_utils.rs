@@ -1,12 +1,12 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
-use crate::vm::vm_core::VMProxy;
-use crate::vm::vm_memory::memory::MemoryProxy;
 use crate::vm::{context::run_context::RunContext, errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;

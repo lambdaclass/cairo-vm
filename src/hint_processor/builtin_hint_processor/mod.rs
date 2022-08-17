@@ -6,6 +6,7 @@ pub mod dict_hint_utils;
 pub mod dict_manager;
 pub mod find_element_hint;
 pub mod hint_code;
+pub mod hint_utils;
 pub mod keccak_utils;
 pub mod math_utils;
 pub mod memcpy_hint_utils;

@@ -1,18 +1,18 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 use super::dict_hint_utils::DICT_ACCESS_SIZE;
-use crate::hint_processor::hint_utils::{
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
     get_relocatable_from_var_name, insert_value_from_var_name,
 };
 use crate::{
-    bigint,
-    serde::deserialize_program::ApTracking,
-    types::{exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    bigint, serde::deserialize_program::ApTracking, types::relocatable::MaybeRelocatable,
+    vm::errors::vm_errors::VirtualMachineError,
 };
 
 fn get_access_indices<'a>(
@@ -309,14 +309,15 @@ pub fn squash_dict(
 
 #[cfg(test)]
 mod tests {
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use std::any::Any;
 
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;

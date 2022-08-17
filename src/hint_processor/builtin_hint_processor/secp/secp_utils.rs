@@ -1,11 +1,11 @@
 use crate::bigint;
 use crate::bigint_str;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_utils::get_relocatable_from_var_name;
+use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VMProxy;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};

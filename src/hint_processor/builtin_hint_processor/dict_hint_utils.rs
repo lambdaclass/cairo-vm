@@ -1,3 +1,4 @@
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use num_bigint::BigInt;
@@ -5,15 +6,15 @@ use num_bigint::BigInt;
 use crate::{
     any_box,
     hint_processor::{
-        hint_processor_definition::HintReference,
-        hint_utils::{
+        builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
             insert_value_into_ap,
         },
+        hint_processor_definition::HintReference,
+        proxies::vm_proxy::VMProxy,
     },
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopesProxy,
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
+    vm::errors::vm_errors::VirtualMachineError,
 };
 
 use super::dict_manager::DictManager;
@@ -271,11 +272,11 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
