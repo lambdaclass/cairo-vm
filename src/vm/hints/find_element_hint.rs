@@ -302,18 +302,6 @@ mod tests {
     }
 
     #[test]
-    fn find_elm_failed_ids_get_addres() {
-        let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Err(VirtualMachineError::FailedToGetIds)
-        );
-    }
-
-    #[test]
     fn find_elm_failed_ids_get_from_mem() {
         let mut vm = vm!();
         vm.run_context.fp = MaybeRelocatable::from((0, 5));
@@ -324,7 +312,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((0, 4))
             ))
         );
     }
@@ -481,19 +469,6 @@ mod tests {
             vm.memory.get(&MaybeRelocatable::from((0, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(2))))
         )
-    }
-
-    #[test]
-    fn search_sorted_lower_failed_to_get_ids() {
-        let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        vm.run_context.fp = MaybeRelocatable::from((0, 12));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Err(VirtualMachineError::FailedToGetIds)
-        );
     }
 
     #[test]

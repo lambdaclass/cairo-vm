@@ -208,7 +208,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 11));
+        vm.run_context.fp = MaybeRelocatable::from((1, 11));
         //Create hint_data
         let ids_data = HashMap::from([
             ("prev_locs".to_string(), HintReference::new_simple(-5)),

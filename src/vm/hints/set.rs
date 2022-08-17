@@ -275,15 +275,4 @@ mod tests {
             ))
         );
     }
-
-    #[test]
-    fn find_elm_failed_ids_get_addres() {
-        let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Err(VirtualMachineError::FailedToGetIds)
-        );
-    }
 }

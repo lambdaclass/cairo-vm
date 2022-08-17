@@ -509,7 +509,7 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        let ids_data = ids_data!["key", "value", "dict_ptr"];
+        let ids_data = ids_data!["default_value"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -1208,7 +1208,7 @@ mod tests {
         //ids.dict_access
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        let ids_data = ids_data!["dict_access_end"];
+        let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1252,7 +1252,7 @@ mod tests {
         dict_manager.trackers.insert(1, tracker);
         vm.memory = memory![((0, 0), (1, 0))];
         vm.segments.add(&mut vm.memory, None);
-        let ids_data = ids_data!["dict_access_end"];
+        let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);

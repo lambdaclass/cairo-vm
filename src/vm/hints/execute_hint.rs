@@ -754,7 +754,7 @@ mod tests {
         // a value is written in the address so the hint cant insert value there
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();

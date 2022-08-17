@@ -534,7 +534,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 4));
         vm.run_context.ap = MaybeRelocatable::from((1, 5));
         //Create hint_data
-        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(4))]);
+        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(-4))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Insert ids.a.high into memory
         vm.memory
@@ -568,7 +568,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 5));
 
         //Create hint_data
-        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(4))]);
+        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(-4))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         //Insert ids.a.high into memory
@@ -604,7 +604,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 5));
 
         //Create hint_data
-        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(4))]);
+        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(-4))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         //Insert ids.a.high into memory
