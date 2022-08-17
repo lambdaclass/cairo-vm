@@ -21,6 +21,7 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
             b.iter(|| {
                 cairo_run::cairo_run(
                     black_box(Path::new(&benchmark_name.1)),
+                    "main",
                     false,
                     &HINT_EXECUTOR,
                 )
