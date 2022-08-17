@@ -6,6 +6,7 @@ use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
+use super::execute_hint::HintReference;
 use super::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
 };
@@ -52,36 +53,31 @@ pub fn set_add(
             insert_value_from_var_name(
                 "index",
                 bigint!(i / elm_size),
-                ids,
                 vm_proxy,
-                hint_ap_tracking,
+                ids_data,
+                ap_tracking,
             )?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
-                ids,
                 vm_proxy,
-                hint_ap_tracking,
+                ids_data,
+                ap_tracking,
             );
         }
     }
-    insert_value_from_var_name(
-        "is_elm_in_set",
-        bigint!(0),
-        &vm_proxy,
-        ids_data,
-        ap_tracking,
-    )
+    insert_value_from_var_name("is_elm_in_set", bigint!(0), vm_proxy, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::hint_executor::HintExecutor;
-    use crate::types::instruction::Register;
     use crate::utils::test_utils::*;
+    use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
@@ -91,19 +87,19 @@ mod tests {
 
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
-    fn init_vm_ids(
+    fn init_vm_ids_data(
         set_ptr: Option<&MaybeRelocatable>,
         elm_size: Option<&MaybeRelocatable>,
         elm_a: Option<&MaybeRelocatable>,
         elm_b: Option<&MaybeRelocatable>,
-    ) -> (VirtualMachine, HashMap<String, BigInt>) {
+    ) -> (VirtualMachine, HashMap<String, HintReference>) {
         let mut vm = vm_with_range_check!();
 
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
 
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = MaybeRelocatable::from((0, 6));
 
         let set_ptr_default = MaybeRelocatable::from((1, 0));
         let elm_size_default = MaybeRelocatable::from(bigint!(2));
@@ -171,78 +167,25 @@ mod tests {
             )
             .expect("Unexpected memory insert fail");
 
-        vm.references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -5,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (1, HintReference::new_simple(-4)),
-            (2, HintReference::new_simple(-3)),
-            (
-                3,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -2,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (
-                4,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: -1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            ),
-            (5, HintReference::new_simple(0)),
-        ]);
-
-        let mut ids = HashMap::<String, BigInt>::new();
-        for (i, s) in [
+        let ids_data = ids_data![
             "is_elm_in_set",
             "index",
             "set_ptr",
             "elm_size",
             "elm_ptr",
-            "set_end_ptr",
-        ]
-        .iter()
-        .enumerate()
-        {
-            ids.insert(s.to_string(), bigint!(i as i32));
-        }
+            "set_end_ptr"
+        ];
 
-        (vm, ids)
+        (vm, ids_data)
     }
 
     #[test]
     fn set_add_new_elem() {
-        let (mut vm, ids) = init_vm_ids(None, None, None, None);
+        let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
 
@@ -254,21 +197,16 @@ mod tests {
 
     #[test]
     fn set_add_already_exists() {
-        let (mut vm, ids) = init_vm_ids(
+        let (mut vm, ids_data) = init_vm_ids_data(
             None,
             None,
             Some(&MaybeRelocatable::from(bigint!(1))),
             Some(&MaybeRelocatable::from(bigint!(3))),
         );
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
 
@@ -285,16 +223,12 @@ mod tests {
 
     #[test]
     fn elm_size_not_int() {
-        let (mut vm, ids) = init_vm_ids(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
+        let (mut vm, ids_data) =
+            init_vm_ids_data(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 3))
             ))
@@ -304,17 +238,12 @@ mod tests {
     #[test]
     fn elm_size_negative() {
         let int = bigint!(-2);
-        let (mut vm, ids) =
-            init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
+        let (mut vm, ids_data) =
+            init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
@@ -322,32 +251,23 @@ mod tests {
     #[test]
     fn elm_size_zero() {
         let int = bigint!(0_i32);
-        let (mut vm, ids) =
-            init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
+        let (mut vm, ids_data) =
+            init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ValueNotPositive(int))
         );
     }
     #[test]
     fn set_ptr_gt_set_end_ptr() {
-        let (mut vm, ids) = init_vm_ids(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
+        let (mut vm, ids_data) =
+            init_vm_ids_data(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::InvalidSetRange(
                 MaybeRelocatable::from((1, 3)),
                 MaybeRelocatable::from((1, 2)),
@@ -357,17 +277,12 @@ mod tests {
 
     #[test]
     fn find_elm_failed_ids_get_addres() {
-        let (mut vm, ids) = init_vm_ids(None, None, None, None);
+        let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
+        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         vm.references.insert(0, HintReference::new_simple(-7));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(
-                vm_proxy,
-                exec_scopes_proxy_ref!(),
-                HINT_CODE,
-                &ids,
-                &ApTracking::new()
-            ),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }

@@ -14,6 +14,8 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
+use super::execute_hint::HintReference;
+
 pub fn usort_enter_scope(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
@@ -87,17 +89,17 @@ pub fn usort_body(
     insert_value_from_var_name(
         "output_len",
         bigint!(output_len),
-        ids,
         vm_proxy,
-        hint_ap_tracking,
+        ids_data,
+        ap_tracking,
     )?;
-    insert_value_from_var_name("output", output_base, &vm_proxy, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output", output_base, vm_proxy, ids_data, ap_tracking)?;
     insert_value_from_var_name(
         "multiplicities",
         multiplicities_base,
-        ids,
         vm_proxy,
-        hint_ap_tracking,
+        ids_data,
+        ap_tracking,
     )
 }
 
@@ -140,13 +142,7 @@ pub fn verify_multiplicity_body(
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
-    insert_value_from_var_name(
-        "next_item_index",
-        pos_diff,
-        &vm_proxy,
-        ids_data,
-        ap_tracking,
-    )?;
+    insert_value_from_var_name("next_item_index", pos_diff, vm_proxy, ids_data, ap_tracking)?;
     exec_scopes_proxy.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())
 }
@@ -158,7 +154,7 @@ mod tests {
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintProcessorData};
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,
@@ -178,25 +174,19 @@ mod tests {
         let hint = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
         let mut vm = vm_with_range_check!();
 
-        const FP_OFFSET_START: usize = 1;
-        vm.run_context.fp = MaybeRelocatable::from((0, FP_OFFSET_START));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
 
         vm.segments.add(&mut vm.memory, None);
         vm.memory = memory![((0, 0), (1, 1)), ((0, 1), 5)];
-        vm.references = HashMap::new();
-        for i in 0..=FP_OFFSET_START {
-            vm.references.insert(
-                i,
-                HintReference::new_simple(i as i32 - FP_OFFSET_START as i32),
-            );
-        }
-        let ids = ids!["input", "input_len"];
+        //Create hint_data
+        let ids_data = ids_data!["input", "input_len"];
+        let hint_data = HintProcessorData::new_default(hint.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("usort_max_size", any_box!(1_u64));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, hint, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

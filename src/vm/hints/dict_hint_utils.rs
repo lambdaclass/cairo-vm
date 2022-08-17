@@ -129,7 +129,7 @@ pub fn dict_read(
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(key)?;
-    insert_value_from_var_name("value", value.clone(), &mut vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("value", value.clone(), vm_proxy, ids_data, ap_tracking)
 }
 
 /* Implements hint:

@@ -17,6 +17,8 @@ use num_traits::{One, Zero};
 use sha2::compress256;
 use std::collections::HashMap;
 
+use super::execute_hint::HintReference;
+
 const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
 const SHA256_STATE_SIZE_FELTS: usize = 8;
 const BLOCK_SIZE: usize = 7;
@@ -38,9 +40,9 @@ pub fn sha256_input(
         } else {
             BigInt::zero()
         },
-        ids,
         vm_proxy,
-        hint_ap_tracking,
+        ids_data,
+        ap_tracking,
     )
 }
 
