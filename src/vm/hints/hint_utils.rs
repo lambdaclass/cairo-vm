@@ -270,7 +270,7 @@ pub fn memcpy_enter_scope(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let len: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("len", &vm_proxy, ids_data, ap_tracking)?.clone());
+        Box::new(get_integer_from_var_name("len", vm_proxy, ids_data, ap_tracking)?.clone());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), len)]));
     Ok(())
 }
@@ -372,7 +372,7 @@ mod tests {
             .unwrap();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            get_integer_from_var_name(var_name, &vm_proxy, &ids_data, &ApTracking::default()),
+            get_integer_from_var_name(var_name, vm_proxy, &ids_data, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))

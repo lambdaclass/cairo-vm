@@ -31,7 +31,7 @@ pub fn verify_zero(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let val_reloc = get_relocatable_from_var_name("val", &vm_proxy, ids_data, ap_tracking)?;
+    let val_reloc = get_relocatable_from_var_name("val", vm_proxy, ids_data, ap_tracking)?;
 
     let val_d0 = vm_proxy.memory.get_integer(&val_reloc)?;
     let val_d1 = vm_proxy.memory.get_integer(&(val_reloc.clone() + 1))?;
@@ -71,7 +71,7 @@ pub fn reduce(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = pack_from_var_name("x", &vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
+    let value = pack_from_var_name("x", vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
@@ -90,7 +90,7 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", &vm_proxy, ids_data, ap_tracking)?;
+    let x_reloc = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
 
     let x_d0 = vm_proxy.memory.get_integer(&x_reloc)?;
     let x_d1 = vm_proxy.memory.get_integer(&(&x_reloc + 1))?;

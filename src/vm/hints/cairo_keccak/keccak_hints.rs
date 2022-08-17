@@ -35,7 +35,7 @@ pub fn keccak_write_args(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let inputs_ptr = get_ptr_from_var_name("inputs", &vm_proxy, ids_data, ap_tracking)?;
+    let inputs_ptr = get_ptr_from_var_name("inputs", vm_proxy, ids_data, ap_tracking)?;
 
     let low = get_integer_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
@@ -79,7 +79,7 @@ pub fn compare_bytes_in_word_nondet(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", &vm_proxy, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
@@ -103,7 +103,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", &vm_proxy, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
@@ -134,7 +134,7 @@ pub fn block_permutation(
         ));
     }
 
-    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     let values = vm_proxy
         .memory
@@ -206,7 +206,7 @@ pub fn cairo_keccak_finalize(
         padding.extend_from_slice(base_padding.as_slice());
     }
 
-    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", &vm_proxy, ids_data, ap_tracking)?;
+    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", vm_proxy, ids_data, ap_tracking)?;
 
     vm_proxy
         .memory

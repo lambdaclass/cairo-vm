@@ -37,9 +37,9 @@ pub fn usort_body(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let input_ptr = get_ptr_from_var_name("input", &vm_proxy, ids_data, ap_tracking)?;
+    let input_ptr = get_ptr_from_var_name("input", vm_proxy, ids_data, ap_tracking)?;
     let usort_max_size = exec_scopes_proxy.get_u64("usort_max_size");
-    let input_len = get_integer_from_var_name("input_len", &vm_proxy, ids_data, ap_tracking)?;
+    let input_len = get_integer_from_var_name("input_len", vm_proxy, ids_data, ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
@@ -109,7 +109,7 @@ pub fn verify_usort(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", &vm_proxy, ids_data, ap_tracking)?.clone();
+    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes_proxy
         .get_mut_dict_int_list_u64_ref("positions_dict")?
         .remove(&value)

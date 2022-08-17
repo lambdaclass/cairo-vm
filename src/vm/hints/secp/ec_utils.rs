@@ -31,7 +31,7 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", &vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
 
     //ids.point.y
     let (y_d0, y_d1, y_d2) = (
@@ -63,7 +63,7 @@ pub fn compute_doubling_slope(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", &vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
         vm_proxy.memory.get_integer(&point_reloc)?,
@@ -108,7 +108,7 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", &vm_proxy, ids_data, ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
         vm_proxy.memory.get_integer(&point0_reloc)?,
@@ -120,7 +120,7 @@ pub fn compute_slope(
     );
 
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", &vm_proxy, ids_data, ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
         vm_proxy.memory.get_integer(&point1_reloc)?,
@@ -166,7 +166,7 @@ pub fn ec_double_assign_new_x(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", &vm_proxy, ids_data, ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm_proxy.memory.get_integer(&slope_reloc)?,
@@ -175,7 +175,7 @@ pub fn ec_double_assign_new_x(
     );
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", &vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
         vm_proxy.memory.get_integer(&point_reloc)?,
@@ -242,7 +242,7 @@ pub fn fast_ec_add_assign_new_x(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", &vm_proxy, ids_data, ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm_proxy.memory.get_integer(&slope_reloc)?,
@@ -251,7 +251,7 @@ pub fn fast_ec_add_assign_new_x(
     );
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", &vm_proxy, ids_data, ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
         vm_proxy.memory.get_integer(&point0_reloc)?,
@@ -263,7 +263,7 @@ pub fn fast_ec_add_assign_new_x(
     );
 
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", &vm_proxy, ids_data, ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
         vm_proxy.memory.get_integer(&point1_reloc)?,
@@ -319,7 +319,7 @@ pub fn ec_mul_inner(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar = get_integer_from_var_name("scalar", &vm_proxy, ids_data, ap_tracking)?
+    let scalar = get_integer_from_var_name("scalar", vm_proxy, ids_data, ap_tracking)?
         .mod_floor(vm_proxy.prime)
         .bitand(bigint!(1));
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, scalar)
@@ -757,7 +757,7 @@ mod tests {
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &&any_box!(hint_data)),
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
 

@@ -71,7 +71,7 @@ pub fn pack_from_var_name(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<BigInt, VirtualMachineError> {
-    let to_pack = get_relocatable_from_var_name(name, &vm_proxy, ids_data, ap_tracking)?;
+    let to_pack = get_relocatable_from_var_name(name, vm_proxy, ids_data, ap_tracking)?;
 
     let d0 = vm_proxy.memory.get_integer(&to_pack)?;
     let d1 = vm_proxy.memory.get_integer(&(&to_pack + 1))?;

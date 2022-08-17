@@ -498,7 +498,7 @@ fn get_ids_data(
         ids_data.insert(
             name.to_string(),
             references
-                .get(&bigint_to_usize(&ref_id)?)
+                .get(&bigint_to_usize(ref_id)?)
                 .ok_or(VirtualMachineError::FailedToGetIds)?
                 .clone(),
         );

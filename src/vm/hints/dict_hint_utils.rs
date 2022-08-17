@@ -86,7 +86,7 @@ pub fn default_dict_new(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", &vm_proxy, ids_data, ap_tracking)?.clone();
+        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -122,8 +122,8 @@ pub fn dict_read(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
@@ -144,9 +144,9 @@ pub fn dict_write(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", &vm_proxy, ids_data, ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
@@ -185,10 +185,10 @@ pub fn dict_update(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
-    let prev_value = get_integer_from_var_name("prev_value", &vm_proxy, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", &vm_proxy, ids_data, ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
+    let prev_value = get_integer_from_var_name("prev_value", vm_proxy, ids_data, ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
@@ -226,7 +226,7 @@ pub fn dict_squash_copy_dict(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end =
-        get_ptr_from_var_name("dict_accesses_end", &vm_proxy, ids_data, ap_tracking)?;
+        get_ptr_from_var_name("dict_accesses_end", vm_proxy, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let dict_manager = dict_manager_ref.borrow();
     let dict_copy: Box<dyn Any> = Box::new(
@@ -256,9 +256,9 @@ pub fn dict_squash_update_ptr(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let squashed_dict_start =
-        get_ptr_from_var_name("squashed_dict_start", &vm_proxy, ids_data, ap_tracking)?;
+        get_ptr_from_var_name("squashed_dict_start", vm_proxy, ids_data, ap_tracking)?;
     let squashed_dict_end =
-        get_ptr_from_var_name("squashed_dict_end", &vm_proxy, ids_data, ap_tracking)?;
+        get_ptr_from_var_name("squashed_dict_end", vm_proxy, ids_data, ap_tracking)?;
     exec_scopes_proxy
         .get_dict_manager()?
         .borrow_mut()

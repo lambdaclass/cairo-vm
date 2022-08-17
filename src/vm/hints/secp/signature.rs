@@ -28,8 +28,8 @@ pub fn div_mod_n_packed_divmod(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = pack_from_var_name("a", &vm_proxy, ids_data, ap_tracking)?;
-    let b = pack_from_var_name("b", &vm_proxy, ids_data, ap_tracking)?;
+    let a = pack_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
+    let b = pack_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
     exec_scopes_proxy.insert_value("a", a);
@@ -60,11 +60,11 @@ pub fn get_point_from_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int = pack_from_var_name("x_cube", &vm_proxy, ids_data, ap_tracking)? % &*SECP_P;
+    let x_cube_int = pack_from_var_name("x_cube", vm_proxy, ids_data, ap_tracking)? % &*SECP_P;
     let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
-    let v = get_integer_from_var_name("v", &vm_proxy, ids_data, ap_tracking)?;
+    let v = get_integer_from_var_name("v", vm_proxy, ids_data, ap_tracking)?;
     if v % 2_i32 != &y % 2_i32 {
         y = -y % &*SECP_P;
     }

@@ -21,10 +21,10 @@ pub fn find_element(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
-    let elm_size_bigint = get_integer_from_var_name("elm_size", &vm_proxy, ids_data, ap_tracking)?;
-    let n_elms = get_integer_from_var_name("n_elms", &vm_proxy, ids_data, ap_tracking)?;
-    let array_start = get_ptr_from_var_name("array_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
+    let elm_size_bigint = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", vm_proxy, ids_data, ap_tracking)?;
+    let array_start = get_ptr_from_var_name("array_ptr", vm_proxy, ids_data, ap_tracking)?;
     let find_element_index = exec_scopes_proxy.get_int("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
@@ -103,11 +103,11 @@ pub fn search_sorted_lower(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let find_element_max_size = exec_scopes_proxy.get_int("find_element_max_size");
-    let n_elms = get_integer_from_var_name("n_elms", &vm_proxy, ids_data, ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", vm_proxy, ids_data, ap_tracking)?;
     let rel_array_ptr =
-        get_relocatable_from_var_name("array_ptr", &vm_proxy, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", &vm_proxy, ids_data, ap_tracking)?;
-    let key = get_integer_from_var_name("key", &vm_proxy, ids_data, ap_tracking)?;
+        get_relocatable_from_var_name("array_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
         return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));

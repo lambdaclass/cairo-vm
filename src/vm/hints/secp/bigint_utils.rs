@@ -26,7 +26,7 @@ pub fn nondet_bigint3(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", &vm_proxy, ids_data, ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name("res", vm_proxy, ids_data, ap_tracking)?;
     let value = exec_scopes_proxy.get_int_ref("value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm_proxy
@@ -43,7 +43,7 @@ pub fn bigint_to_uint256(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_struct = get_relocatable_from_var_name("x", &vm_proxy, ids_data, ap_tracking)?;
+    let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
     let d0 = vm_proxy.memory.get_integer(&x_struct)?;
     let d1 = vm_proxy.memory.get_integer(&(&x_struct + 1))?;
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);

@@ -31,7 +31,7 @@ pub fn sha256_input(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", &vm_proxy, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
 
     insert_value_from_var_name(
         "full_word",
@@ -51,7 +51,7 @@ pub fn sha256_main(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let input_ptr = get_ptr_from_var_name("sha256_start", &vm_proxy, ids_data, ap_tracking)?;
+    let input_ptr = get_ptr_from_var_name("sha256_start", vm_proxy, ids_data, ap_tracking)?;
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
@@ -71,7 +71,7 @@ pub fn sha256_main(
         output.push(bigint!(new_state));
     }
 
-    let output_base = get_ptr_from_var_name("output", &vm_proxy, ids_data, ap_tracking)?;
+    let output_base = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
 
     vm_proxy
         .memory
@@ -105,7 +105,7 @@ pub fn sha256_finalize(
         output.push(bigint!(new_state));
     }
 
-    let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", &vm_proxy, ids_data, ap_tracking)?;
+    let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm_proxy, ids_data, ap_tracking)?;
 
     let mut padding: Vec<BigInt> = Vec::new();
     let zero_vector_message = vec![BigInt::zero(); 16];

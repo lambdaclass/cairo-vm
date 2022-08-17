@@ -48,7 +48,7 @@ pub fn squash_dict_inner_first_iteration(
     //Check that access_indices and key are in scope
     let key = exec_scopes_proxy.get_int("key")?;
     let range_check_ptr =
-        get_ptr_from_var_name("range_check_ptr", &vm_proxy, ids_data, ap_tracking)?;
+        get_ptr_from_var_name("range_check_ptr", vm_proxy, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
@@ -135,7 +135,7 @@ pub fn squash_dict_inner_continue_loop(
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
     let loop_temps_addr =
-        get_relocatable_from_var_name("loop_temps", &vm_proxy, ids_data, ap_tracking)?;
+        get_relocatable_from_var_name("loop_temps", vm_proxy, ids_data, ap_tracking)?;
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes_proxy.get_list_ref("current_access_indices")?;
     //Main Logic
@@ -173,7 +173,7 @@ pub fn squash_dict_inner_used_accesses_assert(
 ) -> Result<(), VirtualMachineError> {
     let key = exec_scopes_proxy.get_int("key")?;
     let n_used_accesses =
-        get_integer_from_var_name("n_used_accesses", &vm_proxy, ids_data, ap_tracking)?;
+        get_integer_from_var_name("n_used_accesses", vm_proxy, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Main Logic
     let access_indices_at_key = access_indices
@@ -255,9 +255,9 @@ pub fn squash_dict(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
-    let address = get_ptr_from_var_name("dict_accesses", &vm_proxy, ids_data, ap_tracking)?;
-    let ptr_diff = get_integer_from_var_name("ptr_diff", &vm_proxy, ids_data, ap_tracking)?;
-    let n_accesses = get_integer_from_var_name("n_accesses", &vm_proxy, ids_data, ap_tracking)?;
+    let address = get_ptr_from_var_name("dict_accesses", vm_proxy, ids_data, ap_tracking)?;
+    let ptr_diff = get_integer_from_var_name("ptr_diff", vm_proxy, ids_data, ap_tracking)?;
+    let n_accesses = get_integer_from_var_name("n_accesses", vm_proxy, ids_data, ap_tracking)?;
     //Get range_check_builtin
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();

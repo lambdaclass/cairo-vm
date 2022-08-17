@@ -454,7 +454,7 @@ mod tests {
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &&any_box!(hint_data))
+            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .expect("Error while executing hint");
         //Check that ap now contains false (0)
         assert_eq!(

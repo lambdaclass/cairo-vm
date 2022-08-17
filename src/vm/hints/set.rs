@@ -16,12 +16,12 @@ pub fn set_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let set_ptr = get_ptr_from_var_name("set_ptr", &vm_proxy, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", &vm_proxy, ids_data, ap_tracking)?
+    let set_ptr = get_ptr_from_var_name("set_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-    let elm_ptr = get_ptr_from_var_name("elm_ptr", &vm_proxy, ids_data, ap_tracking)?;
-    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", &vm_proxy, ids_data, ap_tracking)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
@@ -240,7 +240,7 @@ mod tests {
     fn elm_size_negative() {
         let int = bigint!(-2);
         let (mut vm, ids_data) =
-            init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
+            init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int)), None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(

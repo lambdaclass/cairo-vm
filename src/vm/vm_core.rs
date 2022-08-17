@@ -2236,7 +2236,7 @@ mod tests {
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.accessed_addresses = Some(Vec::new());
-        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
+        vm.memory = memory_from(mem_arr, 2).unwrap();
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::Int(bigint!(0x4)),
@@ -2285,8 +2285,7 @@ mod tests {
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
 
-        vm.memory =
-            memory_from(mem_arr.clone(), 1).expect("Unexpected memory initialization failure");
+        vm.memory = memory_from(mem_arr, 1).expect("Unexpected memory initialization failure");
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((0, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 0));
@@ -2871,7 +2870,7 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
-        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
+        vm.memory = memory_from(mem_arr, 2).unwrap();
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));

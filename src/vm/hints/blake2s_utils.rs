@@ -76,7 +76,7 @@ pub fn compute_blake2s(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let output = get_ptr_from_var_name("output", &vm_proxy, ids_data, ap_tracking)?;
+    let output = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
     compute_blake2s_func(vm_proxy.segments, &mut vm_proxy.memory, output)
 }
 
@@ -109,7 +109,7 @@ pub fn finalize_blake2s(
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
     let blake2s_ptr_end =
-        get_ptr_from_var_name("blake2s_ptr_end", &vm_proxy, ids_data, ap_tracking)?;
+        get_ptr_from_var_name("blake2s_ptr_end", vm_proxy, ids_data, ap_tracking)?;
     let message: [u32; 16] = [0; 16];
     let mut modified_iv = IV;
     modified_iv[0] = IV[0] ^ 0x01010020;
@@ -147,9 +147,9 @@ pub fn blake2s_add_uint256(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", &vm_proxy, ids_data, ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", &vm_proxy, ids_data, ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", &vm_proxy, ids_data, ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name("data", vm_proxy, ids_data, ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
     let low = vm_proxy.memory.get_integer(&low_addr)?.clone();
     let high = vm_proxy.memory.get_integer(&high_addr)?.clone();
     //Main logic
@@ -203,9 +203,9 @@ pub fn blake2s_add_uint256_bigend(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
-    let data_ptr = get_ptr_from_var_name("data", &vm_proxy, ids_data, ap_tracking)?;
-    let low_addr = get_relocatable_from_var_name("low", &vm_proxy, ids_data, ap_tracking)?;
-    let high_addr = get_relocatable_from_var_name("high", &vm_proxy, ids_data, ap_tracking)?;
+    let data_ptr = get_ptr_from_var_name("data", vm_proxy, ids_data, ap_tracking)?;
+    let low_addr = get_relocatable_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
+    let high_addr = get_relocatable_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
     let low = vm_proxy.memory.get_integer(&low_addr)?.clone();
     let high = vm_proxy.memory.get_integer(&high_addr)?.clone();
     //Main logic
