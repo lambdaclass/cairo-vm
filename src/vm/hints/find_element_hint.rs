@@ -153,8 +153,8 @@ mod tests {
     use super::*;
     use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
-    use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
     use crate::utils::test_utils::vm;
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintProcessorData};
@@ -309,18 +309,6 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let hint_data =
             HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        vm.references.insert(
-            0,
-            HintReference {
-                dereference: true,
-                register: Register::FP,
-                offset1: -7,
-                offset2: 0,
-                inner_dereference: false,
-                ap_tracking_data: None,
-                immediate: None,
-            },
-        );
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),

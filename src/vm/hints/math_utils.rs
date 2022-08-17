@@ -1136,8 +1136,6 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        //Create references
-        vm.references = references!(1);
         // //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
@@ -1159,8 +1157,6 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        //Create references
-        vm.references = references!(1);
         // //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
@@ -1182,8 +1178,6 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        //Create references
-        vm.references = references!(1);
         vm.segments.add(&mut vm.memory, None);
         // //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
@@ -1214,8 +1208,6 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        //Create references
-        vm.references = references!(1);
         // //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 13));
@@ -1236,8 +1228,6 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        //Create references
-        vm.references = references!(1);
         // //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
@@ -1259,7 +1249,6 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        vm.references = references!(1);
         // //Initialize ap, fp
         vm.run_context.ap = MaybeRelocatable::from((1, 0));
         vm.run_context.fp = MaybeRelocatable::from((0, 1));

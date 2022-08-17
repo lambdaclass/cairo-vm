@@ -229,8 +229,6 @@ impl CairoRunner {
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
-        self.vm.references = self.get_reference_list();
-        self.vm.hint_data = self.get_hint_data_dictionary()?;
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
@@ -264,7 +262,10 @@ impl CairoRunner {
     }
 
     //Gets the data used by the HintProcessor to execute each hint
-    fn get_hint_data_dictionary(&self) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, RunnerError> {
+    fn get_hint_data_dictionary(
+        &self,
+        references: &HashMap<usize, HintReference>,
+    ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
         for (hint_index, hints) in self.program.hints.iter() {
             for hint in hints {
@@ -272,20 +273,29 @@ impl CairoRunner {
                     hint.code.clone(),
                     &hint.flow_tracking_data.ap_tracking,
                     &hint.flow_tracking_data.reference_ids,
-                    &self.vm.references,
+                    references,
                 );
                 hint_data_dictionary
                     .entry(*hint_index)
                     .or_insert(vec![])
-                    .push(hint_data.map_err(|_| RunnerError::CompileHintFail(hint.code.clone()))?);
+                    .push(
+                        hint_data
+                            .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
+                    );
             }
         }
         Ok(hint_data_dictionary)
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
+        let references = self.get_reference_list();
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references)?;
         while self.vm.run_context.pc != address {
-            self.vm.step(self.hint_executor, &mut self.exec_scopes)?;
+            self.vm.step(
+                self.hint_executor,
+                &mut self.exec_scopes,
+                &hint_data_dictionary,
+            )?;
         }
         Ok(())
     }

@@ -84,13 +84,11 @@ mod tests {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
         // insert ids into memory
         vm.memory = memory![((0, 1), 5)];
         let ids_data = ids_data!["n"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        //Create references
-        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
@@ -102,14 +100,12 @@ mod tests {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = MaybeRelocatable::from((0, 2));
         // insert ids.n into memory
         // insert a relocatable value in the address of ids.len so that it raises an error.
         vm.memory = memory![((0, 1), (0, 0))];
         let ids_data = ids_data!["n"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        // create references
-        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),

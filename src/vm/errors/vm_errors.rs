@@ -112,6 +112,7 @@ pub enum VirtualMachineError {
     InvalidBlockSize(usize),
     SliceToArrayError,
     WrongHintData,
+    CompileHintFail(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -317,6 +318,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::WrongHintData => {
                 write!(f, "HintProcessor failed retrieve the compiled data necessary for hint execution")
             },
+            VirtualMachineError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
         }
     }
 }

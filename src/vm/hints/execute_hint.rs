@@ -83,7 +83,6 @@ pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
         segments: &mut vm.segments,
         run_context: &mut vm.run_context,
         builtin_runners: &vm.builtin_runners,
-        references: &vm.references,
         prime: &vm.prime,
     }
 }
