@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1660769368170,
+  "lastUpdate": 1660770122919,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -22867,6 +22867,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 271674727,
             "range": "± 5036402",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dcb4cdb10fa057572b6e99dee18f62ecd12f3a13",
+          "message": "Merge pull request #375 from lambdaclass/refactor-reference_ids\n\nRefactor reference_ids from HashMap<String, BigInt> to HashMap<String, usize>",
+          "timestamp": "2022-08-17T17:49:57-03:00",
+          "tree_id": "f8ef5ed7f18f61eb6fe0b5a3f35dacc06883520f",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/commit/dcb4cdb10fa057572b6e99dee18f62ecd12f3a13"
+        },
+        "date": 1660770121088,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1723732506,
+            "range": "± 5495785",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 601767782,
+            "range": "± 1680723",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 297201660,
+            "range": "± 2160230",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1480468377,
+            "range": "± 3327866",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 223371615,
+            "range": "± 1963918",
             "unit": "ns/iter"
           }
         ]
