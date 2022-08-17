@@ -108,9 +108,8 @@ pub fn get_address_from_var_name(
             .ok_or(VirtualMachineError::FailedToGetIds)?,
         vm_proxy.run_context,
         &vm_proxy.memory,
-        Some(ap_tracking),
-    )?
-    .ok_or(VirtualMachineError::FailedToGetIds)
+        ap_tracking,
+    )
 }
 
 //Gets the address, as a Relocatable of the variable given by the ids name
@@ -164,14 +163,12 @@ fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
     memory: &MemoryProxy,
-    //TODO: Check if this option is necessary
-    hint_ap_tracking: Option<&ApTracking>,
-    //TODO: Change this to Result
-) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
+    hint_ap_tracking: &ApTracking,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         Register::FP => run_context.fp.clone(),
         Register::AP => {
-            if hint_ap_tracking.is_none() || hint_reference.ap_tracking_data.is_none() {
+            if hint_reference.ap_tracking_data.is_none() {
                 return Err(VirtualMachineError::NoneApTrackingData);
             }
 
@@ -183,7 +180,7 @@ fn compute_addr_from_reference(
                     // this could be refactored to use pattern match but it will be
                     // unnecesarily verbose
                     hint_reference.ap_tracking_data.as_ref().unwrap(),
-                    hint_ap_tracking.unwrap(),
+                    hint_ap_tracking,
                 )?
             } else {
                 return Err(VirtualMachineError::InvalidApValue(run_context.ap.clone()));
@@ -195,14 +192,14 @@ fn compute_addr_from_reference(
         if hint_reference.offset1.is_negative()
             && relocatable.offset < hint_reference.offset1.abs() as usize
         {
-            return Ok(None);
+            return Err(VirtualMachineError::FailedToGetIds);
         }
         if !hint_reference.inner_dereference {
-            return Ok(Some(MaybeRelocatable::from((
+            return Ok(MaybeRelocatable::from((
                 relocatable.segment_index,
                 (relocatable.offset as i32 + hint_reference.offset1 + hint_reference.offset2)
                     as usize,
-            ))));
+            )));
         } else {
             let addr = MaybeRelocatable::from((
                 relocatable.segment_index,
@@ -212,25 +209,25 @@ fn compute_addr_from_reference(
             match memory.get(&addr) {
                 Ok(Some(&MaybeRelocatable::RelocatableValue(ref dereferenced_addr))) => {
                     if let Some(imm) = &hint_reference.immediate {
-                        return Ok(Some(MaybeRelocatable::from((
+                        return Ok(MaybeRelocatable::from((
                             dereferenced_addr.segment_index,
                             dereferenced_addr.offset
                                 + imm
                                     .to_usize()
                                     .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-                        ))));
+                        )));
                     } else {
-                        return Ok(Some(MaybeRelocatable::from((
+                        return Ok(MaybeRelocatable::from((
                             dereferenced_addr.segment_index,
                             (dereferenced_addr.offset as i32 + hint_reference.offset2) as usize,
-                        ))));
+                        )));
                     }
                 }
 
-                _none_or_error => return Ok(None),
+                _none_or_error => return Err(VirtualMachineError::FailedToGetIds),
             }
         }
     }
 
-    Ok(None)
+    Err(VirtualMachineError::FailedToGetIds)
 }
