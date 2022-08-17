@@ -380,6 +380,48 @@ mod tests {
     }
 
     #[test]
+    fn run_split_64_with_big_a() {
+        let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
+        let mut vm = vm_with_range_check!();
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        //Initialize fp
+        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+
+        //Create ids_data
+        let ids_data = HashMap::from([
+            ("a".to_string(), HintReference::new_simple(-3)),
+            ("high".to_string(), HintReference::new_simple(1)),
+            ("low".to_string(), HintReference::new_simple(0)),
+        ]);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        //Insert ids.a into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint_str!(b"400066369019890261321163226850167045262")),
+            )
+            .unwrap();
+
+        //Execute the hint
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        assert_eq!(
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            Ok(())
+        );
+
+        //Check hint memory inserts
+        //ids.low, ids.high
+        check_memory![
+            &vm.memory,
+            ((1, 10), 2279400676465785998_u64),
+            ((1, 11), 21687641321487626429_u128)
+        ];
+    }
+
+    #[test]
     fn run_split_64_memory_error() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();

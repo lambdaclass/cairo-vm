@@ -9,10 +9,11 @@ use std::path::Path;
 
 pub fn cairo_run(
     path: &Path,
+    entrypoint: &str,
     trace_enabled: bool,
     hint_executor: &'static dyn HintExecutor,
 ) -> Result<CairoRunner, CairoRunError> {
-    let program = match Program::new(path) {
+    let program = match Program::new(path, entrypoint) {
         Ok(program) => program,
         Err(error) => return Err(CairoRunError::Program(error)),
     };
@@ -122,13 +123,14 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use std::io::Read;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     fn run_test_program(program_path: &Path) -> Result<CairoRunner, CairoRunError> {
-        let program = match Program::new(program_path) {
+        let program = match Program::new(program_path, "main") {
             Ok(program) => program,
             Err(e) => return Err(CairoRunError::Program(e)),
         };
@@ -147,6 +149,24 @@ mod tests {
         assert!(cairo_runner.run_until_pc(end).is_ok());
 
         Ok(cairo_runner)
+    }
+
+    #[test]
+    fn cairo_run_custom_entry_point() {
+        let program_path = Path::new("cairo_programs/not_main.json");
+        let program = Program::new(program_path, "not_main").unwrap();
+
+        let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR);
+        cairo_runner.initialize_segments(None);
+
+        let end = cairo_runner.initialize_main_entrypoint().unwrap();
+
+        assert!(cairo_runner.initialize_vm().is_ok());
+        assert!(cairo_runner.run_until_pc(end).is_ok());
+        assert!(cairo_runner.relocate().is_ok());
+        // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
+        // Memory location was found empirically and simply hardcoded
+        assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(123)));
     }
 
     fn compare_files(file_path_1: &Path, file_path_2: &Path) -> io::Result<()> {
@@ -173,7 +193,7 @@ mod tests {
         // it should fail when the program is loaded.
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
 
-        assert!(cairo_run(no_data_program_path, false, &HINT_EXECUTOR).is_err());
+        assert!(cairo_run(no_data_program_path, "main", false, &HINT_EXECUTOR).is_err());
     }
 
     #[test]
@@ -182,7 +202,7 @@ mod tests {
         // it should fail when trying to run initialize_main_entrypoint.
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
 
-        assert!(cairo_run(no_main_program_path, false, &HINT_EXECUTOR).is_err());
+        assert!(cairo_run(no_main_program_path, "main", false, &HINT_EXECUTOR).is_err());
     }
 
     #[test]
@@ -191,7 +211,7 @@ mod tests {
         // decode the instruction.
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
 
-        assert!(cairo_run(invalid_memory, false, &HINT_EXECUTOR).is_err());
+        assert!(cairo_run(invalid_memory, "main", false, &HINT_EXECUTOR).is_err());
     }
 
     #[test]
@@ -242,7 +262,7 @@ mod tests {
     #[test]
     fn run_with_no_trace() {
         let program_path = Path::new("cairo_programs/struct.json");
-        let program = Program::new(program_path).unwrap();
+        let program = Program::new(program_path, "main").unwrap();
         let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR);
 
         cairo_runner.initialize_segments(None);
