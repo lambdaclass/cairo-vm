@@ -6,7 +6,7 @@ use num_bigint::BigInt;
 use crate::any_box;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
-use crate::types::{hint_executor::HintExecutor, instruction::Register};
+use crate::types::{hint_executor::HintProcessor, instruction::Register};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::blake2s_utils::{
     blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
@@ -122,9 +122,9 @@ impl HintProcessorData {
         }
     }
 }
-pub struct BuiltinHintExecutor {}
+pub struct BuiltinHintProcessor {}
 
-impl HintExecutor for BuiltinHintExecutor {
+impl HintProcessor for BuiltinHintProcessor {
     fn execute_hint(
         &self,
         vm_proxy: &mut VMProxy,
@@ -519,8 +519,8 @@ mod tests {
 
     use super::*;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn run_alloc_hint_empty_memory() {

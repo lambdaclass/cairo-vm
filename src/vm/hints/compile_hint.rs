@@ -1,4 +1,4 @@
-impl HintExecutor for BuiltinHintExecutor {
+impl HintProcessor for BuiltinHintProcessor {
 
 fn compile_hint(&self, hint_code: &str,ap_tracking_data:&ApTracking, reference_ids: HashMap<String, BigInt>, references: &HashMap<usize, HintReference>) -> Box<dyn Any>{
         

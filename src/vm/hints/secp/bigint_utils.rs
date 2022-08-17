@@ -59,17 +59,17 @@ mod tests {
 
     use super::*;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
-    use crate::types::hint_executor::HintExecutor;
+    use crate::types::hint_executor::HintProcessor;
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintProcessorData};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::{
         bigint, bigint_str,
         types::relocatable::MaybeRelocatable,
-        vm::hints::execute_hint::{BuiltinHintExecutor, HintReference},
+        vm::hints::execute_hint::{BuiltinHintProcessor, HintReference},
     };
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     fn run_nondet_bigint3_ok() {

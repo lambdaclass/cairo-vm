@@ -278,19 +278,19 @@ mod tests {
 
     use num_bigint::{BigInt, Sign};
 
-    use crate::types::hint_executor::HintExecutor;
+    use crate::types::hint_executor::HintProcessor;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::dict_manager::DictTracker;
     use crate::vm::hints::dict_manager::{DictManager, Dictionary};
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, relocatable};
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     use super::*;
     #[test]

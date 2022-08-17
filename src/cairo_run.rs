@@ -1,4 +1,4 @@
-use crate::types::{hint_executor::HintExecutor, program::Program};
+use crate::types::{hint_executor::HintProcessor, program::Program};
 use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
@@ -11,7 +11,7 @@ pub fn cairo_run(
     path: &Path,
     entrypoint: &str,
     trace_enabled: bool,
-    hint_executor: &'static dyn HintExecutor,
+    hint_executor: &'static dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::new(path, entrypoint) {
         Ok(program) => program,
@@ -124,10 +124,10 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 mod tests {
     use super::*;
     use crate::bigint;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
     use std::io::Read;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     fn run_test_program(program_path: &Path) -> Result<CairoRunner, CairoRunError> {
         let program = match Program::new(program_path, "main") {

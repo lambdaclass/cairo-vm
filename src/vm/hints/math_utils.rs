@@ -419,7 +419,7 @@ mod tests {
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintProcessor};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
@@ -431,8 +431,8 @@ mod tests {
     };
     use num_bigint::Sign;
     use std::any::Any;
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     use super::*;
     #[test]

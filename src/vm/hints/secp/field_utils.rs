@@ -152,7 +152,7 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
     use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
@@ -161,8 +161,8 @@ mod tests {
     use num_bigint::Sign;
     use std::any::Any;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn run_verify_zero_ok() {

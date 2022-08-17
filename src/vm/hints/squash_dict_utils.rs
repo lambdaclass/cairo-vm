@@ -318,15 +318,15 @@ mod tests {
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{
-        get_vm_proxy, BuiltinHintExecutor, HintProcessorData, HintReference,
+        get_vm_proxy, BuiltinHintProcessor, HintProcessorData, HintReference,
     };
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{any_box, bigint};
     use num_bigint::Sign;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";

@@ -3,7 +3,7 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::types::program::Program;
 use crate::types::{
-    hint_executor::HintExecutor,
+    hint_executor::HintProcessor,
     relocatable::{relocate_value, MaybeRelocatable, Relocatable},
 };
 use crate::utils::{is_subsequence, to_field_element};
@@ -36,14 +36,14 @@ pub struct CairoRunner {
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
-    hint_executor: &'static dyn HintExecutor,
+    hint_executor: &'static dyn HintProcessor,
 }
 
 impl CairoRunner {
     pub fn new(
         program: &Program,
         trace_enabled: bool,
-        hint_executor: &'static dyn HintExecutor,
+        hint_executor: &'static dyn HintProcessor,
     ) -> CairoRunner {
         let builtin_ordered_list = vec![
             String::from("output"),
@@ -426,12 +426,12 @@ mod tests {
 
     use super::*;
     use crate::serde::deserialize_program::ReferenceManager;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
     use crate::vm::trace::trace_entry::TraceEntry;
     use crate::{bigint_str, relocatable};
     use std::collections::HashMap;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     #[should_panic]

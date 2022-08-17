@@ -39,7 +39,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintProcessor, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
@@ -48,8 +48,8 @@ mod tests {
 
     use super::*;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn run_pow_ok() {

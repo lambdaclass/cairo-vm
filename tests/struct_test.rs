@@ -2,11 +2,11 @@ use std::path::Path;
 
 use cleopatra_cairo::{
     types::program::Program,
-    vm::hints::execute_hint::BuiltinHintExecutor,
+    vm::hints::execute_hint::BuiltinHintProcessor,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };
 
-static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 #[test]
 fn struct_integration_test() {
     let program = Program::new(Path::new("cairo_programs/struct.json"), "main")

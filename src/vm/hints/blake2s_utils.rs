@@ -263,14 +263,14 @@ mod tests {
         bigint,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{BuiltinHintExecutor, HintReference},
+            hints::execute_hint::{BuiltinHintProcessor, HintReference},
         },
     };
     use num_bigint::Sign;
     use std::any::Any;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn compute_blake2s_output_offset_zero() {

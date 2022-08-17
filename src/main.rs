@@ -4,7 +4,7 @@ use cleopatra_cairo::cairo_run;
 use cleopatra_cairo::vm::errors::cairo_run_errors::CairoRunError;
 use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
 use cleopatra_cairo::vm::errors::trace_errors::TraceError;
-use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintExecutor;
+use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintProcessor;
 use std::path::PathBuf;
 
 #[cfg(feature = "with_mimalloc")]
@@ -31,7 +31,7 @@ struct Args {
 }
 
 fn main() -> Result<(), CairoRunError> {
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();

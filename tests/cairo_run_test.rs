@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use cleopatra_cairo::cairo_run;
-use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintExecutor;
+use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintProcessor;
 
-static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
 #[test]
 fn cairo_run_test() {

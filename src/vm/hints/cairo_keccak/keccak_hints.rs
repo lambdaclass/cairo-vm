@@ -252,11 +252,11 @@ mod tests {
     use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::hint_executor::HintExecutor;
+    use crate::types::hint_executor::HintProcessor;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::get_vm_proxy;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
     use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::hints::execute_hint::HintReference;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
@@ -264,7 +264,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     fn keccak_write_args_valid_test() {

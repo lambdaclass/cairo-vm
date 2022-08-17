@@ -64,7 +64,7 @@ mod tests {
     use crate::any_box;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintProcessorData};
+    use crate::vm::hints::execute_hint::{BuiltinHintProcessor, HintProcessorData};
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,
@@ -76,8 +76,8 @@ mod tests {
     };
     use num_bigint::Sign;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn memset_enter_scope_valid() {

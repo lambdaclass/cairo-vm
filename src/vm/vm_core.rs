@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
-use crate::types::hint_executor::HintExecutor;
+use crate::types::hint_executor::HintProcessor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -486,7 +486,7 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &'static dyn HintExecutor,
+        hint_executor: &'static dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
@@ -695,7 +695,7 @@ mod tests {
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintProcessorData};
+    use crate::vm::hints::execute_hint::{BuiltinHintProcessor, HintProcessorData};
     use crate::vm::runners::builtin_runner::{
         BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
     };
@@ -706,7 +706,7 @@ mod tests {
     use num_traits::FromPrimitive;
     use std::collections::HashSet;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,

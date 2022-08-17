@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use super::exec_scope::ExecutionScopesProxy;
 
-pub trait HintExecutor {
+pub trait HintProcessor {
     fn execute_hint(
         &self,
         vm_proxy: &mut VMProxy,

@@ -159,15 +159,15 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{get_vm_proxy, HintProcessorData};
     use crate::vm::hints::{
-        execute_hint::{BuiltinHintExecutor, HintReference},
+        execute_hint::{BuiltinHintProcessor, HintReference},
         hint_code,
     };
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
     use std::any::Any;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
-    use crate::types::hint_executor::HintExecutor;
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    use crate::types::hint_executor::HintProcessor;
 
     fn init_vm_ids_data(
         values_to_override: HashMap<String, MaybeRelocatable>,
