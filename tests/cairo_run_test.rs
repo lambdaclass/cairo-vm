@@ -17,6 +17,226 @@ fn cairo_run_test() {
 }
 
 #[test]
+fn cairo_run_array_sum() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/array_sum.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_big_struct() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/big_struct.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_call_function_assign_param_by_name() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/call_function_assign_param_by_name.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_function_return() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/function_return.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_function_return_if_print() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/function_return_if_print.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_function_return_to_variable() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/function_return_to_variable.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_if_and_prime() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/if_and_prime.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_if_in_function() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/if_in_function.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_if_list() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/if_list.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_jmp() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/jmp.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_jmp_if_condition() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/jmp_if_condition.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_pointers() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/pointers.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_print() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/print.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_return() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/return.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_reversed_register_instructions() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/reversed_register_instructions.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_simple_print() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/simple_print.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_test_addition_if() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/test_addition_if.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_test_reverse_if() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/test_reverse_if.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_test_subtraction_if() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/test_subtraction_if.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
+fn cairo_run_use_imported_module() {
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/use_imported_module.json"),
+        "main",
+        false,
+        &HINT_EXECUTOR,
+    )
+    .expect("Couldn't run program");
+}
+
+#[test]
 fn cairo_run_bitwise_output() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/bitwise_output.json"),
