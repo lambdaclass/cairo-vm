@@ -127,7 +127,7 @@ mod tests {
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.memory = memory![((0, 1), 5)];
-        let mut ids_data = ids_data!["continue_loop"];
+        let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
@@ -156,8 +156,7 @@ mod tests {
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.memory = memory![((0, 2), 5)];
-        let mut ids = HashMap::<String, BigInt>::new();
-        let mut ids_data = ids_data!["continue_loop"];
+        let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);

@@ -186,22 +186,6 @@ pub mod test_utils {
     }
     pub(crate) use vm;
 
-    macro_rules! ids {
-        ( $( $name: expr ),* ) => {
-            {
-                let mut ids = HashMap::<String, BigInt>::new();
-                let mut num = -1;
-                $(
-                    num += 1;
-                    ids_inner!($name, num, ids);
-
-                )*
-                ids
-            }
-        };
-    }
-    pub(crate) use ids;
-
     macro_rules! ids_data {
         ( $( $name: expr ),* ) => {
             {
@@ -216,13 +200,6 @@ pub mod test_utils {
         };
     }
     pub(crate) use ids_data;
-
-    macro_rules! ids_inner {
-        ( $name: expr, $num: expr, $ids: expr ) => {
-            $ids.insert(String::from($name), bigint!($num))
-        };
-    }
-    pub(crate) use ids_inner;
 
     macro_rules! exec_scopes_ref {
         () => {

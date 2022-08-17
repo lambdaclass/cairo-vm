@@ -333,7 +333,7 @@ mod tests {
         let var_name: &str = "variable";
 
         //Create ids_data
-        let mut ids_data = ids_data![var_name];
+        let ids_data = ids_data![var_name];
 
         //Insert ids.prev_locs.exp into memory
         vm.memory
@@ -361,7 +361,7 @@ mod tests {
         let var_name: &str = "variable";
 
         //Create ids_data
-        let mut ids_data = ids_data![var_name];
+        let ids_data = ids_data![var_name];
 
         //Insert ids.variable into memory as a RelocatableValue
         vm.memory

@@ -482,7 +482,6 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        vm.references = references!(1);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);

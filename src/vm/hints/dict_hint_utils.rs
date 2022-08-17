@@ -303,7 +303,6 @@ mod tests {
             .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         HINT_EXECUTOR

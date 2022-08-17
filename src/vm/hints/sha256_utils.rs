@@ -146,11 +146,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.memory = memory![((0, 1), 7)];
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
-        let ids = ids!["full_word", "n_bytes"];
-        vm.references = references!(2);
+        let ids_data = ids_data!["full_word", "n_bytes"];
         let vm_proxy = &mut &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            sha256_input(vm_proxy, &ids, Some(&ApTracking::new())),
+            sha256_input(vm_proxy, &ids_data, &ApTracking::new()),
             Ok(())
         );
 
@@ -162,11 +161,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.memory = memory![((0, 1), 3)];
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
-        let ids = ids!["full_word", "n_bytes"];
-        vm.references = references!(2);
+        let ids_data = ids_data!["full_word", "n_bytes"];
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            sha256_input(vm_proxy, &ids, Some(&ApTracking::new())),
+            sha256_input(vm_proxy, &ids_data, &ApTracking::new()),
             Ok(())
         );
 
@@ -199,14 +197,9 @@ mod tests {
             ((2, 9), 0)
         ];
         vm.run_context.fp = MaybeRelocatable::from((0, 2));
-        vm.references = references!(2);
-
-        let ids = ids!["sha256_start", "output"];
+        let ids_data = ids_data!["sha256_start", "output"];
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert_eq!(
-            sha256_main(vm_proxy, &ids, Some(&ApTracking::new())),
-            Ok(())
-        );
+        assert_eq!(sha256_main(vm_proxy, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![
             &vm.memory,

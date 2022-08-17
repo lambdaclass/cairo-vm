@@ -527,7 +527,6 @@ mod tests {
         let mut vm = vm!();
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         HINT_EXECUTOR
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
@@ -894,7 +893,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids_data = ids_data!["length", "data", "high", "low"];
+        let ids_data = ids_data!["length", "data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let mut exec_scopes = ExecutionScopes::new();
@@ -966,9 +965,8 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids_data = ids_data!["length", "data", "high", "low"];
+        let ids_data = ids_data!["length", "data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let mut ids = HashMap::<String, BigInt>::new();
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(2)));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1038,7 +1036,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids_data = ids_data!["length", "data", "high", "low"];
+        let ids_data = ids_data!["length", "data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1106,7 +1104,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids_data = ids_data!["length", "data", "high", "low"];
+        let ids_data = ids_data!["length", "data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(10)));

@@ -498,7 +498,7 @@ impl VirtualMachine {
                     .offset,
             )
         {
-            for hint_data in hint_list.clone().iter() {
+            for hint_data in hint_list.iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 let mut vm_proxy = get_vm_proxy(self);
                 hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
@@ -3607,13 +3607,13 @@ mod tests {
             Vec::new(),
             true,
         );
-        vm.hint_data.insert(
-            0,
-            vec![&any_box!(HintProcessorData::new_default(
+        let hint_data_dictionary = HashMap::from([(
+            0_usize,
+            vec![any_box!(HintProcessorData::new_default(
                 "memory[ap] = segments.add()".to_string(),
                 HashMap::new(),
             ))],
-        );
+        )]);
 
         //Create program and execution segments
         for _ in 0..2 {
@@ -3696,7 +3696,7 @@ mod tests {
         //Run Steps
         for _ in 0..6 {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &hint_data_dictionary),
                 Ok(())
             );
         }

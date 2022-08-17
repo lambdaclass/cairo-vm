@@ -44,6 +44,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
+    use std::any::Any;
 
     use super::*;
 
@@ -62,7 +63,7 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::from((1, 12));
 
         //Create hint_data
-        let mut ids_data = HashMap::from([
+        let ids_data = HashMap::from([
             (
                 "prev_locs".to_string(),
                 HintReference {
@@ -94,7 +95,14 @@ mod tests {
                 },
             ),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let hint_data = HintProcessorData {
+            code: hint_code.to_string(),
+            ids_data,
+            ap_tracking: ApTracking {
+                group: 4,
+                offset: 4,
+            },
+        };
         //Insert ids.prev_locs.exp into memory
         vm.memory
             .insert(
@@ -103,10 +111,6 @@ mod tests {
             )
             .unwrap();
 
-        let ap_tracking = ApTracking {
-            group: 4,
-            offset: 4,
-        };
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
@@ -226,8 +230,6 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(3)),
             )
             .unwrap();
-
-        let ap_tracking: ApTracking = ApTracking::new();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
