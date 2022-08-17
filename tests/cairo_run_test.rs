@@ -650,6 +650,7 @@ fn cairo_run_dict_integration() {
 fn cairo_run_secp_integration() {
     cairo_run::cairo_run(
         Path::new("cairo_programs/secp_integration_tests.json"),
+        "main",
         false,
         &HINT_EXECUTOR,
     )
