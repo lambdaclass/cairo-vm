@@ -30,7 +30,7 @@ pub struct HintParams {
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
-    #[serde(deserialize_with = "deserialize_map_to_string_and_bigint_hashmap")]
+    #[serde(deserialize_with = "deserialize_map_to_string_and_uint_hashmap")]
     pub reference_ids: HashMap<String, usize>,
 }
 
@@ -226,7 +226,7 @@ pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d.deserialize_seq(MaybeRelocatableVisitor)
 }
 
-pub fn deserialize_map_to_string_and_bigint_hashmap<'de, D: Deserializer<'de>>(
+pub fn deserialize_map_to_string_and_uint_hashmap<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<HashMap<String, usize>, D::Error> {
     d.deserialize_map(ReferenceIdsVisitor)
