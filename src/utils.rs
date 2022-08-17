@@ -199,7 +199,6 @@ pub mod test_utils {
         ( $( $name: expr ),* ) => {
             {
                 let mut ids = HashMap::<String, usize>::new();
-                //let mut num = -1;
                 let mut num = -1;
                 $(
                     num += 1;
