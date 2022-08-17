@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1660769238084,
+  "lastUpdate": 1660769368170,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -22817,6 +22817,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
             "value": 1517067647,
             "range": "± 1388377",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "20a4d698a5f68167f35dc89639d9792282337368",
+          "message": "[TESTS] Add secp integration tests",
+          "timestamp": "2022-08-15T09:06:05Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/370/commits/20a4d698a5f68167f35dc89639d9792282337368"
+        },
+        "date": 1660769362613,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2035063342,
+            "range": "± 27297811",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 825751626,
+            "range": "± 13350843",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 388818302,
+            "range": "± 6465870",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1733385460,
+            "range": "± 17664032",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 271674727,
+            "range": "± 5036402",
             "unit": "ns/iter"
           }
         ]
