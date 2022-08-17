@@ -1,6 +1,6 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::get_integer_from_var_name;
 use crate::{
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,

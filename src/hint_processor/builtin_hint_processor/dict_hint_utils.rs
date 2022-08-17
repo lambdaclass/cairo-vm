@@ -4,19 +4,20 @@ use num_bigint::BigInt;
 
 use crate::{
     any_box,
-    hint_processor::hint_processor_definition::HintReference,
+    hint_processor::{
+        hint_processor_definition::HintReference,
+        hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+            insert_value_into_ap,
+        },
+    },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
-use super::{
-    dict_manager::DictManager,
-    hint_utils::{
-        get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
-        insert_value_into_ap,
-    },
-};
+use super::dict_manager::DictManager;
+
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 

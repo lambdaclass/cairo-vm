@@ -1,6 +1,6 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::hint_utils::get_ptr_from_var_name;
+use crate::hint_processor::hint_utils::insert_value_from_var_name;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,

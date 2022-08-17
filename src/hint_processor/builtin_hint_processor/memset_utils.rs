@@ -9,9 +9,9 @@ use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;
 
-use super::hint_utils::get_integer_from_var_name;
-use super::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::hint_utils::insert_value_from_var_name;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}

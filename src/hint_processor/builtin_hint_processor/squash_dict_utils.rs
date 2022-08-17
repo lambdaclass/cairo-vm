@@ -3,19 +3,16 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
+use super::dict_hint_utils::DICT_ACCESS_SIZE;
+use crate::hint_processor::hint_utils::{
+    get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
+    get_relocatable_from_var_name, insert_value_from_var_name,
+};
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
-};
-
-use super::{
-    dict_hint_utils::DICT_ACCESS_SIZE,
-    hint_utils::{
-        get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
-        get_relocatable_from_var_name, insert_value_from_var_name,
-    },
 };
 
 fn get_access_indices<'a>(

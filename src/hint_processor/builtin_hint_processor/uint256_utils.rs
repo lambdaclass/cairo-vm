@@ -1,7 +1,5 @@
 use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name,
-};
+use crate::hint_processor::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name};
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -12,8 +10,8 @@ use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
-use super::hint_utils::{insert_value_from_var_name, insert_value_into_ap};
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::{insert_value_from_var_name, insert_value_into_ap};
 
 /*
 Implements hint:

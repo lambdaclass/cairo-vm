@@ -1,9 +1,9 @@
 use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
-};
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::{
+    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+};
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;

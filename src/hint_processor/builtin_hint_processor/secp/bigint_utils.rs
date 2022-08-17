@@ -1,10 +1,10 @@
 use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name,
-};
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::{
+    get_relocatable_from_var_name, insert_value_from_var_name,
+};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;

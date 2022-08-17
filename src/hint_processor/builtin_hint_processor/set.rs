@@ -6,10 +6,10 @@ use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
 
-use super::hint_utils::{
+use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
 };
-use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn set_add(
     vm_proxy: &mut VMProxy,

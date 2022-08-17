@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
-use super::hint_utils::{bigint_to_u32, get_ptr_from_var_name};
 use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::blake2s_hash::IV;
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_utils::{
+    bigint_to_u32, get_ptr_from_var_name, get_relocatable_from_var_name,
+};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::vm_core::VMProxy;

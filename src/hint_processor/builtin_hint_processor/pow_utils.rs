@@ -6,7 +6,9 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
 
-use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
+use crate::hint_processor::hint_utils::{
+    get_relocatable_from_var_name, insert_value_from_var_name,
+};
 
 /*
 Implements hint:
