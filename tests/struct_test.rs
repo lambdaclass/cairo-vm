@@ -9,7 +9,7 @@ use cleopatra_cairo::{
 static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 #[test]
 fn struct_integration_test() {
-    let program = Program::new(Path::new("cairo_programs/struct.json"))
+    let program = Program::new(Path::new("cairo_programs/struct.json"), "main")
         .expect("Failed to deserialize program");
     let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
     cairo_runner.initialize_segments(None);

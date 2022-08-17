@@ -9,7 +9,7 @@ static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
 #[test]
 fn pedersen_integration_test() {
-    let program = Program::new(Path::new("cairo_programs/pedersen_test.json"))
+    let program = Program::new(Path::new("cairo_programs/pedersen_test.json"), "main")
         .expect("Failed to deserialize program");
     let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
     cairo_runner.initialize_segments(None);
