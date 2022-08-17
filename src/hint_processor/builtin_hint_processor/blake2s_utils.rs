@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use num_traits::ToPrimitive;
 
 use super::blake2s_hash::blake2s_compress;
-use super::execute_hint::HintReference;
 use super::hint_utils::{bigint_to_u32, get_ptr_from_var_name};
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::blake2s_hash::IV;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name;
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
-use crate::vm::hints::blake2s_hash::IV;
-use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
 use crate::vm::vm_core::VMProxy;
 use crate::vm::vm_memory::memory::MemoryProxy;
 use crate::{
@@ -251,26 +251,21 @@ pub fn blake2s_add_uint256_bigend(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::relocatable;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::get_vm_proxy;
-    use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
-    use crate::{
-        bigint,
-        vm::{
-            errors::memory_errors::MemoryError,
-            hints::execute_hint::{BuiltinHintProcessor, HintReference},
-        },
-    };
+    use crate::{bigint, vm::errors::memory_errors::MemoryError};
     use num_bigint::Sign;
     use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
     fn compute_blake2s_output_offset_zero() {

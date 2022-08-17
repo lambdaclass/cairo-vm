@@ -9,9 +9,9 @@ use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;
 
-use super::execute_hint::HintReference;
 use super::hint_utils::get_integer_from_var_name;
 use super::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::hint_processor_definition::HintReference;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -62,22 +62,20 @@ pub fn memset_continue_loop(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::{BuiltinHintProcessor, HintProcessorData};
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,
-        vm::{
-            errors::memory_errors::MemoryError,
-            hints::execute_hint::{get_vm_proxy, HintReference},
-            vm_core::VirtualMachine,
-        },
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
     fn memset_enter_scope_valid() {

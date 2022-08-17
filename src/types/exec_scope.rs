@@ -1,9 +1,7 @@
+use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
 use crate::{
     any_box,
-    vm::{
-        errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
-        hints::dict_manager::DictManager,
-    },
+    vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
 };
 use num_bigint::BigInt;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};

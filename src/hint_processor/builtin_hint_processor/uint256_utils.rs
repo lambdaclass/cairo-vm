@@ -1,8 +1,10 @@
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
+    get_integer_from_var_name, get_relocatable_from_var_name,
+};
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name};
 use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
@@ -10,8 +12,8 @@ use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
-use super::execute_hint::HintReference;
 use super::hint_utils::{insert_value_from_var_name, insert_value_into_ap};
+use crate::hint_processor::hint_processor_definition::HintReference;
 
 /*
 Implements hint:
@@ -216,13 +218,15 @@ mod tests {
     use super::*;
     use crate::any_box;
     use crate::bigint_str;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintProcessor, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
@@ -230,7 +234,6 @@ mod tests {
     use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn run_uint256_add_ok() {

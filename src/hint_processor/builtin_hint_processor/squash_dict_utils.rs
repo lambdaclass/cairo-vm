@@ -1,3 +1,4 @@
+use crate::hint_processor::hint_processor_definition::HintReference;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
@@ -11,7 +12,6 @@ use crate::{
 
 use super::{
     dict_hint_utils::DICT_ACCESS_SIZE,
-    execute_hint::HintReference,
     hint_utils::{
         get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
         get_relocatable_from_var_name, insert_value_from_var_name,
@@ -312,21 +312,21 @@ pub fn squash_dict(
 
 #[cfg(test)]
 mod tests {
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use std::any::Any;
 
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::{
-        get_vm_proxy, BuiltinHintProcessor, HintProcessorData, HintReference,
-    };
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{any_box, bigint};
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";

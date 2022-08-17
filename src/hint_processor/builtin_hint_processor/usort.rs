@@ -1,20 +1,17 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        hints::hint_utils::{
-            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
-        },
-        vm_core::VMProxy,
-    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
-use super::execute_hint::HintReference;
+use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn usort_enter_scope(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
@@ -151,23 +148,21 @@ pub fn verify_multiplicity_body(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
+        get_vm_proxy, BuiltinHintProcessor, HintProcessorData,
+    };
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintProcessor, HintProcessorData};
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,
-        vm::{
-            hints::execute_hint::{get_vm_proxy, HintReference},
-            runners::builtin_runner::RangeCheckBuiltinRunner,
-            vm_core::VirtualMachine,
-        },
+        vm::{runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine},
     };
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn usort_out_of_range() {

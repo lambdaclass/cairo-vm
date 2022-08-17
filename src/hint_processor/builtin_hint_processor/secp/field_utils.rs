@@ -1,13 +1,13 @@
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
+    get_relocatable_from_var_name, insert_value_from_var_name, insert_value_into_ap,
+};
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::execute_hint::HintReference;
-use crate::vm::hints::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name, insert_value_into_ap,
-};
-use crate::vm::hints::secp::secp_utils::SECP_P;
 use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -146,15 +146,15 @@ mod tests {
     use crate::any_box;
     use crate::bigint;
     use crate::bigint_str;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
-    use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
@@ -162,7 +162,7 @@ mod tests {
     use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
     fn run_verify_zero_ok() {

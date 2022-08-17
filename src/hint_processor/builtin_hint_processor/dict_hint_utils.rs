@@ -4,6 +4,7 @@ use num_bigint::BigInt;
 
 use crate::{
     any_box,
+    hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
@@ -11,7 +12,6 @@ use crate::{
 
 use super::{
     dict_manager::DictManager,
-    execute_hint::HintReference,
     hint_utils::{
         get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
         insert_value_into_ap,
@@ -270,23 +270,23 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::vm::hints::execute_hint::HintProcessorData;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;
 
     use num_bigint::{BigInt, Sign};
 
-    use crate::types::hint_executor::HintProcessor;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::{DictManager, Dictionary};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::dict_manager::DictTracker;
-    use crate::vm::hints::dict_manager::{DictManager, Dictionary};
-    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, relocatable};
 

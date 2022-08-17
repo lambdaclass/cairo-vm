@@ -1,19 +1,17 @@
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VMProxy;
-use crate::vm::{
-    errors::vm_errors::VirtualMachineError,
-    hints::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name},
-};
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
-use super::execute_hint::HintReference;
-use super::hint_utils::bigint_to_usize;
 use super::hint_utils::get_ptr_from_var_name;
 use super::hint_utils::insert_value_from_var_name;
+use super::hint_utils::{bigint_to_usize, get_integer_from_var_name};
+use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn find_element(
     vm_proxy: &mut VMProxy,
@@ -152,22 +150,21 @@ pub fn search_sorted_lower(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::vm;
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, HintProcessorData};
-    use crate::vm::hints::{
-        execute_hint::{BuiltinHintProcessor, HintReference},
-        hint_code,
-    };
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
     use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     fn init_vm_ids_data(
         values_to_override: HashMap<String, MaybeRelocatable>,

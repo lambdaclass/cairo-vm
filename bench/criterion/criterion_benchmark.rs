@@ -1,7 +1,9 @@
 use std::path::Path;
 
-use cleopatra_cairo::cairo_run;
-use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintProcessor;
+use cleopatra_cairo::{
+    cairo_run,
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 const BENCH_NAMES: &'static [&'static str] = &[

@@ -1,10 +1,10 @@
 #![deny(warnings)]
 use clap::{Parser, ValueHint};
 use cleopatra_cairo::cairo_run;
+use cleopatra_cairo::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cleopatra_cairo::vm::errors::cairo_run_errors::CairoRunError;
 use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
 use cleopatra_cairo::vm::errors::trace_errors::TraceError;
-use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintProcessor;
 use std::path::PathBuf;
 
 #[cfg(feature = "with_mimalloc")]

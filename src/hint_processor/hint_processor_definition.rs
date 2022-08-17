@@ -1,12 +1,22 @@
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopesProxy;
+use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::execute_hint::HintReference;
 use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use std::any::Any;
 use std::collections::HashMap;
 
-use super::exec_scope::ExecutionScopesProxy;
+#[derive(Debug, PartialEq, Clone)]
+pub struct HintReference {
+    pub register: Register,
+    pub offset1: i32,
+    pub offset2: i32,
+    pub dereference: bool,
+    pub inner_dereference: bool,
+    pub ap_tracking_data: Option<ApTracking>,
+    pub immediate: Option<BigInt>,
+}
 
 pub trait HintProcessor {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint

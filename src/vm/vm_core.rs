@@ -1,7 +1,8 @@
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+use crate::hint_processor::hint_processor_definition::HintProcessor;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
-use crate::types::hint_executor::HintProcessor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -18,7 +19,6 @@ use num_traits::ToPrimitive;
 use std::any::Any;
 use std::collections::HashMap;
 
-use super::hints::execute_hint::get_vm_proxy;
 use super::vm_memory::memory::MemoryProxy;
 
 #[derive(PartialEq, Debug)]
@@ -691,11 +691,13 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
+        BuiltinHintProcessor, HintProcessorData,
+    };
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintProcessor, HintProcessorData};
     use crate::vm::runners::builtin_runner::{
         BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
     };

@@ -1,14 +1,11 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::bigint_to_u32;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        hints::hint_utils::{
-            bigint_to_u32, get_integer_from_var_name, get_ptr_from_var_name,
-            insert_value_from_var_name,
-        },
-        vm_core::VMProxy,
-    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
 use generic_array::GenericArray;
@@ -17,7 +14,7 @@ use num_traits::{One, Zero};
 use sha2::compress256;
 use std::collections::HashMap;
 
-use super::execute_hint::HintReference;
+use crate::hint_processor::hint_processor_definition::HintReference;
 
 const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
 const SHA256_STATE_SIZE_FELTS: usize = 8;
@@ -131,11 +128,11 @@ pub fn sha256_finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::get_vm_proxy;
-    use crate::vm::hints::execute_hint::HintReference;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;

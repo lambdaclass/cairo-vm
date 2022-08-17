@@ -1,17 +1,15 @@
 use crate::bigint;
+use crate::hint_processor::hint_processor_definition::HintProcessor;
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::types::program::Program;
-use crate::types::{
-    hint_executor::HintProcessor,
-    relocatable::{relocate_value, MaybeRelocatable, Relocatable},
-};
+use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::{is_subsequence, to_field_element};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::execute_hint::HintReference;
 use crate::vm::runners::builtin_runner::{
     BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
     RangeCheckBuiltinRunner,
@@ -425,8 +423,8 @@ mod tests {
     use num_traits::FromPrimitive;
 
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::serde::deserialize_program::ReferenceManager;
-    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
     use crate::vm::trace::trace_entry::TraceEntry;
     use crate::{bigint_str, relocatable};
     use std::collections::HashMap;

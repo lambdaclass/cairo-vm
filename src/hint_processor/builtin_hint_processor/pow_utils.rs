@@ -1,15 +1,12 @@
-use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VMProxy;
+use crate::{bigint, hint_processor::hint_processor_definition::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
 
-use super::{
-    execute_hint::HintReference,
-    hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
-};
+use super::hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name};
 
 /*
 Implements hint:
@@ -32,14 +29,16 @@ pub fn pow(
 mod tests {
 
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintProcessor, HintReference};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
@@ -49,7 +48,6 @@ mod tests {
     use super::*;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn run_pow_ok() {

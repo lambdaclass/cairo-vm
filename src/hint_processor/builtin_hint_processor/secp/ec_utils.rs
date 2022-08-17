@@ -1,13 +1,13 @@
 use crate::bigint;
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
+    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+};
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::execute_hint::HintReference;
-use crate::vm::hints::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
-};
-use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
 use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -328,13 +328,14 @@ pub fn ec_mul_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{
-        get_vm_proxy, BuiltinHintProcessor, HintProcessorData, HintReference,
-    };
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
@@ -343,7 +344,6 @@ mod tests {
     use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     #[test]
     fn run_ec_negate_ok() {

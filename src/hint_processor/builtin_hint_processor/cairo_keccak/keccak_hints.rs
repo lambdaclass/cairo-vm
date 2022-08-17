@@ -1,15 +1,12 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
 use crate::{
     bigint,
+    hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     types::relocatable::MaybeRelocatable,
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        hints::{
-            execute_hint::HintReference,
-            hint_utils::{get_integer_from_var_name, get_ptr_from_var_name, insert_value_into_ap},
-        },
-        vm_core::VMProxy,
-    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
@@ -250,15 +247,15 @@ fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::hint_executor::HintProcessor;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::get_vm_proxy;
-    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
-    use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::HintReference;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;

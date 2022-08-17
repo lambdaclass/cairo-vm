@@ -1,4 +1,5 @@
-use crate::types::{hint_executor::HintProcessor, program::Program};
+use crate::hint_processor::hint_processor_definition::HintProcessor;
+use crate::types::program::Program;
 use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
@@ -123,8 +124,10 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
-    use crate::vm::hints::execute_hint::BuiltinHintProcessor;
+    use crate::{
+        bigint,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    };
     use std::io::Read;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};

@@ -4,42 +4,49 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::any_box;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopesProxy;
-use crate::types::{hint_executor::HintProcessor, instruction::Register};
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::blake2s_utils::{
+use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
     blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
 };
-use crate::vm::hints::dict_hint_utils::{
+use crate::hint_processor::builtin_hint_processor::dict_hint_utils::{
     default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
     dict_update, dict_write,
 };
-use crate::vm::hints::find_element_hint::{find_element, search_sorted_lower};
-use crate::vm::hints::hint_code;
-use crate::vm::hints::hint_utils::{
+use crate::hint_processor::builtin_hint_processor::find_element_hint::{
+    find_element, search_sorted_lower,
+};
+use crate::hint_processor::builtin_hint_processor::hint_code;
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
     add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
 };
-use crate::vm::hints::keccak_utils::{unsafe_keccak, unsafe_keccak_finalize};
-use crate::vm::hints::math_utils::*;
-use crate::vm::hints::memset_utils::{memset_continue_loop, memset_enter_scope};
-use crate::vm::hints::pow_utils::pow;
-use crate::vm::hints::set::set_add;
-use crate::vm::hints::squash_dict_utils::{
+use crate::hint_processor::builtin_hint_processor::keccak_utils::{
+    unsafe_keccak, unsafe_keccak_finalize,
+};
+use crate::hint_processor::builtin_hint_processor::math_utils::*;
+use crate::hint_processor::builtin_hint_processor::memset_utils::{
+    memset_continue_loop, memset_enter_scope,
+};
+use crate::hint_processor::builtin_hint_processor::pow_utils::pow;
+use crate::hint_processor::builtin_hint_processor::set::set_add;
+use crate::hint_processor::builtin_hint_processor::squash_dict_utils::{
     squash_dict, squash_dict_inner_assert_len_keys, squash_dict_inner_check_access_index,
     squash_dict_inner_continue_loop, squash_dict_inner_first_iteration,
     squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
     squash_dict_inner_used_accesses_assert,
 };
-use crate::vm::hints::uint256_utils::{
+use crate::hint_processor::builtin_hint_processor::uint256_utils::{
     split_64, uint256_add, uint256_signed_nn, uint256_sqrt, uint256_unsigned_div_rem,
 };
+use crate::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
+use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopesProxy;
+use crate::types::instruction::Register;
+use crate::vm::errors::vm_errors::VirtualMachineError;
 
-use crate::vm::hints::cairo_keccak::keccak_hints::{
+use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
     block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
     compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
 };
-use crate::vm::hints::secp::{
+use crate::hint_processor::builtin_hint_processor::secp::{
     bigint_utils::{bigint_to_uint256, nondet_bigint3},
     ec_utils::{
         compute_doubling_slope, compute_slope, ec_double_assign_new_x, ec_double_assign_new_y,
@@ -50,8 +57,10 @@ use crate::vm::hints::secp::{
     },
     signature::{div_mod_n_packed_divmod, div_mod_n_safe_div, get_point_from_x},
 };
-use crate::vm::hints::sha256_utils::{sha256_finalize, sha256_input, sha256_main};
-use crate::vm::hints::usort::{
+use crate::hint_processor::builtin_hint_processor::sha256_utils::{
+    sha256_finalize, sha256_input, sha256_main,
+};
+use crate::hint_processor::builtin_hint_processor::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
@@ -59,17 +68,6 @@ use crate::vm::vm_core::{VMProxy, VirtualMachine};
 use crate::vm::vm_memory::memory::get_memory_proxy;
 
 use super::hint_utils::bigint_to_usize;
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct HintReference {
-    pub register: Register,
-    pub offset1: i32,
-    pub offset2: i32,
-    pub dereference: bool,
-    pub inner_dereference: bool,
-    pub ap_tracking_data: Option<ApTracking>,
-    pub immediate: Option<BigInt>,
-}
 
 pub struct HintProcessorData {
     pub code: String,
@@ -520,7 +518,7 @@ mod tests {
     use super::*;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
     fn run_alloc_hint_empty_memory() {

@@ -1,7 +1,7 @@
-use super::{
-    execute_hint::HintReference,
-    hint_utils::{get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name},
+use super::hint_utils::{
+    get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
 };
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,

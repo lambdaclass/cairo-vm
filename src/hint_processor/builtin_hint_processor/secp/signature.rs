@@ -1,18 +1,15 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::{
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        hints::{
-            execute_hint::HintReference,
-            hint_utils::get_integer_from_var_name,
-            secp::secp_utils::{pack_from_var_name, BETA, N, SECP_P},
-        },
-        vm_core::VMProxy,
-    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 use std::collections::HashMap;
+
+use super::secp_utils::{BETA, N, SECP_P};
 
 /* Implements hint:
 from starkware.cairo.common.cairo_secp.secp_utils import N, pack
@@ -77,16 +74,14 @@ mod tests {
     use super::*;
     use crate::{
         bigint, bigint_str,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy,
         types::{
             exec_scope::{get_exec_scopes_proxy, ExecutionScopes},
             relocatable::MaybeRelocatable,
         },
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::MemoryError,
-            hints::execute_hint::{get_vm_proxy, HintReference},
-            vm_core::VirtualMachine,
-            vm_memory::memory::Memory,
+            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
         },
     };
     use num_bigint::BigInt;

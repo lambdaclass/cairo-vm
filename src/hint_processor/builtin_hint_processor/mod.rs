@@ -1,9 +1,9 @@
 pub mod blake2s_hash;
 pub mod blake2s_utils;
+pub mod builtin_hint_processor_definition;
 pub mod cairo_keccak;
 pub mod dict_hint_utils;
 pub mod dict_manager;
-pub mod execute_hint;
 pub mod find_element_hint;
 pub mod hint_code;
 pub mod hint_utils;

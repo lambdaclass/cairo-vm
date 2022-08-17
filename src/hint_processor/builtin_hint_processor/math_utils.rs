@@ -1,3 +1,4 @@
+use crate::hint_processor::hint_processor_definition::HintReference;
 use std::{
     collections::HashMap,
     ops::{Neg, Shl, Shr},
@@ -7,12 +8,9 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{Signed, Zero};
 
-use super::{
-    execute_hint::HintReference,
-    hint_utils::{
-        get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-        get_range_check_builtin, insert_value_from_var_name, insert_value_into_ap,
-    },
+use super::hint_utils::{
+    get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
+    get_range_check_builtin, insert_value_from_var_name, insert_value_into_ap,
 };
 use crate::{
     bigint,
@@ -414,25 +412,25 @@ pub fn assert_lt_felt(
 #[cfg(test)]
 mod tests {
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::HintProcessorData;
-    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintProcessor};
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         bigint, bigint_str, relocatable,
         vm::{
-            errors::memory_errors::MemoryError, hints::execute_hint::HintReference,
-            runners::builtin_runner::RangeCheckBuiltinRunner,
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
         },
     };
     use num_bigint::Sign;
     use std::any::Any;
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::types::hint_executor::HintProcessor;
 
     use super::*;
     #[test]

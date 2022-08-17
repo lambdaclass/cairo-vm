@@ -1,16 +1,15 @@
 use crate::bigint;
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
+use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
 use crate::vm::vm_core::VMProxy;
 use crate::vm::vm_memory::memory::MemoryProxy;
-use crate::vm::{
-    context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
-    hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
-};
+use crate::vm::{context::run_context::RunContext, errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use std::any::Any;
@@ -316,8 +315,8 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::get_vm_proxy;
     use crate::utils::test_utils::*;
-    use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
 
