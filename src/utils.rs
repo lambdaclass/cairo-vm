@@ -179,7 +179,6 @@ pub mod test_utils {
                     Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
                 )],
                 false,
-                &HINT_EXECUTOR,
             )
         };
     }
@@ -191,7 +190,6 @@ pub mod test_utils {
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 vec![],
                 false,
-                &HINT_EXECUTOR,
             )
         };
     }

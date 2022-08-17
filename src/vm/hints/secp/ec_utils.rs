@@ -2,14 +2,13 @@ use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
-    insert_int_into_scope,
+    insert_int_into_scope, insert_value_into_ap,
 };
 use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
@@ -26,28 +25,21 @@ Implements hint:
 %}
 */
 pub fn ec_negate(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name(
-        "point",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point_reloc = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)?;
 
     //ids.point.y
     let (y_d0, y_d1, y_d2) = (
-        vm.memory.get_integer(&(&point_reloc + 3))?,
-        vm.memory.get_integer(&(&point_reloc + 4))?,
-        vm.memory.get_integer(&(&point_reloc + 5))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
     );
-    let value = (-pack(y_d0, y_d1, y_d2, &vm.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
+    let value = (-pack(y_d0, y_d1, y_d2, vm_proxy.prime)).mod_floor(&SECP_P);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -64,39 +56,32 @@ Implements hint:
 %}
 */
 pub fn compute_doubling_slope(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name(
-        "point",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point_reloc = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.memory.get_integer(&point_reloc)?,
-        vm.memory.get_integer(&(&point_reloc + 1))?,
-        vm.memory.get_integer(&(&point_reloc + 2))?,
-        vm.memory.get_integer(&(&point_reloc + 3))?,
-        vm.memory.get_integer(&(&point_reloc + 4))?,
-        vm.memory.get_integer(&(&point_reloc + 5))?,
+        vm_proxy.memory.get_integer(&point_reloc)?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 2))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
     );
 
     let value = ec_double_slope(
         (
-            pack(x_d0, x_d1, x_d2, &vm.prime),
-            pack(y_d0, y_d1, y_d2, &vm.prime),
+            pack(x_d0, x_d1, x_d2, vm_proxy.prime),
+            pack(y_d0, y_d1, y_d2, vm_proxy.prime),
         ),
         &bigint!(0),
         &SECP_P,
     );
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm.exec_scopes, "slope", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "slope", value);
     Ok(())
 }
 
@@ -115,61 +100,47 @@ Implements hint:
 %}
 */
 pub fn compute_slope(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name(
-        "point0",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.memory.get_integer(&point0_reloc)?,
-        vm.memory.get_integer(&(&point0_reloc + 1))?,
-        vm.memory.get_integer(&(&point0_reloc + 2))?,
-        vm.memory.get_integer(&(&point0_reloc + 3))?,
-        vm.memory.get_integer(&(&point0_reloc + 4))?,
-        vm.memory.get_integer(&(&point0_reloc + 5))?,
+        vm_proxy.memory.get_integer(&point0_reloc)?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 2))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 3))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 4))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name(
-        "point1",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        vm.memory.get_integer(&point1_reloc)?,
-        vm.memory.get_integer(&(&point1_reloc + 1))?,
-        vm.memory.get_integer(&(&point1_reloc + 2))?,
-        vm.memory.get_integer(&(&point1_reloc + 3))?,
-        vm.memory.get_integer(&(&point1_reloc + 4))?,
-        vm.memory.get_integer(&(&point1_reloc + 5))?,
+        vm_proxy.memory.get_integer(&point1_reloc)?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 2))?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 3))?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 4))?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 5))?,
     );
 
     let value = line_slope(
         &(
-            pack(point0_x_d0, point0_x_d1, point0_x_d2, &vm.prime),
-            pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime),
+            pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.prime),
+            pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime),
         ),
         &(
-            pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime),
-            pack(point1_y_d0, point1_y_d1, point1_y_d2, &vm.prime),
+            pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime),
+            pack(point1_y_d0, point1_y_d1, point1_y_d2, vm_proxy.prime),
         ),
         &SECP_P,
     );
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm.exec_scopes, "slope", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "slope", value);
     Ok(())
 }
 
@@ -186,57 +157,43 @@ Implements hint:
 %}
 */
 pub fn ec_double_assign_new_x(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name(
-        "slope",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm_proxy, hint_ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        vm.memory.get_integer(&slope_reloc)?,
-        vm.memory.get_integer(&(&slope_reloc + 1))?,
-        vm.memory.get_integer(&(&slope_reloc + 2))?,
+        vm_proxy.memory.get_integer(&slope_reloc)?,
+        vm_proxy.memory.get_integer(&(&slope_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name(
-        "point",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point_reloc = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm.memory.get_integer(&point_reloc)?,
-        vm.memory.get_integer(&(&point_reloc + 1))?,
-        vm.memory.get_integer(&(&point_reloc + 2))?,
-        vm.memory.get_integer(&(&point_reloc + 3))?,
-        vm.memory.get_integer(&(&point_reloc + 4))?,
-        vm.memory.get_integer(&(&point_reloc + 5))?,
+        vm_proxy.memory.get_integer(&point_reloc)?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 2))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
+        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
     );
 
-    let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
-    let x = pack(x_d0, x_d1, x_d2, &vm.prime);
-    let y = pack(y_d0, y_d1, y_d2, &vm.prime);
+    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.prime);
+    let x = pack(x_d0, x_d1, x_d2, vm_proxy.prime);
+    let y = pack(y_d0, y_d1, y_d2, vm_proxy.prime);
 
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    insert_int_into_scope(&mut vm.exec_scopes, "slope", slope);
-    insert_int_into_scope(&mut vm.exec_scopes, "x", x);
-    insert_int_into_scope(&mut vm.exec_scopes, "y", y);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm.exec_scopes, "new_x", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "slope", slope);
+    insert_int_into_scope(vm_proxy.exec_scopes, "x", x);
+    insert_int_into_scope(vm_proxy.exec_scopes, "y", y);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "new_x", value);
     Ok(())
 }
 
@@ -244,18 +201,18 @@ pub fn ec_double_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn ec_double_assign_new_y(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        get_int_from_scope(&vm.exec_scopes, "slope")?,
-        get_int_from_scope(&vm.exec_scopes, "x")?,
-        get_int_from_scope(&vm.exec_scopes, "new_x")?,
-        get_int_from_scope(&vm.exec_scopes, "y")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "slope")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "x")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "new_x")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm.exec_scopes, "new_y", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "new_y", value);
     Ok(())
 }
 
@@ -273,82 +230,66 @@ Implements hint:
 %}
 */
 pub fn fast_ec_add_assign_new_x(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name(
-        "slope",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm_proxy, hint_ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        vm.memory.get_integer(&slope_reloc)?,
-        vm.memory.get_integer(&(&slope_reloc + 1))?,
-        vm.memory.get_integer(&(&slope_reloc + 2))?,
+        vm_proxy.memory.get_integer(&slope_reloc)?,
+        vm_proxy.memory.get_integer(&(&slope_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name(
-        "point0",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm.memory.get_integer(&point0_reloc)?,
-        vm.memory.get_integer(&(&point0_reloc + 1))?,
-        vm.memory.get_integer(&(&point0_reloc + 2))?,
-        vm.memory.get_integer(&(&point0_reloc + 3))?,
-        vm.memory.get_integer(&(&point0_reloc + 4))?,
-        vm.memory.get_integer(&(&point0_reloc + 5))?,
+        vm_proxy.memory.get_integer(&point0_reloc)?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 2))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 3))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 4))?,
+        vm_proxy.memory.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name(
-        "point1",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        vm.memory.get_integer(&point1_reloc)?,
-        vm.memory.get_integer(&(&point1_reloc + 1))?,
-        vm.memory.get_integer(&(&point1_reloc + 2))?,
+        vm_proxy.memory.get_integer(&point1_reloc)?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 1))?,
+        vm_proxy.memory.get_integer(&(&point1_reloc + 2))?,
     );
 
-    let slope = pack(slope_d0, slope_d1, slope_d2, &vm.prime);
-    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, &vm.prime);
-    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, &vm.prime);
-    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, &vm.prime);
+    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.prime);
+    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.prime);
+    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime);
+    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime);
 
     let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("slope", PyValueType::BigInt(slope));
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("x0", PyValueType::BigInt(x0));
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("y0", PyValueType::BigInt(y0));
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("new_x", PyValueType::BigInt(value));
 
     Ok(())
@@ -358,21 +299,23 @@ pub fn fast_ec_add_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
-pub fn fast_ec_add_assign_new_y(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn fast_ec_add_assign_new_y(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        get_int_from_scope(&vm.exec_scopes, "slope")?,
-        get_int_from_scope(&vm.exec_scopes, "x0")?,
-        get_int_from_scope(&vm.exec_scopes, "new_x")?,
-        get_int_from_scope(&vm.exec_scopes, "y0")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "slope")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "x0")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "new_x")?,
+        get_int_from_scope(vm_proxy.exec_scopes, "y0")?,
     );
 
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("new_y", PyValueType::BigInt(value));
 
     Ok(())
@@ -383,25 +326,15 @@ Implements hint:
 %{ memory[ap] = (ids.scalar % PRIME) % 2 %}
 */
 pub fn ec_mul_inner(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar = get_integer_from_var_name(
-        "scalar",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?
-    .mod_floor(&vm.prime)
-    .bitand(bigint!(1));
-
-    vm.memory
-        .insert(&vm.run_context.ap, &MaybeRelocatable::from(scalar))
-        .map_err(VirtualMachineError::MemoryError)
+    let scalar = get_integer_from_var_name("scalar", ids, vm_proxy, hint_ap_tracking)?
+        .mod_floor(vm_proxy.prime)
+        .bitand(bigint!(1));
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, scalar)
 }
 
 #[cfg(test)]
@@ -412,12 +345,14 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn run_ec_negate_ok() {
@@ -438,9 +373,9 @@ mod tests {
             None
         );
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
         //Check 'value' is defined in the vm scope
@@ -487,9 +422,9 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -553,9 +488,9 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -628,9 +563,9 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
 
@@ -719,9 +654,10 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -795,9 +731,9 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::default()),
             Ok(())
         );
 
@@ -862,9 +798,10 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -894,7 +831,7 @@ mod tests {
         let hint_code = "memory[ap] = (ids.scalar % PRIME) % 2";
         let mut vm = vm_with_range_check!();
 
-        let scalar = 89712 + &vm.prime;
+        let scalar = 89712_i32 + &vm.prime;
         //Insert ids.scalar into memory
         vm.memory = memory![((1, 0), scalar)];
 
@@ -911,9 +848,9 @@ mod tests {
         vm.references = references!(1);
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, &hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 

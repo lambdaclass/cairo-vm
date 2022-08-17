@@ -9,7 +9,7 @@ use crate::{
             get_list_u64_from_scope_mut, get_list_u64_from_scope_ref,
             get_relocatable_from_var_name, get_u64_from_scope, insert_value_from_var_name,
         },
-        vm_core::VirtualMachine,
+        vm_core::VMProxy,
     },
 };
 use num_bigint::BigInt;
@@ -18,10 +18,10 @@ use std::collections::HashMap;
 
 use super::hint_utils::insert_int_into_scope;
 
-pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let usort_max_size = get_u64_from_scope(&vm.exec_scopes, "usort_max_size")
+pub fn usort_enter_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+    let usort_max_size = get_u64_from_scope(vm_proxy.exec_scopes, "usort_max_size")
         .map_or(PyValueType::None, PyValueType::U64);
-    vm.exec_scopes.enter_scope(HashMap::from([(
+    vm_proxy.exec_scopes.enter_scope(HashMap::from([(
         "usort_max_size".to_string(),
         usort_max_size,
     )]));
@@ -29,28 +29,18 @@ pub fn usort_enter_scope(vm: &mut VirtualMachine) -> Result<(), VirtualMachineEr
 }
 
 pub fn usort_body(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let input_arr_start_ptr = get_relocatable_from_var_name(
-        "input",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let input_ptr = vm.memory.get_relocatable(&input_arr_start_ptr)?.clone();
-    let usort_max_size = get_u64_from_scope(&vm.exec_scopes, "usort_max_size");
-    let input_len = get_integer_from_var_name(
-        "input_len",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let input_arr_start_ptr =
+        get_relocatable_from_var_name("input", ids, vm_proxy, hint_ap_tracking)?;
+    let input_ptr = vm_proxy
+        .memory
+        .get_relocatable(&input_arr_start_ptr)?
+        .clone();
+    let usort_max_size = get_u64_from_scope(vm_proxy.exec_scopes, "usort_max_size");
+    let input_len = get_integer_from_var_name("input_len", ids, vm_proxy, hint_ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
@@ -67,7 +57,7 @@ pub fn usort_body(
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm.memory.get_integer(&(&input_ptr + i as usize))?;
+        let val = vm_proxy.memory.get_integer(&(&input_ptr + i as usize))?;
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
@@ -82,83 +72,69 @@ pub fn usort_body(
         multiplicities.push(positions_dict[k].len());
     }
 
-    vm.exec_scopes.assign_or_update_variable(
+    vm_proxy.exec_scopes.assign_or_update_variable(
         "positions_dict",
         PyValueType::DictBigIntListU64(positions_dict),
     );
-    let output_base = vm.segments.add(&mut vm.memory, Some(output.len()));
-    let multiplicities_base = vm.segments.add(&mut vm.memory, Some(multiplicities.len()));
+    let output_base = vm_proxy.segments.add(vm_proxy.memory, Some(output.len()));
+    let multiplicities_base = vm_proxy
+        .segments
+        .add(vm_proxy.memory, Some(multiplicities.len()));
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
-        vm.memory
-            .insert_value(&(&output_base + i), sorted_element)?;
+        vm_proxy
+            .memory
+            .insert_value(&(output_base.clone() + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm.memory
-            .insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
+        vm_proxy.memory.insert_value(
+            &(multiplicities_base.clone() + i),
+            bigint!(repetition_amount),
+        )?;
     }
 
     insert_value_from_var_name(
         "output_len",
         bigint!(output_len),
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )?;
-    insert_value_from_var_name(
-        "output",
-        output_base,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    insert_value_from_var_name("output", output_base, ids, vm_proxy, hint_ap_tracking)?;
     insert_value_from_var_name(
         "multiplicities",
         multiplicities_base,
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )
 }
 
 pub fn verify_usort(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name(
-        "value",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?
-    .clone();
+    let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?.clone();
     let positions: Vec<u64> =
-        get_dict_int_list_u64_from_scope_mut(&mut vm.exec_scopes, "positions_dict")?
+        get_dict_int_list_u64_from_scope_mut(vm_proxy.exec_scopes, "positions_dict")?
             .remove(&value)
             .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?
             .into_iter()
             .rev()
             .collect();
 
-    vm.exec_scopes
+    vm_proxy
+        .exec_scopes
         .assign_or_update_variable("positions", PyValueType::ListU64(positions));
-    insert_int_into_scope(&mut vm.exec_scopes, "last_pos", bigint!(0));
+    insert_int_into_scope(vm_proxy.exec_scopes, "last_pos", bigint!(0));
     Ok(())
 }
 
-pub fn verify_multiplicity_assert(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let positions_len = get_list_u64_from_scope_ref(&vm.exec_scopes, "positions")?.len();
+pub fn verify_multiplicity_assert(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+    let positions_len = get_list_u64_from_scope_ref(vm_proxy.exec_scopes, "positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
@@ -167,24 +143,16 @@ pub fn verify_multiplicity_assert(vm: &mut VirtualMachine) -> Result<(), Virtual
 }
 
 pub fn verify_multiplicity_body(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let current_pos = get_list_u64_from_scope_mut(&mut vm.exec_scopes, "positions")?
+    let current_pos = get_list_u64_from_scope_mut(vm_proxy.exec_scopes, "positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - get_int_from_scope(&vm.exec_scopes, "last_pos")?;
-    insert_value_from_var_name(
-        "next_item_index",
-        pos_diff,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    insert_int_into_scope(&mut vm.exec_scopes, "last_pos", bigint!(current_pos + 1));
+    let pos_diff = bigint!(current_pos) - get_int_from_scope(vm_proxy.exec_scopes, "last_pos")?;
+    insert_value_from_var_name("next_item_index", pos_diff, ids, vm_proxy, hint_ap_tracking)?;
+    insert_int_into_scope(vm_proxy.exec_scopes, "last_pos", bigint!(current_pos + 1));
     Ok(())
 }
 
@@ -193,17 +161,20 @@ mod tests {
     use super::*;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,
         vm::{
-            hints::execute_hint::{BuiltinHintExecutor, HintReference},
+            hints::execute_hint::{get_vm_proxy, HintReference},
             runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine,
         },
     };
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn usort_out_of_range() {
@@ -226,9 +197,9 @@ mod tests {
         vm.exec_scopes
             .assign_or_update_variable("usort_max_size", PyValueType::U64(1));
 
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint, &ids, &ApTracking::new()),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

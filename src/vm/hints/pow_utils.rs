@@ -1,8 +1,7 @@
+use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::{bigint, relocatable};
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
@@ -14,30 +13,15 @@ Implements hint:
 %{ ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1 %}
 */
 pub fn pow(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let prev_locs_addr = get_relocatable_from_var_name(
-        "prev_locs",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let prev_locs_exp_addr = relocatable!(prev_locs_addr.segment_index, prev_locs_addr.offset + 4);
-    let prev_locs_exp = vm.memory.get_integer(&prev_locs_exp_addr)?;
-    let locs_bit = prev_locs_exp.mod_floor(&vm.prime) & bigint!(1);
-    insert_value_from_var_name(
-        "locs",
-        locs_bit,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let prev_locs_addr =
+        get_relocatable_from_var_name("prev_locs", ids, vm_proxy, hint_ap_tracking)?;
+    let prev_locs_exp = vm_proxy.memory.get_integer(&(&prev_locs_addr + 4))?;
+    let locs_bit = prev_locs_exp.mod_floor(vm_proxy.prime) & bigint!(1);
+    insert_value_from_var_name("locs", locs_bit, ids, vm_proxy, hint_ap_tracking)?;
     Ok(())
 }
 
@@ -48,7 +32,8 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
@@ -56,6 +41,7 @@ mod tests {
     use super::*;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn run_pow_ok() {
@@ -117,11 +103,10 @@ mod tests {
             group: 4,
             offset: 4,
         };
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Ok(())
         );
 
@@ -147,11 +132,10 @@ mod tests {
         let ids = ids!["locs"];
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -178,11 +162,10 @@ mod tests {
         ]);
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -209,9 +192,9 @@ mod tests {
         vm.memory = memory![((1, 10), (1, 11))];
         vm.segments.add(&mut vm.memory, None);
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -277,11 +260,10 @@ mod tests {
             .unwrap();
 
         let ap_tracking: ApTracking = ApTracking::new();
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),

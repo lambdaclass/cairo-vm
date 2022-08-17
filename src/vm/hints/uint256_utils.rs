@@ -3,14 +3,14 @@ use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{get_integer_from_var_name, get_relocatable_from_var_name};
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
 use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
-use super::hint_utils::{insert_int_into_ap, insert_value_from_var_name};
+use super::hint_utils::{insert_value_from_var_name, insert_value_into_ap};
 
 /*
 Implements hint:
@@ -22,32 +22,18 @@ Implements hint:
 %}
 */
 pub fn uint256_add(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
 
-    let a_relocatable = get_relocatable_from_var_name(
-        "a",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let b_relocatable = get_relocatable_from_var_name(
-        "b",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let a_low = vm.memory.get_integer(&a_relocatable)?;
-    let a_high = vm.memory.get_integer(&(a_relocatable + 1))?;
-    let b_low = vm.memory.get_integer(&b_relocatable)?;
-    let b_high = vm.memory.get_integer(&(b_relocatable + 1))?;
+    let a_relocatable = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
+    let b_relocatable = get_relocatable_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
+    let a_low = vm_proxy.memory.get_integer(&a_relocatable)?;
+    let a_high = vm_proxy.memory.get_integer(&(a_relocatable + 1))?;
+    let b_low = vm_proxy.memory.get_integer(&b_relocatable)?;
+    let b_high = vm_proxy.memory.get_integer(&(b_relocatable + 1))?;
 
     //Main logic
     //sum_low = ids.a.low + ids.b.low
@@ -66,24 +52,8 @@ pub fn uint256_add(
     } else {
         bigint!(0)
     };
-    insert_value_from_var_name(
-        "carry_high",
-        carry_high,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    insert_value_from_var_name(
-        "carry_low",
-        carry_low,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )
+    insert_value_from_var_name("carry_high", carry_high, ids, vm_proxy, hint_ap_tracking)?;
+    insert_value_from_var_name("carry_low", carry_low, ids, vm_proxy, hint_ap_tracking)
 }
 
 /*
@@ -94,18 +64,11 @@ Implements hint:
 %}
 */
 pub fn split_64(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name(
-        "a",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = bigint!(digits.next().unwrap_or(0u64));
     let high = if digits.len() <= 1 {
@@ -113,25 +76,8 @@ pub fn split_64(
     } else {
         a.shr(64_usize)
     };
-
-    insert_value_from_var_name(
-        "high",
-        high,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    insert_value_from_var_name(
-        "low",
-        low,
-        ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )
+    insert_value_from_var_name("high", bigint!(high), ids, vm_proxy, hint_ap_tracking)?;
+    insert_value_from_var_name("low", bigint!(low), ids, vm_proxy, hint_ap_tracking)
 }
 
 /*
@@ -146,28 +92,14 @@ Implements hint:
 %}
 */
 pub fn uint256_sqrt(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n_addr = get_relocatable_from_var_name(
-        "n",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let root_addr = get_relocatable_from_var_name(
-        "root",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let n_low = vm.memory.get_integer(&n_addr)?;
-    let n_high = vm.memory.get_integer(&(n_addr + 1))?;
+    let n_addr = get_relocatable_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?;
+    let root_addr = get_relocatable_from_var_name("root", ids, vm_proxy, hint_ap_tracking)?;
+    let n_low = vm_proxy.memory.get_integer(&n_addr)?;
+    let n_high = vm_proxy.memory.get_integer(&(n_addr + 1))?;
 
     //Main logic
     //from starkware.python.math_utils import isqrt
@@ -185,8 +117,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm.memory.insert_value(&root_addr, root)?;
-    vm.memory.insert_value(&(root_addr + 1), bigint!(0))
+    vm_proxy.memory.insert_value(&root_addr, root)?;
+    vm_proxy.memory.insert_value(&(root_addr + 1), bigint!(0))
 }
 
 /*
@@ -194,28 +126,21 @@ Implements hint:
 %{ memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0 %}
 */
 pub fn uint256_signed_nn(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_relocatable_from_var_name(
-        "a",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let a_high = vm.memory.get_integer(&(a_addr + 1))?;
+    let a_addr = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
+    let a_high = vm_proxy.memory.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
     let result: BigInt =
-        if !a_high.is_negative() && (a_high.mod_floor(&vm.prime)) <= bigint!(i128::MAX) {
+        if !a_high.is_negative() && (a_high.mod_floor(vm_proxy.prime)) <= bigint!(i128::MAX) {
             bigint!(1)
         } else {
             bigint!(0)
         };
-    insert_int_into_ap(&mut vm.memory, &vm.run_context, result)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, result)
 }
 
 /*
@@ -232,47 +157,20 @@ Implements hint:
 %}
 */
 pub fn uint256_unsigned_div_rem(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let a_addr = get_relocatable_from_var_name(
-        "a",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let div_addr = get_relocatable_from_var_name(
-        "div",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let quotient_addr = get_relocatable_from_var_name(
-        "quotient",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
-    let remainder_addr = get_relocatable_from_var_name(
-        "remainder",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let a_addr = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
+    let div_addr = get_relocatable_from_var_name("div", ids, vm_proxy, hint_ap_tracking)?;
+    let quotient_addr = get_relocatable_from_var_name("quotient", ids, vm_proxy, hint_ap_tracking)?;
+    let remainder_addr =
+        get_relocatable_from_var_name("remainder", ids, vm_proxy, hint_ap_tracking)?;
 
-    let a_low = vm.memory.get_integer(&a_addr)?;
-    let a_high = vm.memory.get_integer(&(a_addr + 1))?;
-    let div_low = vm.memory.get_integer(&div_addr)?;
-    let div_high = vm.memory.get_integer(&(div_addr + 1))?;
+    let a_low = vm_proxy.memory.get_integer(&a_addr)?;
+    let a_high = vm_proxy.memory.get_integer(&(a_addr + 1))?;
+    let div_low = vm_proxy.memory.get_integer(&div_addr)?;
+    let div_high = vm_proxy.memory.get_integer(&(div_addr + 1))?;
 
     //Main logic
     //a = (ids.a.high << 128) + ids.a.low
@@ -297,14 +195,18 @@ pub fn uint256_unsigned_div_rem(
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
-    vm.memory.insert_value(&quotient_addr, quotient_low)?;
+    vm_proxy.memory.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
-    vm.memory
+    vm_proxy
+        .memory
         .insert_value(&(quotient_addr + 1), quotient_high)?;
     //Insert ids.remainder.low
-    vm.memory.insert_value(&remainder_addr, remainder_low)?;
+    vm_proxy
+        .memory
+        .insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm.memory
+    vm_proxy
+        .memory
         .insert_value(&(remainder_addr + 1), remainder_high)
 }
 
@@ -315,12 +217,14 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn run_uint256_add_ok() {
@@ -345,10 +249,10 @@ mod tests {
             )
             .unwrap();
 
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -377,17 +281,48 @@ mod tests {
             (2, HintReference::new_simple(3)),
             (3, HintReference::new_simple(2)),
         ]);
-        vm.memory = memory![
-            ((1, 4), 2),
-            ((1, 5), 3),
-            ((1, 6), 4),
-            ((1, 7), 2),
-            ((1, 12), 2)
-        ];
+
+        //Insert ids.a.low into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+        //Insert ids.a.high into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from(bigint!(3)),
+            )
+            .unwrap();
+        //Insert ids.b.low into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 6)),
+                &MaybeRelocatable::from(bigint!(4)),
+            )
+            .unwrap();
+        //Insert ids.b.high into memory
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        //Insert a value in the ids.carry_low address, so the hint insertion fails
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 12)),
+                &MaybeRelocatable::from(bigint!(2)),
+            )
+            .unwrap();
+
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -427,10 +362,10 @@ mod tests {
             )
             .unwrap();
 
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -469,9 +404,9 @@ mod tests {
             .unwrap();
 
         //Execute the hint
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -521,10 +456,10 @@ mod tests {
             )
             .unwrap();
 
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -556,9 +491,9 @@ mod tests {
         ]);
         vm.memory = memory![((1, 0), 17), ((1, 1), 7)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -595,9 +530,9 @@ mod tests {
             )
             .unwrap();
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -626,9 +561,9 @@ mod tests {
         //Insert  ids.n.low into memory
         vm.memory = memory![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -664,11 +599,10 @@ mod tests {
                 &MaybeRelocatable::from(&vm.prime + i128::MAX),
             )
             .unwrap();
-
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -699,14 +633,14 @@ mod tests {
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1).shl(127) + &vm.prime),
+                &MaybeRelocatable::from(bigint!(1).shl(127_i64) + &vm.prime),
             )
             .unwrap();
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -743,12 +677,12 @@ mod tests {
 
         //Insert a value in ap so the hint insert fails
         vm.memory
-            .insert(&vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
+            .insert(&mut vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
             .unwrap();
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -778,9 +712,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -822,9 +756,9 @@ mod tests {
             ((1, 10), 0)
         ];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),

@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::collections::HashMap;
@@ -15,20 +15,13 @@ use super::hint_utils::insert_value_from_var_name;
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n = get_integer_from_var_name(
-        "n",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?
-    .clone();
-    vm.exec_scopes
+    let n = get_integer_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?.clone();
+    vm_proxy
+        .exec_scopes
         .enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
     Ok(())
 }
@@ -40,12 +33,12 @@ pub fn memset_enter_scope(
 %}
 */
 pub fn memset_continue_loop(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(&vm.exec_scopes, "n")?;
+    let n = get_int_ref_from_scope(vm_proxy.exec_scopes, "n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
@@ -55,31 +48,32 @@ pub fn memset_continue_loop(
         "continue_loop",
         should_continue,
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    insert_int_into_scope(&mut vm.exec_scopes, "n", new_n);
+    insert_int_into_scope(vm_proxy.exec_scopes, "n", new_n);
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         types::relocatable::MaybeRelocatable,
         vm::{
             errors::memory_errors::MemoryError,
-            hints::execute_hint::{BuiltinHintExecutor, HintReference},
+            hints::execute_hint::{get_vm_proxy, HintReference},
+            vm_core::VirtualMachine,
         },
     };
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn memset_enter_scope_valid() {
@@ -92,9 +86,9 @@ mod tests {
         let ids = ids!["n"];
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
     }
 
@@ -110,9 +104,9 @@ mod tests {
         let ids = ids!["n"];
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -136,10 +130,9 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
 
         // assert ids.continue_loop = 0
@@ -169,10 +162,9 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
 
         // assert ids.continue_loop = 1
@@ -202,9 +194,9 @@ mod tests {
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -227,9 +219,9 @@ mod tests {
         ids.insert(String::from("continue_loop"), bigint!(0));
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

@@ -3,11 +3,11 @@ use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_ap, insert_int_into_scope,
-    insert_value_from_var_name,
+    get_int_from_scope, get_relocatable_from_var_name, insert_int_into_scope,
+    insert_value_from_var_name, insert_value_into_ap,
 };
 use crate::vm::hints::secp::secp_utils::SECP_P;
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -26,24 +26,17 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let val_reloc = get_relocatable_from_var_name(
-        "val",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let val_reloc = get_relocatable_from_var_name("val", ids, vm_proxy, hint_ap_tracking)?;
 
-    let val_d0 = vm.memory.get_integer(&val_reloc)?;
-    let val_d1 = vm.memory.get_integer(&(val_reloc.clone() + 1))?;
-    let val_d2 = vm.memory.get_integer(&(val_reloc + 2))?;
+    let val_d0 = vm_proxy.memory.get_integer(&val_reloc)?;
+    let val_d1 = vm_proxy.memory.get_integer(&(val_reloc.clone() + 1))?;
+    let val_d2 = vm_proxy.memory.get_integer(&(val_reloc + 2))?;
 
-    let pack = pack(val_d0, val_d1, val_d2, &vm.prime);
+    let pack = pack(val_d0, val_d1, val_d2, vm_proxy.prime);
 
     let (q, r) = pack.div_rem(&SECP_P);
 
@@ -56,11 +49,9 @@ pub fn verify_zero(
     }
     insert_value_from_var_name(
         "q",
-        q.mod_floor(&vm.prime),
+        q.mod_floor(vm_proxy.prime),
         ids,
-        &mut vm.memory,
-        &vm.references,
-        &vm.run_context,
+        vm_proxy,
         hint_ap_tracking,
     )
 }
@@ -74,12 +65,12 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let value = pack_from_var_name("x", ids, vm, hint_ap_tracking)?.mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value);
+    let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
     Ok(())
 }
 
@@ -92,25 +83,18 @@ Implements hint:
 %}
 */
 pub fn is_zero_pack(
-    vm: &mut VirtualMachine,
+    vm_proxy: &mut VMProxy,
     ids: &HashMap<String, BigInt>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name(
-        "x",
-        ids,
-        &vm.memory,
-        &vm.references,
-        &vm.run_context,
-        hint_ap_tracking,
-    )?;
+    let x_reloc = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;
 
-    let x_d0 = vm.memory.get_integer(&x_reloc)?;
-    let x_d1 = vm.memory.get_integer(&(&x_reloc + 1))?;
-    let x_d2 = vm.memory.get_integer(&(&x_reloc + 2))?;
+    let x_d0 = vm_proxy.memory.get_integer(&x_reloc)?;
+    let x_d1 = vm_proxy.memory.get_integer(&(&x_reloc + 1))?;
+    let x_d2 = vm_proxy.memory.get_integer(&(&x_reloc + 2))?;
 
-    let x = (pack(x_d0, x_d1, x_d2, &vm.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(&mut vm.exec_scopes, "x", x);
+    let x = (pack(x_d0, x_d1, x_d2, vm_proxy.prime)).mod_floor(&SECP_P);
+    insert_int_into_scope(vm_proxy.exec_scopes, "x", x);
     Ok(())
 }
 /*
@@ -121,12 +105,12 @@ if nondet %{ x == 0 %} != 0:
 On .json compiled program
 "memory[ap] = to_felt_or_relocatable(x == 0)"
 */
-pub fn is_zero_nondet(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn is_zero_nondet(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = get_int_from_scope(&vm.exec_scopes, "x")?;
+    let x = get_int_from_scope(vm_proxy.exec_scopes, "x")?;
 
     let value = bigint!(x.is_zero() as usize);
-    insert_int_into_ap(&mut vm.memory, &vm.run_context, value)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, value)
 }
 
 /*
@@ -138,13 +122,13 @@ Implements hint:
     value = x_inv = div_mod(1, x, SECP_P)
 %}
 */
-pub fn is_zero_assign_scope_variables(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+pub fn is_zero_assign_scope_variables(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = get_int_from_scope(&vm.exec_scopes, "x")?;
+    let x = get_int_from_scope(vm_proxy.exec_scopes, "x")?;
 
     let value = div_mod(&bigint!(1), &x, &SECP_P);
-    insert_int_into_scope(&mut vm.exec_scopes, "value", value.clone());
-    insert_int_into_scope(&mut vm.exec_scopes, "x_inv", value);
+    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
+    insert_int_into_scope(vm_proxy.exec_scopes, "x_inv", value);
     Ok(())
 }
 
@@ -158,12 +142,15 @@ mod tests {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::{BuiltinHintExecutor, HintReference};
+    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::vm::hints::execute_hint::{get_vm_proxy, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn run_verify_zero_ok() {
@@ -219,9 +206,9 @@ mod tests {
         };
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Ok(())
         );
 
@@ -313,11 +300,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(150)),
             )
             .unwrap();
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::SecpVerifyZero(
                 bigint!(0),
                 bigint!(0),
@@ -414,11 +400,10 @@ mod tests {
                 &MaybeRelocatable::from(bigint!(55)),
             )
             .unwrap();
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ap_tracking),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ap_tracking),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 9)),
@@ -490,10 +475,10 @@ mod tests {
             None
         );
 
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -550,11 +535,10 @@ mod tests {
             vm.exec_scopes.get_local_variables().unwrap().get("value"),
             None
         );
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 20))
             ))
@@ -600,9 +584,9 @@ mod tests {
         assert_eq!(vm.exec_scopes.get_local_variables().unwrap().get("x"), None);
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Ok(())
         );
 
@@ -655,9 +639,9 @@ mod tests {
         assert_eq!(vm.exec_scopes.get_local_variables().unwrap().get("x"), None);
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -682,9 +666,10 @@ mod tests {
             .assign_or_update_variable("x", PyValueType::BigInt(bigint!(0i32)));
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -718,9 +703,10 @@ mod tests {
             .assign_or_update_variable("x", PyValueType::BigInt(bigint!(123890i32)));
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -754,9 +740,10 @@ mod tests {
         //     .assign_or_update_variable("x", PyValueType::BigInt(bigint!(123890)));
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -783,9 +770,10 @@ mod tests {
             .assign_or_update_variable("x", PyValueType::BigInt(bigint!(0)));
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -814,9 +802,10 @@ mod tests {
         );
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()
@@ -851,9 +840,10 @@ mod tests {
         //     .assign_or_update_variable("x", PyValueType::BigInt(bigint_str!(b"52621538839140286024584685587354966255185961783273479086367")));
 
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::<String, BigInt>::new(),
                 &ApTracking::new()

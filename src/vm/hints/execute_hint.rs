@@ -52,7 +52,7 @@ use crate::vm::hints::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::vm::vm_core::VirtualMachine;
+use crate::vm::vm_core::{VMProxy, VirtualMachine};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
@@ -65,6 +65,18 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 
+pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
+    VMProxy {
+        memory: &mut vm.memory,
+        segments: &mut vm.segments,
+        run_context: &mut vm.run_context,
+        exec_scopes: &mut vm.exec_scopes,
+        dict_manager: &mut vm.dict_manager,
+        builtin_runners: &vm.builtin_runners,
+        references: &vm.references,
+        prime: &vm.prime,
+    }
+}
 impl HintReference {
     pub fn new_simple(offset1: i32) -> Self {
         HintReference {
@@ -95,117 +107,131 @@ pub struct BuiltinHintExecutor {}
 impl HintExecutor for BuiltinHintExecutor {
     fn execute_hint(
         &self,
-        vm: &mut VirtualMachine,
+        vm_proxy: &mut VMProxy,
         code: &str,
         ids: &HashMap<String, BigInt>,
         ap_tracking: &ApTracking,
     ) -> Result<(), VirtualMachineError> {
         match code {
-            hint_code::ADD_SEGMENT => add_segment(vm),
-            hint_code::IS_NN => is_nn(vm, ids, None),
-            hint_code::IS_NN_OUT_OF_RANGE => is_nn_out_of_range(vm, ids, None),
-            hint_code::IS_LE_FELT => is_le_felt(vm, ids, None),
-            hint_code::ASSERT_LE_FELT => assert_le_felt(vm, ids, None),
-            hint_code::ASSERT_250_BITS => assert_250_bit(vm, ids, None),
-            hint_code::IS_POSITIVE => is_positive(vm, ids, Some(ap_tracking)),
-            hint_code::SPLIT_INT_ASSERT_RANGE => split_int_assert_range(vm, ids, None),
-            hint_code::SPLIT_INT => split_int(vm, ids, None),
-            hint_code::ASSERT_NOT_EQUAL => assert_not_equal(vm, ids, None),
-            hint_code::ASSERT_NN => assert_nn(vm, ids, None),
-            hint_code::SQRT => sqrt(vm, ids, None),
-            hint_code::ASSERT_NOT_ZERO => assert_not_zero(vm, ids, None),
-            hint_code::VM_EXIT_SCOPE => exit_scope(vm),
-            hint_code::MEMCPY_ENTER_SCOPE => memcpy_enter_scope(vm, ids, Some(ap_tracking)),
-            hint_code::MEMSET_ENTER_SCOPE => memset_enter_scope(vm, ids, Some(ap_tracking)),
+            hint_code::ADD_SEGMENT => add_segment(vm_proxy),
+            hint_code::IS_NN => is_nn(vm_proxy, ids, None),
+            hint_code::IS_NN_OUT_OF_RANGE => is_nn_out_of_range(vm_proxy, ids, None),
+            hint_code::IS_LE_FELT => is_le_felt(vm_proxy, ids, None),
+            hint_code::ASSERT_LE_FELT => assert_le_felt(vm_proxy, ids, None),
+            hint_code::ASSERT_250_BITS => assert_250_bit(vm_proxy, ids, None),
+            hint_code::IS_POSITIVE => is_positive(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::SPLIT_INT_ASSERT_RANGE => split_int_assert_range(vm_proxy, ids, None),
+            hint_code::SPLIT_INT => split_int(vm_proxy, ids, None),
+            hint_code::ASSERT_NOT_EQUAL => assert_not_equal(vm_proxy, ids, None),
+            hint_code::ASSERT_NN => assert_nn(vm_proxy, ids, None),
+            hint_code::SQRT => sqrt(vm_proxy, ids, None),
+            hint_code::ASSERT_NOT_ZERO => assert_not_zero(vm_proxy, ids, None),
+            hint_code::VM_EXIT_SCOPE => exit_scope(vm_proxy),
+            hint_code::MEMCPY_ENTER_SCOPE => memcpy_enter_scope(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::MEMSET_ENTER_SCOPE => memset_enter_scope(vm_proxy, ids, Some(ap_tracking)),
             hint_code::MEMCPY_CONTINUE_COPYING => {
-                memcpy_continue_copying(vm, ids, Some(ap_tracking))
+                memcpy_continue_copying(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::MEMSET_CONTINUE_LOOP => memset_continue_loop(vm, ids, Some(ap_tracking)),
-            hint_code::SPLIT_FELT => split_felt(vm, ids, None),
-            hint_code::UNSIGNED_DIV_REM => unsigned_div_rem(vm, ids, None),
-            hint_code::SIGNED_DIV_REM => signed_div_rem(vm, ids, None),
-            hint_code::ASSERT_LT_FELT => assert_lt_felt(vm, ids, None),
-            hint_code::FIND_ELEMENT => find_element(vm, ids, None),
-            hint_code::SEARCH_SORTED_LOWER => search_sorted_lower(vm, ids, None),
-            hint_code::POW => pow(vm, ids, Some(ap_tracking)),
-            hint_code::SET_ADD => set_add(vm, ids, None),
-            hint_code::DICT_NEW => dict_new(vm),
-            hint_code::DICT_READ => dict_read(vm, ids, None),
-            hint_code::DICT_WRITE => dict_write(vm, ids, None),
-            hint_code::DEFAULT_DICT_NEW => default_dict_new(vm, ids, Some(ap_tracking)),
+            hint_code::MEMSET_CONTINUE_LOOP => {
+                memset_continue_loop(vm_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::SPLIT_FELT => split_felt(vm_proxy, ids, None),
+            hint_code::UNSIGNED_DIV_REM => unsigned_div_rem(vm_proxy, ids, None),
+            hint_code::SIGNED_DIV_REM => signed_div_rem(vm_proxy, ids, None),
+            hint_code::ASSERT_LT_FELT => assert_lt_felt(vm_proxy, ids, None),
+            hint_code::FIND_ELEMENT => find_element(vm_proxy, ids, None),
+            hint_code::SEARCH_SORTED_LOWER => search_sorted_lower(vm_proxy, ids, None),
+            hint_code::POW => pow(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::SET_ADD => set_add(vm_proxy, ids, None),
+            hint_code::DICT_NEW => dict_new(vm_proxy),
+            hint_code::DICT_READ => dict_read(vm_proxy, ids, None),
+            hint_code::DICT_WRITE => dict_write(vm_proxy, ids, None),
+            hint_code::DEFAULT_DICT_NEW => default_dict_new(vm_proxy, ids, Some(ap_tracking)),
             hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => {
-                squash_dict_inner_first_iteration(vm, ids, Some(ap_tracking))
+                squash_dict_inner_first_iteration(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm),
-            hint_code::USORT_BODY => usort_body(vm, ids, None),
-            hint_code::USORT_VERIFY => verify_usort(vm, ids, None),
-            hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => verify_multiplicity_assert(vm),
-            hint_code::USORT_VERIFY_MULTIPLICITY_BODY => verify_multiplicity_body(vm, ids, None),
-            hint_code::BLAKE2S_COMPUTE => compute_blake2s(vm, ids, Some(ap_tracking)),
-            hint_code::VERIFY_ZERO => verify_zero(vm, ids, Some(ap_tracking)),
-            hint_code::NONDET_BIGINT3 => nondet_bigint3(vm, ids, Some(ap_tracking)),
-            hint_code::REDUCE => reduce(vm, ids, None),
-            hint_code::BLAKE2S_FINALIZE => finalize_blake2s(vm, ids, Some(ap_tracking)),
-            hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256(vm, ids, Some(ap_tracking)),
+            hint_code::USORT_ENTER_SCOPE => usort_enter_scope(vm_proxy),
+            hint_code::USORT_BODY => usort_body(vm_proxy, ids, None),
+            hint_code::USORT_VERIFY => verify_usort(vm_proxy, ids, None),
+            hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => verify_multiplicity_assert(vm_proxy),
+            hint_code::USORT_VERIFY_MULTIPLICITY_BODY => {
+                verify_multiplicity_body(vm_proxy, ids, None)
+            }
+            hint_code::BLAKE2S_COMPUTE => compute_blake2s(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::VERIFY_ZERO => verify_zero(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::NONDET_BIGINT3 => nondet_bigint3(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::REDUCE => reduce(vm_proxy, ids, None),
+            hint_code::BLAKE2S_FINALIZE => finalize_blake2s(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256(vm_proxy, ids, Some(ap_tracking)),
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => {
-                blake2s_add_uint256_bigend(vm, ids, Some(ap_tracking))
+                blake2s_add_uint256_bigend(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::UNSAFE_KECCAK => unsafe_keccak(vm, ids, None),
-            hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize(vm, ids, None),
+            hint_code::UNSAFE_KECCAK => unsafe_keccak(vm_proxy, ids, None),
+            hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize(vm_proxy, ids, None),
             hint_code::SQUASH_DICT_INNER_SKIP_LOOP => {
-                squash_dict_inner_skip_loop(vm, ids, Some(ap_tracking))
+                squash_dict_inner_skip_loop(vm_proxy, ids, Some(ap_tracking))
             }
             hint_code::SQUASH_DICT_INNER_CHECK_ACCESS_INDEX => {
-                squash_dict_inner_check_access_index(vm, ids, Some(ap_tracking))
+                squash_dict_inner_check_access_index(vm_proxy, ids, Some(ap_tracking))
             }
             hint_code::SQUASH_DICT_INNER_CONTINUE_LOOP => {
-                squash_dict_inner_continue_loop(vm, ids, Some(ap_tracking))
+                squash_dict_inner_continue_loop(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => squash_dict_inner_assert_len_keys(vm),
-            hint_code::SQUASH_DICT_INNER_LEN_ASSERT => squash_dict_inner_len_assert(vm),
+            hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => {
+                squash_dict_inner_assert_len_keys(vm_proxy)
+            }
+            hint_code::SQUASH_DICT_INNER_LEN_ASSERT => squash_dict_inner_len_assert(vm_proxy),
             hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
-                squash_dict_inner_used_accesses_assert(vm, ids, Some(ap_tracking))
+                squash_dict_inner_used_accesses_assert(vm_proxy, ids, Some(ap_tracking))
             }
             hint_code::SQUASH_DICT_INNER_NEXT_KEY => {
-                squash_dict_inner_next_key(vm, ids, Some(ap_tracking))
+                squash_dict_inner_next_key(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::SQUASH_DICT => squash_dict(vm, ids, Some(ap_tracking)),
-            hint_code::VM_ENTER_SCOPE => enter_scope(vm),
-            hint_code::DICT_UPDATE => dict_update(vm, ids, None),
-            hint_code::DICT_SQUASH_COPY_DICT => dict_squash_copy_dict(vm, ids, Some(ap_tracking)),
-            hint_code::DICT_SQUASH_UPDATE_PTR => dict_squash_update_ptr(vm, ids, Some(ap_tracking)),
-            hint_code::UINT256_ADD => uint256_add(vm, ids, None),
-            hint_code::SPLIT_64 => split_64(vm, ids, None),
-            hint_code::UINT256_SQRT => uint256_sqrt(vm, ids, None),
-            hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm, ids, None),
-            hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm, ids, None),
-            hint_code::BIGINT_TO_UINT256 => bigint_to_uint256(vm, ids, None),
-            hint_code::IS_ZERO_PACK => is_zero_pack(vm, ids, None),
-            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm),
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(vm, ids, None),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm),
-            hint_code::GET_POINT_FROM_X => get_point_from_x(vm, ids, Some(ap_tracking)),
-            hint_code::EC_NEGATE => ec_negate(vm, ids, None),
-            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm, ids, None),
-            hint_code::COMPUTE_SLOPE => compute_slope(vm, ids, None),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(vm, ids, Some(ap_tracking)),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm),
-            hint_code::SHA256_MAIN => sha256_main(vm, ids, Some(ap_tracking)),
-            hint_code::SHA256_INPUT => sha256_input(vm, ids, None),
-            hint_code::SHA256_FINALIZE => sha256_finalize(vm, ids, None),
-            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm, ids, Some(ap_tracking)),
-            hint_code::COMPARE_BYTES_IN_WORD_NONDET => compare_bytes_in_word_nondet(vm, ids, None),
+            hint_code::SQUASH_DICT => squash_dict(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::VM_ENTER_SCOPE => enter_scope(vm_proxy),
+            hint_code::DICT_UPDATE => dict_update(vm_proxy, ids, None),
+            hint_code::DICT_SQUASH_COPY_DICT => {
+                dict_squash_copy_dict(vm_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::DICT_SQUASH_UPDATE_PTR => {
+                dict_squash_update_ptr(vm_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::UINT256_ADD => uint256_add(vm_proxy, ids, None),
+            hint_code::SPLIT_64 => split_64(vm_proxy, ids, None),
+            hint_code::UINT256_SQRT => uint256_sqrt(vm_proxy, ids, None),
+            hint_code::UINT256_SIGNED_NN => uint256_signed_nn(vm_proxy, ids, None),
+            hint_code::UINT256_UNSIGNED_DIV_REM => uint256_unsigned_div_rem(vm_proxy, ids, None),
+            hint_code::BIGINT_TO_UINT256 => bigint_to_uint256(vm_proxy, ids, None),
+            hint_code::IS_ZERO_PACK => is_zero_pack(vm_proxy, ids, None),
+            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm_proxy),
+            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => is_zero_assign_scope_variables(vm_proxy),
+            hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(vm_proxy, ids, None),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(vm_proxy),
+            hint_code::GET_POINT_FROM_X => get_point_from_x(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::EC_NEGATE => ec_negate(vm_proxy, ids, None),
+            hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(vm_proxy, ids, None),
+            hint_code::COMPUTE_SLOPE => compute_slope(vm_proxy, ids, None),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X => {
+                ec_double_assign_new_x(vm_proxy, ids, Some(ap_tracking))
+            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(vm_proxy),
+            hint_code::KECCAK_WRITE_ARGS => keccak_write_args(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::COMPARE_BYTES_IN_WORD_NONDET => {
+                compare_bytes_in_word_nondet(vm_proxy, ids, None)
+            }
+            hint_code::SHA256_MAIN => sha256_main(vm_proxy, ids, Some(ap_tracking)),
+            hint_code::SHA256_INPUT => sha256_input(vm_proxy, ids, None),
+            hint_code::SHA256_FINALIZE => sha256_finalize(vm_proxy, ids, None),
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
-                compare_keccak_full_rate_in_bytes_nondet(vm, ids, None)
+                compare_keccak_full_rate_in_bytes_nondet(vm_proxy, ids, None)
             }
-            hint_code::BLOCK_PERMUTATION => block_permutation(vm, ids, None),
-            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm, ids, None),
+            hint_code::BLOCK_PERMUTATION => block_permutation(vm_proxy, ids, None),
+            hint_code::CAIRO_KECCAK_FINALIZE => cairo_keccak_finalize(vm_proxy, ids, None),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => {
-                fast_ec_add_assign_new_x(vm, ids, Some(ap_tracking))
+                fast_ec_add_assign_new_x(vm_proxy, ids, Some(ap_tracking))
             }
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(vm),
-            hint_code::EC_MUL_INNER => ec_mul_inner(vm, ids, Some(ap_tracking)),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(vm_proxy),
+            hint_code::EC_MUL_INNER => ec_mul_inner(vm_proxy, ids, Some(ap_tracking)),
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
     }
@@ -223,14 +249,21 @@ mod tests {
     use super::*;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
         //ids and references are not needed for this test
-        vm.hint_executor
-            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        HINT_EXECUTOR
+            .execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new(),
+            )
             .expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 1);
@@ -251,8 +284,14 @@ mod tests {
         }
         vm.run_context.ap = MaybeRelocatable::from((2, 6));
         //ids and references are not needed for this test
-        vm.hint_executor
-            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        HINT_EXECUTOR
+            .execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new(),
+            )
             .expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
@@ -280,9 +319,14 @@ mod tests {
             )
             .unwrap();
         //ids and references are not needed for this test
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 6)),
@@ -297,10 +341,14 @@ mod tests {
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
         let mut vm = vm!();
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
         );
     }
@@ -330,9 +378,9 @@ mod tests {
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
     }
 
@@ -361,10 +409,9 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -401,9 +448,9 @@ mod tests {
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
     }
 
@@ -436,10 +483,9 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -475,10 +521,9 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),
@@ -502,10 +547,14 @@ mod tests {
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
-
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new()
+            )
             .is_ok());
     }
 
@@ -519,10 +568,14 @@ mod tests {
 
         // initialize memory segments
         vm.segments.add(&mut vm.memory, None);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &HashMap::new(), &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
+                hint_code,
+                &HashMap::new(),
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
@@ -535,9 +588,10 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Execute the hint
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor.execute_hint(
-                &mut vm,
+            HINT_EXECUTOR.execute_hint(
+                &mut vm_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -647,9 +701,9 @@ mod tests {
             (3, HintReference::new_simple(0)),
         ]);
 
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
     }
 
@@ -750,10 +804,9 @@ mod tests {
             ),
             (3, HintReference::new_simple(0)),
         ]);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
@@ -853,9 +906,9 @@ mod tests {
             (3, HintReference::new_simple(0)),
         ]);
 
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_err());
     }
 
@@ -956,10 +1009,9 @@ mod tests {
             ),
             (3, HintReference::new_simple(0)),
         ]);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
         );
     }
@@ -1058,9 +1110,9 @@ mod tests {
             ),
         ]);
 
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_ok());
     }
 
@@ -1150,10 +1202,9 @@ mod tests {
                 },
             ),
         ]);
-
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            vm.hint_executor
-                .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
             Err(VirtualMachineError::NoneInMemoryRange)
         );
     }
@@ -1253,9 +1304,9 @@ mod tests {
             ),
         ]);
 
-        assert!(vm
-            .hint_executor
-            .execute_hint(&mut vm, hint_code, &ids, &ApTracking::new())
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        assert!(HINT_EXECUTOR
+            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
             .is_err());
     }
 }
