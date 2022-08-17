@@ -294,12 +294,12 @@ impl CairoRunner {
     }
 
     fn remove_path_from_reference_ids(
-        referece_ids: &HashMap<String, BigInt>,
-    ) -> Result<HashMap<String, BigInt>, RunnerError> {
-        let mut reference_ids_new = HashMap::<String, BigInt>::new();
+        referece_ids: &HashMap<String, usize>,
+    ) -> Result<HashMap<String, usize>, RunnerError> {
+        let mut reference_ids_new = HashMap::<String, usize>::new();
         for (path, value) in referece_ids {
             if let Some(name) = path.rsplit('.').next() {
-                reference_ids_new.insert(name.to_string(), value.clone());
+                reference_ids_new.insert(name.to_string(), *value);
             } else {
                 return Err(RunnerError::FailedToParseIdsNameFromPath(path.clone()));
             }
@@ -1043,21 +1043,20 @@ mod tests {
     //Integration tests for initialization phase
 
     #[test]
-    /*Program used:
-    func myfunc(a: felt) -> (r: felt):
-        let b = a * 2
-        return(b)
-    end
-
-    func main():
-        let a = 1
-        let b = myfunc(a)
-        return()
-    end
-
-    main = 3
-    data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
-    */
+    // Program used:
+    // func myfunc(a: felt) -> (r: felt):
+    // let b = a * 2
+    // return(b)
+    // end
+    //
+    // func main():
+    // let a = 1
+    // let b = myfunc(a)
+    // return()
+    // end
+    //
+    // main = 3
+    // data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
     fn initialization_phase_no_builtins() {
         let program = Program {
             builtins: vec![],

@@ -12,7 +12,6 @@ use crate::{
         vm_core::VMProxy,
     },
 };
-use num_bigint::BigInt;
 use std::collections::HashMap;
 
 /* Implements hint:
@@ -25,7 +24,7 @@ value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = pack_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -54,7 +53,7 @@ pub fn div_mod_n_safe_div(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineEr
 
 pub fn get_point_from_x(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let x_cube_int = pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)? % &*SECP_P;
@@ -83,7 +82,7 @@ mod tests {
             vm_memory::memory::Memory,
         },
     };
-    use num_bigint::Sign;
+    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn safe_div_ok() {
@@ -115,10 +114,8 @@ mod tests {
             );
         }
 
-        let ids: HashMap<String, BigInt> = HashMap::from([
-            ("a".to_string(), bigint!(0_i32)),
-            ("b".to_string(), bigint!(3_i32)),
-        ]);
+        let ids: HashMap<String, usize> =
+            HashMap::from([("a".to_string(), 0), ("b".to_string(), 3)]);
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(div_mod_n_packed_divmod(&mut vm_proxy, &ids, None), Ok(()));
         assert_eq!(div_mod_n_safe_div(&mut vm_proxy), Ok(()));
@@ -166,10 +163,8 @@ mod tests {
             );
         }
 
-        let ids: HashMap<String, BigInt> = HashMap::from([
-            ("v".to_string(), bigint!(0_i32)),
-            ("x_cube".to_string(), bigint!(1_i32)),
-        ]);
+        let ids: HashMap<String, usize> =
+            HashMap::from([("v".to_string(), 0), ("x_cube".to_string(), 1)]);
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert!(get_point_from_x(&mut vm_proxy, &ids, None).is_ok());
     }

@@ -18,7 +18,7 @@ use super::hint_utils::insert_value_from_var_name;
 
 pub fn find_element(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", ids, vm_proxy, hint_ap_tracking)?;
@@ -100,7 +100,7 @@ pub fn find_element(
 
 pub fn search_sorted_lower(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let find_element_max_size = get_int_from_scope(vm_proxy.exec_scopes, "find_element_max_size");
@@ -172,7 +172,7 @@ mod tests {
 
     fn init_vm_ids(
         values_to_override: HashMap<String, MaybeRelocatable>,
-    ) -> (VirtualMachine, HashMap<String, BigInt>) {
+    ) -> (VirtualMachine, HashMap<String, usize>) {
         let mut vm = VirtualMachine::new(
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             vec![],
@@ -243,12 +243,12 @@ mod tests {
             );
         }
 
-        let mut ids = HashMap::<String, BigInt>::new();
+        let mut ids = HashMap::<String, usize>::new();
         for (i, s) in ["array_ptr", "elm_size", "n_elms", "index", "key"]
             .iter()
             .enumerate()
         {
-            ids.insert(s.to_string(), bigint!(i));
+            ids.insert(s.to_string(), i);
         }
 
         (vm, ids)
@@ -354,12 +354,12 @@ mod tests {
             );
         }
 
-        let mut ids = HashMap::<String, BigInt>::new();
+        let mut ids = HashMap::<String, usize>::new();
         for (i, s) in ["array_ptr", "elm_size", "n_elms", "index", "key"]
             .iter()
             .enumerate()
         {
-            ids.insert(s.to_string(), bigint!(i as i32));
+            ids.insert(s.to_string(), i);
         }
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
@@ -562,12 +562,12 @@ mod tests {
             );
         }
 
-        let mut ids = HashMap::<String, BigInt>::new();
+        let mut ids = HashMap::<String, usize>::new();
         for (i, s) in ["array_ptr", "elm_size", "n_elms", "index", "key"]
             .iter()
             .enumerate()
         {
-            ids.insert(s.to_string(), bigint!(i as i32));
+            ids.insert(s.to_string(), i);
         }
 
         let mut vm_proxy = get_vm_proxy(&mut vm);

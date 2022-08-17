@@ -22,7 +22,7 @@ use crate::{
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -41,7 +41,7 @@ pub fn is_nn(
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -64,7 +64,7 @@ pub fn is_nn_out_of_range(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -87,7 +87,7 @@ pub fn assert_le_felt(
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a_mod =
@@ -112,7 +112,7 @@ pub fn is_le_felt(
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a_addr = get_address_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -158,7 +158,7 @@ pub fn assert_not_equal(
 // %}
 pub fn assert_nn(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -179,7 +179,7 @@ pub fn assert_nn(
 // %}
 pub fn assert_not_zero(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?;
@@ -195,7 +195,7 @@ pub fn assert_not_zero(
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?;
@@ -210,7 +210,7 @@ pub fn split_int_assert_range(
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?;
@@ -230,7 +230,7 @@ pub fn split_int(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?;
@@ -259,7 +259,7 @@ pub fn is_positive(
 // %}
 pub fn split_felt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?;
@@ -280,7 +280,7 @@ pub fn split_felt(
 //        ids.root = isqrt(value)
 pub fn sqrt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let mod_value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?
@@ -294,7 +294,7 @@ pub fn sqrt(
 
 pub fn signed_div_rem(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let div = get_integer_from_var_name("div", ids, vm_proxy, hint_ap_tracking)?;
@@ -337,7 +337,7 @@ ids.q, ids.r = divmod(ids.value, ids.div)
 */
 pub fn unsigned_div_rem(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let div = get_integer_from_var_name("div", ids, vm_proxy, hint_ap_tracking)?;
@@ -363,7 +363,7 @@ pub fn unsigned_div_rem(
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Declare constant values
@@ -392,7 +392,7 @@ Implements hint:
 */
 pub fn assert_lt_felt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -776,8 +776,8 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), (-1))];
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("a"), bigint!(2));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("a"), 2);
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(10))]);
         //Execute the hint
@@ -1260,8 +1260,8 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5)];
         //Create invalid id value
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("value"), bigint!(10));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("value"), 10);
         let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::new()),
@@ -2037,8 +2037,8 @@ mod tests {
             .unwrap();
 
         //Create incomplete ids
-        let mut incomplete_ids = HashMap::<String, BigInt>::new();
-        incomplete_ids.insert(String::from("value"), bigint!(0));
+        let mut incomplete_ids = HashMap::<String, usize>::new();
+        incomplete_ids.insert(String::from("value"), 0);
 
         //Create references
         vm.references = HashMap::from([

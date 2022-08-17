@@ -39,7 +39,7 @@ use std::{cmp, collections::HashMap, ops::Shl};
 */
 pub fn unsafe_keccak(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", ids, vm_proxy, hint_ap_tracking)?;
@@ -127,7 +127,7 @@ Implements hint:
  */
 pub fn unsafe_keccak_finalize(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     /* -----------------------------

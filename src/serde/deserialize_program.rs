@@ -5,7 +5,6 @@ use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
 use num_bigint::{BigInt, Sign};
-use num_traits::abs;
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
@@ -32,7 +31,7 @@ pub struct HintParams {
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
     #[serde(deserialize_with = "deserialize_map_to_string_and_bigint_hashmap")]
-    pub reference_ids: HashMap<String, BigInt>,
+    pub reference_ids: HashMap<String, usize>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
@@ -174,7 +173,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
 struct ReferenceIdsVisitor;
 
 impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
-    type Value = HashMap<String, BigInt>;
+    type Value = HashMap<String, usize>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a map with string keys and integer values")
@@ -184,17 +183,10 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
     where
         A: MapAccess<'de>,
     {
-        let mut data: HashMap<String, BigInt> = HashMap::new();
+        let mut data: HashMap<String, usize> = HashMap::new();
 
-        while let Some((key, value)) = map.next_entry::<String, i64>()? {
-            if value >= 0 {
-                data.insert(key, BigInt::from_bytes_le(Sign::Plus, &value.to_le_bytes()));
-            } else {
-                data.insert(
-                    key,
-                    BigInt::from_bytes_le(Sign::Minus, &abs(value).to_le_bytes()),
-                );
-            }
+        while let Some((key, value)) = map.next_entry::<String, usize>()? {
+            data.insert(key, value);
         }
 
         Ok(data)
@@ -236,7 +228,7 @@ pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
 
 pub fn deserialize_map_to_string_and_bigint_hashmap<'de, D: Deserializer<'de>>(
     d: D,
-) -> Result<HashMap<String, BigInt>, D::Error> {
+) -> Result<HashMap<String, usize>, D::Error> {
     d.deserialize_map(ReferenceIdsVisitor)
 }
 
@@ -353,7 +345,7 @@ mod tests {
                                 },
                                 "reference_ids": {
                                     "starkware.cairo.common.math.split_felt.high": 0,
-                                    "starkware.cairo.common.math.split_felt.low": -14,
+                                    "starkware.cairo.common.math.split_felt.low": 14,
                                     "starkware.cairo.common.math.split_felt.range_check_ptr": 16,
                                     "starkware.cairo.common.math.split_felt.value": 12
                                 }
@@ -430,19 +422,19 @@ mod tests {
                     reference_ids: HashMap::from([
                         (
                             String::from("starkware.cairo.common.math.split_felt.high"),
-                            bigint!(0),
+                            0,
                         ),
                         (
                             String::from("starkware.cairo.common.math.split_felt.low"),
-                            bigint!(-14),
+                            14,
                         ),
                         (
                             String::from("starkware.cairo.common.math.split_felt.range_check_ptr"),
-                            bigint!(16),
+                            16,
                         ),
                         (
                             String::from("starkware.cairo.common.math.split_felt.value"),
-                            bigint!(12),
+                            12,
                         ),
                     ]),
                 },

@@ -66,7 +66,7 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
 
 pub fn pack_from_var_name(
     name: &str,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     vm_proxy: &VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<BigInt, VirtualMachineError> {

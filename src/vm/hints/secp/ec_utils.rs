@@ -26,7 +26,7 @@ Implements hint:
 */
 pub fn ec_negate(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
@@ -57,7 +57,7 @@ Implements hint:
 */
 pub fn compute_doubling_slope(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
@@ -101,7 +101,7 @@ Implements hint:
 */
 pub fn compute_slope(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point0
@@ -158,7 +158,7 @@ Implements hint:
 */
 pub fn ec_double_assign_new_x(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
@@ -231,7 +231,7 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_x(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
@@ -327,7 +327,7 @@ Implements hint:
 */
 pub fn ec_mul_inner(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
@@ -659,7 +659,7 @@ mod tests {
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Ok(())
@@ -803,7 +803,7 @@ mod tests {
             HINT_EXECUTOR.execute_hint(
                 &mut vm_proxy,
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Ok(())
