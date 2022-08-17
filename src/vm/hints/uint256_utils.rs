@@ -426,7 +426,13 @@ mod tests {
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
