@@ -1043,20 +1043,21 @@ mod tests {
     //Integration tests for initialization phase
 
     #[test]
-    // Program used:
-    // func myfunc(a: felt) -> (r: felt):
-    // let b = a * 2
-    // return(b)
-    // end
-    //
-    // func main():
-    // let a = 1
-    // let b = myfunc(a)
-    // return()
-    // end
-    //
-    // main = 3
-    // data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
+    /* Program used:
+    func myfunc(a: felt) -> (r: felt):
+        let b = a * 2
+        return(b)
+    end
+
+    func main():
+        let a = 1
+        let b = myfunc(a)
+        return()
+    end
+
+    main = 3
+    data = [5207990763031199744, 2, 2345108766317314046, 5189976364521848832, 1, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020476, 2345108766317314046]
+    */
     fn initialization_phase_no_builtins() {
         let program = Program {
             builtins: vec![],
