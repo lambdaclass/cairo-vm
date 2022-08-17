@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1660771234999,
+  "lastUpdate": 1660773446026,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -23059,6 +23059,44 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 260498220,
             "range": "± 4204838",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "dbb499d087242219c62dccf336869c167ff70de9",
+          "message": "Separate VM from HintExecution: Phase 6 (Separate hint compilation)",
+          "timestamp": "2022-08-15T09:06:05Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/373/commits/dbb499d087242219c62dccf336869c167ff70de9"
+        },
+        "date": 1660773442722,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 815781774,
+            "range": "± 14053310",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 408164438,
+            "range": "± 6963417",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1923908628,
+            "range": "± 24810539",
             "unit": "ns/iter"
           }
         ]
