@@ -52,16 +52,8 @@ pub fn get_ptr_from_var_name(
 ) -> Result<Relocatable, VirtualMachineError> {
     let var_addr = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
     //Add immediate if present in reference
-    let index = ids_data
+    let hint_reference = ids_data
         .get(&String::from(var_name))
-        .ok_or(VirtualMachineError::FailedToGetIds)?;
-    let hint_reference = vm_proxy
-        .references
-        .get(
-            &index
-                .to_usize()
-                .ok_or(VirtualMachineError::BigintToUsizeFail)?,
-        )
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
         let value = vm_proxy.memory.get_relocatable(&var_addr)?;
@@ -304,17 +296,17 @@ pub fn memcpy_continue_copying(
         insert_value_from_var_name(
             "continue_copying",
             bigint!(1),
-            ids,
             vm_proxy,
-            hint_ap_tracking,
+            ids_data,
+            ap_tracking,
         )?;
     } else {
         insert_value_from_var_name(
             "continue_copying",
             bigint!(0),
-            ids,
             vm_proxy,
-            hint_ap_tracking,
+            ids_data,
+            ap_tracking,
         )?;
     }
     exec_scopes_proxy.insert_value("n", new_n);
@@ -336,16 +328,12 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
-
-        //Create references
-        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
 
         let var_name: &str = "variable";
 
-        //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("variable"), bigint!(0));
+        //Create ids_data
+        let mut ids_data = ids_data![var_name];
 
         //Insert ids.prev_locs.exp into memory
         vm.memory
@@ -356,7 +344,7 @@ mod tests {
             .unwrap();
         let vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            get_integer_from_var_name(var_name, &ids, &vm_proxy, None),
+            get_integer_from_var_name(var_name, &vm_proxy, &ids_data, &ApTracking::default()),
             Ok(&bigint!(10))
         );
     }
@@ -368,16 +356,12 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
-
-        //Create references
-        vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
+        vm.run_context.fp = MaybeRelocatable::from((0, 1));
 
         let var_name: &str = "variable";
 
-        //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("variable"), bigint!(0));
+        //Create ids_data
+        let mut ids_data = ids_data![var_name];
 
         //Insert ids.variable into memory as a RelocatableValue
         vm.memory
@@ -388,7 +372,7 @@ mod tests {
             .unwrap();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            get_integer_from_var_name(var_name, &ids, vm_proxy, None),
+            get_integer_from_var_name(var_name, &vm_proxy, &ids_data, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))

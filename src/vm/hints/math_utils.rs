@@ -765,7 +765,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Insert ids into memory
         vm.memory = memory![((0, 0), (-1))];
-        let ids_data = HashMap::from([("a", HintReference::new_simple(10))]);
+        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(10))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1620,8 +1620,9 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Insert ids into memory
         vm.memory = memory![((0, 2), 5), ((0, 3), 7)];
-        //Create ids
+        //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
@@ -1638,7 +1639,8 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 4));
         //Insert ids into memory
         vm.memory = memory![((0, 0), 5), ((0, 2), 5), ((0, 3), 7)];
-        //Create ids
+        //Create ids_data
+        let ids_data = ids_data!["r", "q", "div", "value"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1912,9 +1914,9 @@ mod tests {
 
         //Create ids
         let ids_data = HashMap::from([
-            ("value", HintReference::new_simple(-4)),
-            ("high", HintReference::new(-3, 0, true, true)),
-            ("low", HintReference::new(-3, 1, true, true)),
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("high".to_string(), HintReference::new(-3, 0, true, true)),
+            ("low".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -2043,9 +2045,9 @@ mod tests {
 
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
-            ("value", HintReference::new_simple(-4)),
-            ("low", HintReference::new(-3, 0, true, true)),
-            ("high", HintReference::new(-3, 1, true, true)),
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         // Override MaybeRelocatable::from((2, 0)) memory address so, the hint vm.memory.insert fails
@@ -2088,10 +2090,11 @@ mod tests {
             .unwrap();
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
-            ("value", HintReference::new_simple(-4)),
-            ("low", HintReference::new(-3, 0, true, true)),
-            ("high", HintReference::new(-3, 1, true, true)),
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         // Override MaybeRelocatable::from((2, 1)) memory address so, the hint vm.memory.insert fails
         vm.memory
             .insert(
@@ -2124,10 +2127,11 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 7));
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
-            ("value", HintReference::new_simple(-4)),
-            ("low", HintReference::new(-3, 0, true, true)),
-            ("high", HintReference::new(-3, 1, true, true)),
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2170,7 +2174,7 @@ mod tests {
 
         //Create ids
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, hint_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2207,7 +2211,7 @@ mod tests {
         vm.memory = memory![((1, 1), 1), ((1, 2), 2)];
         //Create Incorrects ids
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code, hint_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -2266,7 +2270,7 @@ mod tests {
         //Insert ids.a into memory
         vm.memory = memory![((1, 1), 1)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code, hint_data);
+        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
