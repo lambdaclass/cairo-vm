@@ -72,7 +72,7 @@ fn compute_blake2s_func(
 */
 pub fn compute_blake2s(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let output = get_ptr_from_var_name("output", ids, vm_proxy, hint_ap_tracking)?;
@@ -103,7 +103,7 @@ pub fn compute_blake2s(
 */
 pub fn finalize_blake2s(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     const N_PACKED_INSTANCES: usize = 7;
@@ -142,7 +142,7 @@ pub fn finalize_blake2s(
 */
 pub fn blake2s_add_uint256(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids
@@ -198,7 +198,7 @@ pub fn blake2s_add_uint256(
 */
 pub fn blake2s_add_uint256_bigend(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from ids

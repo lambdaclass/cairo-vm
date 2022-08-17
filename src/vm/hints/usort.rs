@@ -30,7 +30,7 @@ pub fn usort_enter_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineErr
 
 pub fn usort_body(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let input_arr_start_ptr =
@@ -114,7 +114,7 @@ pub fn usort_body(
 
 pub fn verify_usort(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", ids, vm_proxy, hint_ap_tracking)?.clone();
@@ -144,7 +144,7 @@ pub fn verify_multiplicity_assert(vm_proxy: &mut VMProxy) -> Result<(), VirtualM
 
 pub fn verify_multiplicity_body(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let current_pos = get_list_u64_from_scope_mut(vm_proxy.exec_scopes, "positions")?

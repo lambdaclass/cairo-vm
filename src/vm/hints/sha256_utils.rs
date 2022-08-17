@@ -26,7 +26,7 @@ const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
 
 pub fn sha256_input(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
@@ -46,7 +46,7 @@ pub fn sha256_input(
 
 pub fn sha256_main(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let input_ptr = get_ptr_from_var_name("sha256_start", ids, vm_proxy, hint_ap_tracking)?;
@@ -80,7 +80,7 @@ pub fn sha256_main(
 
 pub fn sha256_finalize(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let message: Vec<u8> = vec![0; 64];
