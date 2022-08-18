@@ -1,24 +1,28 @@
-use crate::bigint;
-use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::types::hint_executor::HintExecutor;
-use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::types::relocatable::MaybeRelocatable;
-use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
-use crate::vm::context::run_context::RunContext;
-use crate::vm::decoding::decoder::decode_instruction;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::dict_manager::DictManager;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
-use crate::vm::trace::trace_entry::TraceEntry;
-use crate::vm::vm_memory::memory::Memory;
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use crate::{
+    bigint,
+    serde::deserialize_program::ApTracking,
+    types::{
+        exec_scope::ExecutionScopes,
+        hint_executor::HintExecutor,
+        instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res},
+        relocatable::MaybeRelocatable,
+    },
+    vm::{
+        context::run_context::RunContext,
+        decoding::decoder::decode_instruction,
+        errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
+        hints::{
+            dict_manager::DictManager,
+            execute_hint::{get_vm_proxy, HintReference},
+        },
+        runners::builtin_runner::BuiltinRunner,
+        trace::trace_entry::TraceEntry,
+        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+    },
+};
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
-
-use super::hints::execute_hint::{get_vm_proxy, HintReference};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -27,11 +31,11 @@ pub struct Operands {
     op0: MaybeRelocatable,
     op1: MaybeRelocatable,
 }
+
 #[derive(PartialEq, Debug)]
 struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
 
 #[derive(Clone, Debug)]
-
 pub struct HintData {
     pub hint_code: String,
     //Maps the name of the variable to its reference id
@@ -49,6 +53,7 @@ pub struct VMProxy<'a> {
     pub references: &'a HashMap<usize, HintReference>,
     pub prime: &'a BigInt,
 }
+
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
@@ -59,14 +64,7 @@ pub struct VirtualMachine {
     pub exec_scopes: ExecutionScopes,
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     pub references: HashMap<usize, HintReference>,
-    //hint_locals: HashMap<..., ...>,
-    //static_locals: Option<HashMap<..., ...>>,
-    //intruction_debug_info: HashMap<MaybeRelocatable, InstructionLocation>,
-    //debug_file_contents: HashMap<String, String>,
-    //error_message_attributes: Vec<VmAttributeScope>,
-    //Some(accessed_addresses) == proof mode enabled
     accessed_addresses: Option<Vec<MaybeRelocatable>>,
-    //None if trace is not enabled, Some otherwise
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
@@ -123,6 +121,7 @@ impl VirtualMachine {
             exec_scopes: ExecutionScopes::new(),
         }
     }
+
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
@@ -448,7 +447,11 @@ impl VirtualMachine {
         self.opcode_assertions(&instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
-            if let (RelocatableValue(ref pc), RelocatableValue(ref ap), RelocatableValue(ref fp)) = (
+            if let (
+                MaybeRelocatable::RelocatableValue(ref pc),
+                MaybeRelocatable::RelocatableValue(ref ap),
+                MaybeRelocatable::RelocatableValue(ref fp),
+            ) = (
                 &self.run_context.pc,
                 &self.run_context.ap,
                 &self.run_context.fp,
@@ -696,16 +699,17 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
-    use crate::vm::runners::builtin_runner::{
-        BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
+    use crate::{
+        bigint_str, relocatable,
+        types::instruction::{Op1Addr, Register},
+        types::relocatable::Relocatable,
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError,
+            hints::execute_hint::BuiltinHintExecutor,
+            runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
+        },
     };
-
-    use crate::bigint_str;
-    use crate::{relocatable, types::relocatable::Relocatable};
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
     use std::collections::HashSet;
