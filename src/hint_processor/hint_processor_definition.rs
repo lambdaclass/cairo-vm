@@ -30,7 +30,7 @@ pub trait HintProcessor {
         ap_tracking_data: &ApTracking,
         //Map from variable name to reference id number
         //(may contain other variables aside from those used by the hint)
-        reference_ids: &HashMap<String, BigInt>,
+        reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &HashMap<usize, HintReference>,
     ) -> Result<Box<dyn Any>, VirtualMachineError>;

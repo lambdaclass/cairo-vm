@@ -35,7 +35,7 @@ struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
 pub struct HintData {
     pub hint_code: String,
     //Maps the name of the variable to its reference id
-    pub ids: HashMap<String, BigInt>,
+    pub ids: HashMap<String, usize>,
     pub ap_tracking_data: ApTracking,
 }
 pub struct VirtualMachine {
@@ -61,7 +61,7 @@ pub struct VirtualMachine {
 impl HintData {
     pub fn new(
         hint_code: &str,
-        ids: HashMap<String, BigInt>,
+        ids: HashMap<String, usize>,
         ap_tracking_data: ApTracking,
     ) -> HintData {
         HintData {

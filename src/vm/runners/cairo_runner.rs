@@ -1027,7 +1027,7 @@ mod tests {
     //Integration tests for initialization phase
 
     #[test]
-    /*Program used:
+    /* Program used:
     func myfunc(a: felt) -> (r: felt):
         let b = a * 2
         return(b)

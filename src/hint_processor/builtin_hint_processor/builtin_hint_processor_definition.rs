@@ -1,9 +1,3 @@
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
-use std::any::Any;
-use std::collections::HashMap;
-
-use num_bigint::BigInt;
-
 use crate::any_box;
 use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
     blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, finalize_blake2s,
@@ -41,6 +35,8 @@ use crate::hint_processor::hint_processor_definition::{HintProcessor, HintRefere
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use std::any::Any;
+use std::collections::HashMap;
 
 use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
     block_permutation, cairo_keccak_finalize, compare_bytes_in_word_nondet,
@@ -437,7 +433,7 @@ impl HintProcessor for BuiltinHintProcessor {
         &self,
         code: String,
         ap_tracking: &ApTracking,
-        reference_ids: &HashMap<String, BigInt>,
+        reference_ids: &HashMap<String, usize>,
         references: &HashMap<usize, HintReference>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
@@ -449,7 +445,7 @@ impl HintProcessor for BuiltinHintProcessor {
 }
 
 fn get_ids_data(
-    reference_ids: &HashMap<String, BigInt>,
+    reference_ids: &HashMap<String, usize>,
     references: &HashMap<usize, HintReference>,
 ) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
     let mut ids_data = HashMap::<String, HintReference>::new();
@@ -458,7 +454,7 @@ fn get_ids_data(
         ids_data.insert(
             name.to_string(),
             references
-                .get(&bigint_to_usize(ref_id)?)
+                .get(&ref_id)
                 .ok_or(VirtualMachineError::FailedToGetIds)?
                 .clone(),
         );
@@ -590,8 +586,6 @@ mod tests {
             .unwrap();
         let ids_data = ids_data!["len"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("len"), bigint!(0));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
