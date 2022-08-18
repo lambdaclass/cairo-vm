@@ -484,7 +484,7 @@ impl VirtualMachine {
         if let Some(hint_list) = hint_data_dictionary.get(
             //This should never fail
             &Relocatable::try_from(&self.run_context.pc)
-                .map_err(|_| VirtualMachineError::FailedToGetIds)?
+                .map_err(VirtualMachineError::MemoryError)?
                 .offset,
         ) {
             let mut vm_proxy = get_vm_proxy(self);
