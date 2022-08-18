@@ -3,7 +3,10 @@ use num_traits::ToPrimitive;
 
 use crate::{
     serde::deserialize_program::ApTracking,
-    types::{instruction::Register, relocatable::Relocatable},
+    types::{
+        instruction::Register,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
     vm::{
         context::run_context::RunContext,
         errors::vm_errors::VirtualMachineError,
@@ -15,10 +18,25 @@ use super::{
     hint_processor_definition::HintReference,
     proxies::{memory_proxy::MemoryProxy, vm_proxy::VMProxy},
 };
-//Gets the value of a variable name.
-//If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
-//else raises Err
-pub fn get_integer_from_var_name<'a>(
+
+///Inserts value into the address of the given ids variable
+pub fn insert_value_from_var_name(
+    value: impl Into<MaybeRelocatable>,
+    vm_proxy: &mut VMProxy,
+    hint_reference: &HintReference,
+    ap_tracking: &ApTracking,
+) -> Result<(), VirtualMachineError> {
+    let var_addr = compute_addr_from_reference(
+        hint_reference,
+        vm_proxy.run_context,
+        &vm_proxy.memory,
+        ap_tracking,
+    )?;
+    vm_proxy.memory.insert_value(&var_addr, value)
+}
+
+///Returns the Integer value stored in the given ids variable
+pub fn get_integer_from_reference<'a>(
     vm_proxy: &'a VMProxy,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
@@ -32,7 +50,7 @@ pub fn get_integer_from_var_name<'a>(
     vm_proxy.memory.get_integer(&var_addr)
 }
 
-//Returns the Relocatable value stored in the given ids variable
+///Returns the Relocatable value stored in the given ids variable
 pub fn get_ptr_from_reference(
     vm_proxy: &VMProxy,
     hint_reference: &HintReference,
@@ -125,12 +143,12 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
         .ok_or(VirtualMachineError::BigintToUsizeFail)
 }
 
-//Tries to convert a BigInt value to u32
+///Tries to convert a BigInt value to u32
 pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
     bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
-//Returns a reference to the RangeCheckBuiltinRunner struct if range_check builtin is present
+///Returns a reference to the RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
     builtin_runners: &Vec<(String, Box<dyn BuiltinRunner>)>,
 ) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
