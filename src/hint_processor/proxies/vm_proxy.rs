@@ -7,6 +7,7 @@ use crate::vm::{
 
 use super::memory_proxy::{get_memory_proxy, MemoryProxy};
 
+///Structure representing a limited access to the VM's internal values
 pub struct VMProxy<'a> {
     pub memory: MemoryProxy<'a>,
     pub segments: &'a mut MemorySegmentManager,
@@ -15,6 +16,7 @@ pub struct VMProxy<'a> {
     pub prime: &'a BigInt,
 }
 
+///Creates a VMProxy from a VM instance
 pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
     VMProxy {
         memory: get_memory_proxy(&mut vm.memory),

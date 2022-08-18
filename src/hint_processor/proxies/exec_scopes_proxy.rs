@@ -11,11 +11,14 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::exec_scope_errors::ExecScopeError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 
+///Structure representing a limited access to the execution scopes
+///Allows adding and removing scopes, but will only allow modifications to the last scope present before hint execution
 pub struct ExecutionScopesProxy<'a> {
     scopes: &'a mut ExecutionScopes,
     current_scope: usize,
 }
 
+///Creates an ExecutionScopeProxy from the execution_scopes
 pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScopesProxy {
     ExecutionScopesProxy {
         //Len will always be > 1 as execution scopes are always created with a main scope
@@ -25,24 +28,31 @@ pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScop
 }
 
 impl ExecutionScopesProxy<'_> {
+    ///Creates a new scope with predefined variables
     pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
         self.scopes.enter_scope(new_scope_locals);
     }
 
+    ///Removes last scope from exec_scopes
     pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
         self.scopes.exit_scope()
     }
+
+    ///Creates or updates an existing variable given its name and boxed value
     pub fn assign_or_update_variable(&mut self, var_name: &str, var_value: Box<dyn Any>) {
         if let Ok(local_variables) = self.get_local_variables_mut() {
             local_variables.insert(var_name.to_string(), var_value);
         }
     }
 
+    ///Removes a variable from the current scope given its name
     pub fn delete_variable(&mut self, var_name: &str) {
         if let Ok(local_variables) = self.get_local_variables_mut() {
             local_variables.remove(var_name);
         }
     }
+
+    ///Returns a mutable reference to the dictionary containing the variables present in the current scope
     pub fn get_local_variables_mut(
         &mut self,
     ) -> Result<&mut HashMap<String, Box<dyn Any>>, VirtualMachineError> {
@@ -54,6 +64,7 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
+    ///Returns a dictionary containing the variables present in the current scope
     pub fn get_local_variables(
         &self,
     ) -> Result<&HashMap<String, Box<dyn Any>>, VirtualMachineError> {
@@ -64,7 +75,8 @@ impl ExecutionScopesProxy<'_> {
             ExecScopeError::NoScopeError,
         ))
     }
-    //Returns the value in the current execution scope that matches the name and is of type BigInt
+
+    ///Returns the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
         let mut val: Option<BigInt> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -74,7 +86,8 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns the value in the current execution scope that matches the name
+
+    ///Returns the value in the current execution scope that matches the name
     pub fn get_any_boxed_ref(&self, name: &str) -> Result<&Box<dyn Any>, VirtualMachineError> {
         if let Some(variable) = self.get_local_variables()?.get(name) {
             return Ok(variable);
@@ -84,7 +97,7 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
-    //Returns the value in the current execution scope that matches the name
+    ///Returns the value in the current execution scope that matches the name
     pub fn get_any_boxed_mut(
         &mut self,
         name: &str,
@@ -97,7 +110,7 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
-    //Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
+    ///Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
         let mut val: Option<&BigInt> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -107,7 +120,8 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
+
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
     pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
         let mut val: Option<&mut BigInt> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
@@ -117,7 +131,8 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns the value in the current execution scope that matches the name and is of type List
+
+    ///Returns the value in the current execution scope that matches the name and is of type List
     pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
         let mut val: Option<Vec<BigInt>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -127,7 +142,8 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a reference to the value in the current execution scope that matches the name and is of type List
+
+    ///Returns a reference to the value in the current execution scope that matches the name and is of type List
     pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
         let mut val: Option<&Vec<BigInt>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -137,7 +153,8 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
+
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
     pub fn get_mut_list_ref(
         &mut self,
         name: &str,
@@ -151,7 +168,7 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    //Returns the value in the current execution scope that matches the name and is of type ListU64
+    ///Returns the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_listu64(&self, name: &str) -> Result<Vec<u64>, VirtualMachineError> {
         let mut val: Option<Vec<u64>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -161,7 +178,7 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
+    ///Returns a reference to the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_listu64_ref(&self, name: &str) -> Result<&Vec<u64>, VirtualMachineError> {
         let mut val: Option<&Vec<u64>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -171,7 +188,7 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type ListU64
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_mut_listu64_ref(
         &mut self,
         name: &str,
@@ -185,7 +202,7 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    //Returns the value in the current execution scope that matches the name and is of type ListU64
+    ///Returns the value in the current execution scope that matches the name and is of type ListU64
     pub fn get_u64(&self, name: &str) -> Result<u64, VirtualMachineError> {
         let mut val: Option<u64> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -195,7 +212,7 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a reference to the value in the current execution scope that matches the name and is of type U64
+    ///Returns a reference to the value in the current execution scope that matches the name and is of type U64
     pub fn get_u64_ref(&self, name: &str) -> Result<&u64, VirtualMachineError> {
         let mut val: Option<&u64> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
@@ -205,7 +222,7 @@ impl ExecutionScopesProxy<'_> {
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
-    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type U64
     pub fn get_mut_u64_ref(&mut self, name: &str) -> Result<&mut u64, VirtualMachineError> {
         let mut val: Option<&mut u64> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
@@ -216,7 +233,7 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    //Returns the value in the dict manager
+    ///Returns the value in the dict manager
     pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, VirtualMachineError> {
         let mut val: Option<Rc<RefCell<DictManager>>> = None;
         if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
@@ -227,7 +244,7 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
-    //Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64
     pub fn get_mut_dict_int_list_u64_ref(
         &mut self,
         name: &str,
@@ -241,11 +258,11 @@ impl ExecutionScopesProxy<'_> {
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    //Inserts the boxed value in scope
+    ///Inserts the boxed value into the current scope
     pub fn insert_box(&mut self, name: &str, value: Box<dyn Any>) {
         self.assign_or_update_variable(name, value);
     }
-    //Inserts the value in scope
+    ///Inserts the value into the current scope
     pub fn insert_value<T: 'static>(&mut self, name: &str, value: T) {
         self.assign_or_update_variable(name, any_box!(value));
     }
