@@ -17,7 +17,7 @@ use super::hint_utils::insert_value_from_var_name;
 pub fn memset_enter_scope(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n: Box<dyn Any> =
@@ -35,7 +35,7 @@ pub fn memset_enter_scope(
 pub fn memset_continue_loop(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
@@ -140,8 +140,8 @@ mod tests {
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
         vm.memory = memory![((0, 2), 5)];
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_loop"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_loop"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -179,8 +179,8 @@ mod tests {
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
         vm.memory = memory![((0, 2), 5)];
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_loop"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_loop"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -217,8 +217,8 @@ mod tests {
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
         vm.memory = memory![((0, 2), 5)];
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_loop"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_loop"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -250,8 +250,8 @@ mod tests {
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((0, 1), 5)];
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_loop"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_loop"), 0);
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
         let vm_proxy = &mut get_vm_proxy(&mut vm);

@@ -42,7 +42,7 @@ fn get_access_indices<'a>(
 pub fn squash_dict_inner_first_iteration(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
@@ -72,7 +72,7 @@ pub fn squash_dict_inner_first_iteration(
 pub fn squash_dict_inner_skip_loop(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -100,7 +100,7 @@ pub fn squash_dict_inner_skip_loop(
 pub fn squash_dict_inner_check_access_index(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
@@ -129,7 +129,7 @@ pub fn squash_dict_inner_check_access_index(
 pub fn squash_dict_inner_continue_loop(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
@@ -168,7 +168,7 @@ pub fn squash_dict_inner_len_assert(
 pub fn squash_dict_inner_used_accesses_assert(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let key = exec_scopes_proxy.get_int("key")?;
@@ -208,7 +208,7 @@ pub fn squash_dict_inner_assert_len_keys(
 pub fn squash_dict_inner_next_key(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
@@ -251,7 +251,7 @@ pub fn squash_dict_inner_next_key(
 pub fn squash_dict(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Get necessary variables addresses from ids
@@ -366,8 +366,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("range_check_ptr"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("range_check_ptr"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -428,8 +428,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("range_check_ptr"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("range_check_ptr"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -466,8 +466,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("range_check_ptr"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("range_check_ptr"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -502,8 +502,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("should_skip_loop"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("should_skip_loop"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -542,8 +542,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("should_skip_loop"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("should_skip_loop"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -585,8 +585,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("loop_temps"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("loop_temps"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -648,8 +648,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("loop_temps"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("loop_temps"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -683,8 +683,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("loop_temps"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("loop_temps"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -723,8 +723,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("loop_temps"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("loop_temps"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -825,8 +825,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n_used_accesses"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("n_used_accesses"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -871,8 +871,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n_used_accesses"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("n_used_accesses"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -920,8 +920,8 @@ mod tests {
             )
             .unwrap();
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("n_used_accesses"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("n_used_accesses"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -1028,8 +1028,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("next_key"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("next_key"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -1073,8 +1073,8 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("next_key"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("next_key"), 0);
         //Create references
         vm.references = references!(1);
         //Execute the hint

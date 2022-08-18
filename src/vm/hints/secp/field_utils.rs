@@ -27,7 +27,7 @@ Implements hint:
 */
 pub fn verify_zero(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let val_reloc = get_relocatable_from_var_name("val", ids, vm_proxy, hint_ap_tracking)?;
@@ -67,7 +67,7 @@ Implements hint:
 pub fn reduce(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
@@ -86,7 +86,7 @@ Implements hint:
 pub fn is_zero_pack(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let x_reloc = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;
@@ -645,8 +645,8 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 15));
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("x"), bigint!(0i32));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("x"), 0);
 
         //Create references
         vm.references = HashMap::from([(
@@ -713,7 +713,7 @@ mod tests {
                 vm_proxy,
                 exec_scopes_proxy,
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Ok(())
@@ -752,7 +752,7 @@ mod tests {
                 vm_proxy,
                 exec_scopes_proxy,
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Ok(())
@@ -790,7 +790,7 @@ mod tests {
                 vm_proxy,
                 exec_scopes_proxy_ref!(),
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::VariableNotInScopeError(
@@ -822,7 +822,7 @@ mod tests {
                 vm_proxy,
                 exec_scopes_proxy,
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::MemoryError(
@@ -857,7 +857,7 @@ mod tests {
                 vm_proxy,
                 exec_scopes_proxy,
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Ok(())
@@ -896,7 +896,7 @@ mod tests {
                 vm_proxy,
                 exec_scopes_proxy_ref!(),
                 hint_code,
-                &HashMap::<String, BigInt>::new(),
+                &HashMap::<String, usize>::new(),
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::VariableNotInScopeError(
