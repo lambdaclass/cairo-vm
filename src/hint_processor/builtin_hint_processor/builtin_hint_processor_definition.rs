@@ -450,7 +450,10 @@ fn get_ids_data(
 ) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
     let mut ids_data = HashMap::<String, HintReference>::new();
     for (path, ref_id) in reference_ids {
-        let name = path.rsplit('.').next().unwrap();
+        let name = path
+            .rsplit('.')
+            .next()
+            .ok_or(VirtualMachineError::FailedToGetIds)?;
         ids_data.insert(
             name.to_string(),
             references
