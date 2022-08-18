@@ -20,7 +20,7 @@ use super::{
 };
 
 ///Inserts value into the address of the given ids variable
-pub fn insert_value_from_var_name(
+pub fn insert_value_from_reference(
     value: impl Into<MaybeRelocatable>,
     vm_proxy: &mut VMProxy,
     hint_reference: &HintReference,
