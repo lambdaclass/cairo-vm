@@ -46,7 +46,7 @@ pub fn get_range_check_builtin(
 
 pub fn get_ptr_from_var_name(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     vm_proxy: &VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
@@ -175,7 +175,7 @@ pub fn compute_addr_from_reference(
 
 ///Computes the memory address given by the reference id
 pub fn get_address_from_reference(
-    reference_id: &BigInt,
+    reference_id: &usize,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
     memory: &Memory,
@@ -198,7 +198,7 @@ pub fn get_address_from_reference(
 
 pub fn get_address_from_var_name(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     vm_proxy: &VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -219,7 +219,7 @@ pub fn get_address_from_var_name(
 pub fn insert_value_from_var_name(
     var_name: &str,
     value: impl Into<MaybeRelocatable>,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     vm_proxy: &mut VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -248,7 +248,7 @@ pub fn insert_value_into_ap(
 //else raises Err
 pub fn get_relocatable_from_var_name(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     vm_proxy: &VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Relocatable, VirtualMachineError> {
@@ -263,7 +263,7 @@ pub fn get_relocatable_from_var_name(
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     vm_proxy: &'a VMProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<&'a BigInt, VirtualMachineError> {
@@ -298,7 +298,7 @@ pub fn exit_scope(exec_scopes_proxy: &mut ExecutionScopesProxy) -> Result<(), Vi
 pub fn memcpy_enter_scope(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let len = get_integer_from_var_name("len", ids, vm_proxy, hint_ap_tracking)?.clone();
@@ -317,7 +317,7 @@ pub fn memcpy_enter_scope(
 pub fn memcpy_continue_copying(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
@@ -370,8 +370,8 @@ mod tests {
         let var_name: &str = "variable";
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("variable"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("variable"), 0);
 
         //Insert ids.prev_locs.exp into memory
         vm.memory
@@ -402,8 +402,8 @@ mod tests {
         let var_name: &str = "variable";
 
         //Create ids
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("variable"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("variable"), 0);
 
         //Insert ids.variable into memory as a RelocatableValue
         vm.memory

@@ -110,7 +110,7 @@ impl HintExecutor for BuiltinHintExecutor {
         vm_proxy: &mut VMProxy,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
         code: &str,
-        ids: &HashMap<String, BigInt>,
+        ids: &HashMap<String, usize>,
         ap_tracking: &ApTracking,
     ) -> Result<(), VirtualMachineError> {
         match code {
@@ -414,8 +414,8 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("len"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("len"), 0);
 
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -452,8 +452,8 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("len"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("len"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -496,8 +496,8 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_copying"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_copying"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -539,8 +539,8 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_copying"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_copying"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -583,8 +583,8 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("continue_copying"), bigint!(0));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("continue_copying"), 0);
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -743,11 +743,11 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("length"), bigint!(0));
-        ids.insert(String::from("data"), bigint!(1));
-        ids.insert(String::from("high"), bigint!(2));
-        ids.insert(String::from("low"), bigint!(3));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("length"), 0);
+        ids.insert(String::from("data"), 1);
+        ids.insert(String::from("high"), 2);
+        ids.insert(String::from("low"), 3);
 
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
@@ -855,11 +855,11 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("length"), bigint!(0));
-        ids.insert(String::from("data"), bigint!(1));
-        ids.insert(String::from("high"), bigint!(2));
-        ids.insert(String::from("low"), bigint!(3));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("length"), 0);
+        ids.insert(String::from("data"), 1);
+        ids.insert(String::from("high"), 2);
+        ids.insert(String::from("low"), 3);
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(2)));
 
@@ -965,11 +965,11 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("length"), bigint!(0));
-        ids.insert(String::from("data"), bigint!(1));
-        ids.insert(String::from("high"), bigint!(2));
-        ids.insert(String::from("low"), bigint!(3));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("length"), 0);
+        ids.insert(String::from("data"), 1);
+        ids.insert(String::from("high"), 2);
+        ids.insert(String::from("low"), 3);
 
         //Create references
         vm.references = HashMap::from([
@@ -1072,11 +1072,11 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("length"), bigint!(0));
-        ids.insert(String::from("data"), bigint!(1));
-        ids.insert(String::from("high"), bigint!(2));
-        ids.insert(String::from("low"), bigint!(3));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("length"), 0);
+        ids.insert(String::from("data"), 1);
+        ids.insert(String::from("high"), 2);
+        ids.insert(String::from("low"), 3);
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
             .assign_or_update_variable("__keccak_max_size", PyValueType::BigInt(bigint!(10)));
@@ -1184,10 +1184,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("keccak_state"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("keccak_state"), 0);
+        ids.insert(String::from("high"), 1);
+        ids.insert(String::from("low"), 2);
 
         //Create references
         vm.references = HashMap::from([
@@ -1283,10 +1283,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("keccak_state"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("keccak_state"), 0);
+        ids.insert(String::from("high"), 1);
+        ids.insert(String::from("low"), 2);
 
         //Create references
         vm.references = HashMap::from([
@@ -1390,10 +1390,10 @@ mod tests {
             )
             .unwrap();
 
-        let mut ids = HashMap::<String, BigInt>::new();
-        ids.insert(String::from("keccak_state"), bigint!(0));
-        ids.insert(String::from("high"), bigint!(1));
-        ids.insert(String::from("low"), bigint!(2));
+        let mut ids = HashMap::<String, usize>::new();
+        ids.insert(String::from("keccak_state"), 0);
+        ids.insert(String::from("high"), 1);
+        ids.insert(String::from("low"), 2);
 
         //Create references
         vm.references = HashMap::from([

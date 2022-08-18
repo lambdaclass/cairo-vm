@@ -198,12 +198,11 @@ pub mod test_utils {
     macro_rules! ids {
         ( $( $name: expr ),* ) => {
             {
-                let mut ids = HashMap::<String, BigInt>::new();
+                let mut ids = HashMap::<String, usize>::new();
                 let mut num = -1;
                 $(
                     num += 1;
-                    ids_inner!($name, num, ids);
-
+                    ids_inner!($name, num.try_into().unwrap(), ids);
                 )*
                 ids
             }
@@ -213,7 +212,7 @@ pub mod test_utils {
 
     macro_rules! ids_inner {
         ( $name: expr, $num: expr, $ids: expr ) => {
-            $ids.insert(String::from($name), bigint!($num))
+            $ids.insert(String::from($name), $num)
         };
     }
     pub(crate) use ids_inner;
