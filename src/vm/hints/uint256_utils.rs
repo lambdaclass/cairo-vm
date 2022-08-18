@@ -23,7 +23,7 @@ Implements hint:
 */
 pub fn uint256_add(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let shift: BigInt = bigint!(2).pow(128);
@@ -65,7 +65,7 @@ Implements hint:
 */
 pub fn split_64(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -93,7 +93,7 @@ Implements hint:
 */
 pub fn uint256_sqrt(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n_addr = get_relocatable_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?;
@@ -127,7 +127,7 @@ Implements hint:
 */
 pub fn uint256_signed_nn(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a_addr = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;
@@ -158,7 +158,7 @@ Implements hint:
 */
 pub fn uint256_unsigned_div_rem(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let a_addr = get_relocatable_from_var_name("a", ids, vm_proxy, hint_ap_tracking)?;

@@ -22,7 +22,7 @@ Implements hint:
 pub fn nondet_bigint3(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", ids, vm_proxy, hint_ap_tracking)?;
@@ -39,7 +39,7 @@ pub fn nondet_bigint3(
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", ids, vm_proxy, hint_ap_tracking)?;

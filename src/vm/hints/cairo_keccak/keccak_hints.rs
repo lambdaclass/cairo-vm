@@ -31,7 +31,7 @@ Implements hint:
 */
 pub fn keccak_write_args(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let inputs_ptr = get_ptr_from_var_name("inputs", ids, vm_proxy, hint_ap_tracking)?;
@@ -75,7 +75,7 @@ Implements hint:
 */
 pub fn compare_bytes_in_word_nondet(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
@@ -99,7 +99,7 @@ Implements hint:
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", ids, vm_proxy, hint_ap_tracking)?;
@@ -122,7 +122,7 @@ Implements hint:
 */
 pub fn block_permutation(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // these checks may not make sense now, but will when constants are
@@ -178,7 +178,7 @@ pub fn block_permutation(
 */
 pub fn cairo_keccak_finalize(
     vm_proxy: &mut VMProxy,
-    ids: &HashMap<String, BigInt>,
+    ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // these checks may not make sense now, but will when constants are
