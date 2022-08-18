@@ -185,13 +185,21 @@ pub mod test_utils {
     pub(crate) use vm_with_range_check;
 
     macro_rules! vm {
-        () => {
+        () => {{
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 vec![],
                 false,
             )
-        };
+        }};
+
+        ($use_trace:expr) => {{
+            VirtualMachine::new(
+                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+                vec![],
+                $use_trace,
+            )
+        }};
     }
     pub(crate) use vm;
 
