@@ -12,7 +12,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
-//Inserts value into teh address of the given ids variable
+//Inserts value into the address of the given ids variable
 pub fn insert_value_from_var_name(
     var_name: &str,
     value: impl Into<MaybeRelocatable>,
@@ -46,12 +46,12 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
         .ok_or(VirtualMachineError::BigintToUsizeFail)
 }
 
-//Tries to convert a BigInt value to U32
+//Tries to convert a BigInt value to u32
 pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
     bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
-//Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
+//Returns a reference to the RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
     builtin_runners: &Vec<(String, Box<dyn BuiltinRunner>)>,
 ) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
