@@ -34,7 +34,7 @@ pub fn compute_addr_from_reference(
                 .ap
                 .get_relocatable()
                 .map_err(|_| VirtualMachineError::InvalidApValue(run_context.ap.clone()))?;
-            apply_ap_tracking_correction(ap, &var_ap_trackig, hint_ap_tracking)?
+            apply_ap_tracking_correction(ap, var_ap_trackig, hint_ap_tracking)?
         }
     };
     if hint_reference.offset1.is_negative()
@@ -43,16 +43,16 @@ pub fn compute_addr_from_reference(
         return Err(VirtualMachineError::FailedToGetIds);
     }
     if !hint_reference.inner_dereference {
-        return Ok(base_addr + hint_reference.offset1 + hint_reference.offset2);
+        Ok(base_addr + hint_reference.offset1 + hint_reference.offset2)
     } else {
         let addr = base_addr + hint_reference.offset1;
         let dereferenced_addr = memory
             .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
         if let Some(imm) = &hint_reference.immediate {
-            return Ok(dereferenced_addr + bigint_to_usize(imm)?);
+            Ok(dereferenced_addr + bigint_to_usize(imm)?)
         } else {
-            return Ok(dereferenced_addr + hint_reference.offset2);
+            Ok(dereferenced_addr + hint_reference.offset2)
         }
     }
 }
@@ -70,7 +70,7 @@ fn apply_ap_tracking_correction(
         ));
     }
     let ap_diff = hint_ap_tracking.offset - ref_ap_tracking.offset;
-    Ok(ap.sub(ap_diff)?)
+    ap.sub(ap_diff)
 }
 
 //Tries to convert a BigInt value to usize

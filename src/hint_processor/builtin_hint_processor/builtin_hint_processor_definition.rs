@@ -454,7 +454,7 @@ fn get_ids_data(
         ids_data.insert(
             name.to_string(),
             references
-                .get(&ref_id)
+                .get(ref_id)
                 .ok_or(VirtualMachineError::FailedToGetIds)?
                 .clone(),
         );
