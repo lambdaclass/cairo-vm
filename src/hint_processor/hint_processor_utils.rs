@@ -11,7 +11,52 @@ use crate::{
     },
 };
 
-use super::{hint_processor_definition::HintReference, proxies::memory_proxy::MemoryProxy};
+use super::{
+    hint_processor_definition::HintReference,
+    proxies::{memory_proxy::MemoryProxy, vm_proxy::VMProxy},
+};
+//Gets the value of a variable name.
+//If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
+//else raises Err
+pub fn get_integer_from_var_name<'a>(
+    vm_proxy: &'a VMProxy,
+    hint_reference: &HintReference,
+    ap_tracking: &ApTracking,
+) -> Result<&'a BigInt, VirtualMachineError> {
+    let var_addr = compute_addr_from_reference(
+        hint_reference,
+        vm_proxy.run_context,
+        &vm_proxy.memory,
+        ap_tracking,
+    )?;
+    vm_proxy.memory.get_integer(&var_addr)
+}
+
+//Returns the Relocatable value stored in the given ids variable
+pub fn get_ptr_from_reference(
+    vm_proxy: &VMProxy,
+    hint_reference: &HintReference,
+    ap_tracking: &ApTracking,
+) -> Result<Relocatable, VirtualMachineError> {
+    let var_addr = compute_addr_from_reference(
+        hint_reference,
+        vm_proxy.run_context,
+        &vm_proxy.memory,
+        ap_tracking,
+    )?;
+    //Add immediate if present in reference
+    if hint_reference.dereference {
+        let value = vm_proxy.memory.get_relocatable(&var_addr)?;
+        if let Some(immediate) = &hint_reference.immediate {
+            let modified_value = value + bigint_to_usize(immediate)?;
+            Ok(modified_value)
+        } else {
+            Ok(value.clone())
+        }
+    } else {
+        Ok(var_addr)
+    }
+}
 
 ///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable
 pub fn compute_addr_from_reference(

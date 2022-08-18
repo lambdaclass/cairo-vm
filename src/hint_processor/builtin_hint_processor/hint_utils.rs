@@ -3,7 +3,6 @@ use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
 use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
-use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
@@ -39,7 +38,7 @@ pub fn insert_value_into_ap(
     )
 }
 
-//Returns the Relocatable value store in the given ids variable
+//Returns the Relocatable value stored in the given ids variable
 pub fn get_ptr_from_var_name(
     var_name: &str,
     vm_proxy: &VMProxy,
@@ -54,10 +53,7 @@ pub fn get_ptr_from_var_name(
     if hint_reference.dereference {
         let value = vm_proxy.memory.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = relocatable!(
-                value.segment_index,
-                value.offset + bigint_to_usize(immediate)?
-            );
+            let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)
         } else {
             Ok(value.clone())
@@ -91,10 +87,14 @@ pub fn get_relocatable_from_var_name(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    match get_address_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)? {
-        MaybeRelocatable::RelocatableValue(relocatable) => Ok(relocatable),
-        address => Err(VirtualMachineError::ExpectedRelocatable(address)),
-    }
+    compute_addr_from_reference(
+        ids_data
+            .get(var_name)
+            .ok_or(VirtualMachineError::FailedToGetIds)?,
+        vm_proxy.run_context,
+        &vm_proxy.memory,
+        ap_tracking,
+    )
 }
 
 //Gets the value of a variable name.
