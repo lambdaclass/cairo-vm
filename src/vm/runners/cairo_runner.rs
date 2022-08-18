@@ -297,12 +297,12 @@ impl CairoRunner {
     }
 
     fn remove_path_from_reference_ids(
-        referece_ids: &HashMap<String, BigInt>,
-    ) -> Result<HashMap<String, BigInt>, RunnerError> {
-        let mut reference_ids_new = HashMap::<String, BigInt>::new();
+        referece_ids: &HashMap<String, usize>,
+    ) -> Result<HashMap<String, usize>, RunnerError> {
+        let mut reference_ids_new = HashMap::<String, usize>::new();
         for (path, value) in referece_ids {
             if let Some(name) = path.rsplit('.').next() {
-                reference_ids_new.insert(name.to_string(), value.clone());
+                reference_ids_new.insert(name.to_string(), *value);
             } else {
                 return Err(RunnerError::FailedToParseIdsNameFromPath(path.clone()));
             }
@@ -1046,7 +1046,7 @@ mod tests {
     //Integration tests for initialization phase
 
     #[test]
-    /*Program used:
+    /* Program used:
     func myfunc(a: felt) -> (r: felt):
         let b = a * 2
         return(b)
