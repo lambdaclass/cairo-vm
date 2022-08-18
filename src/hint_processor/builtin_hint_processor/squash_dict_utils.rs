@@ -1,4 +1,5 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::hint_processor::hint_processor_utils::get_range_check_builtin;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use num_bigint::BigInt;
@@ -7,8 +8,8 @@ use std::collections::HashMap;
 
 use super::dict_hint_utils::DICT_ACCESS_SIZE;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
-    get_relocatable_from_var_name, insert_value_from_var_name,
+    get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+    insert_value_from_var_name,
 };
 use crate::{
     bigint, serde::deserialize_program::ApTracking, types::relocatable::MaybeRelocatable,

@@ -1,3 +1,4 @@
+use crate::hint_processor::hint_processor_utils::get_range_check_builtin;
 use crate::hint_processor::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
 use std::{
     collections::HashMap,
@@ -10,7 +11,7 @@ use num_traits::{Signed, Zero};
 
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_address_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-    get_range_check_builtin, insert_value_from_var_name, insert_value_into_ap,
+    insert_value_from_var_name, insert_value_into_ap,
 };
 use crate::{
     bigint,

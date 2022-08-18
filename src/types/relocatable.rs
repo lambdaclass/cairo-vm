@@ -71,6 +71,28 @@ impl Add<usize> for Relocatable {
     }
 }
 
+impl Add<i32> for Relocatable {
+    type Output = Relocatable;
+    fn add(self, other: i32) -> Self {
+        if other >= 0 {
+            relocatable!(self.segment_index, self.offset + other as usize)
+        } else {
+            relocatable!(self.segment_index, self.offset - other.abs() as usize)
+        }
+    }
+}
+
+impl Add<i32> for &Relocatable {
+    type Output = Relocatable;
+    fn add(self, other: i32) -> Relocatable {
+        if other >= 0 {
+            relocatable!(self.segment_index, self.offset + other as usize)
+        } else {
+            relocatable!(self.segment_index, self.offset - other.abs() as usize)
+        }
+    }
+}
+
 impl TryInto<Relocatable> for MaybeRelocatable {
     type Error = MemoryError;
     fn try_into(self) -> Result<Relocatable, MemoryError> {
@@ -268,6 +290,14 @@ impl MaybeRelocatable {
             MaybeRelocatable::RelocatableValue(_) => {
                 Err(VirtualMachineError::ExpectedInteger(self.clone()))
             }
+        }
+    }
+
+    //Returns reference to Relocatable inside self if Relocatable variant or Error if Int variant
+    pub fn get_relocatable(&self) -> Result<&Relocatable, VirtualMachineError> {
+        match self {
+            MaybeRelocatable::RelocatableValue(rel) => Ok(rel),
+            MaybeRelocatable::Int(_) => Err(VirtualMachineError::ExpectedInteger(self.clone())),
         }
     }
 }

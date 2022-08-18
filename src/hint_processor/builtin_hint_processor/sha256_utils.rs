@@ -1,7 +1,7 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::bigint_to_u32;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
+use crate::hint_processor::hint_processor_utils::bigint_to_u32;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,

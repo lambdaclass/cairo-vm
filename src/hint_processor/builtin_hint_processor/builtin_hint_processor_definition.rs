@@ -1,3 +1,4 @@
+use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -15,7 +16,6 @@ use crate::hint_processor::builtin_hint_processor::find_element_hint::{
     find_element, search_sorted_lower,
 };
 use crate::hint_processor::builtin_hint_processor::hint_code;
-use crate::hint_processor::builtin_hint_processor::hint_utils::bigint_to_usize;
 use crate::hint_processor::builtin_hint_processor::keccak_utils::{
     unsafe_keccak, unsafe_keccak_finalize,
 };
