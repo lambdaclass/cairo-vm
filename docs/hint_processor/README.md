@@ -141,6 +141,6 @@ pub fn split_felt(
     let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
     let high: BigInt = value.shr(128_u8);
     insert_value_from_reference(high, vm_proxy, ids_data.get("high")?, ap_tracking)?;
-    insert_value_from_reference(low, vm_proxy, ids_data.get("low"), ap_tracking)
+    insert_value_from_reference(low, vm_proxy, ids_data.get("low")?, ap_tracking)
 }
 ```
