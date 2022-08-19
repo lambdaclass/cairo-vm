@@ -53,7 +53,7 @@ The BuiltinHintProcessor is the default hint exector of the VM, it is able to ex
 
 ## Usage Example
 
-This is a simple example of a HintProcessor that can the following hint:
+This is a simple example of a HintProcessor that can process the following hint:
 
 ```python
 from starkware.cairo.common.math_utils import assert_integer
@@ -87,7 +87,7 @@ impl HintProcessor for MyHintProcessor {
             code,
             ap_tracking: ap_tracking.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
-        }) as dyn Any)
+        }) as Box<dyn Any>)
     }
 
     fn execute_hint(
@@ -101,6 +101,8 @@ impl HintProcessor for MyHintProcessor {
             .ok_or(VirtualMachineError::WrongHintData)?;
         match &*hint_data.code {
             SPLIT_FELT => split_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
+            _ => Err(VirtualMachineError::UnknownHint(code.to_string())),
+        }
 }
 ```
 
