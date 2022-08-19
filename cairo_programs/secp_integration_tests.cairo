@@ -88,6 +88,7 @@ func run_tests{range_check_ptr}(index:felt, stop:felt):
 end
 
 func main{range_check_ptr}():
+    # These values have triggered a bug in the past
     run_tests(3, 5)
     return()
 end
