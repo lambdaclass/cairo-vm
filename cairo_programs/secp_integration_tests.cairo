@@ -1,7 +1,7 @@
 %builtins range_check
 
 from starkware.cairo.common.cairo_secp.bigint import BigInt3, bigint_mul, nondet_bigint3, bigint_to_uint256, uint256_to_bigint
-from starkware.cairo.common.cairo_secp.signature import validate_signature_entry, div_mod_n, recover_public_key, get_point_from_x, verify_zero, reduce, unreduced_mul
+from starkware.cairo.common.cairo_secp.signature import get_generator_point, validate_signature_entry, div_mod_n, recover_public_key, get_point_from_x, verify_zero, reduce, unreduced_mul
 from starkware.cairo.common.cairo_secp.field import is_zero
 from starkware.cairo.common.cairo_secp.constants import N0, N1, N2, BASE, SECP_REM
 from starkware.cairo.common.cairo_secp.ec import EcPoint, ec_add, ec_mul, ec_negate, ec_double, fast_ec_add, compute_doubling_slope, compute_slope, ec_mul_inner
@@ -63,12 +63,10 @@ func test_operations{range_check_ptr}(point: EcPoint):
 end
 
 func get_valid_point{range_check_ptr}(noise: felt) -> (curve_point: EcPoint):
-    let (low, high) = split_64(SECP_REM + noise)
-    let uint = Uint256(low, high)
-    let (bigint) = uint256_to_bigint(uint)
-    let (unreduced) = unreduced_mul(bigint, BigInt3(1,0,0))
-    let (reduced) = reduce(unreduced)
-    let (curve_point) = get_point_from_x(reduced, noise)
+    let (valid_point) = get_generator_point()
+    let scalar = BigInt3(noise, noise * 2, noise + 5)
+    let (curve_point) = ec_mul(valid_point, scalar)
+    #let (curve_point) = get_point_from_x(reduced, noise)
     return (curve_point)
 end
 
@@ -90,6 +88,6 @@ func run_tests{range_check_ptr}(index:felt, stop:felt):
 end
 
 func main{range_check_ptr}():
-    run_tests(0, 5)
+    run_tests(3, 5)
     return()
 end

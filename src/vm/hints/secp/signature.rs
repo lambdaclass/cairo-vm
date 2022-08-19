@@ -1,4 +1,5 @@
 use crate::{
+    bigint,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     vm::{
@@ -12,6 +13,7 @@ use crate::{
         vm_core::VMProxy,
     },
 };
+use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
 
@@ -57,12 +59,13 @@ pub fn get_point_from_x(
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int = pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)? % &*SECP_P;
+    let x_cube_int =
+        pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
     let y_cube_int = (x_cube_int + &*BETA).mod_floor(&SECP_P);
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
     let v = get_integer_from_var_name("v", ids, vm_proxy, hint_ap_tracking)?;
-    if v % 2 != &y % 2 {
+    if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }
 
