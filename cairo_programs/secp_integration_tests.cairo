@@ -65,8 +65,8 @@ end
 func get_valid_point{range_check_ptr}(noise: felt) -> (curve_point: EcPoint):
     let (valid_point) = get_generator_point()
     let scalar = BigInt3(noise, noise * 2, noise + 5)
-    let (curve_point) = ec_mul(valid_point, scalar)
-    #let (curve_point) = get_point_from_x(reduced, noise)
+    let (point) = ec_mul(valid_point, scalar)
+    let (curve_point) = get_point_from_x(point.x, noise)
     return (curve_point)
 end
 
