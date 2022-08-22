@@ -732,7 +732,9 @@ mod tests {
 
         vm.memory = memory![((0, 0), 5), ((0, 1), 6)];
 
-        let (num, imm) = vm.get_instruction_encoding().expect("Unexpected error on get_instruction_encoding");
+        let (num, imm) = vm
+            .get_instruction_encoding()
+            .expect("Unexpected error on get_instruction_encoding");
         assert_eq!(num, &bigint!(5));
         assert_eq!(imm, Some(&MaybeRelocatable::Int(bigint!(6))));
     }
@@ -741,7 +743,10 @@ mod tests {
     fn get_instruction_encoding_unsuccesful() {
         let mut vm = vm!();
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
-        assert_eq!(vm.get_instruction_encoding(), Err(VirtualMachineError::InvalidInstructionEncoding));
+        assert_eq!(
+            vm.get_instruction_encoding(),
+            Err(VirtualMachineError::InvalidInstructionEncoding)
+        );
     }
 
     #[test]
@@ -905,7 +910,10 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        assert_eq!(vm.update_ap(&instruction, &operands), Err(VirtualMachineError::UnconstrainedResAdd));
+        assert_eq!(
+            vm.update_ap(&instruction, &operands),
+            Err(VirtualMachineError::UnconstrainedResAdd)
+        );
     }
 
     #[test]
@@ -1135,7 +1143,10 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        assert_eq!(vm.update_pc(&instruction, &operands), Err(VirtualMachineError::UnconstrainedResJump));
+        assert_eq!(
+            vm.update_pc(&instruction, &operands),
+            Err(VirtualMachineError::UnconstrainedResJump)
+        );
     }
 
     #[test]
@@ -1200,7 +1211,10 @@ mod tests {
         vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
         vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
 
-        assert_eq!(vm.update_pc(&instruction, &operands), Err(VirtualMachineError::UnconstrainedResJumpRel));
+        assert_eq!(
+            vm.update_pc(&instruction, &operands),
+            Err(VirtualMachineError::UnconstrainedResJumpRel)
+        );
     }
 
     #[test]

@@ -227,15 +227,10 @@ pub mod test_utils {
 
     macro_rules! trace_check {
         ( $( (($si_pc, $off_pc), ($si_fp, $off_fp), ($si_ap, $off_ap)) ),*) => {
-            let mut index:usize = 0;
-            assert_eq!(
-                trace[index],
-                TraceEntry {
-
-                }
-            );
+            let mut index: usize = 0;
+            assert_eq!(trace[index], TraceEntry {});
             index += 1;
-        }
+        };
     }
 }
 
