@@ -31,7 +31,7 @@ pub fn verify_zero(
     let (q, r) = val.div_rem(&SECP_P);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SecpVerifyZero(val.clone()));
+        return Err(VirtualMachineError::SecpVerifyZero(val));
     }
 
     insert_value_from_var_name(
