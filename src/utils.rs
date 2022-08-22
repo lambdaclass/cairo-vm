@@ -63,13 +63,14 @@ pub mod test_utils {
         )
         .unwrap();
     }
+
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
-        {
-            let mut memory = Memory::new();
-            memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
-        memory
-        }
+            {
+                let mut memory = Memory::new();
+                memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
+                memory
+            }
         };
     }
     pub(crate) use memory;
@@ -86,6 +87,17 @@ pub mod test_utils {
     pub(crate) use memory_from_memory;
 
     macro_rules! memory_inner {
+        ($mem:expr, ($si:expr, $off:expr), ($val:expr, $base:expr, $extra:expr)) => {
+            let (k, v) = (
+                &mayberelocatable!($si, $off),
+                &MaybeRelocatable::Int(bigint_str!($val, $base)),
+            );
+            let mut res = $mem.insert(k, v);
+            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
+                $mem.data.push(Vec::new());
+                res = $mem.insert(k, v);
+            }
+        };
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             let (k, v) = (
                 &mayberelocatable!($si, $off),
@@ -226,12 +238,31 @@ pub mod test_utils {
     pub(crate) use ids_inner;
 
     macro_rules! trace_check {
-        ( $( (($si_pc, $off_pc), ($si_fp, $off_fp), ($si_ap, $off_ap)) ),*) => {
-            let mut index: usize = 0;
-            assert_eq!(trace[index], TraceEntry {});
-            index += 1;
+        ( $trace: expr, [ $( (($si_pc:expr, $off_pc:expr), ($si_ap:expr, $off_ap:expr), ($si_fp:expr, $off_fp:expr)) ),+ ] ) => {
+            let mut index = -1;
+            $(
+                index += 1;
+                assert_eq!(
+                    $trace[index as usize],
+                    TraceEntry {
+                        pc: Relocatable {
+                            segment_index: $si_pc,
+                            offset: $off_pc
+                        },
+                        ap: Relocatable {
+                            segment_index: $si_ap,
+                            offset: $off_ap
+                        },
+                        fp: Relocatable {
+                            segment_index: $si_fp,
+                            offset: $off_fp
+                        },
+                    }
+                );
+            )*
         };
     }
+    pub(crate) use trace_check;
 }
 
 #[cfg(test)]

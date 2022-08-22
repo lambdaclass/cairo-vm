@@ -2430,23 +2430,7 @@ mod tests {
 
         assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
         let trace = vm.trace.unwrap();
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                }
-            }
-        );
+        trace_check!(trace, [((0, 0), (1, 2), (1, 2))]);
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
         assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
@@ -2505,18 +2489,26 @@ mod tests {
             ((0, 3), 5189976364521848832_i64),
             ((0, 4), 1),
             ((0, 5), 1226245742482522112_i64),
+            (
+                (0, 6),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    10,
+                    2
+                )
+            ),
             ((0, 7), 2345108766317314046_i64),
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0))
         ];
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476"
-                )),
-            )
-            .unwrap();
+        /*vm.memory
+        .insert(
+            &MaybeRelocatable::from((0, 6)),
+            &MaybeRelocatable::from(bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020476"
+            )),
+        )
+        .unwrap();*/
         let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
         while vm.run_context.pc != final_pc {
@@ -2531,90 +2523,15 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 5);
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-            }
-        );
-        assert_eq!(
-            trace[1],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 5
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-            }
-        );
-        assert_eq!(
-            trace[2],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-            }
-        );
-        assert_eq!(
-            trace[3],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-            }
-        );
-        assert_eq!(
-            trace[4],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 7
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-            }
+        trace_check!(
+            trace,
+            [
+                ((0, 3), (1, 2), (1, 2)),
+                ((0, 5), (1, 3), (1, 2)),
+                ((0, 0), (1, 5), (1, 5)),
+                ((0, 2), (1, 6), (1, 5)),
+                ((0, 7), (1, 6), (1, 2))
+            ]
         );
         //Check accessed_addresses
         //Order will differ from python vm execution, (due to python version using set's update() method)
@@ -2732,24 +2649,7 @@ mod tests {
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.memory.data.push(Vec::new());
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::Int(bigint!(32)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(72)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
             Ok(Some(MaybeRelocatable::from(bigint_str!(
@@ -2805,111 +2705,25 @@ mod tests {
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.run_context.ap = MaybeRelocatable::from((1, 13));
         vm.run_context.fp = MaybeRelocatable::from((1, 12));
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
-        vm.memory.data.push(Vec::new());
 
         //Insert values into memory (excluding those from the program segment (instructions))
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::from(bigint!(32)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::from(bigint!(72)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((4, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from((5, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from((1, 4)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from((0, 21)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 8)),
-                &MaybeRelocatable::from(bigint!(32)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 9)),
-                &MaybeRelocatable::from(bigint!(72)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 10)),
-                &MaybeRelocatable::from((1, 7)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 11)),
-                &MaybeRelocatable::from((0, 17)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 12)),
-                &MaybeRelocatable::from((3, 3)),
-            )
-            .unwrap();
+        vm.memory = memory![
+            ((3, 0), 32),
+            ((3, 1), 72),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0)),
+            ((1, 2), (4, 0)),
+            ((1, 3), (5, 0)),
+            ((1, 4), (3, 0)),
+            ((1, 5), (1, 4)),
+            ((1, 6), (0, 21)),
+            ((1, 7), (3, 0)),
+            ((1, 8), 32),
+            ((1, 9), 72),
+            ((1, 10), (1, 7)),
+            ((1, 11), (0, 17)),
+            ((1, 12), (3, 3))
+        ];
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::from(bigint_str!(
@@ -2941,25 +2755,7 @@ mod tests {
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
-        vm.memory.data.push(Vec::new());
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(10)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::Int(bigint!(12)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 7)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
+        vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
             Ok(Some(MaybeRelocatable::from(bigint!(8))))
@@ -3002,71 +2798,20 @@ mod tests {
             .push((String::from("bitwise"), Box::new(builtin)));
         vm.run_context.ap = MaybeRelocatable::from((1, 9));
         vm.run_context.fp = MaybeRelocatable::from((1, 8));
-        for _ in 0..3 {
-            vm.memory.data.push(Vec::new());
-        }
 
         //Insert values into memory (excluding those from the program segment (instructions))
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(12)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((4, 0)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(12)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from((1, 3)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from((0, 13)),
-            )
-            .unwrap();
+        vm.memory = memory![
+            ((2, 0), 12),
+            ((2, 1), 10),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0)),
+            ((1, 2), (4, 0)),
+            ((1, 3), (2, 0)),
+            ((1, 4), 12),
+            ((1, 5), 10),
+            ((1, 6), (1, 3)),
+            ((1, 7), (0, 13))
+        ];
 
         let expected_operands = Operands {
             dst: MaybeRelocatable::from(bigint!(8)),
