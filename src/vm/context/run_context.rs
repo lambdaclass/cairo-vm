@@ -5,20 +5,29 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 
 pub struct RunContext {
-    pub pc: MaybeRelocatable,
-    pub ap: MaybeRelocatable,
-    pub fp: MaybeRelocatable,
+    pub pc: usize,
+    pub ap: usize,
+    pub fp: usize,
     pub prime: BigInt,
 }
 
 impl RunContext {
+    pub fn get_pc(&self) -> MaybeRelocatable {
+        MaybeRelocatable::from((0, self.pc))
+    }
+    pub fn get_ap(&self) -> MaybeRelocatable {
+        MaybeRelocatable::from((1, self.ap))
+    }
+    pub fn get_fp(&self) -> MaybeRelocatable {
+        MaybeRelocatable::from((1, self.fp))
+    }
     pub fn compute_dst_addr(
         &self,
         instruction: &Instruction,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.dst_register {
-            Register::AP => &self.ap,
-            Register::FP => &self.fp,
+            Register::AP => &self.get_ap(),
+            Register::FP => &self.get_fp(),
         };
         base_addr.add_int_mod(&instruction.off0, &self.prime)
     }
@@ -28,8 +37,8 @@ impl RunContext {
         instruction: &Instruction,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op0_register {
-            Register::AP => &self.ap,
-            Register::FP => &self.fp,
+            Register::AP => &self.get_ap(),
+            Register::FP => &self.get_fp(),
         };
         base_addr.add_int_mod(&instruction.off1, &self.prime)
     }
@@ -40,10 +49,10 @@ impl RunContext {
         op0: Option<&MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op1_addr {
-            Op1Addr::FP => &self.fp,
-            Op1Addr::AP => &self.ap,
+            Op1Addr::FP => &self.get_fp(),
+            Op1Addr::AP => &self.get_ap(),
             Op1Addr::Imm => match instruction.off2 == bigint!(1) {
-                true => &self.pc,
+                true => &self.get_pc(),
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {

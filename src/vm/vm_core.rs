@@ -18,6 +18,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
+use super::errors::memory_errors::MemoryError;
 use super::hints::execute_hint::{get_vm_proxy, HintReference};
 
 #[derive(PartialEq, Debug)]
@@ -92,9 +93,9 @@ impl VirtualMachine {
         trace_enabled: bool,
     ) -> VirtualMachine {
         let run_context = RunContext {
-            pc: MaybeRelocatable::from((0, 0)),
-            ap: MaybeRelocatable::from((0, 0)),
-            fp: MaybeRelocatable::from((0, 0)),
+            pc: 0,
+            ap: 0,
+            fp: 0,
             prime: prime.clone(),
         };
 
@@ -124,12 +125,12 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
+        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.get_pc()) {
             Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = self.run_context.pc.add_usize_mod(1, None);
+        let imm_addr = self.run_context.get_pc().add_usize_mod(1, None);
 
         if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
@@ -138,13 +139,25 @@ impl VirtualMachine {
         }
     }
 
-    fn update_fp(&mut self, instruction: &Instruction, operands: &Operands) {
+    fn update_fp(
+        &mut self,
+        instruction: &Instruction,
+        operands: &Operands,
+    ) -> Result<(), VirtualMachineError> {
         let new_fp: MaybeRelocatable = match instruction.fp_update {
-            FpUpdate::APPlus2 => self.run_context.ap.add_usize_mod(2, None),
+            FpUpdate::APPlus2 => self.run_context.get_ap().add_usize_mod(2, None),
             FpUpdate::Dst => operands.dst.clone(),
-            FpUpdate::Regular => return,
+            FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fp;
+        match new_fp {
+            MaybeRelocatable::RelocatableValue(rel) => {
+                self.run_context.fp = rel.offset;
+                Ok(())
+            }
+            _ => Err(VirtualMachineError::MemoryError(
+                MemoryError::AddressNotRelocatable,
+            )),
+        }
     }
 
     fn update_ap(
@@ -154,15 +167,22 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap: MaybeRelocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self.run_context.ap.add_mod(&res, &self.prime)?,
+                Some(res) => self.run_context.get_ap().add_mod(&res, &self.prime)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
-            ApUpdate::Add1 => self.run_context.ap.add_usize_mod(1, None),
-            ApUpdate::Add2 => self.run_context.ap.add_usize_mod(2, None),
+            ApUpdate::Add1 => self.run_context.get_ap().add_usize_mod(1, None),
+            ApUpdate::Add2 => self.run_context.get_ap().add_usize_mod(2, None),
             ApUpdate::Regular => return Ok(()),
         };
-        self.run_context.ap = new_ap;
-        Ok(())
+        match new_ap {
+            MaybeRelocatable::RelocatableValue(rel) => {
+                self.run_context.ap = rel.offset;
+                Ok(())
+            }
+            _ => Err(VirtualMachineError::MemoryError(
+                MemoryError::AddressNotRelocatable,
+            )),
+        }
     }
 
     fn update_pc(
@@ -173,7 +193,7 @@ impl VirtualMachine {
         let new_pc: MaybeRelocatable = match instruction.pc_update {
             PcUpdate::Regular => self
                 .run_context
-                .pc
+                .get_pc()
                 .add_usize_mod(Instruction::size(instruction), Some(self.prime.clone())),
             PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res,
@@ -181,9 +201,10 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
-                    }
+                    MaybeRelocatable::Int(num_res) => self
+                        .run_context
+                        .get_pc()
+                        .add_int_mod(&num_res, &self.prime)?,
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
@@ -192,13 +213,25 @@ impl VirtualMachine {
             PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
                 true => self
                     .run_context
-                    .pc
+                    .get_pc()
                     .add_usize_mod(Instruction::size(instruction), None),
-                false => (self.run_context.pc.add_mod(&operands.op1, &self.prime))?,
+                false => {
+                    (self
+                        .run_context
+                        .get_pc()
+                        .add_mod(&operands.op1, &self.prime))?
+                }
             },
         };
-        self.run_context.pc = new_pc;
-        Ok(())
+        match new_pc {
+            MaybeRelocatable::RelocatableValue(rel) => {
+                self.run_context.pc = rel.offset;
+                Ok(())
+            }
+            _ => Err(VirtualMachineError::MemoryError(
+                MemoryError::AddressNotRelocatable,
+            )),
+        }
     }
 
     fn update_registers(
@@ -206,7 +239,7 @@ impl VirtualMachine {
         instruction: Instruction,
         operands: Operands,
     ) -> Result<(), VirtualMachineError> {
-        self.update_fp(&instruction, &operands);
+        self.update_fp(&instruction, &operands)?;
         self.update_ap(&instruction, &operands)?;
         self.update_pc(&instruction, &operands)?;
         Ok(())
@@ -235,7 +268,7 @@ impl VirtualMachine {
                 return Ok((
                     Some(
                         self.run_context
-                            .pc
+                            .get_pc()
                             .add_usize_mod(Instruction::size(instruction), None),
                     ),
                     None,
@@ -381,7 +414,7 @@ impl VirtualMachine {
                     return Some(res_addr.clone());
                 }
             }
-            Opcode::Call => return Some(self.run_context.fp.clone()),
+            Opcode::Call => return Some(self.run_context.get_fp().clone()),
             _ => (),
         };
         None
@@ -413,7 +446,7 @@ impl VirtualMachine {
             }
             Opcode::Call => {
                 if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
-                    (&operands.op0, &self.run_context.pc)
+                    (&operands.op0, &self.run_context.get_pc())
                 {
                     let return_pc = run_pc + instruction.size();
                     if op0_num != &return_pc {
@@ -425,7 +458,7 @@ impl VirtualMachine {
                 };
 
                 if let (MaybeRelocatable::Int(return_fp), MaybeRelocatable::Int(dst_num)) =
-                    (&self.run_context.fp, &operands.dst)
+                    (&self.run_context.get_fp(), &operands.dst)
                 {
                     if dst_num != return_fp {
                         return Err(VirtualMachineError::CantWriteReturnFp(
@@ -446,9 +479,9 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             if let (RelocatableValue(ref pc), RelocatableValue(ref ap), RelocatableValue(ref fp)) = (
-                &self.run_context.pc,
-                &self.run_context.ap,
-                &self.run_context.fp,
+                &self.run_context.get_pc(),
+                &self.run_context.get_ap(),
+                &self.run_context.get_fp(),
             ) {
                 trace.push(TraceEntry {
                     pc: pc.clone(),
@@ -465,7 +498,7 @@ impl VirtualMachine {
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
-                self.run_context.pc.clone(),
+                self.run_context.get_pc(),
             ];
             accessed_addresses.extend_from_slice(addresses);
         }
@@ -496,7 +529,7 @@ impl VirtualMachine {
         hint_executor: &'static dyn HintExecutor,
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
+        if let Some(hint_list) = self.hints.get(&self.run_context.get_pc()) {
             for hint_data in hint_list.clone().iter() {
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 let mut vm_proxy = get_vm_proxy(self);
@@ -592,7 +625,7 @@ impl VirtualMachine {
         if matches!(dst, None) {
             match instruction.opcode {
                 Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
-                Opcode::Call => dst = Some(self.run_context.fp.clone()),
+                Opcode::Call => dst = Some(self.run_context.get_fp()),
                 _ => match self.deduce_dst(instruction, res.as_ref()) {
                     Some(d) => dst = Some(d),
                     None => return Err(VirtualMachineError::NoDst),

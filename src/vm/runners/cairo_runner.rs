@@ -207,15 +207,15 @@ impl CairoRunner {
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
         match &self.initial_pc {
-            Some(pc) => self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(pc.clone()),
+            Some(pc) => self.vm.run_context.pc = pc.offset,
             None => return Err(RunnerError::NoPC),
         }
         match &self.initial_ap {
-            Some(ap) => self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(ap.clone()),
+            Some(ap) => self.vm.run_context.ap = ap.offset,
             None => return Err(RunnerError::NoAP),
         }
         match &self.initial_fp {
-            Some(fp) => self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(fp.clone()),
+            Some(fp) => self.vm.run_context.fp = fp.offset,
             None => return Err(RunnerError::NoFP),
         }
         match &self.program_base {
@@ -311,7 +311,7 @@ impl CairoRunner {
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
-        while self.vm.run_context.pc != address {
+        while self.vm.run_context.get_pc() != address {
             self.vm.step(self.hint_executor, &mut self.exec_scopes)?;
         }
         Ok(())
