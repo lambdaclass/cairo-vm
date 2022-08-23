@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::{ExecutionScopesProxy, PyValueType};
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
@@ -33,7 +33,7 @@ pub fn ec_negate(
     let point_y = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)? + 3;
     let y = pack_from_relocatable(point_y, vm_proxy)?;
     let value = (-y).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_int("value", value);
+    exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
 
@@ -75,8 +75,8 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_int("value", value.clone());
-    exec_scopes_proxy.insert_int("slope", value);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("slope", value);
     Ok(())
 }
 
@@ -135,8 +135,8 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_int("value", value.clone());
-    exec_scopes_proxy.insert_int("slope", value);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("slope", value);
     Ok(())
 }
 
@@ -186,11 +186,11 @@ pub fn ec_double_assign_new_x(
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.insert_int("slope", slope);
-    exec_scopes_proxy.insert_int("x", x);
-    exec_scopes_proxy.insert_int("y", y);
-    exec_scopes_proxy.insert_int("value", value.clone());
-    exec_scopes_proxy.insert_int("new_x", value);
+    exec_scopes_proxy.insert_value("slope", slope);
+    exec_scopes_proxy.insert_value("x", x);
+    exec_scopes_proxy.insert_value("y", y);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_x", value);
     Ok(())
 }
 
@@ -210,8 +210,8 @@ pub fn ec_double_assign_new_y(
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_int("value", value.clone());
-    exec_scopes_proxy.insert_int("new_y", value);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_y", value);
     Ok(())
 }
 
@@ -272,15 +272,11 @@ pub fn fast_ec_add_assign_new_x(
     let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.assign_or_update_variable("slope", PyValueType::BigInt(slope));
-
-    exec_scopes_proxy.assign_or_update_variable("x0", PyValueType::BigInt(x0));
-
-    exec_scopes_proxy.assign_or_update_variable("y0", PyValueType::BigInt(y0));
-
-    exec_scopes_proxy.assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    exec_scopes_proxy.assign_or_update_variable("new_x", PyValueType::BigInt(value));
+    exec_scopes_proxy.insert_value("slope", slope);
+    exec_scopes_proxy.insert_value("x0", x0);
+    exec_scopes_proxy.insert_value("y0", y0);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_x", value);
 
     Ok(())
 }
@@ -299,12 +295,9 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes_proxy.get_int("new_x")?,
         exec_scopes_proxy.get_int("y0")?,
     );
-
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
-
-    exec_scopes_proxy.assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    exec_scopes_proxy.assign_or_update_variable("new_y", PyValueType::BigInt(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_y", value);
 
     Ok(())
 }
@@ -328,8 +321,7 @@ pub fn ec_mul_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint_str;
-    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType};
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -337,7 +329,9 @@ mod tests {
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::{any_box, bigint_str};
     use num_bigint::{BigInt, Sign};
+    use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
     use crate::types::hint_executor::HintExecutor;
@@ -370,10 +364,10 @@ mod tests {
         );
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
-            )))
+            ))
         );
     }
 
@@ -417,18 +411,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
-            )))
+            ))
         );
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("slope"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("slope"),
+            Ok(bigint_str!(
                 b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
-            )))
+            ))
         );
     }
 
@@ -480,18 +474,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
-            )))
+            ))
         );
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("slope"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("slope"),
+            Ok(bigint_str!(
                 b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
-            )))
+            ))
         );
     }
 
@@ -540,42 +534,42 @@ mod tests {
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("slope"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("slope"),
+            Ok(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            )))
+            ))
         );
 
         //Check 'x' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("x"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("x"),
+            Ok(bigint_str!(
                 b"838083498911032969414721426845751663479194726707495046"
-            )))
+            ))
         );
 
         //Check 'y' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("y"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("y"),
+            Ok(bigint_str!(
                 b"4310143708685312414132851373791311001152018708061750480"
-            )))
+            ))
         );
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )))
+            ))
         );
 
         //Check 'new_x' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("new_x"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_x"),
+            Ok(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )))
+            ))
         );
     }
 
@@ -588,7 +582,7 @@ mod tests {
         //Insert 'slope' into vm scope
         exec_scopes.assign_or_update_variable(
             "slope",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
             )),
         );
@@ -596,7 +590,7 @@ mod tests {
         //Insert 'x' into vm scope
         exec_scopes.assign_or_update_variable(
             "x",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"838083498911032969414721426845751663479194726707495046"
             )),
         );
@@ -604,7 +598,7 @@ mod tests {
         //Insert 'new_x' into vm scope
         exec_scopes.assign_or_update_variable(
             "new_x",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
             )),
         );
@@ -612,7 +606,7 @@ mod tests {
         //Insert 'y' into vm scope
         exec_scopes.assign_or_update_variable(
             "y",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"4310143708685312414132851373791311001152018708061750480"
             )),
         );
@@ -632,18 +626,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
 
         //Check 'new_y' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("new_y"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_y"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
     }
 
@@ -701,18 +695,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
-            )))
+            ))
         );
 
         //Check 'new_x' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("new_x"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_x"),
+            Ok(bigint_str!(
                 b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
-            )))
+            ))
         );
     }
 
@@ -724,7 +718,7 @@ mod tests {
         //Insert 'slope' into vm scope
         exec_scopes.assign_or_update_variable(
             "slope",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
             )),
         );
@@ -732,7 +726,7 @@ mod tests {
         //Insert 'x0' into vm scope
         exec_scopes.assign_or_update_variable(
             "x0",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"838083498911032969414721426845751663479194726707495046"
             )),
         );
@@ -740,7 +734,7 @@ mod tests {
         //Insert 'new_x' into vm scope
         exec_scopes.assign_or_update_variable(
             "new_x",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
             )),
         );
@@ -748,7 +742,7 @@ mod tests {
         //Insert 'y0' into vm scope
         exec_scopes.assign_or_update_variable(
             "y0",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"4310143708685312414132851373791311001152018708061750480"
             )),
         );
@@ -768,18 +762,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
 
         //Check 'new_y' is defined in the vm scope
         assert_eq!(
-            exec_scopes.get_local_variables().unwrap().get("new_y"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_y"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
     }
 

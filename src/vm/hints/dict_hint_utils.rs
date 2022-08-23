@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 use num_bigint::BigInt;
 
 use crate::{
     serde::deserialize_program::ApTracking,
-    types::exec_scope::{ExecutionScopesProxy, PyValueType},
+    types::exec_scope::ExecutionScopesProxy,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
@@ -19,9 +19,13 @@ fn copy_initial_dict(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
-    if let Some(variables) = exec_scopes_proxy.get_local_variables() {
-        if let Some(PyValueType::Dictionary(py_initial_dict)) = variables.get("initial_dict") {
-            initial_dict = Some(py_initial_dict.clone());
+    if let Some(variable) = exec_scopes_proxy
+        .get_local_variables()
+        .ok()?
+        .get("initial_dict")
+    {
+        if let Some(dict) = variable.downcast_ref::<HashMap<BigInt, BigInt>>() {
+            initial_dict = Some(dict.clone());
         }
     }
     initial_dict
@@ -192,15 +196,14 @@ pub fn dict_squash_copy_dict(
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end =
         get_ptr_from_var_name("dict_accesses_end", ids, vm_proxy, hint_ap_tracking)?;
-    let dict_copy = vm_proxy
-        .dict_manager
-        .get_tracker(&dict_accesses_end)?
-        .get_dictionary_copy();
+    let dict_copy: Box<dyn Any> = Box::new(
+        vm_proxy
+            .dict_manager
+            .get_tracker(&dict_accesses_end)?
+            .get_dictionary_copy(),
+    );
 
-    exec_scopes_proxy.enter_scope(HashMap::from([(
-        String::from("initial_dict"),
-        PyValueType::Dictionary(dict_copy),
-    )]));
+    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("initial_dict"), dict_copy)]));
     Ok(())
 }
 
@@ -227,6 +230,7 @@ pub fn dict_squash_update_ptr(
 
 #[cfg(test)]
 mod tests {
+    use crate::any_box;
     use crate::types::exec_scope::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::vm_memory::memory::Memory;
@@ -256,7 +260,7 @@ mod tests {
         //Store initial dict in scope
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
-            .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
+            .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         //ids and references are not needed for this test
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
@@ -308,7 +312,7 @@ mod tests {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
-            .assign_or_update_variable("initial_dict", PyValueType::Dictionary(HashMap::new()));
+            .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
         vm.memory = memory![((0, 0), 1)];
         //ids and references are not needed for this test
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1217,8 +1221,11 @@ mod tests {
         let variables = exec_scopes.get_local_variables().unwrap();
         assert_eq!(variables.len(), 1);
         assert_eq!(
-            variables.get("initial_dict"),
-            Some(&PyValueType::Dictionary(HashMap::new()))
+            variables
+                .get("initial_dict")
+                .unwrap()
+                .downcast_ref::<HashMap<BigInt, BigInt>>(),
+            Some(&HashMap::<BigInt, BigInt>::new())
         );
     }
 
@@ -1266,12 +1273,15 @@ mod tests {
         let variables = exec_scopes.get_local_variables().unwrap();
         assert_eq!(variables.len(), 1);
         assert_eq!(
-            variables.get("initial_dict"),
-            Some(&PyValueType::Dictionary(HashMap::from([
+            variables
+                .get("initial_dict")
+                .unwrap()
+                .downcast_ref::<HashMap<BigInt, BigInt>>(),
+            Some(&HashMap::from([
                 (bigint!(1), bigint!(2)),
                 (bigint!(3), bigint!(4)),
                 (bigint!(5), bigint!(6))
-            ])))
+            ]))
         );
     }
 

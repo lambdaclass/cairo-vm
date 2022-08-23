@@ -28,6 +28,13 @@ macro_rules! relocatable {
     };
 }
 
+#[macro_export]
+macro_rules! any_box {
+    ($val : expr) => {
+        Box::new($val) as Box<dyn Any>
+    };
+}
+
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
     for search in subsequence {
         if let Some(index) = sequence.iter().position(|element| search == element) {

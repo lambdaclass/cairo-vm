@@ -34,10 +34,10 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", ids, vm_proxy, hint_ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-    exec_scopes_proxy.insert_int("a", a);
-    exec_scopes_proxy.insert_int("b", b);
-    exec_scopes_proxy.insert_int("value", value.clone());
-    exec_scopes_proxy.insert_int("res", value);
+    exec_scopes_proxy.insert_value("a", a);
+    exec_scopes_proxy.insert_value("b", b);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("res", value);
     Ok(())
 }
 
@@ -52,7 +52,7 @@ pub fn div_mod_n_safe_div(
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    exec_scopes_proxy.insert_int("value", value);
+    exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
 
@@ -71,8 +71,7 @@ pub fn get_point_from_x(
     if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }
-
-    exec_scopes_proxy.insert_int("value", y);
+    exec_scopes_proxy.insert_value("value", y);
     Ok(())
 }
 
@@ -82,7 +81,7 @@ mod tests {
     use crate::{
         bigint, bigint_str,
         types::{
-            exec_scope::{get_exec_scopes_proxy, ExecutionScopes, PyValueType},
+            exec_scope::{get_exec_scopes_proxy, ExecutionScopes},
             instruction::Register,
             relocatable::MaybeRelocatable,
         },
@@ -141,10 +140,10 @@ mod tests {
     #[test]
     fn safe_div_fail() {
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("a", PyValueType::BigInt(bigint!(0_usize)));
-        exec_scopes.assign_or_update_variable("b", PyValueType::BigInt(bigint!(1_usize)));
-        exec_scopes.assign_or_update_variable("res", PyValueType::BigInt(bigint!(1_usize)));
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        exec_scopes_proxy.insert_value("a", bigint!(0_usize));
+        exec_scopes_proxy.insert_value("b", bigint!(1_usize));
+        exec_scopes_proxy.insert_value("res", bigint!(1_usize));
         assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
     }
 

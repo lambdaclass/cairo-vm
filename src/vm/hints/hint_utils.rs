@@ -2,7 +2,6 @@ use crate::bigint;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
-use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
@@ -14,6 +13,7 @@ use crate::vm::{
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
+use std::any::Any;
 use std::collections::HashMap;
 
 //Tries to convert a BigInt value to usize
@@ -301,11 +301,9 @@ pub fn memcpy_enter_scope(
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let len = get_integer_from_var_name("len", ids, vm_proxy, hint_ap_tracking)?.clone();
-    exec_scopes_proxy.enter_scope(HashMap::from([(
-        String::from("n"),
-        PyValueType::BigInt(len),
-    )]));
+    let len: Box<dyn Any> =
+        Box::new(get_integer_from_var_name("len", ids, vm_proxy, hint_ap_tracking)?.clone());
+    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), len)]));
     Ok(())
 }
 
@@ -343,7 +341,7 @@ pub fn memcpy_continue_copying(
             hint_ap_tracking,
         )?;
     }
-    exec_scopes_proxy.assign_or_update_variable("n", PyValueType::BigInt(new_n));
+    exec_scopes_proxy.insert_value("n", new_n);
     Ok(())
 }
 

@@ -1,11 +1,12 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopesProxy;
-use crate::types::exec_scope::PyValueType;
+
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_traits::Signed;
+use std::any::Any;
 use std::collections::HashMap;
 
 use super::hint_utils::get_integer_from_var_name;
@@ -19,8 +20,9 @@ pub fn memset_enter_scope(
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let n = get_integer_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?.clone();
-    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
+    let n: Box<dyn Any> =
+        Box::new(get_integer_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?.clone());
+    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
 
@@ -52,12 +54,13 @@ pub fn memset_continue_loop(
     )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    exec_scopes_proxy.insert_int("n", new_n);
+    exec_scopes_proxy.insert_value("n", new_n);
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
@@ -133,7 +136,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         // initialize vm scope with variable `n` = 1
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
         vm.memory = memory![((0, 2), 5)];
@@ -170,7 +173,7 @@ mod tests {
 
         // initialize vm scope with variable `n` = 5
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(5)));
+        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(5)));
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -209,7 +212,7 @@ mod tests {
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));  */
+        .assign_or_update_variable("n",  bigint!(1)));  */
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -243,7 +246,7 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((0, 1), 5)];
