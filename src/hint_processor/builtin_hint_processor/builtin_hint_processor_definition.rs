@@ -430,13 +430,13 @@ impl HintProcessor for BuiltinHintProcessor {
 
     fn compile_hint(
         &self,
-        code: String,
+        code: &String,
         ap_tracking: &ApTracking,
         reference_ids: &HashMap<String, usize>,
         references: &HashMap<usize, HintReference>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
-            code,
+            code: code.to_string(),
             ap_tracking: ap_tracking.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
         }))

@@ -268,7 +268,7 @@ impl CairoRunner {
         for (hint_index, hints) in self.program.hints.iter() {
             for hint in hints {
                 let hint_data = self.hint_executor.compile_hint(
-                    hint.code.clone(),
+                    &hint.code,
                     &hint.flow_tracking_data.ap_tracking,
                     &hint.flow_tracking_data.reference_ids,
                     references,
