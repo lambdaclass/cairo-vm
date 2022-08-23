@@ -21,7 +21,7 @@ def main():
 
     with open(filename2, 'rb') as f:
         cleo_raw = f.read()
-        assert len(cleo_raw) % 40 == 0, f'{filename2}: malformed memory file from Cleopatra VM'
+        assert len(cleo_raw) % 40 == 0, f'{filename2}: malformed memory file from cairo-rs'
         chunks = len(cleo_raw) // 40
         for i in range(0, chunks):
             chunk = cleo_raw[i*40:(i+1)*40]
