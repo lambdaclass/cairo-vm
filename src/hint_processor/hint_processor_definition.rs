@@ -25,7 +25,7 @@ pub trait HintProcessor {
     fn compile_hint(
         &self,
         //Block of hint code as String
-        hint_code: String,
+        hint_code: &String,
         //Ap Tracking Data corresponding to the Hint
         ap_tracking_data: &ApTracking,
         //Map from variable name to reference id number
