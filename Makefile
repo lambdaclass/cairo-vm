@@ -5,8 +5,8 @@ TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
 COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
 CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS))
 CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
-CLEO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cleopatra.memory, $(COMPILED_TESTS))
-CLEO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cleopatra.trace, $(COMPILED_TESTS))
+CLEO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cairo-rs.memory, $(COMPILED_TESTS))
+CLEO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.cairo-rs.trace, $(COMPILED_TESTS))
 
 BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
@@ -19,11 +19,11 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.cleopatra.memory: $(TEST_DIR)/%.json build
-	./target/release/cleopatra-run $< --memory_file $@
+$(TEST_DIR)/%.cairo-rs.memory: $(TEST_DIR)/%.json build
+	./target/release/cairo-rs-run $< --memory_file $@
 
-$(TEST_DIR)/%.cleopatra.trace: $(TEST_DIR)/%.json build
-	./target/release/cleopatra-run $< --trace_file $@
+$(TEST_DIR)/%.cairo-rs.trace: $(TEST_DIR)/%.json build
+	./target/release/cairo-rs-run $< --trace_file $@
 
 $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --memory_file $@

@@ -13,7 +13,7 @@ The code of the original Cairo VM can be found [here](https://github.com/starkwa
 - PyEnv for running the original VM and compiling cairo programs
 
 ## Running cairo-rs
-Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
+Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
 To run a compiled json program through the VM, call the executable giving it the path and name to the file to be executed.
 
 Full compilation and execution example:
@@ -22,7 +22,7 @@ git clone https://github.com/lambdaclass/cleopatra_cairo.git
 cd cleopatra_cairo
 
 cargo build --release
-./target/release/cleopatra-run tests/support/fibonacci_compiled.json
+./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
 ```
 
 ## Testing

@@ -47,7 +47,7 @@ name = "criterion_benchmark"
 harness = false
 
 [[bin]]
-name = "cleopatra-run"
+name = "cairo-rs-run"
 path = "src/main.rs"
 bench = false
 doc = false
