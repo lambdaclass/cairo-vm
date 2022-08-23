@@ -715,6 +715,8 @@ mod tests {
     use num_bigint::Sign;
     use std::collections::HashSet;
 
+    from_bigint_str![75, 76];
+
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
     #[test]
@@ -2139,7 +2141,7 @@ mod tests {
         };
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
-        vm.memory.data.push(Vec::new());
+
         vm.memory = memory![((0, 0), 6), ((0, 1), 2), ((0, 2), 3)];
 
         let expected_operands = Operands {
@@ -2416,12 +2418,11 @@ mod tests {
     fn test_step_for_preset_memory() {
         let mut vm = vm!(true);
         vm.accessed_addresses = Some(Vec::new());
-        for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
-        }
+
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
+
         vm.memory = memory![
             ((0, 0), 2345108766317314046_u64),
             ((1, 0), (2, 0)),
@@ -2474,15 +2475,14 @@ mod tests {
     fn test_step_for_preset_memory_function_call() {
         let mut vm = vm!(true);
         vm.accessed_addresses = Some(Vec::new());
-        for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
-        }
+
         vm.run_context.pc = MaybeRelocatable::from((0, 3));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
 
         //Insert values into memory
-        vm.memory = memory![
+        vm.memory =
+            memory![
             ((0, 0), 5207990763031199744_i64),
             ((0, 1), 2),
             ((0, 2), 2345108766317314046_i64),
@@ -2491,11 +2491,7 @@ mod tests {
             ((0, 5), 1226245742482522112_i64),
             (
                 (0, 6),
-                (
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
-                    10,
-                    2
-                )
+                (b"3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
             ),
             ((0, 7), 2345108766317314046_i64),
             ((1, 0), (2, 0)),
@@ -2648,7 +2644,6 @@ mod tests {
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
-        vm.memory.data.push(Vec::new());
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
@@ -2837,53 +2832,45 @@ mod tests {
         builtin.base = Some(relocatable!(0, 0));
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
-        vm.memory.data.push(Vec::new());
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
+
+        vm.memory = memory![
+            (
+                (0, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (0, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (0, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (0, 3),
+                (
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    10
+                )
+            ),
+            ((0, 4), 34),
+            (
+                (0, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
             )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
+        ];
 
         let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
         assert_eq!(
@@ -2917,55 +2904,44 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
-        for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
-        }
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
+        vm.memory = memory![
+            (
+                (3, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    10
+                )
+            ),
+            ((3, 4), 34),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
             )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
+        ];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 
@@ -2976,55 +2952,44 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
-        for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
-        }
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
+        vm.memory = memory![
+            (
+                (3, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"2089986280348253421170679821480865132823066470938446095505822317253594081284",
+                    10
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    b"1713931329540660377023406109199410414810705867260802078187082345529207694986",
+                    10
+                )
+            ),
+            ((3, 4), 34),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
             )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2089986280348253421170679821480865132823066470938446095505822317253594081284"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"1713931329540660377023406109199410414810705867260802078187082345529207694986"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
+        ];
         let error = vm.verify_auto_deductions();
         assert_eq!(
             error,
@@ -3060,21 +3025,7 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
-        for _ in 0..3 {
-            vm.memory.data.push(Vec::new());
-        }
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(12)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
+        vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 
@@ -3108,23 +3059,7 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
-        for _ in 0..4 {
-            vm.memory.data.push(Vec::new());
-        }
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::from(bigint!(32)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::from(bigint!(72)),
-            )
-            .unwrap();
+        vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
 
@@ -3151,11 +3086,7 @@ mod tests {
 
     #[test]
     fn test_step_for_preset_memory_with_alloc_hint() {
-        let mut vm = VirtualMachine::new(
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            Vec::new(),
-            true,
-        );
+        let mut vm = vm!(true);
         vm.hints.insert(
             MaybeRelocatable::from((0, 0)),
             vec![HintData::new(
@@ -3165,83 +3096,36 @@ mod tests {
             )],
         );
 
-        //Create program and execution segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
-        }
         //Initialzie registers
         vm.run_context.pc = MaybeRelocatable::from((0, 3));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
+
+        //Create program and execution segments
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
         //Initialize memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(290341444919459839_i64)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020478"
-                )),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 7)),
-                &MaybeRelocatable::from(bigint!(4611826758063128575_i64)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 8)),
-                &MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![
+            ((0, 0), 290341444919459839_i64),
+            ((0, 1), 1),
+            ((0, 2), 2345108766317314046_i64),
+            ((0, 3), 1226245742482522112_i64),
+            (
+                (0, 4),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020478",
+                    10
+                )
+            ),
+            ((0, 5), 5189976364521848832_i64),
+            ((0, 6), 1),
+            ((0, 7), 4611826758063128575_i64),
+            ((0, 8), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
 
         //Run Steps
         for _ in 0..6 {
@@ -3249,107 +3133,16 @@ mod tests {
         }
         //Compare trace
         let trace = vm.trace.unwrap();
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                }
-            }
-        );
-        assert_eq!(
-            trace[1],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                }
-            }
-        );
-        assert_eq!(
-            trace[2],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 2
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                }
-            }
-        );
-        assert_eq!(
-            trace[3],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 5
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                }
-            }
-        );
-        assert_eq!(
-            trace[4],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 7
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                }
-            }
-        );
-        assert_eq!(
-            trace[5],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 8
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                }
-            }
+        trace_check!(
+            trace,
+            [
+                ((0, 3), (1, 2), (1, 2)),
+                ((0, 0), (1, 4), (1, 4)),
+                ((0, 2), (1, 5), (1, 4)),
+                ((0, 5), (1, 5), (1, 2)),
+                ((0, 7), (1, 6), (1, 2)),
+                ((0, 8), (1, 6), (1, 2))
+            ]
         );
 
         //Compare final register values

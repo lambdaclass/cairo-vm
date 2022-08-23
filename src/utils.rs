@@ -87,17 +87,6 @@ pub mod test_utils {
     pub(crate) use memory_from_memory;
 
     macro_rules! memory_inner {
-        ($mem:expr, ($si:expr, $off:expr), ($val:expr, $base:expr, $extra:expr)) => {
-            let (k, v) = (
-                &mayberelocatable!($si, $off),
-                &MaybeRelocatable::Int(bigint_str!($val, $base)),
-            );
-            let mut res = $mem.insert(k, v);
-            while matches!(res, Err(MemoryError::UnallocatedSegment(_, _))) {
-                $mem.data.push(Vec::new());
-                res = $mem.insert(k, v);
-            }
-        };
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             let (k, v) = (
                 &mayberelocatable!($si, $off),
@@ -154,6 +143,19 @@ pub mod test_utils {
         };
     }
     pub(crate) use mayberelocatable;
+
+    macro_rules! from_bigint_str {
+        ( $( $val: expr ),* ) => {
+            $(
+                impl From<(&[u8; $val], u32)> for MaybeRelocatable {
+                    fn from(val_base: (&[u8; $val], u32)) -> Self {
+                        MaybeRelocatable::from(bigint_str!(val_base.0, val_base.1))
+                    }
+                }
+            )*
+        }
+    }
+    pub(crate) use from_bigint_str;
 
     macro_rules! references {
         ($num: expr) => {{
