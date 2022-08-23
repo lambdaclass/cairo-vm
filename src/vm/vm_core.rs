@@ -717,7 +717,6 @@ mod tests {
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.memory = memory![((0, 0), 5)];
         assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
     }
@@ -725,7 +724,6 @@ mod tests {
     #[test]
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = vm!();
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
 
         vm.memory = memory![((0, 0), 5), ((0, 1), 6)];
 
@@ -738,8 +736,7 @@ mod tests {
 
     #[test]
     fn get_instruction_encoding_unsuccesful() {
-        let mut vm = vm!();
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        let vm = vm!();
         assert_eq!(
             vm.get_instruction_encoding(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -2218,10 +2215,6 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 0x206800180018001_i64)];
 
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
-        vm.run_context.ap = MaybeRelocatable::from((0, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 0));
-
         let error = vm.compute_operands(&instruction);
         assert_eq!(error, Err(VirtualMachineError::NoDst));
     }
@@ -2411,7 +2404,6 @@ mod tests {
         let mut vm = vm!(true);
         vm.accessed_addresses = Some(Vec::new());
 
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
 
@@ -2492,19 +2484,13 @@ mod tests {
             ((1, 0), (2, 0)),
             ((1, 1), (3, 0))
         ];
-        /*vm.memory
-        .insert(
-            &MaybeRelocatable::from((0, 6)),
-            &MaybeRelocatable::from(bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020476"
-            )),
-        )
-        .unwrap();*/
+
         let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         }
+
         //Check final register values
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
 
@@ -2590,7 +2576,6 @@ mod tests {
             ((1, 4), 0x14)
         ];
 
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
         vm.run_context.fp = MaybeRelocatable::from((1, 2));
 
