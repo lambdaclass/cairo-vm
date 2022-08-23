@@ -107,13 +107,13 @@ pub fn compute_addr_from_reference(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     let base_addr = match hint_reference.register {
-        Register::FP => run_context.fp.clone(),
+        Register::FP => run_context.get_fp(),
         Register::AP => {
             if hint_ap_tracking.is_none() || hint_reference.ap_tracking_data.is_none() {
                 return Err(VirtualMachineError::NoneApTrackingData);
             }
 
-            if let MaybeRelocatable::RelocatableValue(ref relocatable) = run_context.ap {
+            if let MaybeRelocatable::RelocatableValue(ref relocatable) = run_context.get_ap() {
                 apply_ap_tracking_correction(
                     relocatable,
                     // it is safe to call these unrwaps here, since it has been checked
@@ -124,7 +124,7 @@ pub fn compute_addr_from_reference(
                     hint_ap_tracking.unwrap(),
                 )?
             } else {
-                return Err(VirtualMachineError::InvalidApValue(run_context.ap.clone()));
+                return Err(VirtualMachineError::InvalidApValue(run_context.get_ap()));
             }
         }
     };
@@ -235,8 +235,7 @@ pub fn insert_value_into_ap(
 ) -> Result<(), VirtualMachineError> {
     memory.insert_value(
         &(run_context
-            .ap
-            .clone()
+            .get_ap()
             .try_into()
             .map_err(VirtualMachineError::MemoryError)?),
         value,
