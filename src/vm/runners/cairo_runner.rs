@@ -931,18 +931,9 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_vm().unwrap();
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 1))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 2))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 2))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, 1);
+        assert_eq!(cairo_runner.vm.run_context.ap, 2);
+        assert_eq!(cairo_runner.vm.run_context.fp, 2);
         assert_eq!(
             cairo_runner.vm._program_base,
             Some(MaybeRelocatable::from((0, 0)))
@@ -1098,18 +1089,9 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 3))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 2))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 2))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, 3);
+        assert_eq!(cairo_runner.vm.run_context.ap, 2);
+        assert_eq!(cairo_runner.vm.run_context.fp, 2);
         //Memory
         assert_eq!(
             cairo_runner
@@ -1263,18 +1245,9 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 4))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 3))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 3))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, 4);
+        assert_eq!(cairo_runner.vm.run_context.ap, 3);
+        assert_eq!(cairo_runner.vm.run_context.fp, 3);
         //Memory
         assert_eq!(
             cairo_runner
@@ -1466,18 +1439,9 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 8))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 3))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 3))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, 8);
+        assert_eq!(cairo_runner.vm.run_context.ap, 3);
+        assert_eq!(cairo_runner.vm.run_context.fp, 3);
         //Memory
         assert_eq!(
             cairo_runner

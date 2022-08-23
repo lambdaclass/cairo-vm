@@ -764,7 +764,7 @@ mod tests {
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
         vm.memory.data.push(Vec::new());
-        vm.run_context.pc = MaybeRelocatable::RelocatableValue(relocatable!(0, 0));
+        vm.run_context.pc = 0;
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
@@ -778,7 +778,7 @@ mod tests {
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
         vm.memory.data.push(Vec::new());
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        vm.run_context.pc = 0;
 
         vm.memory
             .insert(
@@ -803,7 +803,7 @@ mod tests {
     #[test]
     fn get_instruction_encoding_unsuccesful() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
+        vm.run_context.pc = 0;
         let error = vm.get_instruction_encoding();
         assert_eq!(error, Err(VirtualMachineError::InvalidInstructionEncoding));
         assert_eq!(
