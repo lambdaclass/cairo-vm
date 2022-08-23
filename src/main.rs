@@ -31,7 +31,7 @@ struct Args {
 }
 
 fn main() -> Result<(), CairoRunError> {
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    let hint_processor = BuiltinHintProcessor::new_empty();
 
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();
@@ -39,7 +39,7 @@ fn main() -> Result<(), CairoRunError> {
         &args.filename,
         &args.entrypoint,
         trace_enabled,
-        &HINT_EXECUTOR,
+        &hint_processor,
     ) {
         Ok(runner) => runner,
         Err(error) => return Err(error),

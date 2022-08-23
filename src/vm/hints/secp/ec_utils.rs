@@ -1,20 +1,17 @@
 use crate::bigint;
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
-};
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::hints::hint_utils::{
+    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
+};
+use crate::vm::hints::secp::secp_utils::{pack, pack_from_relocatable, SECP_P};
+use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
 use std::ops::BitAnd;
-
-use super::secp_utils::pack_from_relocatable;
 
 /*
 Implements hint:
@@ -29,11 +26,11 @@ Implements hint:
 pub fn ec_negate(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
+    ids: &HashMap<String, usize>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_y = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)? + 3;
+    let point_y = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)? + 3;
     let y = pack_from_relocatable(point_y, vm_proxy)?;
     let value = (-y).mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value);
@@ -55,11 +52,11 @@ Implements hint:
 pub fn compute_doubling_slope(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
+    ids: &HashMap<String, usize>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
         vm_proxy.memory.get_integer(&point_reloc)?,
@@ -100,11 +97,11 @@ Implements hint:
 pub fn compute_slope(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
+    ids: &HashMap<String, usize>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
         vm_proxy.memory.get_integer(&point0_reloc)?,
@@ -116,7 +113,7 @@ pub fn compute_slope(
     );
 
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
         vm_proxy.memory.get_integer(&point1_reloc)?,
@@ -158,11 +155,11 @@ Implements hint:
 pub fn ec_double_assign_new_x(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
+    ids: &HashMap<String, usize>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm_proxy, hint_ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm_proxy.memory.get_integer(&slope_reloc)?,
@@ -171,7 +168,7 @@ pub fn ec_double_assign_new_x(
     );
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
         vm_proxy.memory.get_integer(&point_reloc)?,
@@ -234,11 +231,11 @@ Implements hint:
 pub fn fast_ec_add_assign_new_x(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
+    ids: &HashMap<String, usize>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name("slope", ids, vm_proxy, hint_ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
         vm_proxy.memory.get_integer(&slope_reloc)?,
@@ -247,7 +244,7 @@ pub fn fast_ec_add_assign_new_x(
     );
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name("point0", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
         vm_proxy.memory.get_integer(&point0_reloc)?,
@@ -259,7 +256,7 @@ pub fn fast_ec_add_assign_new_x(
     );
 
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name("point1", ids, vm_proxy, hint_ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
         vm_proxy.memory.get_integer(&point1_reloc)?,
@@ -311,34 +308,33 @@ Implements hint:
 */
 pub fn ec_mul_inner(
     vm_proxy: &mut VMProxy,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
+    ids: &HashMap<String, usize>,
+    hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar = get_integer_from_var_name("scalar", vm_proxy, ids_data, ap_tracking)?
+    let scalar = get_integer_from_var_name("scalar", ids, vm_proxy, hint_ap_tracking)?
         .mod_floor(vm_proxy.prime)
         .bitand(bigint!(1));
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, scalar)
+    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, scalar)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
-    use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{any_box, bigint_str};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
+
+    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    use crate::types::hint_executor::HintExecutor;
 
     #[test]
     fn run_ec_negate_ok() {
@@ -348,16 +344,23 @@ mod tests {
         vm.memory = memory![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 1));
-        //Create hint_data
-        let ids_data = ids_data!["point"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        //Create ids
+        let ids = ids!["point"];
+        //Create references
+        vm.references = references!(1);
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
         //Check 'value' is defined in the vm scope
@@ -385,16 +388,26 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 1));
 
-        let ids_data = ids_data!["point"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        //Create ids
+        let ids = ids!["point"];
+
+        //Create references
+        vm.references = references!(1);
+
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -438,19 +451,27 @@ mod tests {
 
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 14));
-        let ids_data = HashMap::from([
-            ("point0".to_string(), HintReference::new_simple(-14)),
-            ("point1".to_string(), HintReference::new_simple(-8)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+
+        //Create ids
+        let ids = ids!["point0", "point1"];
+
+        //Create references
+        vm.references = not_continuous_references![-14, -8];
+
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -491,19 +512,27 @@ mod tests {
 
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((1, 10));
-        let ids_data = HashMap::from([
-            ("point".to_string(), HintReference::new_simple(-10)),
-            ("slope".to_string(), HintReference::new_simple(-4)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+
+        //Create ids
+        let ids = ids!["point", "slope"];
+
+        //Create references
+        vm.references = not_continuous_references![-10, -4];
+
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
 
@@ -586,12 +615,17 @@ mod tests {
             )),
         );
         //Execute the hint
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &HashMap::<String, usize>::new(),
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -641,20 +675,27 @@ mod tests {
 
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 20));
-        let ids_data = HashMap::from([
-            ("point0".to_string(), HintReference::new_simple(-15)),
-            ("point1".to_string(), HintReference::new_simple(-9)),
-            ("slope".to_string(), HintReference::new_simple(-6)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+
+        //Create ids
+        let ids = ids!["point0", "point1", "slope"];
+
+        //Create references
+        vm.references = not_continuous_references![-15, -9, -6];
+
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
 
@@ -711,13 +752,18 @@ mod tests {
                 b"4310143708685312414132851373791311001152018708061750480"
             )),
         );
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &HashMap::<String, usize>::new(),
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -753,14 +799,23 @@ mod tests {
         //Initialize ap
         vm.run_context.ap = MaybeRelocatable::from((1, 2));
 
-        let ids_data = ids_data!["scalar"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        //Create ids
+        let ids = ids!["scalar"];
+
+        //Create references
+        vm.references = references!(1);
 
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+assert_eq!(
+            hint_processor.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                &hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
