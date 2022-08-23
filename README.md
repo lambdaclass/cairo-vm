@@ -1,5 +1,5 @@
 # cairo-rs
-[![rust](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cleopatra_cairo/) [![codecov](https://codecov.io/gh/lambdaclass/cleopatra_cairo/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cleopatra_cairo)
+[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cairo-rs/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cairo-rs/) [![codecov](https://codecov.io/gh/lambdaclass/cairo-rs/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cairo-rs)
 
 ![](./bonaparte.webp)
 
@@ -18,8 +18,8 @@ To run a compiled json program through the VM, call the executable giving it the
 
 Full compilation and execution example:
 ```bash
-git clone https://github.com/lambdaclass/cleopatra_cairo.git
-cd cleopatra_cairo
+git clone https://github.com/lambdaclass/cairo-rs.git
+cd cairo-rs
 
 cargo build --release
 ./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
@@ -32,13 +32,13 @@ cargo test
 ```
 
 ## Code Coverage
-Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
+Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cairo-rs).
 
 ## cairo-rs benchmarks:
 Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 * [Flamegraph](./docs/benchmarks/flamegraph.svg)
-* Github action [results](https://lambdaclass.github.io/cleopatra_cairo/)
+* Github action [results](https://lambdaclass.github.io/cairo-rs/)
 
 Run the benchmark suite with cargo:
 ```bash
