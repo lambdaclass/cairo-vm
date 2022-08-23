@@ -764,7 +764,7 @@ mod tests {
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
         vm.memory.data.push(Vec::new());
-        vm.run_context.pc = 0;
+        vm.run_context.pc = Relocatable::from((0, 0));
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
@@ -778,7 +778,7 @@ mod tests {
     fn get_instruction_encoding_successful_with_imm() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
         vm.memory.data.push(Vec::new());
-        vm.run_context.pc = 0;
+        vm.run_context.pc = Relocatable::from((0, 0));
 
         vm.memory
             .insert(
@@ -803,7 +803,7 @@ mod tests {
     #[test]
     fn get_instruction_encoding_unsuccesful() {
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = 0;
+        vm.run_context.pc = Relocatable::from((0, 0));
         let error = vm.get_instruction_encoding();
         assert_eq!(error, Err(VirtualMachineError::InvalidInstructionEncoding));
         assert_eq!(
@@ -837,12 +837,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         vm.update_fp(&instruction, &operands);
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::Int(bigint!(7)))
+        assert_eq!(vm.run_context.fp, 7)
     }
 
     #[test]
@@ -870,12 +870,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         vm.update_fp(&instruction, &operands);
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::Int(bigint!(11)))
+        assert_eq!(vm.run_context.fp, 6)
     }
 
     #[test]
@@ -903,12 +903,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         vm.update_fp(&instruction, &operands);
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::Int(bigint!(6)))
+        assert_eq!(vm.run_context.fp, 6)
     }
 
     #[test]
@@ -936,12 +936,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(13)));
+        assert_eq!(vm.run_context.ap, 13);
     }
 
     #[test]
@@ -969,9 +969,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let error = vm.update_ap(&instruction, &operands);
         assert_eq!(error, Err(VirtualMachineError::UnconstrainedResAdd));
@@ -1006,12 +1006,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(6)));
+        assert_eq!(vm.run_context.ap, 6);
     }
 
     #[test]
@@ -1039,12 +1039,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(7)));
+        assert_eq!(vm.run_context.ap, 7);
     }
 
     #[test]
@@ -1072,12 +1072,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_ap(&instruction, &operands));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(5)));
+        assert_eq!(vm.run_context.ap, 5);
     }
 
     #[test]
@@ -1105,12 +1105,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(5)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
     }
 
     #[test]
@@ -1138,12 +1138,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(6)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
     }
 
     #[test]
@@ -1164,19 +1164,23 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
+            dst: mayberelocatable!(1, 11),
+            res: Some(mayberelocatable!(0, 8)),
             op0: MaybeRelocatable::Int(bigint!(9)),
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(8)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 8)));
     }
 
     #[test]
@@ -1204,9 +1208,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let error = vm.update_pc(&instruction, &operands);
         assert_eq!(error, Err(VirtualMachineError::UnconstrainedResJump));
@@ -1241,12 +1245,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(12)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 12)));
     }
 
     #[test]
@@ -1274,9 +1278,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let error = vm.update_pc(&instruction, &operands);
         assert_eq!(error, Err(VirtualMachineError::UnconstrainedResJumpRel));
@@ -1311,9 +1315,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(
             Err(VirtualMachineError::PureValue),
@@ -1346,12 +1350,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(5)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
     }
 
     #[test]
@@ -1379,12 +1383,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_pc(&instruction, &operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(14)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 14)));
     }
 
     #[test]
@@ -1412,14 +1416,14 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_registers(instruction, operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(5)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(5)));
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::Int(bigint!(6)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
+        assert_eq!(vm.run_context.ap, 5);
+        assert_eq!(vm.run_context.fp, 6);
     }
 
     #[test]
@@ -1440,21 +1444,21 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: mayberelocatable!(1, 11),
             res: Some(MaybeRelocatable::Int(bigint!(8))),
             op0: MaybeRelocatable::Int(bigint!(9)),
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = relocatable!(0, 4);
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok(()), vm.update_registers(instruction, operands));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::Int(bigint!(12)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::Int(bigint!(7)));
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::Int(bigint!(11)));
+        assert_eq!(vm.run_context.pc, relocatable!(0, 12));
+        assert_eq!(vm.run_context.ap, 7);
+        assert_eq!(vm.run_context.fp, 11);
     }
 
     #[test]
@@ -1499,12 +1503,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(
-            Ok((Some(MaybeRelocatable::Int(bigint!(5))), None)),
+            Ok((Some(mayberelocatable!(0, 5)), None)),
             vm.deduce_op0(&instruction, None, None)
         );
     }
@@ -1527,9 +1531,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(3));
         let op1 = MaybeRelocatable::Int(bigint!(2));
@@ -1560,9 +1564,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok((None, None)), vm.deduce_op0(&instruction, None, None));
     }
@@ -1585,9 +1589,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(2));
@@ -1618,9 +1622,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(0));
@@ -1648,9 +1652,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(0));
@@ -1678,9 +1682,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op1 = MaybeRelocatable::Int(bigint!(0));
@@ -1708,9 +1712,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok((None, None)), vm.deduce_op1(&instruction, None, None));
     }
@@ -1733,9 +1737,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(3));
         let op0 = MaybeRelocatable::Int(bigint!(2));
@@ -1766,9 +1770,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(Ok((None, None)), vm.deduce_op1(&instruction, None, None));
     }
@@ -1791,9 +1795,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op0 = MaybeRelocatable::Int(bigint!(2));
@@ -1824,9 +1828,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(4));
         let op0 = MaybeRelocatable::Int(bigint!(0));
@@ -1854,9 +1858,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let op0 = MaybeRelocatable::Int(bigint!(0));
         assert_eq!(
@@ -1883,9 +1887,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let dst = MaybeRelocatable::Int(bigint!(7));
         assert_eq!(
@@ -1915,9 +1919,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -1945,9 +1949,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -1975,9 +1979,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -2005,9 +2009,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let op1 = MaybeRelocatable::from((2, 3));
         let op0 = MaybeRelocatable::from((2, 6));
@@ -2035,9 +2039,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let op1 = MaybeRelocatable::Int(bigint!(7));
         let op0 = MaybeRelocatable::Int(bigint!(9));
@@ -2062,9 +2066,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let res = MaybeRelocatable::Int(bigint!(7));
         assert_eq!(
@@ -2091,9 +2095,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(None, vm.deduce_dst(&instruction, None));
     }
@@ -2116,12 +2120,12 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(
-            Some(MaybeRelocatable::Int(bigint!(6))),
+            Some(mayberelocatable!(1, 6)),
             vm.deduce_dst(&instruction, None)
         );
     }
@@ -2144,9 +2148,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         assert_eq!(None, vm.deduce_dst(&instruction, None));
     }
@@ -2170,12 +2174,17 @@ mod tests {
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.accessed_addresses = Some(Vec::new());
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        vm.run_context.ap = 0;
+
         vm.memory.data.push(Vec::new());
-        let dst_addr = MaybeRelocatable::from((0, 0));
+        let dst_addr = MaybeRelocatable::from((1, 0));
         let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
-        let op0_addr = MaybeRelocatable::from((0, 1));
+        let op0_addr = MaybeRelocatable::from((1, 1));
         let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
-        let op1_addr = MaybeRelocatable::from((0, 2));
+        let op1_addr = MaybeRelocatable::from((1, 2));
         let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
         vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
         vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
@@ -2277,7 +2286,7 @@ mod tests {
         vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(0x4)),
+            dst: mayberelocatable!(0, 4),
             res: None,
             op0: MaybeRelocatable::Int(bigint!(0x4)),
             op1: MaybeRelocatable::Int(bigint!(0x4)),
@@ -2293,7 +2302,7 @@ mod tests {
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
         assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
+        assert_eq!(vm.run_context.pc, relocatable!(0, 4));
     }
 
     #[test]
@@ -2322,9 +2331,9 @@ mod tests {
 
         vm.memory =
             memory_from(mem_arr.clone(), 1).expect("Unexpected memory initialization failure");
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
-        vm.run_context.ap = MaybeRelocatable::from((0, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 0));
+        vm.run_context.pc = Relocatable::from((0, 0));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 0;
 
         let error = vm.compute_operands(&instruction);
         assert_eq!(error, Err(VirtualMachineError::NoDst));
@@ -2356,9 +2365,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let error = vm.opcode_assertions(&instruction, &operands);
         assert_eq!(error, Err(VirtualMachineError::UnconstrainedResAssertEq));
@@ -2393,9 +2402,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let error = vm.opcode_assertions(&instruction, &operands);
         assert_eq!(
@@ -2436,9 +2445,9 @@ mod tests {
         };
 
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = MaybeRelocatable::Int(bigint!(4));
-        vm.run_context.ap = MaybeRelocatable::Int(bigint!(5));
-        vm.run_context.fp = MaybeRelocatable::Int(bigint!(6));
+        vm.run_context.pc = Relocatable::from((0, 4));
+        vm.run_context.ap = 5;
+        vm.run_context.fp = 6;
 
         let error = vm.opcode_assertions(&instruction, &operands);
         assert_eq!(
@@ -2476,9 +2485,9 @@ mod tests {
         };
 
         let run_context = RunContext {
-            pc: MaybeRelocatable::Int(bigint!(8)),
-            ap: MaybeRelocatable::Int(bigint!(5)),
-            fp: MaybeRelocatable::Int(bigint!(6)),
+            pc: Relocatable::from((1, 8)),
+            ap: 5,
+            fp: 6,
             prime: bigint!(127),
         };
 
@@ -2536,9 +2545,9 @@ mod tests {
         for _ in 0..4 {
             vm.memory.data.push(Vec::new());
         }
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
-        vm.run_context.ap = MaybeRelocatable::from((1, 2));
-        vm.run_context.fp = MaybeRelocatable::from((1, 2));
+        vm.run_context.pc = Relocatable::from((0, 0));
+        vm.run_context.ap = 2;
+        vm.run_context.fp = 2;
         vm.memory
             .insert(
                 &MaybeRelocatable::from((0, 0)),
@@ -2576,9 +2585,9 @@ mod tests {
                 }
             }
         );
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, 2);
+        assert_eq!(vm.run_context.fp, 0);
         let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
         assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 0))));
         assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 1))));
@@ -2626,9 +2635,9 @@ mod tests {
         for _ in 0..4 {
             vm.memory.data.push(Vec::new());
         }
-        vm.run_context.pc = MaybeRelocatable::from((0, 3));
-        vm.run_context.ap = MaybeRelocatable::from((1, 2));
-        vm.run_context.fp = MaybeRelocatable::from((1, 2));
+        vm.run_context.pc = Relocatable::from((0, 3));
+        vm.run_context.ap = 2;
+        vm.run_context.fp = 2;
 
         //Insert values into memory
         vm.memory
@@ -2699,15 +2708,15 @@ mod tests {
             .unwrap();
         let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
-        while vm.run_context.pc != final_pc {
+        while vm.run_context.get_pc() != final_pc {
             assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         }
         //Check final register values
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
 
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 6)));
+        assert_eq!(vm.run_context.ap, 6);
 
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
+        assert_eq!(vm.run_context.fp, 0);
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 5);
@@ -2900,36 +2909,36 @@ mod tests {
             ),
         ];
         let mut vm = vm!();
-        vm.run_context.pc = MaybeRelocatable::from((0, 0));
-        vm.run_context.ap = MaybeRelocatable::from((1, 2));
-        vm.run_context.fp = MaybeRelocatable::from((1, 2));
+        vm.run_context.pc = Relocatable::from((0, 0));
+        vm.run_context.ap = 2;
+        vm.run_context.fp = 2;
         vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 0)));
+        assert_eq!(vm.run_context.ap, 2);
         assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 2)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
+        assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap).unwrap(),
+            vm.memory.get(&vm.run_context.get_ap()).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
         assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 3)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
+        assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap).unwrap(),
+            vm.memory.get(&vm.run_context.get_ap()).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
         assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 6)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 4)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
+        assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap).unwrap(),
+            vm.memory.get(&vm.run_context.get_ap()).unwrap(),
             Some(&MaybeRelocatable::Int(bigint!(0x14))),
         );
     }
@@ -3022,8 +3031,8 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
-        vm.run_context.ap = MaybeRelocatable::from((1, 13));
-        vm.run_context.fp = MaybeRelocatable::from((1, 12));
+        vm.run_context.ap = 13;
+        vm.run_context.fp = 12;
         vm.memory.data.push(Vec::new());
         vm.memory.data.push(Vec::new());
         vm.memory.data.push(Vec::new());
@@ -3219,8 +3228,8 @@ mod tests {
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
-        vm.run_context.ap = MaybeRelocatable::from((1, 9));
-        vm.run_context.fp = MaybeRelocatable::from((1, 8));
+        vm.run_context.ap = 9;
+        vm.run_context.fp = 8;
         for _ in 0..3 {
             vm.memory.data.push(Vec::new());
         }
@@ -3644,9 +3653,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialzie registers
-        vm.run_context.pc = MaybeRelocatable::from((0, 3));
-        vm.run_context.ap = MaybeRelocatable::from((1, 2));
-        vm.run_context.fp = MaybeRelocatable::from((1, 2));
+        vm.run_context.pc = Relocatable::from((0, 3));
+        vm.run_context.ap = 2;
+        vm.run_context.fp = 2;
         //Initialize memory
         vm.memory
             .insert(
@@ -3827,9 +3836,9 @@ mod tests {
         );
 
         //Compare final register values
-        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
-        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 6)));
-        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((2, 0)));
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, 6);
+        assert_eq!(vm.run_context.fp, 0);
 
         //Check that the array created through alloc contains the element we inserted
         //As there are no builtins present, the next segment crated will have the index 2
