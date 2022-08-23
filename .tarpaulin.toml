@@ -1,4 +1,4 @@
-[cleopatra_cairo]
+[cairo_rs]
 [report]
 output-dir = "target/tarpaulin"
 out = ["Html", "Xml"]
