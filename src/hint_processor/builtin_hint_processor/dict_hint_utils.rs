@@ -292,8 +292,6 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, relocatable};
 
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-
     use super::*;
     #[test]
     fn run_dict_new_with_initial_dict_empty() {
@@ -307,7 +305,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
@@ -337,8 +336,9 @@ mod tests {
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::NoInitialDict)
         );
     }
@@ -355,8 +355,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -389,8 +390,9 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that value variable (at address (0,1)) contains the proper value
@@ -436,8 +438,9 @@ mod tests {
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
         );
     }
@@ -459,8 +462,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -478,7 +482,8 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .expect("Error while executing hint");
         //third new segment is added for the dictionary
@@ -514,8 +519,9 @@ mod tests {
         let ids_data = ids_data!["default_value"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -555,8 +561,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -619,8 +626,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -683,8 +691,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 17)
@@ -745,8 +754,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoValueForKey(bigint!(5)))
         );
     }
@@ -779,8 +789,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -837,8 +848,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -895,8 +907,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -934,8 +947,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoValueForKey(bigint!(6),))
         );
     }
@@ -969,8 +983,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1028,8 +1043,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1087,8 +1103,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(11),
                 bigint!(10),
@@ -1126,8 +1143,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::WrongPrevValue(
                 bigint!(10),
                 bigint!(17),
@@ -1163,8 +1181,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that the dictionary was updated with the new key-value pair (5, 20)
@@ -1217,8 +1236,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -1261,8 +1281,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check that a new exec scope has been created
@@ -1300,8 +1321,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -1324,8 +1346,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::NoDictTracker(1))
         );
     }
@@ -1356,8 +1379,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check the updated pointer
@@ -1398,8 +1422,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MismatchedDictPtr(
                 relocatable!(1, 0),
                 relocatable!(1, 3)

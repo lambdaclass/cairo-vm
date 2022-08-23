@@ -477,7 +477,7 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &'static dyn HintProcessor,
+        hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
@@ -697,8 +697,6 @@ mod tests {
     use num_bigint::Sign;
     use num_traits::FromPrimitive;
     use std::collections::HashSet;
-
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
@@ -2246,8 +2244,9 @@ mod tests {
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
@@ -2510,8 +2509,9 @@ mod tests {
                 &MaybeRelocatable::from((3, 0)),
             )
             .unwrap();
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         let trace = vm.trace.unwrap();
@@ -2654,10 +2654,11 @@ mod tests {
             )
             .unwrap();
         let final_pc = MaybeRelocatable::from((3, 0));
+        let hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+                vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
             );
         }
@@ -2866,8 +2867,9 @@ mod tests {
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 2)));
@@ -2877,8 +2879,9 @@ mod tests {
             vm.memory.get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
@@ -2889,8 +2892,9 @@ mod tests {
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 6)));
@@ -3683,11 +3687,11 @@ mod tests {
                 &MaybeRelocatable::from((3, 0)),
             )
             .unwrap();
-
+        let hint_processor = BuiltinHintProcessor::new_empty();
         //Run Steps
         for _ in 0..6 {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &hint_data_dictionary),
+                vm.step(&hint_processor, exec_scopes_ref!(), &hint_data_dictionary),
                 Ok(())
             );
         }

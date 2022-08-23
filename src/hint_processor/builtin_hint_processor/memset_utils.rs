@@ -64,6 +64,7 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
@@ -74,9 +75,6 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use num_bigint::Sign;
-
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
     fn memset_enter_scope_valid() {
@@ -89,7 +87,8 @@ mod tests {
         let ids_data = ids_data!["n"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .is_ok());
     }
@@ -106,8 +105,9 @@ mod tests {
         let ids_data = ids_data!["n"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -130,7 +130,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .is_ok());
 
@@ -159,7 +160,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .is_ok());
 
@@ -187,8 +189,9 @@ mod tests {
         let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -211,8 +214,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
