@@ -1,4 +1,4 @@
-[cairo_rs]
+[cairo-rs]
 [report]
 output-dir = "target/tarpaulin"
 out = ["Html", "Xml"]
