@@ -242,7 +242,7 @@ mod tests {
     fn write_binary_memory_file() {
         let program_path = Path::new("cairo_programs/struct.json");
         let expected_memory_path = Path::new("cairo_programs/struct.memory");
-        let cairo_rs_memory_path = Path::new("cairo_programs/struct_cairo_rs.memory");
+        let cairo_rs_memory_path = Path::new("cairo_programs/struct_rs.memory");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
