@@ -71,7 +71,6 @@ pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
         memory: &mut vm.memory,
         segments: &mut vm.segments,
         run_context: &mut vm.run_context,
-        dict_manager: &mut vm.dict_manager,
         builtin_runners: &vm.builtin_runners,
         references: &vm.references,
         prime: &vm.prime,
@@ -151,8 +150,8 @@ impl HintExecutor for BuiltinHintExecutor {
             hint_code::POW => pow(vm_proxy, ids, Some(ap_tracking)),
             hint_code::SET_ADD => set_add(vm_proxy, ids, None),
             hint_code::DICT_NEW => dict_new(vm_proxy, exec_scopes_proxy),
-            hint_code::DICT_READ => dict_read(vm_proxy, ids, None),
-            hint_code::DICT_WRITE => dict_write(vm_proxy, ids, None),
+            hint_code::DICT_READ => dict_read(vm_proxy, exec_scopes_proxy, ids, None),
+            hint_code::DICT_WRITE => dict_write(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::DEFAULT_DICT_NEW => {
                 default_dict_new(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
@@ -219,12 +218,12 @@ impl HintExecutor for BuiltinHintExecutor {
                 squash_dict(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::VM_ENTER_SCOPE => enter_scope(exec_scopes_proxy),
-            hint_code::DICT_UPDATE => dict_update(vm_proxy, ids, None),
+            hint_code::DICT_UPDATE => dict_update(vm_proxy, exec_scopes_proxy, ids, None),
             hint_code::DICT_SQUASH_COPY_DICT => {
                 dict_squash_copy_dict(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::DICT_SQUASH_UPDATE_PTR => {
-                dict_squash_update_ptr(vm_proxy, ids, Some(ap_tracking))
+                dict_squash_update_ptr(vm_proxy, exec_scopes_proxy, ids, Some(ap_tracking))
             }
             hint_code::UINT256_ADD => uint256_add(vm_proxy, ids, None),
             hint_code::SPLIT_64 => split_64(vm_proxy, ids, None),

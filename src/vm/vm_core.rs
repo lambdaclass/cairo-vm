@@ -11,15 +11,13 @@ use crate::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-        hints::{
-            dict_manager::DictManager,
-            execute_hint::{get_vm_proxy, HintReference},
-        },
+        hints::execute_hint::{get_vm_proxy, HintReference},
         runners::builtin_runner::BuiltinRunner,
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
 };
+
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
@@ -47,7 +45,6 @@ pub struct VMProxy<'a> {
     pub memory: &'a mut Memory,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
-    pub dict_manager: &'a mut DictManager,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     pub references: &'a HashMap<usize, HintReference>,
     pub prime: &'a BigInt,
@@ -66,7 +63,6 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
-    pub dict_manager: DictManager,
 }
 
 impl HintData {
@@ -115,7 +111,6 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: DictManager::new(),
         }
     }
 
@@ -2384,7 +2379,6 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: DictManager::new(),
         };
 
         assert_eq!(

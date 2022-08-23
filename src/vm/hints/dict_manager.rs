@@ -10,14 +10,14 @@ use crate::{
     },
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 ///Manages dictionaries in a Cairo program.
 ///Uses the segment index to associate the corresponding python dict with the Cairo dict.
 pub struct DictManager {
     pub trackers: HashMap<usize, DictTracker>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 ///Tracks the python dict associated with a Cairo dict.
 pub struct DictTracker {
     //Dictionary.
@@ -26,7 +26,7 @@ pub struct DictTracker {
     pub current_ptr: Relocatable,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Dictionary {
     SimpleDictionary(HashMap<BigInt, BigInt>),
     DefaultDictionary {
@@ -111,13 +111,28 @@ impl DictManager {
     }
 
     //Returns the tracker which's current_ptr matches with the given dict_ptr
-    pub fn get_tracker(
+    pub fn get_tracker_mut(
         &mut self,
         dict_ptr: &Relocatable,
     ) -> Result<&mut DictTracker, VirtualMachineError> {
         let tracker = self
             .trackers
             .get_mut(&dict_ptr.segment_index)
+            .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
+        if tracker.current_ptr != *dict_ptr {
+            return Err(VirtualMachineError::MismatchedDictPtr(
+                tracker.current_ptr.clone(),
+                dict_ptr.clone(),
+            ));
+        }
+        Ok(tracker)
+    }
+
+    //Returns the tracker which's current_ptr matches with the given dict_ptr
+    pub fn get_tracker(&self, dict_ptr: &Relocatable) -> Result<&DictTracker, VirtualMachineError> {
+        let tracker = self
+            .trackers
+            .get(&dict_ptr.segment_index)
             .ok_or(VirtualMachineError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != *dict_ptr {
             return Err(VirtualMachineError::MismatchedDictPtr(
