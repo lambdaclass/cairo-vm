@@ -26,8 +26,8 @@ impl RunContext {
         instruction: &Instruction,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.dst_register {
-            Register::AP => &self.get_ap(),
-            Register::FP => &self.get_fp(),
+            Register::AP => self.get_ap(),
+            Register::FP => self.get_fp(),
         };
         base_addr.add_int_mod(&instruction.off0, &self.prime)
     }
@@ -37,8 +37,8 @@ impl RunContext {
         instruction: &Instruction,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op0_register {
-            Register::AP => &self.get_ap(),
-            Register::FP => &self.get_fp(),
+            Register::AP => self.get_ap(),
+            Register::FP => self.get_fp(),
         };
         base_addr.add_int_mod(&instruction.off1, &self.prime)
     }
@@ -49,10 +49,10 @@ impl RunContext {
         op0: Option<&MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base_addr = match instruction.op1_addr {
-            Op1Addr::FP => &self.get_fp(),
-            Op1Addr::AP => &self.get_ap(),
+            Op1Addr::FP => self.get_fp(),
+            Op1Addr::AP => self.get_ap(),
             Op1Addr::Imm => match instruction.off2 == bigint!(1) {
-                true => &self.get_pc(),
+                true => self.get_pc(),
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {

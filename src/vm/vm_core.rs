@@ -414,7 +414,7 @@ impl VirtualMachine {
                     return Some(res_addr.clone());
                 }
             }
-            Opcode::Call => return Some(self.run_context.get_fp().clone()),
+            Opcode::Call => return Some(self.run_context.get_fp()),
             _ => (),
         };
         None
