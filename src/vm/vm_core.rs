@@ -3,8 +3,8 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
 use crate::types::hint_executor::HintExecutor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
-use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::MaybeRelocatable::RelocatableValue;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -93,7 +93,7 @@ impl VirtualMachine {
         trace_enabled: bool,
     ) -> VirtualMachine {
         let run_context = RunContext {
-            pc: 0,
+            pc: Relocatable::from((0, 0)),
             ap: 0,
             fp: 0,
             prime: prime.clone(),
@@ -225,7 +225,7 @@ impl VirtualMachine {
         };
         match new_pc {
             MaybeRelocatable::RelocatableValue(rel) => {
-                self.run_context.pc = rel.offset;
+                self.run_context.pc = rel;
                 Ok(())
             }
             _ => Err(VirtualMachineError::MemoryError(

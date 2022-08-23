@@ -1,11 +1,11 @@
 use crate::bigint;
 use crate::types::instruction::{Instruction, Op1Addr, Register};
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 
 pub struct RunContext {
-    pub pc: usize,
+    pub pc: Relocatable,
     pub ap: usize,
     pub fp: usize,
     pub prime: BigInt,
@@ -13,7 +13,7 @@ pub struct RunContext {
 
 impl RunContext {
     pub fn get_pc(&self) -> MaybeRelocatable {
-        MaybeRelocatable::from((0, self.pc))
+        MaybeRelocatable::from(&self.pc)
     }
     pub fn get_ap(&self) -> MaybeRelocatable {
         MaybeRelocatable::from((1, self.ap))

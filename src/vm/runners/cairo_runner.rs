@@ -207,7 +207,7 @@ impl CairoRunner {
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
         match &self.initial_pc {
-            Some(pc) => self.vm.run_context.pc = pc.offset,
+            Some(pc) => self.vm.run_context.pc = pc.clone(),
             None => return Err(RunnerError::NoPC),
         }
         match &self.initial_ap {
