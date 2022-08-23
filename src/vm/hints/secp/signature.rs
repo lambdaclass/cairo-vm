@@ -1,4 +1,5 @@
 use crate::{
+    bigint,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopesProxy,
@@ -11,6 +12,8 @@ use crate::{
         vm_core::VMProxy,
     },
 };
+use num_bigint::BigInt;
+use num_integer::Integer;
 use std::collections::HashMap;
 
 /* Implements hint:
@@ -59,13 +62,14 @@ pub fn get_point_from_x(
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int = pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)? % &*SECP_P;
-    let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
+    let x_cube_int =
+        pack_from_var_name("x_cube", ids, vm_proxy, hint_ap_tracking)?.mod_floor(&SECP_P);
+    let y_cube_int = (x_cube_int + &*BETA).mod_floor(&SECP_P);
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
     let v = get_integer_from_var_name("v", ids, vm_proxy, hint_ap_tracking)?;
-    if v % 2_i32 != &y % 2_i32 {
-        y = -y % &*SECP_P;
+    if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
+        y = (-y).mod_floor(&SECP_P);
     }
     exec_scopes_proxy.insert_value("value", y);
     Ok(())
@@ -152,27 +156,42 @@ mod tests {
             ((0, 2), 2147483647),
             ((0, 3), 2147483647)
         ];
-        vm.run_context.fp = mayberelocatable!(0, 1);
+        vm.run_context.fp = mayberelocatable!(0, 2);
 
-        vm.references = HashMap::new();
-        for i in 0..=1 {
-            vm.references.insert(
-                i,
-                HintReference {
-                    dereference: true,
-                    register: Register::FP,
-                    offset1: i as i32 - 1,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                },
-            );
-        }
+        vm.references = references!(2);
 
         let ids: HashMap<String, usize> =
             HashMap::from([("v".to_string(), 0), ("x_cube".to_string(), 1)]);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(get_point_from_x(vm_proxy, exec_scopes_proxy_ref!(), &ids, None).is_ok());
+    }
+
+    #[test]
+    fn get_point_from_x_negative_y() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+        vm.memory = memory![
+            ((0, 0), 1),
+            ((0, 1), 2147483647),
+            ((0, 2), 2147483647),
+            ((0, 3), 2147483647)
+        ];
+        vm.run_context.fp = mayberelocatable!(0, 2);
+
+        vm.references = references!(2);
+
+        let ids = ids!["v", "x_cube"];
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        assert_eq!(
+            get_point_from_x(vm_proxy, exec_scopes_proxy, &ids, None),
+            Ok(())
+        );
+        assert_eq!(
+            exec_scopes_proxy.get_int_ref("value"),
+            Ok(&bigint_str!(
+                b"94274691440067846579164151740284923997007081248613730142069408045642476712539"
+            ))
+        );
     }
 }
