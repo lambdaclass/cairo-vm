@@ -71,6 +71,8 @@ pub fn set_add(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::get_exec_scopes_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::hint_executor::HintExecutor;
     use crate::types::instruction::Register;
     use crate::utils::test_utils::*;
@@ -226,9 +228,15 @@ mod tests {
     #[test]
     fn set_add_new_elem() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -246,9 +254,15 @@ mod tests {
             Some(&MaybeRelocatable::from(bigint!(1))),
             Some(&MaybeRelocatable::from(bigint!(3))),
         );
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
@@ -266,9 +280,15 @@ mod tests {
     #[test]
     fn elm_size_not_int() {
         let (mut vm, ids) = init_vm_ids(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 3))
             ))
@@ -280,30 +300,48 @@ mod tests {
         let int = bigint!(-2);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
 
     #[test]
     fn elm_size_zero() {
-        let int = bigint!(0);
+        let int = bigint!(0_i32);
         let (mut vm, ids) =
             init_vm_ids(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ValueNotPositive(int))
         );
     }
     #[test]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids) = init_vm_ids(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::InvalidSetRange(
                 MaybeRelocatable::from((1, 3)),
                 MaybeRelocatable::from((1, 2)),
@@ -315,9 +353,15 @@ mod tests {
     fn find_elm_failed_ids_get_addres() {
         let (mut vm, ids) = init_vm_ids(None, None, None, None);
         vm.references.insert(0, HintReference::new_simple(-7));
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, HINT_CODE, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                HINT_CODE,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }

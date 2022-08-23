@@ -28,6 +28,13 @@ macro_rules! relocatable {
     };
 }
 
+#[macro_export]
+macro_rules! any_box {
+    ($val : expr) => {
+        Box::new($val) as Box<dyn Any>
+    };
+}
+
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
     for search in subsequence {
         if let Some(index) = sequence.iter().position(|element| search == element) {
@@ -265,6 +272,20 @@ pub mod test_utils {
         };
     }
     pub(crate) use trace_check;
+
+    macro_rules! exec_scopes_ref {
+        () => {
+            &mut ExecutionScopes::new()
+        };
+    }
+    pub(crate) use exec_scopes_ref;
+
+    macro_rules! exec_scopes_proxy_ref {
+        () => {
+            &mut get_exec_scopes_proxy(&mut ExecutionScopes::new())
+        };
+    }
+    pub(crate) use exec_scopes_proxy_ref;
 }
 
 #[cfg(test)]
