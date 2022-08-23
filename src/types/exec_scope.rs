@@ -1,9 +1,12 @@
 use crate::{
     any_box,
-    vm::errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+    vm::{
+        errors::{exec_scope_errors::ExecScopeError, vm_errors::VirtualMachineError},
+        hints::dict_manager::DictManager,
+    },
 };
 use num_bigint::BigInt;
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 pub struct ExecutionScopes {
     pub data: Vec<HashMap<String, Box<dyn Any>>>,
@@ -24,7 +27,7 @@ pub fn get_exec_scopes_proxy(exec_scopes: &mut ExecutionScopes) -> ExecutionScop
 
 impl ExecutionScopesProxy<'_> {
     pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
-        self.scopes.enter_scope(new_scope_locals)
+        self.scopes.enter_scope(new_scope_locals);
     }
 
     pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
@@ -212,6 +215,17 @@ impl ExecutionScopesProxy<'_> {
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
+    }
+
+    //Returns the value in the dict manager
+    pub fn get_dict_manager(&self) -> Result<Rc<RefCell<DictManager>>, VirtualMachineError> {
+        let mut val: Option<Rc<RefCell<DictManager>>> = None;
+        if let Some(variable) = self.get_local_variables()?.get("dict_manager") {
+            if let Some(dict_manager) = variable.downcast_ref::<Rc<RefCell<DictManager>>>() {
+                val = Some(dict_manager.clone());
+            }
+        }
+        val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError("dict_manager".to_string()))
     }
 
     //Returns a mutable reference to the value in the current execution scope that matches the name and is of type DictBigIntListU64

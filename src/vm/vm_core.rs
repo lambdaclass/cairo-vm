@@ -9,7 +9,6 @@ use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::dict_manager::DictManager;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
@@ -43,7 +42,6 @@ pub struct VMProxy<'a> {
     pub memory: &'a mut Memory,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
-    pub dict_manager: &'a mut DictManager,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     pub references: &'a HashMap<usize, HintReference>,
     pub prime: &'a BigInt,
@@ -68,7 +66,6 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
-    pub dict_manager: DictManager,
 }
 
 impl HintData {
@@ -117,7 +114,6 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: DictManager::new(),
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
@@ -2462,7 +2458,6 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: DictManager::new(),
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);
