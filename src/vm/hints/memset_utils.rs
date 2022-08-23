@@ -1,5 +1,6 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::types::exec_scope::PyValueType;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VMProxy;
@@ -7,22 +8,19 @@ use num_bigint::BigInt;
 use num_traits::Signed;
 use std::collections::HashMap;
 
-use super::hint_utils::get_int_ref_from_scope;
 use super::hint_utils::get_integer_from_var_name;
-use super::hint_utils::insert_int_into_scope;
 use super::hint_utils::insert_value_from_var_name;
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let n = get_integer_from_var_name("n", ids, vm_proxy, hint_ap_tracking)?.clone();
-    vm_proxy
-        .exec_scopes
-        .enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
+    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), PyValueType::BigInt(n))]));
     Ok(())
 }
 
@@ -34,11 +32,12 @@ pub fn memset_enter_scope(
 */
 pub fn memset_continue_loop(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(vm_proxy.exec_scopes, "n")?;
+    let n = exec_scopes_proxy.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
@@ -53,12 +52,13 @@ pub fn memset_continue_loop(
     )?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    insert_int_into_scope(vm_proxy.exec_scopes, "n", new_n);
+    exec_scopes_proxy.insert_int("n", new_n);
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::vm_memory::memory::Memory;
@@ -86,9 +86,15 @@ mod tests {
         let ids = ids!["n"];
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
     }
 
@@ -104,9 +110,15 @@ mod tests {
         let ids = ids!["n"];
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 1))
             ))
@@ -120,8 +132,8 @@ mod tests {
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         // initialize vm scope with variable `n` = 1
-        vm.exec_scopes
-            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
         vm.memory = memory![((0, 2), 5)];
@@ -130,9 +142,16 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
 
         // assert ids.continue_loop = 0
@@ -150,8 +169,8 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
 
         // initialize vm scope with variable `n` = 5
-        vm.exec_scopes
-            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(5)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(5)));
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -162,9 +181,16 @@ mod tests {
 
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert!(HINT_EXECUTOR
-            .execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new())
+            .execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            )
             .is_ok());
 
         // assert ids.continue_loop = 1
@@ -194,9 +220,15 @@ mod tests {
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
 
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -210,8 +242,8 @@ mod tests {
         // initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 3));
         // initialize with variable `n`
-        vm.exec_scopes
-            .assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("n", PyValueType::BigInt(bigint!(1)));
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((0, 1), 5)];
@@ -219,9 +251,16 @@ mod tests {
         ids.insert(String::from("continue_loop"), 0);
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 1)),

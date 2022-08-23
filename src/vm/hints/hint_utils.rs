@@ -1,7 +1,7 @@
 use crate::bigint;
 use crate::relocatable;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::types::exec_scope::PyValueType;
 use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
@@ -26,154 +26,6 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
 //Tries to convert a BigInt value to U32
 pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
     bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
-}
-
-//Inserts the value in scope as a BigInt value type
-pub fn insert_int_into_scope(exec_scopes: &mut ExecutionScopes, name: &str, value: BigInt) {
-    exec_scopes.assign_or_update_variable(name, PyValueType::BigInt(value));
-}
-
-//Inserts the list in scope as a List value type
-pub fn insert_list_into_scope(exec_scopes: &mut ExecutionScopes, name: &str, list: Vec<BigInt>) {
-    exec_scopes.assign_or_update_variable(name, PyValueType::List(list));
-}
-
-//Returns the value in the current execution scope that matches the name and is of type BigInt
-pub fn get_int_from_scope(
-    exec_scopes: &ExecutionScopes,
-    name: &str,
-) -> Result<BigInt, VirtualMachineError> {
-    let mut val: Option<BigInt> = None;
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
-            val = Some(py_val.clone());
-        }
-    }
-    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-}
-
-//Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
-pub fn get_mut_int_ref_from_scope<'a>(
-    exec_scopes: &'a mut ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a mut BigInt, VirtualMachineError> {
-    let mut val: Option<&'a mut BigInt> = None;
-    if let Some(variables) = exec_scopes.get_local_variables_mut() {
-        if let Some(PyValueType::BigInt(py_val)) = variables.get_mut(name) {
-            val = Some(py_val);
-        }
-    }
-    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-}
-
-//Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
-pub fn get_int_ref_from_scope<'a>(
-    exec_scopes: &'a ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a BigInt, VirtualMachineError> {
-    let mut val: Option<&BigInt> = None;
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::BigInt(py_val)) = variables.get(name) {
-            val = Some(py_val);
-        }
-    }
-    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-}
-
-pub fn get_u64_from_scope(
-    exec_scopes: &ExecutionScopes,
-    name: &str,
-) -> Result<u64, VirtualMachineError> {
-    let mut val: Result<u64, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::U64(py_val)) = variables.get(name) {
-            val = Ok(*py_val);
-        }
-    }
-    val
-}
-
-//Returns the value in the current execution scope that matches the name and is of type List
-pub fn get_list_from_scope(
-    exec_scopes: &ExecutionScopes,
-    name: &str,
-) -> Result<Vec<BigInt>, VirtualMachineError> {
-    let mut val: Option<Vec<BigInt>> = None;
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::List(py_val)) = variables.get(name) {
-            val = Some(py_val.clone());
-        }
-    }
-    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-}
-
-//Returns a reference value in the current execution scope that matches the name and is of type List
-pub fn get_list_ref_from_scope<'a>(
-    exec_scopes: &'a ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a Vec<BigInt>, VirtualMachineError> {
-    let mut val: Option<&'a Vec<BigInt>> = None;
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::List(py_val)) = variables.get(name) {
-            val = Some(py_val);
-        }
-    }
-    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-}
-
-//Returns a reference value in the current execution scope that matches the name and is of type List
-pub fn get_mut_list_ref_from_scope<'a>(
-    exec_scopes: &'a mut ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a mut Vec<BigInt>, VirtualMachineError> {
-    let mut val: Option<&'a mut Vec<BigInt>> = None;
-    if let Some(variables) = exec_scopes.get_local_variables_mut() {
-        if let Some(PyValueType::List(py_val)) = variables.get_mut(name) {
-            val = Some(py_val);
-        }
-    }
-    val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
-}
-
-pub fn get_list_u64_from_scope_ref<'a>(
-    exec_scopes: &'a ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a Vec<u64>, VirtualMachineError> {
-    let mut val: Result<&'a Vec<u64>, VirtualMachineError> = Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::ListU64(py_val)) = variables.get(name) {
-            val = Ok(py_val);
-        }
-    }
-    val
-}
-
-pub fn get_list_u64_from_scope_mut<'a>(
-    exec_scopes: &'a mut ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a mut Vec<u64>, VirtualMachineError> {
-    let mut val: Result<&'a mut Vec<u64>, VirtualMachineError> =
-        Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = exec_scopes.get_local_variables_mut() {
-        if let Some(PyValueType::ListU64(py_val)) = variables.get_mut(name) {
-            val = Ok(py_val);
-        }
-    }
-    val
-}
-
-pub fn get_dict_int_list_u64_from_scope_mut<'a>(
-    exec_scopes: &'a mut ExecutionScopes,
-    name: &'a str,
-) -> Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
-    let mut val: Result<&'a mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> =
-        Err(VirtualMachineError::ScopeError);
-    if let Some(variables) = exec_scopes.get_local_variables_mut() {
-        if let Some(PyValueType::DictBigIntListU64(py_val)) = variables.get_mut(name) {
-            val = Ok(py_val);
-        }
-    }
-    val
 }
 
 //Returns a reference to the  RangeCheckBuiltinRunner struct if range_check builtin is present
@@ -426,16 +278,17 @@ pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
 }
 
 //Implements hint: vm_enter_scope()
-pub fn enter_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    vm_proxy.exec_scopes.enter_scope(HashMap::new());
+pub fn enter_scope(
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
+    exec_scopes_proxy.enter_scope(HashMap::new());
     Ok(())
 }
 
 //  Implements hint:
 //  %{ vm_exit_scope() %}
-pub fn exit_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    vm_proxy
-        .exec_scopes
+pub fn exit_scope(exec_scopes_proxy: &mut ExecutionScopesProxy) -> Result<(), VirtualMachineError> {
+    exec_scopes_proxy
         .exit_scope()
         .map_err(VirtualMachineError::MainScopeError)
 }
@@ -444,11 +297,12 @@ pub fn exit_scope(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let len = get_integer_from_var_name("len", ids, vm_proxy, hint_ap_tracking)?.clone();
-    vm_proxy.exec_scopes.enter_scope(HashMap::from([(
+    exec_scopes_proxy.enter_scope(HashMap::from([(
         String::from("n"),
         PyValueType::BigInt(len),
     )]));
@@ -462,11 +316,12 @@ pub fn memcpy_enter_scope(
 // %}
 pub fn memcpy_continue_copying(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = get_int_ref_from_scope(vm_proxy.exec_scopes, "n")?;
+    let n = exec_scopes_proxy.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if it is positive, insert 1 in the address of `continue_copying`
@@ -488,9 +343,7 @@ pub fn memcpy_continue_copying(
             hint_ap_tracking,
         )?;
     }
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("n", PyValueType::BigInt(new_n));
+    exec_scopes_proxy.assign_or_update_variable("n", PyValueType::BigInt(new_n));
     Ok(())
 }
 
@@ -559,9 +412,9 @@ mod tests {
                 &MaybeRelocatable::from((0, 1)),
             )
             .unwrap();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            get_integer_from_var_name(var_name, &ids, &mut vm_proxy, None),
+            get_integer_from_var_name(var_name, &ids, vm_proxy, None),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))

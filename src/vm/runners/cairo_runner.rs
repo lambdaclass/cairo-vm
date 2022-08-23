@@ -1,4 +1,5 @@
 use crate::bigint;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::types::program::Program;
 use crate::types::{
@@ -33,6 +34,7 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
+    pub exec_scopes: ExecutionScopes,
     hint_executor: &'static dyn HintExecutor,
 }
 
@@ -104,6 +106,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             relocated_trace: None,
             hint_executor,
+            exec_scopes: ExecutionScopes::new(),
         }
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
@@ -309,7 +312,7 @@ impl CairoRunner {
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
         while self.vm.run_context.pc != address {
-            self.vm.step(self.hint_executor)?;
+            self.vm.step(self.hint_executor, &mut self.exec_scopes)?;
         }
         Ok(())
     }
