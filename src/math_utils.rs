@@ -31,7 +31,7 @@ pub fn safe_div(x: &BigInt, y: &BigInt) -> Result<BigInt, VirtualMachineError> {
         return Err(VirtualMachineError::DividedByZero);
     }
 
-    let (q, r) = x.div_rem(y);
+    let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
         return Err(VirtualMachineError::SafeDivFail(x.clone(), y.clone()));
@@ -124,7 +124,7 @@ pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (Bi
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double_slope(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
-    assert!(!(&point.1 % prime).is_zero());
+    assert!(!(&point.1.mod_floor(prime)).is_zero());
     div_mod(
         &(bigint!(3_i32) * &point.0 * &point.0 + alpha),
         &(bigint!(2_i32) * point.1),
