@@ -35,7 +35,7 @@ cargo test
 Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cairo-rs).
 
 ## cairo-rs benchmarks:
-Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
+Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 * [Flamegraph](./docs/benchmarks/flamegraph.svg)
 * Github action [results](https://lambdaclass.github.io/cairo-rs/)
