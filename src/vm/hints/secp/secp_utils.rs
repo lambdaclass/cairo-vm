@@ -2,6 +2,7 @@ use crate::bigint;
 use crate::bigint_str;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
 use crate::vm::vm_core::VMProxy;
@@ -75,6 +76,17 @@ pub fn pack_from_var_name(
     let d0 = vm_proxy.memory.get_integer(&to_pack)?;
     let d1 = vm_proxy.memory.get_integer(&(&to_pack + 1))?;
     let d2 = vm_proxy.memory.get_integer(&(&to_pack + 2))?;
+
+    Ok(pack(d0, d1, d2, vm_proxy.prime))
+}
+
+pub fn pack_from_relocatable(
+    rel: Relocatable,
+    vm_proxy: &VMProxy,
+) -> Result<BigInt, VirtualMachineError> {
+    let d0 = vm_proxy.memory.get_integer(&rel)?;
+    let d1 = vm_proxy.memory.get_integer(&(&rel + 1))?;
+    let d2 = vm_proxy.memory.get_integer(&(&rel + 2))?;
 
     Ok(pack(d0, d1, d2, vm_proxy.prime))
 }
