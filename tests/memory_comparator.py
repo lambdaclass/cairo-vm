@@ -32,18 +32,18 @@ def main():
 
     assert len(cairo_mem) == len(cleo_mem), f'{filename2}: len(cairo_mem)={len(cairo_mem)} len(cairo_mem)={len(cleo_mem)}'
     if cairo_mem != cleo_mem:
-        print(f'Mismatch between {filename1} (Cairo) and {filename2} (Cleopatra)')
-        print('keys in Cairo but not Cleopatra:')
+        print(f'Mismatch between {filename1} (Cairo) and {filename2} (cairo_rs)')
+        print('keys in Cairo but not cairo-rs:')
         for k in cairo_mem:
             if k in cleo_mem:
                 continue
             print(f'{k}:{v}')
-        print('keys in Cleopatra but not Cairo:')
+        print('keys in cairo_rs but not Cairo:')
         for k in cleo_mem:
             if k in cairo_mem:
                 continue
             print(f'{k}:{v}')
-        print('mismatched values (Cairo <-> Cleopatra)):')
+        print('mismatched values (Cairo <-> cairo_rs)):')
         for k in cleo_mem:
             if k not in cairo_mem:
                 continue
