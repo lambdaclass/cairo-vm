@@ -430,7 +430,7 @@ impl HintProcessor for BuiltinHintProcessor {
 
     fn compile_hint(
         &self,
-        code: &String,
+        code: &str,
         ap_tracking: &ApTracking,
         reference_ids: &HashMap<String, usize>,
         references: &HashMap<usize, HintReference>,

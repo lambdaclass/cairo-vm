@@ -4,10 +4,13 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
+    bigint,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
     vm::errors::vm_errors::VirtualMachineError,
 };
+use num_bigint::BigInt;
+use num_integer::Integer;
 use std::collections::HashMap;
 
 use super::secp_utils::{BETA, N, SECP_P};
@@ -58,13 +61,14 @@ pub fn get_point_from_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int = pack_from_var_name("x_cube", vm_proxy, ids_data, ap_tracking)? % &*SECP_P;
-    let y_cube_int = (x_cube_int + &*BETA) % &*SECP_P;
+    let x_cube_int =
+        pack_from_var_name("x_cube", vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
+    let y_cube_int = (x_cube_int + &*BETA).mod_floor(&SECP_P);
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
     let v = get_integer_from_var_name("v", vm_proxy, ids_data, ap_tracking)?;
-    if v % 2_i32 != &y % 2_i32 {
-        y = -y % &*SECP_P;
+    if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
+        y = (-y).mod_floor(&SECP_P);
     }
     exec_scopes_proxy.insert_value("value", y);
     Ok(())
@@ -150,5 +154,37 @@ mod tests {
             &ApTracking::default()
         )
         .is_ok());
+    }
+
+    #[test]
+    fn get_point_from_x_negative_y() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+        vm.memory = memory![
+            ((0, 0), 1),
+            ((0, 1), 2147483647),
+            ((0, 2), 2147483647),
+            ((0, 3), 2147483647)
+        ];
+        vm.run_context.fp = mayberelocatable!(0, 2);
+
+        let ids_data = ids_data!["v", "x_cube"];
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        assert_eq!(
+            get_point_from_x(
+                vm_proxy,
+                exec_scopes_proxy,
+                &ids_data,
+                &ApTracking::default()
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            exec_scopes_proxy.get_int_ref("value"),
+            Ok(&bigint_str!(
+                b"94274691440067846579164151740284923997007081248613730142069408045642476712539"
+            ))
+        );
     }
 }

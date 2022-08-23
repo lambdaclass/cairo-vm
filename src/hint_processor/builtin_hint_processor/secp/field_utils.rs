@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name, insert_value_into_ap,
+    insert_value_from_var_name, insert_value_into_ap,
 };
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -14,7 +14,7 @@ use num_integer::Integer;
 use num_traits::Zero;
 use std::collections::HashMap;
 
-use super::secp_utils::{pack, pack_from_var_name};
+use super::secp_utils::pack_from_var_name;
 
 /*
 Implements hint:
@@ -31,23 +31,13 @@ pub fn verify_zero(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let val_reloc = get_relocatable_from_var_name("val", vm_proxy, ids_data, ap_tracking)?;
-
-    let val_d0 = vm_proxy.memory.get_integer(&val_reloc)?;
-    let val_d1 = vm_proxy.memory.get_integer(&(val_reloc.clone() + 1))?;
-    let val_d2 = vm_proxy.memory.get_integer(&(val_reloc + 2))?;
-
-    let pack = pack(val_d0, val_d1, val_d2, vm_proxy.prime);
-
-    let (q, r) = pack.div_rem(&SECP_P);
+    let val = pack_from_var_name("val", vm_proxy, ids_data, ap_tracking)?;
+    let (q, r) = val.div_rem(&SECP_P);
 
     if !r.is_zero() {
-        return Err(VirtualMachineError::SecpVerifyZero(
-            val_d0.clone(),
-            val_d1.clone(),
-            val_d2.clone(),
-        ));
+        return Err(VirtualMachineError::SecpVerifyZero(val));
     }
+
     insert_value_from_var_name(
         "q",
         q.mod_floor(vm_proxy.prime),
@@ -90,16 +80,12 @@ pub fn is_zero_pack(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_reloc = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
-
-    let x_d0 = vm_proxy.memory.get_integer(&x_reloc)?;
-    let x_d1 = vm_proxy.memory.get_integer(&(&x_reloc + 1))?;
-    let x_d2 = vm_proxy.memory.get_integer(&(&x_reloc + 2))?;
-
-    let x = (pack(x_d0, x_d1, x_d2, vm_proxy.prime)).mod_floor(&SECP_P);
+    let x_packed = pack_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
+    let x = x_packed.mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("x", x);
     Ok(())
 }
+
 /*
 Implements hint:
 in .cairo program
@@ -310,12 +296,10 @@ mod tests {
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Err(VirtualMachineError::SecpVerifyZero(
-                bigint!(0),
-                bigint!(0),
-                bigint!(150)
-            ))
+            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data),),
+            Err(VirtualMachineError::SecpVerifyZero(bigint_str!(
+                b"897946605976106752944343961220884287276604954404454400"
+            ),))
         );
     }
 

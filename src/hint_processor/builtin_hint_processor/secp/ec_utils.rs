@@ -14,6 +14,8 @@ use num_integer::Integer;
 use std::collections::HashMap;
 use std::ops::BitAnd;
 
+use super::secp_utils::pack_from_relocatable;
+
 /*
 Implements hint:
 %{
@@ -31,15 +33,9 @@ pub fn ec_negate(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
-
-    //ids.point.y
-    let (y_d0, y_d1, y_d2) = (
-        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
-    );
-    let value = (-pack(y_d0, y_d1, y_d2, vm_proxy.prime)).mod_floor(&SECP_P);
+    let point_y = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)? + 3;
+    let y = pack_from_relocatable(point_y, vm_proxy)?;
+    let value = (-y).mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
@@ -276,7 +272,7 @@ pub fn fast_ec_add_assign_new_x(
     let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime);
     let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime);
 
-    let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
+    let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
     exec_scopes_proxy.insert_value("slope", slope);

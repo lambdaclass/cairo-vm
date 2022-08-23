@@ -100,7 +100,7 @@ pub enum VirtualMachineError {
     MismatchedDictPtr(Relocatable, Relocatable),
     SecpSplitNegative(BigInt),
     SecpSplitutOfRange(BigInt),
-    SecpVerifyZero(BigInt, BigInt, BigInt),
+    SecpVerifyZero(BigInt),
     CantSubOffset(usize, usize),
     KeccakMaxSize(BigInt, BigInt),
     InvalidWordSize(BigInt),
@@ -303,8 +303,8 @@ impl fmt::Display for VirtualMachineError {
             write!(f, "Integer must be postive or zero, got: {}", integer),
             VirtualMachineError::SecpSplitutOfRange(integer) =>
             write!(f, "Integer: {} out of range", integer),
-            VirtualMachineError::SecpVerifyZero(d0, d1, d2) =>
-            write!(f, "verify_zero: Invalid input {:?}", vec![d0, d1, d2]),
+            VirtualMachineError::SecpVerifyZero(packed) =>
+            write!(f, "verify_zero: Invalid input {}", packed),
             VirtualMachineError::CantSubOffset(offset , sub) => write!(f, "Cant substract {} from offset {}, offsets cant be negative", sub, offset),
             VirtualMachineError::KeccakMaxSize(length, keccak_max_size) => write!(f, "unsafe_keccak() can only be used with length<={:?}. Got: length={:?}", keccak_max_size, length),
             VirtualMachineError::InvalidWordSize(word) => write!(f, "Invalid word size: {:?}", word),
