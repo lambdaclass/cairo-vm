@@ -429,7 +429,9 @@ mod tests {
     use crate::{bigint_str, relocatable};
     use std::collections::HashMap;
 
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {
+        extra_hints: HashMap::new(),
+    };
 
     #[test]
     #[should_panic]

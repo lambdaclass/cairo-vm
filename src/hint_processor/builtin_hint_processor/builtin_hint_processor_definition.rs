@@ -77,7 +77,35 @@ impl HintProcessorData {
         }
     }
 }
-pub struct BuiltinHintProcessor {}
+
+pub struct HintFunc(
+    pub  Box<
+        dyn Fn(
+            &mut VMProxy,
+            &mut ExecutionScopesProxy,
+            &HashMap<String, HintReference>,
+            &ApTracking,
+        ) -> Result<(), VirtualMachineError>,
+    >,
+);
+pub struct BuiltinHintProcessor {
+    pub extra_hints: HashMap<String, HintFunc>,
+}
+impl BuiltinHintProcessor {
+    pub fn new_empty() -> Self {
+        BuiltinHintProcessor {
+            extra_hints: HashMap::new(),
+        }
+    }
+
+    pub fn new(extra_hints: HashMap<String, HintFunc>) -> Self {
+        BuiltinHintProcessor { extra_hints }
+    }
+
+    pub fn add_hint(&mut self, hint_code: String, hint_func: HintFunc) {
+        self.extra_hints.insert(hint_code, hint_func);
+    }
+}
 
 impl HintProcessor for BuiltinHintProcessor {
     fn execute_hint(
@@ -89,6 +117,16 @@ impl HintProcessor for BuiltinHintProcessor {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(VirtualMachineError::WrongHintData)?;
+
+        if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
+            return hint_func.0(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            );
+        }
+
         match &*hint_data.code {
             hint_code::ADD_SEGMENT => add_segment(vm_proxy),
             hint_code::IS_NN => is_nn(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
@@ -478,8 +516,6 @@ mod tests {
     use std::any::Any;
 
     use super::*;
-
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
     use crate::hint_processor::hint_processor_definition::HintProcessor;
 
     #[test]
@@ -489,7 +525,8 @@ mod tests {
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .expect("Error while executing hint");
         //first new segment is added
@@ -513,7 +550,8 @@ mod tests {
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .expect("Error while executing hint");
         //Segment N°4 is added
@@ -544,8 +582,9 @@ mod tests {
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 6)),
@@ -562,8 +601,9 @@ mod tests {
         let mut vm = vm!();
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
         );
     }
@@ -589,7 +629,8 @@ mod tests {
         let ids_data = ids_data!["len"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .is_ok());
     }
@@ -618,8 +659,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -654,7 +696,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .is_ok());
     }
@@ -686,8 +729,9 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -722,8 +766,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((0, 0)),
@@ -748,7 +793,8 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .is_ok());
     }
@@ -765,8 +811,9 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
@@ -783,8 +830,9 @@ mod tests {
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
         //Check exec_scopes
@@ -860,7 +908,8 @@ mod tests {
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .is_ok());
     }
@@ -930,8 +979,9 @@ mod tests {
         exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(2)));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
@@ -999,7 +1049,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .is_err());
     }
@@ -1070,8 +1121,9 @@ mod tests {
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut &mut get_exec_scopes_proxy(&mut exec_scopes);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
         );
     }
@@ -1144,7 +1196,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .is_ok());
     }
@@ -1210,8 +1263,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::NoneInMemoryRange)
         );
     }
@@ -1285,7 +1339,8 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(HINT_EXECUTOR
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert!(hint_processor
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .is_err());
     }
