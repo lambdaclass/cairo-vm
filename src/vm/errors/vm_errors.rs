@@ -113,6 +113,7 @@ pub enum VirtualMachineError {
     SliceToArrayError,
     WrongHintData,
     CompileHintFail(String),
+    CustomHint(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -319,6 +320,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "HintProcessor failed retrieve the compiled data necessary for hint execution")
             },
             VirtualMachineError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
+            VirtualMachineError::CustomHint(string) => write!(f, "Custom Hint Error: {}", string),
         }
     }
 }
