@@ -1,318 +1,215 @@
-use crate::vm::errors::memory_errors::MemoryError;
-use num_bigint::BigInt;
-use std::fmt;
-
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use num_bigint::BigInt;
+use thiserror::Error;
 
 use super::exec_scope_errors::ExecScopeError;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Error)]
 pub enum VirtualMachineError {
+    #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
+    #[error("Invalid op1_register value: {0}")]
     InvalidOp1Reg(i64),
+    #[error("In immediate mode, off2 should be 1")]
     ImmShouldBe1,
+    #[error("op0 must be known in double dereference")]
     UnknownOp0,
+    #[error("Invalid ap_update value: {0}")]
     InvalidApUpdate(i64),
+    #[error("Invalid pc_update value: {0}")]
     InvalidPcUpdate(i64),
+    #[error("Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")]
     UnconstrainedResAdd,
+    #[error("Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")]
     UnconstrainedResJump,
+    #[error("Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")]
     UnconstrainedResJumpRel,
+    #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
+    #[error("ASSERT_EQ instruction failed; res:{0} != dst:{1}")]
     DiffAssertValues(BigInt, BigInt),
+    #[error("Call failed to write return-pc (inconsistent op0): {0} != {1}. Did you forget to increment ap?")]
     CantWriteReturnPc(BigInt, BigInt),
+    #[error("Call failed to write return-fc (inconsistent op0): {0} != {1}. Did you forget to increment ap?")]
     CantWriteReturnFp(BigInt, BigInt),
+    #[error("")]
     NoDst,
+    #[error("")]
     PureValue,
+    #[error("")]
     InvalidRes(i64),
+    #[error("")]
     InvalidOpcode(i64),
+    #[error("")]
     RelocatableAdd,
+    #[error("")]
     OffsetExceeded(BigInt),
+    #[error("")]
     NotImplemented,
+    #[error("")]
     DiffIndexSub,
+    #[error("")]
     InconsistentAutoDeduction(String, MaybeRelocatable, Option<MaybeRelocatable>),
+    #[error("")]
     RunnerError(RunnerError),
+    #[error("")]
     InvalidHintEncoding(MaybeRelocatable),
+    #[error("")]
     MemoryError(MemoryError),
+    #[error("")]
     NoRangeCheckBuiltin,
+    #[error("")]
     IncorrectIds(Vec<String>, Vec<String>),
+    #[error("")]
     MemoryGet(MaybeRelocatable),
+    #[error("")]
     ExpectedInteger(MaybeRelocatable),
+    #[error("")]
     ExpectedRelocatable(MaybeRelocatable),
+    #[error("")]
     ExpectedRelocatableAtAddr(MaybeRelocatable),
+    #[error("")]
     FailedToGetIds,
+    #[error("")]
     NonLeFelt(BigInt, BigInt),
+    #[error("")]
     OutOfValidRange(BigInt, BigInt),
+    #[error("")]
     FailedToGetReference(BigInt),
+    #[error("")]
     ValueOutOfRange(BigInt),
+    #[error("")]
     ValueNotPositive(BigInt),
+    #[error("")]
     UnknownHint(String),
+    #[error("")]
     ValueOutsideValidRange(BigInt),
+    #[error("")]
     SplitIntNotZero,
+    #[error("")]
     SplitIntLimbOutOfRange(BigInt),
+    #[error("")]
     DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
+    #[error("")]
     AssertNotEqualFail(MaybeRelocatable, MaybeRelocatable),
+    #[error("")]
     DiffIndexComp(Relocatable, Relocatable),
+    #[error("")]
     ValueOutside250BitRange(BigInt),
+    #[error("")]
     SqrtNegative(BigInt),
+    #[error("")]
     SafeDivFail(BigInt, BigInt),
+    #[error("")]
     DividedByZero,
+    #[error("")]
     FailedToGetSqrt(BigInt),
+    #[error("")]
     AssertNotZero(BigInt, BigInt),
+    #[error("")]
     MainScopeError(ExecScopeError),
+    #[error("")]
     ScopeError,
+    #[error("")]
     VariableNotInScopeError(String),
+    #[error("")]
     CantCreateDictionaryOnTakenSegment(usize),
+    #[error("")]
     NoDictTracker(usize),
+    #[error("")]
     NoValueForKey(BigInt),
+    #[error("")]
     AssertLtFelt(BigInt, BigInt),
+    #[error("")]
     FindElemMaxSize(BigInt, BigInt),
+    #[error("")]
     InvalidIndex(BigInt, BigInt, BigInt),
+    #[error("")]
     KeyNotFound,
+    #[error("")]
     NoneApTrackingData,
+    #[error("")]
     InvalidTrackingGroup(usize, usize),
+    #[error("")]
     InvalidApValue(MaybeRelocatable),
+    #[error("")]
     NoInitialDict,
+    #[error("")]
     NoKeyInAccessIndices(BigInt),
+    #[error("")]
     EmptyAccessIndices,
+    #[error("")]
     EmptyCurrentAccessIndices,
+    #[error("")]
     CurrentAccessIndicesNotEmpty,
+    #[error("")]
     WrongPrevValue(BigInt, BigInt, BigInt),
+    #[error("")]
     NumUsedAccessesAssertFail(BigInt, usize, BigInt),
+    #[error("")]
     KeysNotEmpty,
+    #[error("")]
     EmptyKeys,
+    #[error("")]
     PtrDiffNotDivisibleByDictAccessSize,
+    #[error("")]
     SquashDictMaxSizeExceeded(BigInt, BigInt),
+    #[error("")]
     NAccessesTooBig(BigInt),
+    #[error("")]
     BigintToUsizeFail,
+    #[error("")]
     BigintToU64Fail,
+    #[error("")]
     BigintToU32Fail,
+    #[error("")]
     UsortOutOfRange(u64, BigInt),
+    #[error("")]
     UnexpectedPositionsDictFail,
+    #[error("")]
     PositionsNotFound,
+    #[error("")]
     PositionsLengthNotZero,
+    #[error("")]
     CouldntPopPositions,
+    #[error("")]
     LastPosNotFound,
+    #[error("")]
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
+    #[error("")]
     UnexpectMemoryGap,
+    #[error("")]
     FixedSizeArrayFail(usize),
+    #[error("")]
     AssertionFailed(String),
+    #[error("")]
     MismatchedDictPtr(Relocatable, Relocatable),
+    #[error("")]
     SecpSplitNegative(BigInt),
+    #[error("")]
     SecpSplitutOfRange(BigInt),
+    #[error("")]
     SecpVerifyZero(BigInt),
+    #[error("")]
     CantSubOffset(usize, usize),
+    #[error("")]
     KeccakMaxSize(BigInt, BigInt),
+    #[error("")]
     InvalidWordSize(BigInt),
+    #[error("")]
     InvalidKeccakInputLength(BigInt),
+    #[error("")]
     NoneInMemoryRange,
+    #[error("")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
+    #[error("")]
     IdNotFound(String),
+    #[error("")]
     InvalidKeccakStateSizeFelts(usize),
+    #[error("")]
     InvalidBlockSize(usize),
+    #[error("")]
     SliceToArrayError,
-}
-
-impl fmt::Display for VirtualMachineError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            VirtualMachineError::InvalidInstructionEncoding => {
-                write!(f, "Instruction should be an int. Found:")
-            }
-            VirtualMachineError::InvalidOp1Reg(n) => write!(f, "Invalid op1_register value: {}", n),
-            VirtualMachineError::ImmShouldBe1 => {
-                write!(f, "In immediate mode, off2 should be 1")
-            }
-            VirtualMachineError::UnknownOp0 => {
-                write!(f, "op0 must be known in double dereference")
-            }
-            VirtualMachineError::InvalidApUpdate(n) => write!(f, "Invalid ap_update value: {}", n),
-            VirtualMachineError::InvalidPcUpdate(n) => write!(f, "Invalid pc_update value: {}", n),
-            VirtualMachineError::UnconstrainedResAdd => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")
-            }
-            VirtualMachineError::UnconstrainedResJump => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")
-            }
-            VirtualMachineError::UnconstrainedResJumpRel => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP_REL")
-            }
-            VirtualMachineError::UnconstrainedResAssertEq => {
-                write!(f, "Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")
-            }
-            VirtualMachineError::DiffAssertValues(res, dst) => write!(f, "ASSERT_EQ instruction failed; res:{} != dst:{}", res, dst),
-            VirtualMachineError::CantWriteReturnPc(op0, ret_pc) => write!(f, "Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", op0, ret_pc),
-            VirtualMachineError::CantWriteReturnFp(dst, ret_fp) => write!(f, "Call failed to write return-fp (inconsistent dst): {} != {}. Did you forget to increment ap?", dst, ret_fp),
-            VirtualMachineError::NoDst => write!(f,  "Couldn't get or load dst"),
-            VirtualMachineError::InvalidRes(n) => write!(f, "Invalid res value: {}", n),
-            VirtualMachineError::InvalidOpcode(n) => write!(f, "Invalid opcode value: {}", n),
-            VirtualMachineError::RelocatableAdd => {
-                write!(f, "Cannot add two relocatable values")
-            }
-            VirtualMachineError::OffsetExceeded(n) => write!(f, "Offset {} exeeds maximum offset value", n),
-            VirtualMachineError::NotImplemented => write!(f, "This is not implemented"),
-            VirtualMachineError::PureValue => Ok(()),
-            VirtualMachineError::DiffIndexSub => write!(
-                f,
-                "Can only subtract two relocatable values of the same segment"
-            ),
-            VirtualMachineError::InconsistentAutoDeduction(builtin_name, expected_value, current_value) => {
-                write!(f, "Inconsistent auto-deduction for builtin {}, expected {:?}, got {:?}", builtin_name, expected_value, current_value)
-            },
-            VirtualMachineError::RunnerError(runner_error) => runner_error.fmt(f),
-            VirtualMachineError::InvalidHintEncoding(address) => write!(f, "Invalid hint encoding at pc: {:?}", address),
-            VirtualMachineError::NoRangeCheckBuiltin => {
-                write!(f, "Expected range_check builtin to be present")
-            },
-            VirtualMachineError::IncorrectIds(expected, existing) => {
-                write!(f, "Expected ids to contain {:?}, got: {:?}", expected, existing)
-            },
-            VirtualMachineError::MemoryGet(addr) => {
-                write!(f, "Failed to retrieve value from address {:?}", addr)
-            },
-            VirtualMachineError::ExpectedInteger(addr) => {
-                write!(f, "Expected integer at address {:?}", addr)
-            },
-            VirtualMachineError::ExpectedRelocatableAtAddr(addr) => {
-                write!(f, "Expected relocatable at address {:?}", addr)
-            }
-            VirtualMachineError::ExpectedRelocatable(mayberelocatable) => {
-                write!(f, "Expected address to be a Relocatable, got {:?}", mayberelocatable)
-            },
-            VirtualMachineError::FailedToGetIds => {
-                write!(f, "Failed to get ids from memory")
-            },
-            VirtualMachineError::NonLeFelt(a, b) => {
-                write!(f, "Assertion failed, {}, is not less or equal to {}", a, b)
-            },
-            VirtualMachineError::OutOfValidRange(div, max) => {
-                write!(f, "Div out of range: 0 < {} <= {}", div, max)
-            },
-            VirtualMachineError::FailedToGetReference(reference_id) => {
-                write!(f, "Failed to get reference for id {}", reference_id)
-            },
-            VirtualMachineError::ValueOutOfRange(a) => {
-                write!(f, "Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {:?} is out of range", a)
-            },
-            VirtualMachineError::UnknownHint(hint_code) => write!(f, "Unknown Hint: {:?}", hint_code),
-            VirtualMachineError::MemoryError(memory_error) => memory_error.fmt(f),
-            VirtualMachineError::ValueOutsideValidRange(value) => write!(f, "Value: {:?} is outside valid range", value),
-            VirtualMachineError::ValueNotPositive(value) => write!(f, "Value: {:?} should be positive", value),
-            VirtualMachineError::SplitIntNotZero => write!(f,"split_int(): value is out of range"),
-            VirtualMachineError::SplitIntLimbOutOfRange(limb) => write!(f, "split_int(): Limb {:?} is out of range.", limb),
-            VirtualMachineError::DiffTypeComparison(a, b) => {
-                write!(f, "Failed to compare {:?} and  {:?}, cant compare a relocatable to an integer value", a, b)
-            },
-            VirtualMachineError::AssertNotEqualFail(a, b) => {
-                write!(f, "assert_not_equal failed: {:?} =  {:?}", a, b)
-            },
-            VirtualMachineError::DiffIndexComp(a, b) => {
-                write!(f, "Failed to compare {:?} and  {:?}, cant compare two relocatable values of different segment indexes", a, b)
-            },
-            VirtualMachineError::ValueOutside250BitRange(value) => write!(f, "Value: {:?} is outside of the range [0, 2**250)", value),
-            VirtualMachineError::SqrtNegative(value) => write!(f, "Can't calculate the square root of negative number: {:?})", value),
-            VirtualMachineError::SafeDivFail(x, y) => write!(f, "{} is not divisible by {}", x, y),
-            VirtualMachineError::DividedByZero => write!(f, "Attempted to devide by zero"),
-            VirtualMachineError::FailedToGetSqrt(value) => write!(f, "Failed to calculate the square root of: {:?})", value),
-            VirtualMachineError::AssertNotZero(value, prime) => {
-                write!(f, "Assertion failed, {} % {} is equal to 0", value, prime)
-            },
-            VirtualMachineError::MainScopeError(error) => {
-                write!(f, "Got scope error {}", error)
-            },
-            VirtualMachineError::VariableNotInScopeError(var_name) => {
-                write!(f, "Variable {} not in local scope", var_name)
-            },
-            VirtualMachineError::ScopeError => write!(f, "Failed to get scope variables"),
-            VirtualMachineError::CantCreateDictionaryOnTakenSegment(index) => {
-                write!(f, "DictManagerError: Tried to create tracker for a dictionary on segment: {:?} when there is already a tracker for a dictionary on this segment", index)
-            },
-            VirtualMachineError::NoDictTracker(index) => {
-                write!(f, "Dict Error: No dict tracker found for segment {:?}", index)
-            },
-            VirtualMachineError::NoValueForKey(key) => {
-                write!(f, "Dict Error: No value found for key: {:?}", key)},
-            VirtualMachineError::AssertLtFelt(a, b) => {
-                write!(f, "Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", a, b)
-            },
-            VirtualMachineError::NoInitialDict => {
-                write!(f, "Dict Error: Tried to create a dict whithout an initial dict")
-            },
-            VirtualMachineError::NoKeyInAccessIndices(key) => {
-                write!(f, "squash_dict_inner fail: couldnt find key {:?} in accesses_indices", key)
-            },
-            VirtualMachineError::EmptyAccessIndices =>{
-                write!(f, "squash_dict_inner fail: local accessed_indices is empty")
-            },
-            VirtualMachineError::EmptyCurrentAccessIndices =>{
-                write!(f, "squash_dict_inner fail: local current_accessed_indices is empty")
-            },
-            VirtualMachineError::CurrentAccessIndicesNotEmpty =>{
-                write!(f, "squash_dict_inner fail: local current_accessed_indices not empty, loop ended with remaining unaccounted elements")
-            },
-            VirtualMachineError::WrongPrevValue(prev, current, key) => {
-                write!(f, "Dict Error: Got the wrong value for dict_update, expected value: {:?}, got: {:?} for key: {:?}", prev, current, key)
-            },
-            VirtualMachineError::NoneApTrackingData => {
-                write!(f, "AP tracking data is None; could not apply correction to address")
-            },
-            VirtualMachineError::InvalidTrackingGroup(group1, group2) => {
-                write!(f, "Tracking groups should be the same, got {} and {}", group1, group2)
-            },
-            VirtualMachineError::InvalidApValue(addr) => {
-                write!(f, "Expected relocatable for ap, got {:?}", addr)
-            },
-            VirtualMachineError::NumUsedAccessesAssertFail(used, len, key) => {
-                write!(f, "squash_dict_inner fail: Number of used accesses:{:?} doesnt match the lengh: {:?} of the access_indices at key: {:?}", used, len, key)
-            },
-            VirtualMachineError::KeysNotEmpty =>{
-                write!(f, "squash_dict_inner fail: local keys is not empty")
-            },
-            VirtualMachineError::EmptyKeys =>{
-                write!(f, "squash_dict_inner fail: No keys left but remaining_accesses > 0")
-            },
-            VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize =>{
-                write!(f, "squash_dict fail: Accesses array size must be divisible by DictAccess.SIZE")
-            },
-            VirtualMachineError::SquashDictMaxSizeExceeded(max_size, n_accesses) =>{
-                write!(f, "squash_dict() can only be used with n_accesses<={:?}. ' \nGot: n_accesses={:?}", max_size, n_accesses)
-            },
-            VirtualMachineError::NAccessesTooBig(n_accesses) => {
-                write!(f, "squash_dict fail: n_accesses: {:?} is too big to be converted into an iterator", n_accesses)
-            },
-            VirtualMachineError::BigintToUsizeFail => write!(f, "Couldn't convert BigInt to usize"),
-            VirtualMachineError::BigintToU64Fail => write!(f, "Couldn't convert BigInt to u64"),
-            VirtualMachineError::BigintToU32Fail => write!(f, "Couldn't convert BigInt to u64"),
-            VirtualMachineError::InvalidSetRange(start, end) => write!(f, "Set starting point {:?} is bigger it's ending point {:?}", start, end),
-            VirtualMachineError::FindElemMaxSize(find_elem_max_size, n_elms) => write!(f, "find_elem() can only be used with n_elms <= {:?}.\nGot: n_elms = {:?}", find_elem_max_size, n_elms),
-            VirtualMachineError::InvalidIndex(find_element_index, key, found_key) => write!(f, "Invalid index found in find_element_index. Index: {:?}.\nExpected key: {:?}, found_key {:?}", find_element_index, key, found_key),
-            VirtualMachineError::UsortOutOfRange(usort_max_size, input_len) => write!(f, "usort() can only be used with input_len<={}. Got: input_len={}.", usort_max_size, input_len),
-            VirtualMachineError::UnexpectedPositionsDictFail => write!(f, "unexpected usort fail: positions_dict or key value pair not found"),
-            VirtualMachineError::PositionsNotFound => write!(f, "unexpected verify multiplicity fail: positions not found"),
-            VirtualMachineError::PositionsLengthNotZero => write!(f, "unexpected verify multiplicity fail: positions length != 0"),
-            VirtualMachineError::CouldntPopPositions => write!(f, "unexpected verify multiplicity fail: couldn't pop positions"),
-            VirtualMachineError::LastPosNotFound => write!(f, "unexpected verify multiplicity fail: last_pos not found"),
-            VirtualMachineError::KeyNotFound => write!(f, "Found Key is None"),
-            VirtualMachineError::UnexpectMemoryGap => write!(f, "Encountered unexpected memory gap"),
-            VirtualMachineError::FixedSizeArrayFail(size) => write!(f, "Failed to construct a fixed size array of size: {:?}", size),
-            VirtualMachineError::AssertionFailed(error_msg) => write!(f, "{}",error_msg),
-            VirtualMachineError::MismatchedDictPtr(current_ptr, dict_ptr) => write!(f, "Wrong dict pointer supplied. Got {:?}, expected {:?}.", dict_ptr, current_ptr),
-            VirtualMachineError::SecpSplitNegative(integer) =>
-            write!(f, "Integer must be postive or zero, got: {}", integer),
-            VirtualMachineError::SecpSplitutOfRange(integer) =>
-            write!(f, "Integer: {} out of range", integer),
-            VirtualMachineError::SecpVerifyZero(packed) =>
-            write!(f, "verify_zero: Invalid input {}", packed),
-            VirtualMachineError::CantSubOffset(offset , sub) => write!(f, "Cant substract {} from offset {}, offsets cant be negative", sub, offset),
-            VirtualMachineError::KeccakMaxSize(length, keccak_max_size) => write!(f, "unsafe_keccak() can only be used with length<={:?}. Got: length={:?}", keccak_max_size, length),
-            VirtualMachineError::InvalidWordSize(word) => write!(f, "Invalid word size: {:?}", word),
-            VirtualMachineError::InvalidKeccakInputLength(length) => write!(f, "Invalid input length, Got: length={:?}", length),
-            VirtualMachineError::NoneInMemoryRange => write!(f, "None value was found in memory range cell"),
-            VirtualMachineError::ExpectedIntAtRange(maybe_relocatable) => write!(f, "Expected integer, found: {:?}", maybe_relocatable.as_ref().unwrap()),
-            VirtualMachineError::IdNotFound(var_name) => write!(f, "{} key was not found in the hint references. This may be caused because of a parsing error that resulted in a default value being returned. Please be sure to check this.", var_name),
-            VirtualMachineError::InvalidKeccakStateSizeFelts(size) => write!(f, "Expected size to be in the range from [0, 100), got: {:?}", size),
-            VirtualMachineError::InvalidBlockSize(size) => write!(f, "Expected size to be in range from [0, 10), got: {}", size),
-            VirtualMachineError::SliceToArrayError => write!(f, "Could not convert slice to array"),
-        }
-    }
 }
