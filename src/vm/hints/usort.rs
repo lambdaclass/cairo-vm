@@ -175,10 +175,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         const FP_OFFSET_START: usize = 1;
-        vm.run_context.fp = MaybeRelocatable::from((0, FP_OFFSET_START));
+        vm.run_context.fp = FP_OFFSET_START;
 
         vm.segments.add(&mut vm.memory, None);
-        vm.memory = memory![((0, 0), (1, 1)), ((0, 1), 5)];
+        vm.memory = memory![((1, 0), (2, 1)), ((1, 1), 5)];
         vm.references = HashMap::new();
         for i in 0..=FP_OFFSET_START {
             vm.references.insert(

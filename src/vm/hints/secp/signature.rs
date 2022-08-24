@@ -100,14 +100,14 @@ mod tests {
         let mut vm = vm!();
 
         vm.memory = memory![
-            ((0, 0), 15),
-            ((0, 1), 3),
-            ((0, 2), 40),
-            ((0, 3), 0),
-            ((0, 4), 10),
-            ((0, 5), 1)
+            ((1, 0), 15),
+            ((1, 1), 3),
+            ((1, 2), 40),
+            ((1, 3), 0),
+            ((1, 4), 10),
+            ((1, 5), 1)
         ];
-        vm.run_context.fp = mayberelocatable!(0, 3);
+        vm.run_context.fp = 3;
 
         vm.references = HashMap::new();
         for i in 0..=3 {
@@ -151,12 +151,12 @@ mod tests {
     fn get_point_from_x_ok() {
         let mut vm = vm!();
         vm.memory = memory![
-            ((0, 0), 18),
-            ((0, 1), 2147483647),
-            ((0, 2), 2147483647),
-            ((0, 3), 2147483647)
+            ((1, 0), 18),
+            ((1, 1), 2147483647),
+            ((1, 2), 2147483647),
+            ((1, 3), 2147483647)
         ];
-        vm.run_context.fp = mayberelocatable!(0, 2);
+        vm.run_context.fp = 2;
 
         vm.references = references!(2);
 
@@ -171,12 +171,12 @@ mod tests {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         vm.memory = memory![
-            ((0, 0), 1),
-            ((0, 1), 2147483647),
-            ((0, 2), 2147483647),
-            ((0, 3), 2147483647)
+            ((1, 0), 1),
+            ((1, 1), 2147483647),
+            ((1, 2), 2147483647),
+            ((1, 3), 2147483647)
         ];
-        vm.run_context.fp = mayberelocatable!(0, 2);
+        vm.run_context.fp = 2;
 
         vm.references = references!(2);
 
