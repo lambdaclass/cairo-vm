@@ -1,9 +1,9 @@
 #![deny(warnings)]
 use cairo_rs::cairo_run;
+use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_rs::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_rs::vm::errors::runner_errors::RunnerError;
 use cairo_rs::vm::errors::trace_errors::TraceError;
-use cairo_rs::vm::hints::execute_hint::BuiltinHintExecutor;
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
@@ -31,7 +31,7 @@ struct Args {
 }
 
 fn main() -> Result<(), CairoRunError> {
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();

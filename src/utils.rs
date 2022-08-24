@@ -154,28 +154,12 @@ pub mod test_utils {
         ($num: expr) => {{
             let mut references = HashMap::<usize, HintReference>::new();
             for i in 0..$num {
-                references.insert(i, HintReference::new_simple((i as i32 - $num)));
+                references.insert(i as usize, HintReference::new_simple((i as i32 - $num)));
             }
             references
         }};
     }
     pub(crate) use references;
-
-    macro_rules! not_continuous_references {
-        ( $( $offset:expr ),*) => {
-            {
-            let mut references = HashMap::<usize, HintReference>::new();
-            let mut index = -1;
-
-            $(
-                index += 1;
-                references.insert(index as usize, HintReference::new_simple(($offset)));
-            )*
-        references
-        }
-    };
-    }
-    pub(crate) use not_continuous_references;
 
     macro_rules! vm_with_range_check {
         () => {
@@ -202,27 +186,20 @@ pub mod test_utils {
     }
     pub(crate) use vm;
 
-    macro_rules! ids {
+    macro_rules! ids_data {
         ( $( $name: expr ),* ) => {
             {
-                let mut ids = HashMap::<String, usize>::new();
-                let mut num = -1;
-                $(
-                    num += 1;
-                    ids_inner!($name, num.try_into().unwrap(), ids);
-                )*
-                ids
+                let ids_names = vec![$( $name ),*];
+                let references = references!(ids_names.len() as i32);
+                let mut ids_data = HashMap::<String, HintReference>::new();
+                for (i, name) in ids_names.iter().enumerate() {
+                    ids_data.insert(name.to_string(), references.get(&i).unwrap().clone());
+                }
+                ids_data
             }
         };
     }
-    pub(crate) use ids;
-
-    macro_rules! ids_inner {
-        ( $name: expr, $num: expr, $ids: expr ) => {
-            $ids.insert(String::from($name), $num)
-        };
-    }
-    pub(crate) use ids_inner;
+    pub(crate) use ids_data;
 
     macro_rules! exec_scopes_ref {
         () => {
@@ -250,11 +227,9 @@ pub mod test_utils {
 mod test {
 
     use super::*;
-    use crate::types::instruction::Register;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::HintReference;
-    use crate::{types::relocatable::MaybeRelocatable, vm::vm_memory::memory::Memory};
-    use std::collections::HashMap;
+    use crate::vm::vm_memory::memory::Memory;
 
     #[test]
     fn to_field_element_no_change_a() {
@@ -387,37 +362,5 @@ mod test {
 
         check_memory_address!(memory, (1, 1), (1, 0));
         check_memory_address!(memory, (1, 2), 1);
-    }
-
-    #[test]
-    fn check_not_continuous_references_macro_test() {
-        let references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -10,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                    dereference: true,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -23,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                    dereference: true,
-                },
-            ),
-        ]);
-
-        assert_eq!(references, not_continuous_references![-10, -23])
     }
 }

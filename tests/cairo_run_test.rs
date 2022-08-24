@@ -1,9 +1,11 @@
 use std::path::Path;
 
-use cairo_rs::cairo_run;
-use cairo_rs::vm::hints::execute_hint::BuiltinHintExecutor;
+use cairo_rs::{
+    cairo_run,
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+};
 
-static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
 #[test]
 fn cairo_run_test() {

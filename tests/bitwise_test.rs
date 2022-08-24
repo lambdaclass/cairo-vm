@@ -1,14 +1,11 @@
+use cairo_rs::{
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    types::program::Program,
+    vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
+};
 use std::path::Path;
 
-use cairo_rs::{
-    types::program::Program,
-    vm::{
-        hints::execute_hint::BuiltinHintExecutor, runners::cairo_runner::CairoRunner,
-        trace::trace_entry::RelocatedTraceEntry,
-    },
-};
-
-static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 #[test]
 fn bitwise_integration_test() {
     let program = Program::new(

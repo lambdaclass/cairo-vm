@@ -111,6 +111,8 @@ pub enum VirtualMachineError {
     InvalidKeccakStateSizeFelts(usize),
     InvalidBlockSize(usize),
     SliceToArrayError,
+    WrongHintData,
+    CompileHintFail(String),
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -313,6 +315,10 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::InvalidKeccakStateSizeFelts(size) => write!(f, "Expected size to be in the range from [0, 100), got: {:?}", size),
             VirtualMachineError::InvalidBlockSize(size) => write!(f, "Expected size to be in range from [0, 10), got: {}", size),
             VirtualMachineError::SliceToArrayError => write!(f, "Could not convert slice to array"),
+            VirtualMachineError::WrongHintData => {
+                write!(f, "HintProcessor failed retrieve the compiled data necessary for hint execution")
+            },
+            VirtualMachineError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
         }
     }
 }
