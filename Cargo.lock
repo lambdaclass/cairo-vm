@@ -131,6 +131,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37ccbd214614c6783386c1af30caf03192f17891059cecc394b4fb119e363de3"
 
 [[package]]
+name = "cairo-rs"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "clap 3.2.15",
+ "criterion",
+ "generic-array",
+ "hex",
+ "keccak",
+ "lazy_static",
+ "mimalloc",
+ "nom",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "parse-hyperlinks",
+ "rusty-hook",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.10.2",
+ "sha3",
+ "starknet-crypto",
+]
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -205,32 +231,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
-]
-
-[[package]]
-name = "cleopatra_cairo"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "clap 3.2.15",
- "criterion",
- "generic-array",
- "hex",
- "keccak",
- "lazy_static",
- "mimalloc",
- "nom",
- "num-bigint",
- "num-integer",
- "num-traits",
- "parse-hyperlinks",
- "rusty-hook",
- "serde",
- "serde_bytes",
- "serde_json",
- "sha2 0.10.2",
- "sha3",
- "starknet-crypto",
 ]
 
 [[package]]

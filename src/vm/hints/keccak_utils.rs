@@ -97,19 +97,8 @@ pub fn unsafe_keccak(
     let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
-    match (
-        vm_proxy.memory.insert(
-            &MaybeRelocatable::RelocatableValue(high_addr),
-            &MaybeRelocatable::Int(high),
-        ),
-        vm_proxy.memory.insert(
-            &MaybeRelocatable::RelocatableValue(low_addr),
-            &MaybeRelocatable::Int(low),
-        ),
-    ) {
-        (Ok(_), Ok(_)) => Ok(()),
-        (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
-    }
+    vm_proxy.memory.insert_value(&high_addr, &high)?;
+    vm_proxy.memory.insert_value(&low_addr, &low)
 }
 
 /*
@@ -199,19 +188,8 @@ pub fn unsafe_keccak_finalize(
     let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
-    match (
-        vm_proxy.memory.insert(
-            &MaybeRelocatable::RelocatableValue(high_addr),
-            &MaybeRelocatable::Int(high),
-        ),
-        vm_proxy.memory.insert(
-            &MaybeRelocatable::RelocatableValue(low_addr),
-            &MaybeRelocatable::Int(low),
-        ),
-    ) {
-        (Ok(_), Ok(_)) => Ok(()),
-        (Err(error), _) | (_, Err(error)) => Err(VirtualMachineError::MemoryError(error)),
-    }
+    vm_proxy.memory.insert_value(&high_addr, &high)?;
+    vm_proxy.memory.insert_value(&low_addr, &low)
 }
 
 fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {

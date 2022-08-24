@@ -18,6 +18,7 @@ use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 use super::hints::execute_hint::{get_vm_proxy, HintReference};
+use super::vm_memory::memory::MemoryProxy;
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -39,7 +40,7 @@ pub struct HintData {
 }
 
 pub struct VMProxy<'a> {
-    pub memory: &'a mut Memory,
+    pub memory: MemoryProxy<'a>,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,

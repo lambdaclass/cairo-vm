@@ -6,7 +6,7 @@ use crate::types::relocatable::Relocatable;
 use crate::types::{instruction::Register, relocatable::MaybeRelocatable};
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_core::VMProxy;
-use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_memory::memory::MemoryProxy;
 use crate::vm::{
     context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
     hints::execute_hint::HintReference, runners::builtin_runner::RangeCheckBuiltinRunner,
@@ -103,7 +103,7 @@ fn apply_ap_tracking_correction(
 pub fn compute_addr_from_reference(
     hint_reference: &HintReference,
     run_context: &RunContext,
-    memory: &Memory,
+    memory: &MemoryProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     let base_addr = match hint_reference.register {
@@ -178,7 +178,7 @@ pub fn get_address_from_reference(
     reference_id: &usize,
     references: &HashMap<usize, HintReference>,
     run_context: &RunContext,
-    memory: &Memory,
+    memory: &MemoryProxy,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
     if let Some(index) = reference_id.to_usize() {
@@ -209,7 +209,7 @@ pub fn get_address_from_var_name(
         var_ref,
         vm_proxy.references,
         vm_proxy.run_context,
-        vm_proxy.memory,
+        &vm_proxy.memory,
         hint_ap_tracking,
     )
     .map_err(|_| VirtualMachineError::FailedToGetIds)?
@@ -229,7 +229,7 @@ pub fn insert_value_from_var_name(
 
 //Inserts value into ap
 pub fn insert_value_into_ap(
-    memory: &mut Memory,
+    memory: &mut MemoryProxy,
     run_context: &RunContext,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
@@ -273,8 +273,8 @@ pub fn get_integer_from_var_name<'a>(
 
 ///Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    let new_segment_base = vm_proxy.segments.add(vm_proxy.memory, None);
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, new_segment_base)
+    let new_segment_base = vm_proxy.memory.add_segment(vm_proxy.segments);
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, new_segment_base)
 }
 
 //Implements hint: vm_enter_scope()

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use cleopatra_cairo::{
+use cairo_rs::{
     types::program::Program,
     vm::hints::execute_hint::BuiltinHintExecutor,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},

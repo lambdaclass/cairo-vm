@@ -218,7 +218,7 @@ mod tests {
     fn write_binary_trace_file() {
         let program_path = Path::new("cairo_programs/struct.json");
         let expected_trace_path = Path::new("cairo_programs/trace_memory/cairo_trace_struct");
-        let cleopatra_trace_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.trace");
+        let cairo_rs_trace_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.trace");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
@@ -229,22 +229,20 @@ mod tests {
         assert!(cairo_runner.vm.trace.is_some());
         assert!(cairo_runner.relocated_trace.is_some());
 
-        // write cleopatra vm trace file
+        // write cairo_rs vm trace file
         assert!(
-            write_binary_trace(&cairo_runner.relocated_trace.unwrap(), cleopatra_trace_path)
-                .is_ok()
+            write_binary_trace(&cairo_runner.relocated_trace.unwrap(), cairo_rs_trace_path).is_ok()
         );
 
-        // compare that the original cairo vm trace file and cleopatra vm trace files are equal
-        assert!(compare_files(cleopatra_trace_path, expected_trace_path).is_ok());
+        // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
+        assert!(compare_files(cairo_rs_trace_path, expected_trace_path).is_ok());
     }
 
     #[test]
     fn write_binary_memory_file() {
         let program_path = Path::new("cairo_programs/struct.json");
         let expected_memory_path = Path::new("cairo_programs/trace_memory/cairo_memory_struct");
-        let cleopatra_memory_path =
-            Path::new("cairo_programs/trace_memory/struct_cleopatra.memory");
+        let cairo_rs_memory_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.memory");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
@@ -253,11 +251,11 @@ mod tests {
         // relocate memory so we can dump it to file
         assert!(cairo_runner.relocate().is_ok());
 
-        // write cleopatra vm memory file
-        assert!(write_binary_memory(&cairo_runner.relocated_memory, cleopatra_memory_path).is_ok());
+        // write cairo_rs vm memory file
+        assert!(write_binary_memory(&cairo_runner.relocated_memory, cairo_rs_memory_path).is_ok());
 
-        // compare that the original cairo vm memory file and cleopatra vm memory files are equal
-        assert!(compare_files(cleopatra_memory_path, expected_memory_path).is_ok());
+        // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
+        assert!(compare_files(cairo_rs_memory_path, expected_memory_path).is_ok());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 [package]
-name = "cleopatra_cairo"
+name = "cairo-rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -47,7 +47,7 @@ name = "criterion_benchmark"
 harness = false
 
 [[bin]]
-name = "cleopatra-run"
+name = "cairo-rs-run"
 path = "src/main.rs"
 bench = false
 doc = false
