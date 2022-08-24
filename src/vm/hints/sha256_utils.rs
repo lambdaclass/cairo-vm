@@ -137,8 +137,8 @@ mod tests {
     #[test]
     fn sha256_input_one() {
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((0, 1), 7)];
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.memory = memory![((1, 1), 7)];
+        vm.run_context.fp = 2;
         let ids = ids!["full_word", "n_bytes"];
         vm.references = references!(2);
         let vm_proxy = &mut &mut get_vm_proxy(&mut vm);
@@ -147,14 +147,14 @@ mod tests {
             Ok(())
         );
 
-        check_memory![&vm.memory, ((0, 0), 1)];
+        check_memory![&vm.memory, ((1, 0), 1)];
     }
 
     #[test]
     fn sha256_input_zero() {
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((0, 1), 3)];
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.memory = memory![((1, 1), 3)];
+        vm.run_context.fp = 2;
         let ids = ids!["full_word", "n_bytes"];
         vm.references = references!(2);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -163,7 +163,7 @@ mod tests {
             Ok(())
         );
 
-        check_memory![&vm.memory, ((0, 0), 0)];
+        check_memory![&vm.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -171,27 +171,27 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         vm.memory = memory![
-            ((0, 0), (1, 0)),
-            ((0, 1), (2, 0)),
-            ((1, 0), 22),
-            ((1, 1), 22),
-            ((1, 2), 22),
-            ((1, 3), 22),
-            ((1, 4), 22),
-            ((1, 5), 22),
-            ((1, 6), 22),
-            ((1, 7), 22),
-            ((1, 8), 22),
-            ((1, 9), 22),
-            ((1, 10), 22),
-            ((1, 11), 22),
-            ((1, 12), 22),
-            ((1, 13), 22),
-            ((1, 14), 22),
-            ((1, 15), 22),
-            ((2, 9), 0)
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0)),
+            ((2, 0), 22),
+            ((2, 1), 22),
+            ((2, 2), 22),
+            ((2, 3), 22),
+            ((2, 4), 22),
+            ((2, 5), 22),
+            ((2, 6), 22),
+            ((2, 7), 22),
+            ((2, 8), 22),
+            ((2, 9), 22),
+            ((2, 10), 22),
+            ((2, 11), 22),
+            ((2, 12), 22),
+            ((2, 13), 22),
+            ((2, 14), 22),
+            ((2, 15), 22),
+            ((3, 9), 0)
         ];
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         vm.references = references!(2);
 
         let ids = ids!["sha256_start", "output"];
@@ -203,14 +203,14 @@ mod tests {
 
         check_memory![
             &vm.memory,
-            ((2, 0), 3704205499_u32),
-            ((2, 1), 2308112482_u32),
-            ((2, 2), 3022351583_u32),
-            ((2, 3), 174314172_u32),
-            ((2, 4), 1762869695_u32),
-            ((2, 5), 1649521060_u32),
-            ((2, 6), 2811202336_u32),
-            ((2, 7), 4231099170_u32)
+            ((3, 0), 3704205499_u32),
+            ((3, 1), 2308112482_u32),
+            ((3, 2), 3022351583_u32),
+            ((3, 3), 174314172_u32),
+            ((3, 4), 1762869695_u32),
+            ((3, 5), 1649521060_u32),
+            ((3, 6), 2811202336_u32),
+            ((3, 7), 4231099170_u32)
         ];
     }
 }
