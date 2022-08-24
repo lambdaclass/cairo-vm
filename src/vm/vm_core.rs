@@ -2224,14 +2224,18 @@ mod tests {
             opcode: Opcode::NOp,
         };
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        //Create program and execution segments
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
         vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
-        let dst_addr = MaybeRelocatable::from((0, 0));
-        let dst_addr_value = MaybeRelocatable::from(bigint!(6));
-        let op0_addr = MaybeRelocatable::from((0, 1));
-        let op0_addr_value = MaybeRelocatable::from(bigint!(2));
-        let op1_addr = MaybeRelocatable::from((0, 2));
-        let op1_addr_value = MaybeRelocatable::from(bigint!(3));
+        let dst_addr = mayberelocatable!(1, 0);
+        let dst_addr_value = mayberelocatable!(6);
+        let op0_addr = mayberelocatable!(1, 1);
+        let op0_addr_value = mayberelocatable!(2);
+        let op1_addr = mayberelocatable!(1, 2);
+        let op1_addr_value = mayberelocatable!(3);
         vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
         vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
         vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
@@ -2270,31 +2274,20 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mem_arr = vec![
-            (
-                MaybeRelocatable::from((0, 0)),
-                MaybeRelocatable::Int(bigint!(0x206800180018001_i64)),
-            ),
-            (
-                MaybeRelocatable::RelocatableValue(relocatable!(0, 1)),
-                MaybeRelocatable::Int(bigint!(0x4)),
-            ),
-        ];
-
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        vm.memory = memory!(((0, 1), 145944781867024385_u64), ((1, 1), 4));
         vm.accessed_addresses = Some(Vec::new());
-        vm.memory = memory_from(mem_arr.clone(), 2).unwrap();
 
         let expected_operands = Operands {
-            dst: mayberelocatable!(0, 4),
+            dst: mayberelocatable!(4),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(0x4)),
-            op1: MaybeRelocatable::Int(bigint!(0x4)),
+            op0: mayberelocatable!(4),
+            op1: mayberelocatable!(145944781867024385_u64),
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((0, 1)),
-            MaybeRelocatable::from((0, 1)),
+            MaybeRelocatable::from((1, 1)),
+            MaybeRelocatable::from((1, 1)),
             MaybeRelocatable::from((0, 1)),
         ));
 
@@ -2322,15 +2315,9 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mem_arr = vec![(
-            MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::Int(bigint!(0x206800180018001_i64)),
-        )];
-
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
 
-        vm.memory =
-            memory_from(mem_arr.clone(), 1).expect("Unexpected memory initialization failure");
+        vm.memory = memory!(((1, 0), 145944781867024385_i64));
         vm.run_context.pc = Relocatable::from((0, 0));
         vm.run_context.ap = 0;
         vm.run_context.fp = 0;
