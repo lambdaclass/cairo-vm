@@ -19,7 +19,8 @@ pub fn cairo_run(
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let mut cairo_runner = CairoRunner::new(&program, trace_enabled, hint_executor);
+    let mut cairo_runner =
+        CairoRunner::new(&program, trace_enabled, hint_executor).map_err(CairoRunError::Runner)?;
     cairo_runner.initialize_segments(None);
 
     let end = match cairo_runner.initialize_main_entrypoint() {
@@ -138,7 +139,7 @@ mod tests {
             Err(e) => return Err(CairoRunError::Program(e)),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
+        let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR).unwrap();
 
         cairo_runner.initialize_segments(None);
 
@@ -159,7 +160,7 @@ mod tests {
         let program_path = Path::new("cairo_programs/not_main.json");
         let program = Program::new(program_path, "not_main").unwrap();
 
-        let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR);
+        let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR).unwrap();
         cairo_runner.initialize_segments(None);
 
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
@@ -265,7 +266,7 @@ mod tests {
     fn run_with_no_trace() {
         let program_path = Path::new("cairo_programs/struct.json");
         let program = Program::new(program_path, "main").unwrap();
-        let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR);
+        let mut cairo_runner = CairoRunner::new(&program, false, &HINT_EXECUTOR).unwrap();
 
         cairo_runner.initialize_segments(None);
 

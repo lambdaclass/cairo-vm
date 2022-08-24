@@ -8,13 +8,13 @@ use thiserror::Error;
 pub enum RunnerError {
     #[error("Can't initialize state without an execution base")]
     NoExecBase,
-    #[error("Can't without a program base")]
-    NoExecBaseForEntrypoint,
     #[error("Can't initialize the function entrypoint without an execution base")]
+    NoExecBaseForEntrypoint,
+    #[error("Initialization failure: No program base")]
     NoProgBase,
     #[error("Missing main()")]
     MissingMain,
-    #[error("Uninitialized self.base")]
+    #[error("Uninitialized base for builtin")]
     UninitializedBase,
     #[error("Failed to write program output")]
     WriteFail,
@@ -40,4 +40,6 @@ pub enum RunnerError {
     FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(BigInt),
+    #[error("Given builtins are not in appropiate order")]
+    DisorderedBuiltins,
 }

@@ -13,7 +13,7 @@ fn bitwise_integration_test() {
         "main",
     )
     .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
+    let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR).unwrap();
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
 
