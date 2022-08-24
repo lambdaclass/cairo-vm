@@ -1,7 +1,7 @@
-use cleopatra_cairo::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use std::path::Path;
 
-use cleopatra_cairo::{
+use cairo_rs::{
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };

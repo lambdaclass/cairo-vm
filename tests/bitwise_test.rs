@@ -1,10 +1,9 @@
-use std::path::Path;
-
-use cleopatra_cairo::{
+use cairo_rs::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
     vm::{runners::cairo_runner::CairoRunner, trace::trace_entry::RelocatedTraceEntry},
 };
+use std::path::Path;
 
 static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 #[test]
