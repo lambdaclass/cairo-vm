@@ -1,13 +1,12 @@
 use crate::bigint;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::PyValueType;
+use crate::types::exec_scope::ExecutionScopesProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::hints::hint_utils::{
-    get_int_from_scope, get_integer_from_var_name, get_relocatable_from_var_name,
-    insert_int_into_scope, insert_value_into_ap,
+    get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
 };
-use crate::vm::hints::secp::secp_utils::{pack, SECP_P};
+use crate::vm::hints::secp::secp_utils::{pack, pack_from_relocatable, SECP_P};
 use crate::vm::vm_core::VMProxy;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -26,20 +25,15 @@ Implements hint:
 */
 pub fn ec_negate(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)?;
-
-    //ids.point.y
-    let (y_d0, y_d1, y_d2) = (
-        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
-    );
-    let value = (-pack(y_d0, y_d1, y_d2, vm_proxy.prime)).mod_floor(&SECP_P);
-    insert_int_into_scope(vm_proxy.exec_scopes, "value", value);
+    let point_y = get_relocatable_from_var_name("point", ids, vm_proxy, hint_ap_tracking)? + 3;
+    let y = pack_from_relocatable(point_y, vm_proxy)?;
+    let value = (-y).mod_floor(&SECP_P);
+    exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
 
@@ -57,6 +51,7 @@ Implements hint:
 */
 pub fn compute_doubling_slope(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -80,8 +75,8 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
-    insert_int_into_scope(vm_proxy.exec_scopes, "slope", value);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("slope", value);
     Ok(())
 }
 
@@ -101,6 +96,7 @@ Implements hint:
 */
 pub fn compute_slope(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -139,8 +135,8 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
-    insert_int_into_scope(vm_proxy.exec_scopes, "slope", value);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("slope", value);
     Ok(())
 }
 
@@ -158,6 +154,7 @@ Implements hint:
 */
 pub fn ec_double_assign_new_x(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -189,11 +186,11 @@ pub fn ec_double_assign_new_x(
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    insert_int_into_scope(vm_proxy.exec_scopes, "slope", slope);
-    insert_int_into_scope(vm_proxy.exec_scopes, "x", x);
-    insert_int_into_scope(vm_proxy.exec_scopes, "y", y);
-    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
-    insert_int_into_scope(vm_proxy.exec_scopes, "new_x", value);
+    exec_scopes_proxy.insert_value("slope", slope);
+    exec_scopes_proxy.insert_value("x", x);
+    exec_scopes_proxy.insert_value("y", y);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_x", value);
     Ok(())
 }
 
@@ -201,18 +198,20 @@ pub fn ec_double_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn ec_double_assign_new_y(
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        get_int_from_scope(vm_proxy.exec_scopes, "slope")?,
-        get_int_from_scope(vm_proxy.exec_scopes, "x")?,
-        get_int_from_scope(vm_proxy.exec_scopes, "new_x")?,
-        get_int_from_scope(vm_proxy.exec_scopes, "y")?,
+        exec_scopes_proxy.get_int("slope")?,
+        exec_scopes_proxy.get_int("x")?,
+        exec_scopes_proxy.get_int("new_x")?,
+        exec_scopes_proxy.get_int("y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    insert_int_into_scope(vm_proxy.exec_scopes, "value", value.clone());
-    insert_int_into_scope(vm_proxy.exec_scopes, "new_y", value);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_y", value);
     Ok(())
 }
 
@@ -231,6 +230,7 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_x(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -269,28 +269,14 @@ pub fn fast_ec_add_assign_new_x(
     let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime);
     let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime);
 
-    let value = (slope.pow(2) - &x0 - x1).mod_floor(&SECP_P);
+    let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("slope", PyValueType::BigInt(slope));
-
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("x0", PyValueType::BigInt(x0));
-
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("y0", PyValueType::BigInt(y0));
-
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("new_x", PyValueType::BigInt(value));
+    exec_scopes_proxy.insert_value("slope", slope);
+    exec_scopes_proxy.insert_value("x0", x0);
+    exec_scopes_proxy.insert_value("y0", y0);
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_x", value);
 
     Ok(())
 }
@@ -299,24 +285,19 @@ pub fn fast_ec_add_assign_new_x(
 Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
-pub fn fast_ec_add_assign_new_y(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn fast_ec_add_assign_new_y(
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        get_int_from_scope(vm_proxy.exec_scopes, "slope")?,
-        get_int_from_scope(vm_proxy.exec_scopes, "x0")?,
-        get_int_from_scope(vm_proxy.exec_scopes, "new_x")?,
-        get_int_from_scope(vm_proxy.exec_scopes, "y0")?,
+        exec_scopes_proxy.get_int("slope")?,
+        exec_scopes_proxy.get_int("x0")?,
+        exec_scopes_proxy.get_int("new_x")?,
+        exec_scopes_proxy.get_int("y0")?,
     );
-
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
-
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("value", PyValueType::BigInt(value.clone()));
-
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("new_y", PyValueType::BigInt(value));
+    exec_scopes_proxy.insert_value("value", value.clone());
+    exec_scopes_proxy.insert_value("new_y", value);
 
     Ok(())
 }
@@ -340,8 +321,7 @@ pub fn ec_mul_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint_str;
-    use crate::types::exec_scope::PyValueType;
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -349,7 +329,9 @@ mod tests {
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
+    use crate::{any_box, bigint_str};
     use num_bigint::{BigInt, Sign};
+    use std::any::Any;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
     use crate::types::hint_executor::HintExecutor;
@@ -364,26 +346,28 @@ mod tests {
         vm.run_context.fp = MaybeRelocatable::from((1, 1));
         //Create ids
         let ids = ids!["point"];
-
         //Create references
         vm.references = references!(1);
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
+        let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
-            )))
+            ))
         );
     }
 
@@ -409,39 +393,36 @@ mod tests {
         //Create references
         vm.references = references!(1);
 
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
-
-        //Check 'slope' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
-            None
-        );
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
-            )))
+            ))
         );
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("slope"),
+            Ok(bigint_str!(
                 b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
-            )))
+            ))
         );
     }
 
@@ -475,39 +456,36 @@ mod tests {
         //Create references
         vm.references = not_continuous_references![-14, -8];
 
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
-
-        //Check 'slope' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
-            None
-        );
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
-            )))
+            ))
         );
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("slope"),
+            Ok(bigint_str!(
                 b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
-            )))
+            ))
         );
     }
 
@@ -538,75 +516,60 @@ mod tests {
         //Create references
         vm.references = not_continuous_references![-10, -4];
 
-        //Check 'slope' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
-            None
-        );
-
-        //Check 'x' is not defined in the vm scope
-        assert_eq!(vm.exec_scopes.get_local_variables().unwrap().get("x"), None);
-
-        //Check 'y' is not defined in the vm scope
-        assert_eq!(vm.exec_scopes.get_local_variables().unwrap().get("y"), None);
-
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
-
-        //Check 'new_x' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
-            None
-        );
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
 
         //Check 'slope' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("slope"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("slope"),
+            Ok(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            )))
+            ))
         );
 
         //Check 'x' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("x"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("x"),
+            Ok(bigint_str!(
                 b"838083498911032969414721426845751663479194726707495046"
-            )))
+            ))
         );
 
         //Check 'y' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("y"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("y"),
+            Ok(bigint_str!(
                 b"4310143708685312414132851373791311001152018708061750480"
-            )))
+            ))
         );
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )))
+            ))
         );
 
         //Check 'new_x' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_x"),
+            Ok(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )))
+            ))
         );
     }
 
@@ -614,50 +577,46 @@ mod tests {
     fn run_ec_double_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P";
         let mut vm = vm_with_range_check!();
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Insert 'slope' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "slope",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
             )),
         );
 
         //Insert 'x' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "x",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"838083498911032969414721426845751663479194726707495046"
             )),
         );
 
         //Insert 'new_x' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "new_x",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
             )),
         );
 
         //Insert 'y' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "y",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"4310143708685312414132851373791311001152018708061750480"
             )),
         );
-
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
-
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::<String, usize>::new(),
                 &ApTracking::new()
@@ -667,18 +626,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
 
         //Check 'new_y' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("new_y"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_y"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
     }
 
@@ -718,39 +677,36 @@ mod tests {
         //Create references
         vm.references = not_continuous_references![-15, -9, -6];
 
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
-
-        //Check 'new_x' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
-            None
-        );
+        let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
-            )))
+            ))
         );
 
         //Check 'new_x' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("new_x"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_x"),
+            Ok(bigint_str!(
                 b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
-            )))
+            ))
         );
     }
 
@@ -758,50 +714,45 @@ mod tests {
     fn run_fast_ec_add_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
         let mut vm = vm_with_range_check!();
-
+        let mut exec_scopes = ExecutionScopes::new();
         //Insert 'slope' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "slope",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
             )),
         );
 
         //Insert 'x0' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "x0",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"838083498911032969414721426845751663479194726707495046"
             )),
         );
 
         //Insert 'new_x' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "new_x",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
             )),
         );
 
         //Insert 'y0' into vm scope
-        vm.exec_scopes.assign_or_update_variable(
+        exec_scopes.assign_or_update_variable(
             "y0",
-            PyValueType::BigInt(bigint_str!(
+            any_box!(bigint_str!(
                 b"4310143708685312414132851373791311001152018708061750480"
             )),
         );
-
-        //Check 'value' is not defined in the vm scope
-        assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            None
-        );
-
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::<String, usize>::new(),
                 &ApTracking::new()
@@ -811,18 +762,18 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("value"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("value"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
 
         //Check 'new_y' is defined in the vm scope
         assert_eq!(
-            vm.exec_scopes.get_local_variables().unwrap().get("new_y"),
-            Some(&PyValueType::BigInt(bigint_str!(
+            exec_scopes_proxy.get_int("new_y"),
+            Ok(bigint_str!(
                 b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            )))
+            ))
         );
     }
 
@@ -848,9 +799,15 @@ mod tests {
         vm.references = references!(1);
 
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, &hint_code, &ids, &ApTracking::new()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                &hint_code,
+                &ids,
+                &ApTracking::new()
+            ),
             Ok(())
         );
 

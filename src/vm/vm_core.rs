@@ -1,6 +1,6 @@
 use crate::bigint;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::exec_scope::ExecutionScopes;
+use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
 use crate::types::hint_executor::HintExecutor;
 use crate::types::instruction::{ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res};
 use crate::types::relocatable::MaybeRelocatable;
@@ -9,7 +9,6 @@ use crate::vm::context::run_context::RunContext;
 use crate::vm::decoding::decoder::decode_instruction;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::dict_manager::DictManager;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::trace::trace_entry::TraceEntry;
 use crate::vm::vm_memory::memory::Memory;
@@ -43,8 +42,6 @@ pub struct VMProxy<'a> {
     pub memory: &'a mut Memory,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
-    pub exec_scopes: &'a mut ExecutionScopes,
-    pub dict_manager: &'a mut DictManager,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     pub references: &'a HashMap<usize, HintReference>,
     pub prime: &'a BigInt,
@@ -56,7 +53,6 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
-    pub exec_scopes: ExecutionScopes,
     pub hints: HashMap<MaybeRelocatable, Vec<HintData>>,
     pub references: HashMap<usize, HintReference>,
     //hint_locals: HashMap<..., ...>,
@@ -70,7 +66,6 @@ pub struct VirtualMachine {
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
-    pub dict_manager: DictManager,
 }
 
 impl HintData {
@@ -119,8 +114,6 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: DictManager::new(),
-            exec_scopes: ExecutionScopes::new(),
         }
     }
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
@@ -497,12 +490,15 @@ impl VirtualMachine {
     pub fn step(
         &mut self,
         hint_executor: &'static dyn HintExecutor,
+        exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = self.hints.get(&self.run_context.pc) {
             for hint_data in hint_list.clone().iter() {
+                let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
                 let mut vm_proxy = get_vm_proxy(self);
                 hint_executor.execute_hint(
                     &mut vm_proxy,
+                    &mut exec_scopes_proxy,
                     &hint_data.hint_code,
                     &hint_data.ids,
                     &hint_data.ap_tracking_data,
@@ -696,6 +692,7 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::instruction::{ApUpdate, FpUpdate, Op1Addr, Opcode, PcUpdate, Register, Res};
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -2256,10 +2253,9 @@ mod tests {
         ));
 
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
-
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
-        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
     }
 
@@ -2462,8 +2458,6 @@ mod tests {
             current_step: 1,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
-            dict_manager: DictManager::new(),
-            exec_scopes: ExecutionScopes::new(),
         };
 
         let error = vm.opcode_assertions(&instruction, &operands);
@@ -2525,7 +2519,7 @@ mod tests {
                 &MaybeRelocatable::from((3, 0)),
             )
             .unwrap();
-        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         let trace = vm.trace.unwrap();
         assert_eq!(
             trace[0],
@@ -2668,7 +2662,7 @@ mod tests {
         let final_pc = MaybeRelocatable::from((3, 0));
         //Run steps
         while vm.run_context.pc != final_pc {
-            assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+            assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         }
         //Check final register values
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((3, 0)));
@@ -2875,7 +2869,7 @@ mod tests {
 
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
-        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 2)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 2)));
 
@@ -2883,7 +2877,7 @@ mod tests {
             vm.memory.get(&vm.run_context.ap).unwrap(),
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x4).unwrap())),
         );
-        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 4)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 3)));
 
@@ -2892,7 +2886,7 @@ mod tests {
             Some(&MaybeRelocatable::Int(BigInt::from_i64(0x5).unwrap())),
         );
 
-        assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+        assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 6)));
         assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 4)));
 
@@ -3687,7 +3681,7 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
-            assert_eq!(vm.step(&HINT_EXECUTOR), Ok(()));
+            assert_eq!(vm.step(&HINT_EXECUTOR, exec_scopes_ref!()), Ok(()));
         }
         //Compare trace
         let trace = vm.trace.unwrap();

@@ -6,30 +6,27 @@ use num_traits::ToPrimitive;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
-    types::{
-        exec_scope::{ExecutionScopes, PyValueType},
-        relocatable::MaybeRelocatable,
-    },
+    types::{exec_scope::ExecutionScopesProxy, relocatable::MaybeRelocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VMProxy},
 };
 
 use super::{
     dict_hint_utils::DICT_ACCESS_SIZE,
     hint_utils::{
-        get_int_from_scope, get_integer_from_var_name, get_list_from_scope,
-        get_list_ref_from_scope, get_mut_list_ref_from_scope, get_ptr_from_var_name,
-        get_range_check_builtin, get_relocatable_from_var_name, insert_int_into_scope,
-        insert_list_into_scope, insert_value_from_var_name,
+        get_integer_from_var_name, get_ptr_from_var_name, get_range_check_builtin,
+        get_relocatable_from_var_name, insert_value_from_var_name,
     },
 };
 
-fn get_access_indices(
-    exec_scopes: &ExecutionScopes,
-) -> Result<&HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
+fn get_access_indices<'a>(
+    exec_scopes_proxy: &'a mut ExecutionScopesProxy,
+) -> Result<&'a HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
     let mut access_indices: Option<&HashMap<BigInt, Vec<BigInt>>> = None;
-    if let Some(variables) = exec_scopes.get_local_variables() {
-        if let Some(PyValueType::KeyToListMap(py_access_indices)) = variables.get("access_indices")
-        {
+    if let Some(variable) = exec_scopes_proxy
+        .get_local_variables_mut()?
+        .get_mut("access_indices")
+    {
+        if let Some(py_access_indices) = variable.downcast_mut::<HashMap<BigInt, Vec<BigInt>>>() {
             access_indices = Some(py_access_indices);
         }
     }
@@ -44,14 +41,15 @@ fn get_access_indices(
 */
 pub fn squash_dict_inner_first_iteration(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that access_indices and key are in scope
-    let key = get_int_from_scope(vm_proxy.exec_scopes, "key")?;
+    let key = exec_scopes_proxy.get_int("key")?;
     let range_check_ptr =
         get_ptr_from_var_name("range_check_ptr", ids, vm_proxy, hint_ap_tracking)?;
-    let access_indices = get_access_indices(vm_proxy.exec_scopes)?;
+    let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
@@ -64,16 +62,8 @@ pub fn squash_dict_inner_first_iteration(
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
-    insert_list_into_scope(
-        vm_proxy.exec_scopes,
-        "current_access_indices",
-        current_access_indices,
-    );
-    insert_int_into_scope(
-        vm_proxy.exec_scopes,
-        "current_access_index",
-        first_val.clone(),
-    );
+    exec_scopes_proxy.insert_value("current_access_indices", current_access_indices);
+    exec_scopes_proxy.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
     vm_proxy.memory.insert_value(&range_check_ptr, first_val)
 }
@@ -81,12 +71,12 @@ pub fn squash_dict_inner_first_iteration(
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
+    let current_access_indices = exec_scopes_proxy.get_list("current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
         bigint!(1)
@@ -109,13 +99,13 @@ pub fn squash_dict_inner_skip_loop(
 */
 pub fn squash_dict_inner_check_access_index(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = get_int_from_scope(vm_proxy.exec_scopes, "current_access_index")?;
-    let current_access_indices =
-        get_mut_list_ref_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
+    let current_access_index = exec_scopes_proxy.get_int("current_access_index")?;
+    let current_access_indices = exec_scopes_proxy.get_mut_list_ref("current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
@@ -130,22 +120,15 @@ pub fn squash_dict_inner_check_access_index(
         vm_proxy,
         hint_ap_tracking,
     )?;
-    insert_int_into_scope(
-        vm_proxy.exec_scopes,
-        "new_access_index",
-        new_access_index.clone(),
-    );
-    insert_int_into_scope(
-        vm_proxy.exec_scopes,
-        "current_access_index",
-        new_access_index,
-    );
+    exec_scopes_proxy.insert_value("new_access_index", new_access_index.clone());
+    exec_scopes_proxy.insert_value("current_access_index", new_access_index);
     Ok(())
 }
 
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -154,8 +137,7 @@ pub fn squash_dict_inner_continue_loop(
     let loop_temps_addr =
         get_relocatable_from_var_name("loop_temps", ids, vm_proxy, hint_ap_tracking)?;
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_ref_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
+    let current_access_indices = exec_scopes_proxy.get_list_ref("current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
         bigint!(0)
@@ -171,10 +153,11 @@ pub fn squash_dict_inner_continue_loop(
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
-pub fn squash_dict_inner_len_assert(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn squash_dict_inner_len_assert(
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let current_access_indices =
-        get_list_ref_from_scope(vm_proxy.exec_scopes, "current_access_indices")?;
+    let current_access_indices = exec_scopes_proxy.get_list_ref("current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(VirtualMachineError::CurrentAccessIndicesNotEmpty);
     }
@@ -184,21 +167,22 @@ pub fn squash_dict_inner_len_assert(vm_proxy: &mut VMProxy) -> Result<(), Virtua
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_int_from_scope(vm_proxy.exec_scopes, "key")?;
+    let key = exec_scopes_proxy.get_int("key")?;
     let n_used_accesses =
-        get_integer_from_var_name("n_used_accesses", ids, vm_proxy, hint_ap_tracking)?.clone();
-    let access_indices = get_access_indices(vm_proxy.exec_scopes)?;
+        get_integer_from_var_name("n_used_accesses", ids, vm_proxy, hint_ap_tracking)?;
+    let access_indices = get_access_indices(exec_scopes_proxy)?;
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    if n_used_accesses != bigint!(access_indices_at_key.len()) {
+    if n_used_accesses != &bigint!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
-            n_used_accesses,
+            n_used_accesses.clone(),
             access_indices_at_key.len(),
             key,
         ));
@@ -208,10 +192,10 @@ pub fn squash_dict_inner_used_accesses_assert(
 
 // Implements Hint: assert len(keys) == 0
 pub fn squash_dict_inner_assert_len_keys(
-    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_list_ref_from_scope(vm_proxy.exec_scopes, "keys")?;
+    let keys = exec_scopes_proxy.get_list_ref("keys")?;
     if !keys.is_empty() {
         return Err(VirtualMachineError::KeysNotEmpty);
     };
@@ -223,11 +207,12 @@ pub fn squash_dict_inner_assert_len_keys(
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     //Check that current_access_indices is in scope
-    let keys = get_mut_list_ref_from_scope(vm_proxy.exec_scopes, "keys")?;
+    let keys = exec_scopes_proxy.get_mut_list_ref("keys")?;
     let next_key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_value_from_var_name(
@@ -238,7 +223,7 @@ pub fn squash_dict_inner_next_key(
         hint_ap_tracking,
     )?;
     //Update local variables
-    insert_int_into_scope(vm_proxy.exec_scopes, "key", next_key);
+    exec_scopes_proxy.insert_value("key", next_key);
     Ok(())
 }
 
@@ -265,6 +250,7 @@ pub fn squash_dict_inner_next_key(
 */
 pub fn squash_dict(
     vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids: &HashMap<String, usize>,
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
@@ -279,7 +265,7 @@ pub fn squash_dict(
     if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = get_int_from_scope(vm_proxy.exec_scopes, "__squash_dict_max_size");
+    let squash_dict_max_size = exec_scopes_proxy.get_int("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
@@ -294,14 +280,14 @@ pub fn squash_dict(
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
-        let key_addr = address.clone() + DICT_ACCESS_SIZE * i;
+        let key_addr = &address + DICT_ACCESS_SIZE * i;
         let key = vm_proxy
             .memory
             .get_integer(&key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
             .entry(key.clone())
-            .or_insert(vec![])
+            .or_insert(Vec::<BigInt>::new())
             .push(bigint!(i));
     }
     //Descending list of keys.
@@ -318,24 +304,24 @@ pub fn squash_dict(
     let key = keys.pop().ok_or(VirtualMachineError::EmptyKeys)?;
     insert_value_from_var_name("first_key", key.clone(), ids, vm_proxy, hint_ap_tracking)?;
     //Insert local variables into scope
-    vm_proxy
-        .exec_scopes
-        .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-    insert_list_into_scope(vm_proxy.exec_scopes, "keys", keys);
-    insert_int_into_scope(vm_proxy.exec_scopes, "key", key);
+    exec_scopes_proxy.insert_value("access_indices", access_indices);
+    exec_scopes_proxy.insert_value("keys", keys);
+    exec_scopes_proxy.insert_value("key", key);
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use std::any::Any;
+
     use super::*;
-    use crate::bigint;
     use crate::serde::deserialize_program::ApTracking;
-    use crate::types::exec_scope::PyValueType;
+    use crate::types::exec_scope::{get_exec_scopes_proxy, ExecutionScopes};
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::{get_vm_proxy, BuiltinHintExecutor, HintReference};
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::{any_box, bigint};
     use num_bigint::Sign;
 
     static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
@@ -367,10 +353,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-        vm.exec_scopes
-            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (range_check_ptr)
@@ -386,21 +371,29 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check scope variables
         //Prepare expected data
-        let scope_variables = vm.exec_scopes.get_local_variables().unwrap();
-        let current_access_indices_scope = scope_variables.get("current_access_indices").unwrap();
+        let current_access_indices_scope = exec_scopes_proxy
+            .get_list("current_access_indices")
+            .unwrap();
         assert_eq!(
             current_access_indices_scope,
-            &PyValueType::List(vec![bigint!(10), bigint!(9), bigint!(7)])
+            vec![bigint!(10), bigint!(9), bigint!(7)]
         );
-        let current_access_index = scope_variables.get("current_access_index").unwrap();
-        assert_eq!(current_access_index, &PyValueType::BigInt(bigint!(3)));
+        let current_access_index = exec_scopes_proxy.get_int("current_access_index").unwrap();
+        assert_eq!(current_access_index, bigint!(3));
         //Check that current_access_index is now at range_check_ptr
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
@@ -414,7 +407,7 @@ mod tests {
         //Prepare scope variables
         let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         //Leave current_accessed_indices empty
-        let current_accessed_indices = vec![];
+        let current_accessed_indices = Vec::<BigInt>::new();
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
@@ -422,10 +415,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-        vm.exec_scopes
-            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (range_check_ptr)
@@ -441,9 +433,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -472,9 +471,15 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::VariableNotInScopeError(String::from(
                 "key"
             )))
@@ -485,17 +490,15 @@ mod tests {
     fn should_skip_loop_valid_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Prepare scope variables
-        let current_access_indices = vec![];
+        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -504,9 +507,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -520,17 +530,15 @@ mod tests {
     fn should_skip_loop_valid_non_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Prepare scope variables
-        let current_access_indices = vec![bigint!(4), bigint!(7)];
+        let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(4), bigint!(7)]);
         //Create vm
         let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -539,9 +547,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
@@ -555,19 +570,18 @@ mod tests {
     fn squash_dict_inner_check_access_index_valid() {
         let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Prepare scope variables
-        let current_access_indices = vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)];
+        let current_access_indices: Box<dyn Any> =
+            Box::new(vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)]);
+        let current_access_index: Box<dyn Any> = Box::new(bigint!(1));
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
-        vm.exec_scopes
-            .assign_or_update_variable("current_access_index", PyValueType::BigInt(bigint!(1)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
+        exec_scopes.assign_or_update_variable("current_access_index", current_access_index);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -576,22 +590,30 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check scope variables
-        let scope_variables = vm.exec_scopes.get_local_variables().unwrap();
-        let current_access_indices_scope = scope_variables.get("current_access_indices").unwrap();
-        let new_access_index = scope_variables.get("new_access_index").unwrap();
-        let current_access_index = scope_variables.get("current_access_index").unwrap();
+        let current_access_indices_scope = exec_scopes_proxy
+            .get_list("current_access_indices")
+            .unwrap();
+        let new_access_index = exec_scopes_proxy.get_int("new_access_index").unwrap();
+        let current_access_index = exec_scopes_proxy.get_int("current_access_index").unwrap();
         assert_eq!(
             current_access_indices_scope,
-            &PyValueType::List(vec![bigint!(10), bigint!(9), bigint!(7)])
+            vec![bigint!(10), bigint!(9), bigint!(7)]
         );
-        assert_eq!(current_access_index, &PyValueType::BigInt(bigint!(5)));
-        assert_eq!(new_access_index, &PyValueType::BigInt(bigint!(5)));
+        assert_eq!(current_access_index, bigint!(5));
+        assert_eq!(new_access_index, bigint!(5));
         //Check the value of loop_temps.index_delta_minus_1
         //new_index - current_index -1
         //5 - 1 - 1 = 3
@@ -605,19 +627,17 @@ mod tests {
     fn squash_dict_inner_check_access_current_access_addr_empty() {
         let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Prepare scope variables
-        let current_access_indices = vec![];
+        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
+        let current_access_index: Box<dyn Any> = Box::new(bigint!(1));
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
-        vm.exec_scopes
-            .assign_or_update_variable("current_access_index", PyValueType::BigInt(bigint!(1)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
+        exec_scopes.assign_or_update_variable("current_access_index", current_access_index);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (loop_temps)
@@ -633,9 +653,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -644,17 +671,15 @@ mod tests {
     fn should_continue_loop_valid_non_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Prepare scope variables
-        let current_access_indices = vec![bigint!(4), bigint!(7)];
+        let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(4), bigint!(7)]);
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -663,9 +688,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -679,17 +711,15 @@ mod tests {
     fn should_continue_loop_valid_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Prepare scope variables
-        let current_access_indices = vec![];
+        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -698,9 +728,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
@@ -714,20 +751,20 @@ mod tests {
     fn assert_current_indices_len_is_empty() {
         let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Prepare scope variables
-        let current_access_indices = vec![];
+        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -740,20 +777,20 @@ mod tests {
     fn assert_current_indices_len_is_empty_not() {
         let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Prepare scope variables
-        let current_access_indices = vec![bigint!(29)];
+        let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(29)]);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        vm.exec_scopes.assign_or_update_variable(
-            "current_access_indices",
-            PyValueType::List(current_access_indices),
-        );
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -775,10 +812,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-        vm.exec_scopes
-            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (n_used_accesses)
@@ -795,9 +831,16 @@ mod tests {
         vm.references = references!(1);
         //Execute the hint
         //Hint would fail is assertion fails
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
     }
@@ -815,10 +858,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-        vm.exec_scopes
-            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (n_used_accesses)
@@ -834,9 +876,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -858,10 +907,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("access_indices", PyValueType::KeyToListMap(access_indices));
-        vm.exec_scopes
-            .assign_or_update_variable("key", PyValueType::BigInt(bigint!(5)));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
+        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Insert ids into memory (n_used_accesses)
@@ -877,9 +925,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((0, 0))
             ))
@@ -890,17 +945,19 @@ mod tests {
     fn squash_dict_assert_len_keys_empty() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Prepare scope variables
-        let keys = vec![];
+        let keys: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("keys", PyValueType::List(keys));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("keys", keys);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -913,17 +970,19 @@ mod tests {
     fn squash_dict_assert_len_keys_not_empty() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Prepare scope variables
-        let keys = vec![bigint!(3)];
+        let keys: Box<dyn Any> = Box::new(vec![bigint!(3)]);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("keys", PyValueType::List(keys));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("keys", keys);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy,
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -938,10 +997,11 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             HINT_EXECUTOR.execute_hint(
-                &mut vm_proxy,
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
                 hint_code,
                 &HashMap::new(),
                 &ApTracking::default()
@@ -956,15 +1016,15 @@ mod tests {
     fn squash_dict_inner_next_key_keys_non_empty() {
         let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Prepare scope variables
-        let keys = vec![bigint!(1), bigint!(3)];
+        let keys: Box<dyn Any> = Box::new(vec![bigint!(1), bigint!(3)]);
         //Create vm
         let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("keys", PyValueType::List(keys));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("keys", keys);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -973,9 +1033,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check the value of ids.next_key
@@ -984,26 +1051,25 @@ mod tests {
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
         //Check local variables
-        let variables = vm.exec_scopes.get_local_variables().unwrap();
-        let keys = variables.get("keys").unwrap();
-        let key = variables.get("key").unwrap();
-        assert_eq!(key, &PyValueType::BigInt(bigint!(3)));
-        assert_eq!(keys, &PyValueType::List(vec![bigint!(1)]));
+        let keys = exec_scopes_proxy.get_list_ref("keys").unwrap();
+        let key = exec_scopes_proxy.get_int_ref("key").unwrap();
+        assert_eq!(key, &bigint!(3));
+        assert_eq!(keys, &vec![bigint!(1)]);
     }
 
     #[test]
     fn squash_dict_inner_next_key_keys_empty() {
         let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Prepare scope variables
-        let keys = vec![];
+        let keys: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         for _ in 0..1 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("keys", PyValueType::List(keys));
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("keys", keys);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 1));
         //Create ids
@@ -1012,9 +1078,16 @@ mod tests {
         //Create references
         vm.references = references!(1);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -1107,21 +1180,29 @@ mod tests {
         ];
         //Create references
         vm.references = references!(5);
+        let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(&vm.exec_scopes).unwrap();
+        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
         assert_eq!(
             access_indices,
             &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
         );
-        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
-        assert_eq!(keys, vec![]);
-        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
+        let keys = exec_scopes_proxy.get_list("keys").unwrap();
+        assert_eq!(keys, Vec::<BigInt>::new());
+        let key = exec_scopes_proxy.get_int("key").unwrap();
         assert_eq!(key, bigint!(1));
         //Check ids variables
         let big_keys = vm
@@ -1268,14 +1349,22 @@ mod tests {
         ];
         //Create references
         vm.references = references!(5);
+        let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(&vm.exec_scopes).unwrap();
+        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
         assert_eq!(
             access_indices,
             &HashMap::from([
@@ -1283,9 +1372,9 @@ mod tests {
                 (bigint!(2), vec![bigint!(2), bigint!(3)])
             ])
         );
-        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
+        let keys = exec_scopes_proxy.get_list("keys").unwrap();
         assert_eq!(keys, vec![bigint!(2)]);
-        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
+        let key = exec_scopes_proxy.get_int("key").unwrap();
         assert_eq!(key, bigint!(1));
         //Check ids variables
         let big_keys = vm
@@ -1312,8 +1401,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Create scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("__squash_dict_max_size", PyValueType::BigInt(bigint!(12)));
+        let mut exec_scopes = ExecutionScopes::new();
+        let max_size: Box<dyn Any> = Box::new(bigint!(12));
+        exec_scopes.assign_or_update_variable("__squash_dict_max_size", max_size);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 5));
         //Insert ids into memory
@@ -1394,20 +1484,27 @@ mod tests {
         //Create references
         vm.references = references!(5);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(&vm.exec_scopes).unwrap();
+        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
         assert_eq!(
             access_indices,
             &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
         );
-        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
-        assert_eq!(keys, vec![]);
-        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
+        let keys = exec_scopes_proxy.get_list("keys").unwrap();
+        assert_eq!(keys, Vec::<BigInt>::new());
+        let key = exec_scopes_proxy.get_int("key").unwrap();
         assert_eq!(key, bigint!(1));
         //Check ids variables
         let big_keys = vm
@@ -1434,8 +1531,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Create scope variables
-        vm.exec_scopes
-            .assign_or_update_variable("__squash_dict_max_size", PyValueType::BigInt(bigint!(1)));
+        let mut exec_scopes = ExecutionScopes::new();
+        let max_size: Box<dyn Any> = Box::new(bigint!(1));
+        exec_scopes.assign_or_update_variable("__squash_dict_max_size", max_size);
         //Initialize fp
         vm.run_context.fp = MaybeRelocatable::from((0, 5));
         //Insert ids into memory
@@ -1516,9 +1614,16 @@ mod tests {
         //Create references
         vm.references = references!(5);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -1615,9 +1720,15 @@ mod tests {
         //Create references
         vm.references = references!(5);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
         );
     }
@@ -1713,9 +1824,15 @@ mod tests {
         //Create references
         vm.references = references!(5);
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy_ref!(),
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Err(VirtualMachineError::NAccessesTooBig(BigInt::new(
                 Sign::Plus,
                 vec![1, 0, 0, 0, 0, 0, 17, 134217728]
@@ -1817,14 +1934,22 @@ mod tests {
         ];
         //Create references
         vm.references = references!(5);
+        let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(&mut vm_proxy, hint_code, &ids, &ApTracking::default()),
+            HINT_EXECUTOR.execute_hint(
+                vm_proxy,
+                exec_scopes_proxy,
+                hint_code,
+                &ids,
+                &ApTracking::default()
+            ),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(&vm.exec_scopes).unwrap();
+        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
         assert_eq!(
             access_indices,
             &HashMap::from([(
@@ -1832,9 +1957,9 @@ mod tests {
                 vec![bigint!(0), bigint!(1)]
             )])
         );
-        let keys = get_list_from_scope(&vm.exec_scopes, "keys").unwrap();
-        assert_eq!(keys, vec![]);
-        let key = get_int_from_scope(&vm.exec_scopes, "key").unwrap();
+        let keys = exec_scopes_proxy.get_list("keys").unwrap();
+        assert_eq!(keys, Vec::<BigInt>::new());
+        let key = exec_scopes_proxy.get_int("key").unwrap();
         assert_eq!(
             key,
             BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727])
