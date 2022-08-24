@@ -10,11 +10,11 @@ use crate::types::relocatable::Relocatable;
 use crate::vm::hints::blake2s_hash::IV;
 use crate::vm::hints::hint_utils::get_relocatable_from_var_name;
 use crate::vm::vm_core::VMProxy;
+use crate::vm::vm_memory::memory::MemoryProxy;
 use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{
-        errors::vm_errors::VirtualMachineError,
-        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        errors::vm_errors::VirtualMachineError, vm_memory::memory_segments::MemorySegmentManager,
     },
 };
 use num_bigint::BigInt;
@@ -49,7 +49,7 @@ which should all have a value at this point, and right before the output portion
 written by this function.*/
 fn compute_blake2s_func(
     segments: &mut MemorySegmentManager,
-    memory: &mut Memory,
+    memory: &mut MemoryProxy,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
     let h = get_fixed_size_u32_array::<8>(&memory.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
@@ -60,8 +60,8 @@ fn compute_blake2s_func(
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    segments
-        .load_data(memory, &output_ptr, new_state)
+    memory
+        .load_data(segments, &output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -76,7 +76,7 @@ pub fn compute_blake2s(
     hint_ap_tracking: Option<&ApTracking>,
 ) -> Result<(), VirtualMachineError> {
     let output = get_ptr_from_var_name("output", ids, vm_proxy, hint_ap_tracking)?;
-    compute_blake2s_func(vm_proxy.segments, vm_proxy.memory, output)
+    compute_blake2s_func(vm_proxy.segments, &mut vm_proxy.memory, output)
 }
 
 /* Implements Hint:
@@ -124,9 +124,9 @@ pub fn finalize_blake2s(
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm_proxy
-        .segments
+        .memory
         .load_data(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(blake2s_ptr_end),
             data,
         )
@@ -165,9 +165,9 @@ pub fn blake2s_add_uint256(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .segments
+        .memory
         .load_data(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
             data,
         )
@@ -180,9 +180,9 @@ pub fn blake2s_add_uint256(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .segments
+        .memory
         .load_data(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
@@ -221,9 +221,9 @@ pub fn blake2s_add_uint256_bigend(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .segments
+        .memory
         .load_data(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
             data,
         )
@@ -236,9 +236,9 @@ pub fn blake2s_add_uint256_bigend(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .segments
+        .memory
         .load_data(
-            vm_proxy.memory,
+            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
@@ -255,6 +255,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         bigint,
         vm::{

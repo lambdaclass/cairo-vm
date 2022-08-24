@@ -14,7 +14,10 @@ use crate::{
         hints::execute_hint::{get_vm_proxy, HintReference},
         runners::builtin_runner::BuiltinRunner,
         trace::trace_entry::TraceEntry,
-        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        vm_memory::{
+            memory::{Memory, MemoryProxy},
+            memory_segments::MemorySegmentManager,
+        },
     },
 };
 
@@ -42,7 +45,7 @@ pub struct HintData {
 }
 
 pub struct VMProxy<'a> {
-    pub memory: &'a mut Memory,
+    pub memory: MemoryProxy<'a>,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,

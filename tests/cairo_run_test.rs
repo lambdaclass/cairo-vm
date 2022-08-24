@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use cleopatra_cairo::cairo_run;
-use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintExecutor;
+use cairo_rs::cairo_run;
+use cairo_rs::vm::hints::execute_hint::BuiltinHintExecutor;
 
 static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
 
