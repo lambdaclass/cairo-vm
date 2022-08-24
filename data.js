@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661296346568,
+  "lastUpdate": 1661348051524,
   "repoUrl": "https://github.com/lambdaclass/cleopatra_cairo",
   "entries": {
     "Benchmark": [
@@ -25719,6 +25719,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 233794789,
             "range": "± 1551458",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "a788c5169e65734843b530c6ee64aaf7960fa0b2",
+          "message": "Add extensible feature to BuiltinHintProcessor (Phase 7)",
+          "timestamp": "2022-08-23T22:03:03Z",
+          "url": "https://github.com/lambdaclass/cleopatra_cairo/pull/381/commits/a788c5169e65734843b530c6ee64aaf7960fa0b2"
+        },
+        "date": 1661348049643,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1668094640,
+            "range": "± 2323619",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 620943955,
+            "range": "± 828366",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 307438115,
+            "range": "± 576583",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1577883595,
+            "range": "± 2215213",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 222965756,
+            "range": "± 597844",
             "unit": "ns/iter"
           }
         ]
