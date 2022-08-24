@@ -1,9 +1,9 @@
-# Cleopatra Cairo VM
-[![rust](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cleopatra_cairo/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cleopatra_cairo/) [![codecov](https://codecov.io/gh/lambdaclass/cleopatra_cairo/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cleopatra_cairo)
+# cairo-rs
+[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml) [![benchmark](https://github.com/lambdaclass/cairo-rs/actions/workflows/bench.yml/badge.svg)](https://lambdaclass.github.io/cairo-rs/) [![codecov](https://codecov.io/gh/lambdaclass/cairo-rs/branch/main/graph/badge.svg?token=D5FYEQ4E94)](https://codecov.io/gh/lambdaclass/cairo-rs)
 
 ![](./bonaparte.webp)
 
-Cleaopatra is a Rust implementation of the Cairo VM.
+cairo-rs is a Rust implementation of the Cairo VM.
 
 The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
 
@@ -12,33 +12,33 @@ The code of the original Cairo VM can be found [here](https://github.com/starkwa
 - Cargo
 - PyEnv for running the original VM and compiling cairo programs
 
-## Running Cleopatra
-Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cleopatra-run`.
+## Running cairo-rs
+Compile with `cargo build --release`, once  the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
 To run a compiled json program through the VM, call the executable giving it the path and name to the file to be executed.
 
 Full compilation and execution example:
 ```bash
-git clone https://github.com/lambdaclass/cleopatra_cairo.git
-cd cleopatra_cairo
+git clone https://github.com/lambdaclass/cairo-rs.git
+cd cairo-rs
 
 cargo build --release
-./target/release/cleopatra-run tests/support/fibonacci_compiled.json
+./target/release/cairo-rs-run tests/support/fibonacci_compiled.json
 ```
 
 ## Testing
-Run the test suite with cargo:
+Run the test suite:
 ```bash
-cargo test
+make test
 ```
 
 ## Code Coverage
-Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cleopatra_cairo).
+Track of the project's code coverage: [Codecov](https://app.codecov.io/gh/lambdaclass/cairo-rs).
 
-## Cleopatra benchmarks:
-Running a [Cairo program](./bench/criterion/fibonacci_1000.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
+## cairo-rs benchmarks:
+Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
 * Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 * [Flamegraph](./docs/benchmarks/flamegraph.svg)
-* Github action [results](https://lambdaclass.github.io/cleopatra_cairo/)
+* Github action [results](https://lambdaclass.github.io/cairo-rs/)
 
 Run the benchmark suite with cargo:
 ```bash
