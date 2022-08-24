@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use cleopatra_cairo::{
+use cairo_rs::{
     cairo_run,
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
