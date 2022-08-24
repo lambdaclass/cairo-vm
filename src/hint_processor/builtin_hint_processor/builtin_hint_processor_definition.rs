@@ -78,6 +78,7 @@ impl HintProcessorData {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub struct HintFunc(
     pub  Box<
         dyn Fn(
