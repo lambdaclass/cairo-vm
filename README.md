@@ -3,7 +3,7 @@
 
 ![](./bonaparte.webp)
 
-cairo-rs is a Rust implementation of the Cairo VM.
+cairo-rs is a Rust implementation of the Cairo VM. The project used to be called cleopatra-cairo but after being feature complete we decided it was clearer to call the vm cairo-rs.
 
 The code of the original Cairo VM can be found [here](https://github.com/starkware-libs/cairo-lang).
 
