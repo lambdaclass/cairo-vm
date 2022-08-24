@@ -6,7 +6,7 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         errors::vm_errors::VirtualMachineError,
-        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+        vm_memory::{memory::MemoryProxy, memory_segments::MemorySegmentManager},
     },
 };
 
@@ -73,10 +73,10 @@ impl DictManager {
     pub fn new_dict(
         &mut self,
         segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
+        memory: &mut MemoryProxy,
         initial_dict: HashMap<BigInt, BigInt>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base = segments.add(memory, None);
+        let base = memory.add_segment(segments);
         if self.trackers.contains_key(&base.segment_index) {
             return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
@@ -93,11 +93,11 @@ impl DictManager {
     pub fn new_default_dict(
         &mut self,
         segments: &mut MemorySegmentManager,
-        memory: &mut Memory,
+        memory: &mut MemoryProxy,
         default_value: &BigInt,
         initial_dict: Option<HashMap<BigInt, BigInt>>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base = segments.add(memory, None);
+        let base = memory.add_segment(segments);
         if self.trackers.contains_key(&base.segment_index) {
             return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
@@ -208,7 +208,10 @@ impl DictTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint, relocatable};
+    use crate::{
+        bigint, relocatable,
+        vm::vm_memory::memory::{get_memory_proxy, Memory},
+    };
 
     #[test]
     fn create_dict_manager() {
@@ -244,7 +247,8 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let base = dict_manager.new_dict(&mut segments, &mut memory, HashMap::new());
+        let mem_proxy = &mut get_memory_proxy(&mut memory);
+        let base = dict_manager.new_dict(&mut segments, mem_proxy, HashMap::new());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -259,7 +263,8 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let base = dict_manager.new_default_dict(&mut segments, &mut memory, &bigint!(5), None);
+        let mem_proxy = &mut get_memory_proxy(&mut memory);
+        let base = dict_manager.new_default_dict(&mut segments, mem_proxy, &bigint!(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -280,7 +285,8 @@ mod tests {
         let mut memory = Memory::new();
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
-        let base = dict_manager.new_dict(&mut segments, &mut memory, initial_dict.clone());
+        let mem_proxy = &mut get_memory_proxy(&mut memory);
+        let base = dict_manager.new_dict(&mut segments, mem_proxy, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -300,9 +306,10 @@ mod tests {
         let mut memory = Memory::new();
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
+        let mem_proxy = &mut get_memory_proxy(&mut memory);
         let base = dict_manager.new_default_dict(
             &mut segments,
-            &mut memory,
+            mem_proxy,
             &bigint!(7),
             Some(initial_dict.clone()),
         );
@@ -327,8 +334,9 @@ mod tests {
             .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
+        let mem_proxy = &mut get_memory_proxy(&mut memory);
         assert_eq!(
-            dict_manager.new_dict(&mut segments, &mut memory, HashMap::new()),
+            dict_manager.new_dict(&mut segments, mem_proxy, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
@@ -342,8 +350,9 @@ mod tests {
         );
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
+        let mem_proxy = &mut get_memory_proxy(&mut memory);
         assert_eq!(
-            dict_manager.new_dict(&mut segments, &mut memory, HashMap::new()),
+            dict_manager.new_dict(&mut segments, mem_proxy, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }

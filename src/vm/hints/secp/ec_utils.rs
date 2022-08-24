@@ -315,7 +315,7 @@ pub fn ec_mul_inner(
     let scalar = get_integer_from_var_name("scalar", ids, vm_proxy, hint_ap_tracking)?
         .mod_floor(vm_proxy.prime)
         .bitand(bigint!(1));
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, scalar)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, scalar)
 }
 
 #[cfg(test)]

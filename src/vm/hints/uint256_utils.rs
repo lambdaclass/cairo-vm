@@ -140,7 +140,7 @@ pub fn uint256_signed_nn(
         } else {
             bigint!(0)
         };
-    insert_value_into_ap(vm_proxy.memory, vm_proxy.run_context, result)
+    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, result)
 }
 
 /*

@@ -54,6 +54,7 @@ use crate::vm::hints::usort::{
     verify_usort,
 };
 use crate::vm::vm_core::{VMProxy, VirtualMachine};
+use crate::vm::vm_memory::memory::get_memory_proxy;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
@@ -68,7 +69,7 @@ pub struct HintReference {
 
 pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
     VMProxy {
-        memory: &mut vm.memory,
+        memory: get_memory_proxy(&mut vm.memory),
         segments: &mut vm.segments,
         run_context: &mut vm.run_context,
         builtin_runners: &vm.builtin_runners,

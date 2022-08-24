@@ -29,8 +29,8 @@ pub fn nondet_bigint3(
     let value = exec_scopes_proxy.get_int_ref("value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm_proxy
-        .segments
-        .write_arg(vm_proxy.memory, &res_reloc, &arg, Some(vm_proxy.prime))
+        .memory
+        .write_arg(vm_proxy.segments, &res_reloc, &arg, Some(vm_proxy.prime))
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
