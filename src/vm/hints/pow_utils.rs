@@ -54,7 +54,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 12));
+        vm.run_context.ap = 12;
 
         //Create ids
         let ids = ids!["prev_locs", "locs"];
@@ -134,7 +134,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 11));
+        vm.run_context.ap = 11;
 
         //Create incorrect ids
         let ids = ids!["locs"];
@@ -163,7 +163,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 11));
+        vm.run_context.fp = 11;
 
         //Create ids
         let ids = ids!["prev_locs", "locs"];
@@ -197,7 +197,7 @@ mod tests {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 11));
+        vm.run_context.fp = 11;
 
         //Create ids
         let ids = ids!["prev_locs", "locs"];
@@ -236,7 +236,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 11));
+        vm.run_context.ap = 11;
 
         //Create ids
         let ids = ids!["prev_locs", "locs"];
