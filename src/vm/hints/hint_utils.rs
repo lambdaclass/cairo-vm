@@ -348,6 +348,7 @@ pub fn memcpy_continue_copying(
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::hints::execute_hint::get_vm_proxy;
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
@@ -359,7 +360,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
 
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -371,12 +372,8 @@ mod tests {
         ids.insert(String::from("variable"), 0);
 
         //Insert ids.prev_locs.exp into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
+        vm.memory = memory!(((1, 0), 10));
+
         let vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(var_name, &ids, &vm_proxy, None),
@@ -391,7 +388,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
 
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -403,17 +400,13 @@ mod tests {
         ids.insert(String::from("variable"), 0);
 
         //Insert ids.variable into memory as a RelocatableValue
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((0, 1)),
-            )
-            .unwrap();
+        vm.memory = memory!(((1, 0), (0, 1)));
+
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(var_name, &ids, vm_proxy, None),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
