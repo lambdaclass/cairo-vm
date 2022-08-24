@@ -66,7 +66,7 @@ mod tests {
                 "prev_locs".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::AP,
+                    register: Some(Register::AP),
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
@@ -81,7 +81,7 @@ mod tests {
                 "locs".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::AP,
+                    register: Some(Register::AP),
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,

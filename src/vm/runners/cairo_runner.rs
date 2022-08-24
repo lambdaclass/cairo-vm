@@ -236,25 +236,23 @@ impl<'a> CairoRunner<'a> {
         let mut references = HashMap::<usize, HintReference>::new();
 
         for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
-            if let Some(register) = &reference.value_address.register {
-                references.insert(
-                    i,
-                    HintReference {
-                        register: register.clone(),
-                        offset1: reference.value_address.offset1,
-                        offset2: reference.value_address.offset2,
-                        inner_dereference: reference.value_address.inner_dereference,
-                        dereference: reference.value_address.dereference,
-                        immediate: reference.value_address.immediate.clone(),
-                        // only store `ap` tracking data if the reference is referred to it
-                        ap_tracking_data: if register == &Register::FP {
-                            None
-                        } else {
-                            Some(reference.ap_tracking_data.clone())
-                        },
+            references.insert(
+                i,
+                HintReference {
+                    register: reference.value_address.register.clone(),
+                    offset1: reference.value_address.offset1,
+                    offset2: reference.value_address.offset2,
+                    inner_dereference: reference.value_address.inner_dereference,
+                    dereference: reference.value_address.dereference,
+                    immediate: reference.value_address.immediate.clone(),
+                    // only store `ap` tracking data if the reference is referred to it
+                    ap_tracking_data: if reference.value_address.register == Some(Register::FP) {
+                        None
+                    } else {
+                        Some(reference.ap_tracking_data.clone())
                     },
-                );
-            }
+                },
+            );
         }
         references
     }

@@ -163,7 +163,7 @@ mod tests {
                 "val".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::FP,
+                    register: Some(Register::FP),
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
@@ -178,7 +178,7 @@ mod tests {
                 "q".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::AP,
+                    register: Some(Register::AP),
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
@@ -234,7 +234,7 @@ mod tests {
                 "val".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::FP,
+                    register: Some(Register::FP),
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
@@ -249,7 +249,7 @@ mod tests {
                 "q".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::AP,
+                    register: Some(Register::AP),
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
@@ -323,7 +323,7 @@ mod tests {
                 "val".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::FP,
+                    register: Some(Register::FP),
                     offset1: -5,
                     offset2: 0,
                     inner_dereference: false,
@@ -338,7 +338,7 @@ mod tests {
                 "q".to_string(),
                 HintReference {
                     dereference: true,
-                    register: Register::AP,
+                    register: Some(Register::AP),
                     offset1: 0,
                     offset2: 0,
                     inner_dereference: false,
@@ -421,7 +421,7 @@ mod tests {
             "x".to_string(),
             HintReference {
                 dereference: true,
-                register: Register::FP,
+                register: Some(Register::FP),
                 offset1: -5,
                 offset2: 0,
                 inner_dereference: false,
@@ -492,7 +492,7 @@ mod tests {
             "x".to_string(),
             HintReference {
                 dereference: true,
-                register: Register::FP,
+                register: Some(Register::FP),
                 offset1: -5,
                 offset2: 0,
                 inner_dereference: false,
@@ -537,7 +537,7 @@ mod tests {
             "x".to_string(),
             HintReference {
                 dereference: true,
-                register: Register::FP,
+                register: Some(Register::FP),
                 offset1: -5,
                 offset2: 0,
                 inner_dereference: false,
@@ -590,7 +590,7 @@ mod tests {
             "x".to_string(),
             HintReference {
                 dereference: true,
-                register: Register::FP,
+                register: Some(Register::FP),
                 offset1: -5,
                 offset2: 0,
                 inner_dereference: false,
