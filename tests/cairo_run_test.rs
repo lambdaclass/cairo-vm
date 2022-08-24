@@ -8,7 +8,6 @@ use cairo_rs::{
 #[test]
 fn cairo_run_test() {
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/fibonacci.json"),
         "main",
@@ -20,220 +19,240 @@ fn cairo_run_test() {
 
 #[test]
 fn cairo_run_array_sum() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/array_sum.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_big_struct() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/big_struct.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_call_function_assign_param_by_name() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/call_function_assign_param_by_name.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_function_return() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/function_return.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_function_return_if_print() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/function_return_if_print.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_function_return_to_variable() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/function_return_to_variable.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_if_and_prime() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/if_and_prime.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_if_in_function() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/if_in_function.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_if_list() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/if_list.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_jmp() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/jmp.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_jmp_if_condition() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/jmp_if_condition.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_pointers() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/pointers.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_print() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/print.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_return() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/return.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_reversed_register_instructions() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/reversed_register_instructions.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_simple_print() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/simple_print.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_test_addition_if() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/test_addition_if.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_test_reverse_if() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/test_reverse_if.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_test_subtraction_if() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/test_subtraction_if.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_use_imported_module() {
+    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/use_imported_module.json"),
         "main",
         false,
-        &HINT_EXECUTOR,
+        &hint_processor,
     )
     .expect("Couldn't run program");
 }
