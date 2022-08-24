@@ -282,7 +282,7 @@ mod tests {
 
         // ProgramJson result instance for the json with an even length encoded hex.
         let even_result: Result<ProgramJson, _> =
-            serde_json::from_str(&invalid_even_length_hex_json);
+            serde_json::from_str(invalid_even_length_hex_json);
 
         assert!(even_result.is_err());
 
@@ -292,7 +292,7 @@ mod tests {
             }"#;
 
         // ProgramJson result instance for the json with an odd length encoded hex.
-        let odd_result: Result<ProgramJson, _> = serde_json::from_str(&invalid_odd_length_hex_json);
+        let odd_result: Result<ProgramJson, _> = serde_json::from_str(invalid_odd_length_hex_json);
 
         assert!(odd_result.is_err());
     }
@@ -392,7 +392,7 @@ mod tests {
             }"#;
 
         // ProgramJson instance for the json with an even length encoded hex.
-        let program_json: ProgramJson = serde_json::from_str(&valid_json).unwrap();
+        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
         let builtins: Vec<String> = Vec::new();
 

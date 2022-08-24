@@ -212,4 +212,8 @@ pub enum VirtualMachineError {
     InvalidBlockSize(usize),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
+    #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
+    WrongHintData,
+    #[error("Failed to compile hint: {0}")]
+    CompileHintFail(String),
 }

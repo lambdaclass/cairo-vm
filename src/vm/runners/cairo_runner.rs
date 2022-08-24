@@ -1,24 +1,23 @@
 use crate::bigint;
+use crate::hint_processor::hint_processor_definition::HintProcessor;
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::types::program::Program;
-use crate::types::{
-    hint_executor::HintExecutor,
-    relocatable::{relocate_value, MaybeRelocatable, Relocatable},
-};
+use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
 use crate::utils::{is_subsequence, to_field_element};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::trace_errors::TraceError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::hints::execute_hint::HintReference;
 use crate::vm::runners::builtin_runner::{
     BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
     RangeCheckBuiltinRunner,
 };
 use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
-use crate::vm::vm_core::{HintData, VirtualMachine};
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
+use std::any::Any;
 use std::collections::HashMap;
 use std::io;
 
@@ -35,14 +34,14 @@ pub struct CairoRunner {
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
-    hint_executor: &'static dyn HintExecutor,
+    hint_executor: &'static dyn HintProcessor,
 }
 
 impl CairoRunner {
     pub fn new(
         program: &Program,
         trace_enabled: bool,
-        hint_executor: &'static dyn HintExecutor,
+        hint_executor: &'static dyn HintProcessor,
     ) -> CairoRunner {
         let builtin_ordered_list = vec![
             String::from("output"),
@@ -228,8 +227,6 @@ impl CairoRunner {
         for (_, builtin) in self.vm.builtin_runners.iter() {
             builtin.add_validation_rule(&mut self.vm.memory);
         }
-        self.vm.hints = self.get_hint_dictionary()?;
-        self.vm.references = self.get_reference_list();
         match self.vm.memory.validate_existing_memory() {
             Err(error) => Err(RunnerError::MemoryValidationError(error)),
             Ok(_) => Ok(()),
@@ -262,57 +259,41 @@ impl CairoRunner {
         references
     }
 
-    fn get_hint_dictionary(&self) -> Result<HashMap<MaybeRelocatable, Vec<HintData>>, RunnerError> {
-        let mut hint_dictionary = HashMap::<MaybeRelocatable, Vec<HintData>>::new();
+    //Gets the data used by the HintProcessor to execute each hint
+    fn get_hint_data_dictionary(
+        &self,
+        references: &HashMap<usize, HintReference>,
+    ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
+        let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
         for (hint_index, hints) in self.program.hints.iter() {
-            for hint_data in hints.iter() {
-                //Key refers to the pc the where the hint should be called in step
-                //The segment index of pc will always be 0 as it lives in the program segment
-                let key = MaybeRelocatable::from((0, *hint_index));
-                if let Some(hint_list) = hint_dictionary.get_mut(&key) {
-                    //Add hint code to list of hints at given pc
-                    hint_list.push(HintData::new(
-                        &hint_data.code,
-                        CairoRunner::remove_path_from_reference_ids(
-                            &hint_data.flow_tracking_data.reference_ids,
-                        )?,
-                        hint_data.flow_tracking_data.ap_tracking.clone(),
-                    ));
-                } else {
-                    //Insert the first hint at a given pc
-                    hint_dictionary.insert(
-                        key,
-                        vec![HintData::new(
-                            &hint_data.code,
-                            CairoRunner::remove_path_from_reference_ids(
-                                &hint_data.flow_tracking_data.reference_ids,
-                            )?,
-                            hint_data.flow_tracking_data.ap_tracking.clone(),
-                        )],
+            for hint in hints {
+                let hint_data = self.hint_executor.compile_hint(
+                    &hint.code,
+                    &hint.flow_tracking_data.ap_tracking,
+                    &hint.flow_tracking_data.reference_ids,
+                    references,
+                );
+                hint_data_dictionary
+                    .entry(*hint_index)
+                    .or_insert(vec![])
+                    .push(
+                        hint_data
+                            .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
                     );
-                }
             }
         }
-        Ok(hint_dictionary)
-    }
-
-    fn remove_path_from_reference_ids(
-        referece_ids: &HashMap<String, usize>,
-    ) -> Result<HashMap<String, usize>, RunnerError> {
-        let mut reference_ids_new = HashMap::<String, usize>::new();
-        for (path, value) in referece_ids {
-            if let Some(name) = path.rsplit('.').next() {
-                reference_ids_new.insert(name.to_string(), *value);
-            } else {
-                return Err(RunnerError::FailedToParseIdsNameFromPath(path.clone()));
-            }
-        }
-        Ok(reference_ids_new)
+        Ok(hint_data_dictionary)
     }
 
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
+        let references = self.get_reference_list();
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references)?;
         while self.vm.run_context.pc != address {
-            self.vm.step(self.hint_executor, &mut self.exec_scopes)?;
+            self.vm.step(
+                self.hint_executor,
+                &mut self.exec_scopes,
+                &hint_data_dictionary,
+            )?;
         }
         Ok(())
     }
@@ -442,13 +423,13 @@ mod tests {
     use num_traits::FromPrimitive;
 
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::serde::deserialize_program::ReferenceManager;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
     use crate::vm::trace::trace_entry::TraceEntry;
     use crate::{bigint_str, relocatable};
     use std::collections::HashMap;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     #[should_panic]
