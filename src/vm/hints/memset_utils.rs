@@ -83,9 +83,9 @@ mod tests {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         // insert ids into memory
-        vm.memory = memory![((0, 1), 5)];
+        vm.memory = memory![((1, 1), 5)];
         let ids = ids!["n"];
         //Create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -106,10 +106,10 @@ mod tests {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         // insert ids.n into memory
         // insert a relocatable value in the address of ids.len so that it raises an error.
-        vm.memory = memory![((0, 1), (0, 0))];
+        vm.memory = memory![((1, 1), (1, 0))];
         let ids = ids!["n"];
         // create references
         vm.references = HashMap::from([(0, HintReference::new_simple(-2))]);
@@ -123,7 +123,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -133,13 +133,13 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         // initialize vm scope with variable `n` = 1
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory = memory![((0, 2), 5)];
+        vm.memory = memory![((1, 2), 5)];
         let mut ids = HashMap::<String, usize>::new();
         ids.insert(String::from("continue_loop"), 0);
 
@@ -159,7 +159,7 @@ mod tests {
 
         // assert ids.continue_loop = 0
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
@@ -169,7 +169,7 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
 
         // initialize vm scope with variable `n` = 5
         let mut exec_scopes = ExecutionScopes::new();
@@ -177,7 +177,7 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory = memory![((0, 2), 5)];
+        vm.memory = memory![((1, 2), 5)];
 
         let mut ids = HashMap::<String, usize>::new();
         ids.insert(String::from("continue_loop"), 0);
@@ -198,7 +198,7 @@ mod tests {
 
         // assert ids.continue_loop = 1
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -208,7 +208,7 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
@@ -216,7 +216,7 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory = memory![((0, 2), 5)];
+        vm.memory = memory![((1, 2), 5)];
         let mut ids = HashMap::<String, usize>::new();
         ids.insert(String::from("continue_loop"), 0);
 
@@ -243,13 +243,13 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
-        vm.memory = memory![((0, 1), 5)];
+        vm.memory = memory![((1, 1), 5)];
         let mut ids = HashMap::<String, usize>::new();
         ids.insert(String::from("continue_loop"), 0);
         // create references
@@ -266,7 +266,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::from(bigint!(5)),
                     MaybeRelocatable::from(bigint!(0))
                 )
