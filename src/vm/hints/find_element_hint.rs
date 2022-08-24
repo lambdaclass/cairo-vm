@@ -181,25 +181,25 @@ mod tests {
         );
 
         const FP_OFFSET_START: usize = 4;
-        vm.run_context.fp = MaybeRelocatable::from((0, FP_OFFSET_START));
+        vm.run_context.fp = FP_OFFSET_START;
 
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
 
         let addresses = vec![
-            MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::from((0, 1)),
-            MaybeRelocatable::from((0, 2)),
-            MaybeRelocatable::from((0, 4)),
             MaybeRelocatable::from((1, 0)),
             MaybeRelocatable::from((1, 1)),
             MaybeRelocatable::from((1, 2)),
-            MaybeRelocatable::from((1, 3)),
+            MaybeRelocatable::from((1, 4)),
+            MaybeRelocatable::from((2, 0)),
+            MaybeRelocatable::from((2, 1)),
+            MaybeRelocatable::from((2, 2)),
+            MaybeRelocatable::from((2, 3)),
         ];
 
         let default_values = vec![
-            ("array_ptr", MaybeRelocatable::from((1, 0))),
+            ("array_ptr", MaybeRelocatable::from((2, 0))),
             ("elm_size", MaybeRelocatable::from(bigint!(2))),
             ("n_elms", MaybeRelocatable::from(bigint!(2))),
             ("key", MaybeRelocatable::from(bigint!(3))),
@@ -272,7 +272,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
@@ -296,7 +296,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
@@ -404,7 +404,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -425,7 +425,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -470,7 +470,7 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let relocatable = MaybeRelocatable::from((0, 2));
+        let relocatable = MaybeRelocatable::from((1, 2));
         let (mut vm, ids) =
             init_vm_ids(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -542,7 +542,7 @@ mod tests {
 
     #[test]
     fn find_elm_key_not_int() {
-        let relocatable = MaybeRelocatable::from((0, 4));
+        let relocatable = MaybeRelocatable::from((1, 4));
         let (mut vm, ids) = init_vm_ids(HashMap::from([("key".to_string(), relocatable.clone())]));
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
@@ -574,7 +574,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
@@ -599,7 +599,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(2))))
         )
     }
@@ -690,7 +690,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -739,7 +739,7 @@ mod tests {
     fn search_sorted_lower_not_int_n_elms() {
         let (mut vm, ids) = init_vm_ids(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::from((1, 2)),
+            MaybeRelocatable::from((2, 2)),
         )]));
 
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -752,7 +752,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 2))
+                MaybeRelocatable::from((1, 2))
             ))
         );
     }
