@@ -770,10 +770,6 @@ mod tests {
         vm.run_context.pc = MaybeRelocatable::from((0, 0));
         let error = vm.get_instruction_encoding();
         assert_eq!(error, Err(VirtualMachineError::InvalidInstructionEncoding));
-        assert_eq!(
-            error.unwrap_err().to_string(),
-            "Instruction should be an int. Found:"
-        );
     }
 
     #[test]
