@@ -86,9 +86,9 @@ mod tests {
             )),
         );
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 6));
+        vm.run_context.fp = 6;
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 6));
+        vm.run_context.ap = 6;
         //Create ids
         let ids = ids!["res"];
         //Create references
@@ -121,10 +121,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
         // we don't initialize `value` now:
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 6));
+        vm.run_context.fp = 6;
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 6));
+        vm.run_context.ap = 6;
 
         //Create ids
         let ids = ids!["res"];
