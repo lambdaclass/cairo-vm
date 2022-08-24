@@ -56,7 +56,7 @@ run:
 check:
 	cargo check
 
-test: $(COMPILED_TESTS) $(CAIRO_TRACE) $(CAIRO_MEM) $(COMPILED_BAD_TESTS)
+test: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
 	cargo test
 
 clippy:
