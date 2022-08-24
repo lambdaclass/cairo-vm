@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661375687729,
+  "lastUpdate": 1661377352889,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -27031,6 +27031,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 263365182,
             "range": "± 3307808",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "055a3521bb5050641809538869477dc69298d856",
+          "message": "Add extensible feature to BuiltinHintProcessor (Phase 7)",
+          "timestamp": "2022-08-24T18:29:52Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/381/commits/055a3521bb5050641809538869477dc69298d856"
+        },
+        "date": 1661377350911,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1715177107,
+            "range": "± 2676228",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 625800511,
+            "range": "± 1464975",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 307400845,
+            "range": "± 1709677",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1492661984,
+            "range": "± 2348557",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 224931232,
+            "range": "± 424212",
             "unit": "ns/iter"
           }
         ]
