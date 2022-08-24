@@ -224,6 +224,15 @@ pub mod test_utils {
     }
     pub(crate) use vm;
 
+    macro_rules! run_context {
+        ( $vm: expr, $pc_off: expr, $ap_off: expr, $fp_off: expr ) => {
+            $vm.run_context.pc = MaybeRelocatable::from((0, $pc_off));
+            $vm.run_context.ap = MaybeRelocatable::from((1, $ap_off));
+            $vm.run_context.fp = MaybeRelocatable::from((1, $fp_off));
+        };
+    }
+    pub(crate) use run_context;
+
     macro_rules! ids {
         ( $( $name: expr ),* ) => {
             {
