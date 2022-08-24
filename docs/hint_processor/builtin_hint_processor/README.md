@@ -13,7 +13,10 @@ cairo-rs =  {path = "[path to cairo-rs directory"}
 ```
 #### Step 2: Code the implementation of your custom hint (Using the helpers and proxies described in the sections below)
 For this step, you will have to code your hint implementation as a closure, and then wrap it inside a Box (smart pointer), and a HintFunc (type alias for hint functions).
-Note: The reason for using a closure is due to the functions being Fn trait objects, more on this from the [rust documentation](https://doc.rust-lang.org/std/ops/trait.Fn.html). The hint implementation must also follow a specific structure in terms of variable input and output:
+
+*Note: The reason for using a closure is due to the functions being Fn trait objects, more on this from the [rust documentation](https://doc.rust-lang.org/std/ops/trait.Fn.html).*
+
+The hint implementation must also follow a specific structure in terms of variable input and output:
 ```rust
 HintFunc(Box::new(
         |vm_proxy: &mut VMProxy,
@@ -81,6 +84,7 @@ In order to cdoe your custom hints you need to take into account the accessible 
 
 * ids_data: A dictionary maping ids names to their references
 * ap_tracking: Ap tracking data of the hint
+
 These last two structures are used by helper functions to manage variables from the cairo scope, and can be overlooked when coding your custom hints.
 
 
@@ -97,6 +101,7 @@ There are many helper functions available [here](../../../src/hint_processor/bui
 These methods take the name of the ids variable along with vm_proxy, ids_data and ap_tracking and provide .
 
 Note: When handling pointer type variables, computing the address and using it to get the variable from memory might not lead to the correct value (as the variable refrence may contain an immediate value that has to be added to the ptr itself), so using the functiom `get_ptr_from_var_name` is strongly recomended.
+
 Note: Cairo's memory is write-once, read-only, so when using `insert_value_from_var_name` its important to first make sure that the variable doesnt contain any value (for example, it may be defined as local but never written) to avoid inconsistent memory errors
 
 There are also some helpers that dont depend on the hint processor used that can also be used to simplify coding hints [here](../../../src/hint_processor/hint_processor_utils.rs):
