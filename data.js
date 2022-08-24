@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661377825330,
+  "lastUpdate": 1661378752277,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -27181,6 +27181,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 276187141,
             "range": "± 7848342",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fccd6ce5f296d92cd5d37bd5723c34273bd7c894",
+          "message": "Merge pull request #379 from lambdaclass/nom-parsing-documentation\n\nAdd nom parsing documentation",
+          "timestamp": "2022-08-24T18:53:36-03:00",
+          "tree_id": "c71eec07a82f789703971a9ad2441e278465cc05",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/fccd6ce5f296d92cd5d37bd5723c34273bd7c894"
+        },
+        "date": 1661378749843,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1749369484,
+            "range": "± 4605988",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 634873621,
+            "range": "± 873491",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 313502657,
+            "range": "± 802754",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1511892341,
+            "range": "± 1501799",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 225345800,
+            "range": "± 928708",
             "unit": "ns/iter"
           }
         ]
