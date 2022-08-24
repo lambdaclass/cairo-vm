@@ -74,8 +74,6 @@ pub enum VirtualMachineError {
     NonLeFelt(BigInt, BigInt),
     #[error("Div out of range: 0 < {0} <= {1}")]
     OutOfValidRange(BigInt, BigInt),
-    #[error("Failed to get reference for id {0}")]
-    FailedToGetReference(BigInt),
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0:?} is out of range")]
     ValueOutOfRange(BigInt),
     #[error("Value: {0} should be positive")]
@@ -204,8 +202,6 @@ pub enum VirtualMachineError {
     NoneInMemoryRange,
     #[error("xpected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
-    #[error("{0} key was not found in the hint references. This may be caused by a parsing error that resulted in a default value being returned. Please be sure to check this.")]
-    IdNotFound(String),
     #[error("xpected size to be in the range from [0, 100), got: {0}")]
     InvalidKeccakStateSizeFelts(usize),
     #[error("xpected size to be in range from [0, 10), got: {0}")]

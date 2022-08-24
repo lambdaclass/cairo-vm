@@ -40,6 +40,4 @@ pub enum RunnerError {
     FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(BigInt),
-    #[error("Failed to get variable name from path: {0}, when parsing reference ids")]
-    FailedToParseIdsNameFromPath(String),
 }
