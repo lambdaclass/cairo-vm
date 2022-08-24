@@ -343,7 +343,7 @@ mod tests {
 
         vm.memory = memory![((1, 3), 2645i32), ((1, 4), 454i32), ((1, 5), 206i32)];
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 1));
+        vm.run_context.fp = 1;
         //Create ids
         let ids = ids!["point"];
         //Create references
@@ -385,7 +385,7 @@ mod tests {
         ];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 1));
+        vm.run_context.fp = 1;
 
         //Create ids
         let ids = ids!["point"];
@@ -448,7 +448,7 @@ mod tests {
         ];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 14));
+        vm.run_context.fp = 14;
 
         //Create ids
         let ids = ids!["point0", "point1"];
@@ -508,7 +508,7 @@ mod tests {
         ];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["point", "slope"];
@@ -666,10 +666,10 @@ mod tests {
         ];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+        vm.run_context.fp = 15;
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 20));
+        vm.run_context.ap = 20;
 
         //Create ids
         let ids = ids!["point0", "point1", "slope"];
@@ -787,10 +787,10 @@ mod tests {
         vm.memory = memory![((1, 0), scalar)];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 1));
+        vm.run_context.fp = 1;
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 2));
+        vm.run_context.ap = 2;
 
         //Create ids
         let ids = ids!["scalar"];

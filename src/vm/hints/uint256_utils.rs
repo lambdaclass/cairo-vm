@@ -233,7 +233,7 @@ mod tests {
         let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
         //Create ids
         let ids = ids!["a", "b", "carry_high", "carry_low"];
         //Create references
@@ -277,7 +277,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["a", "b", "carry_high", "carry_low"];
@@ -356,7 +356,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["a", "high", "low"];
@@ -407,7 +407,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["a", "high", "low"];
@@ -454,7 +454,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["a", "high", "low"];
@@ -511,7 +511,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 5));
+        vm.run_context.fp = 5;
 
         //Create ids
         let ids = ids!["n", "root"];
@@ -549,7 +549,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 5));
+        vm.run_context.fp = 5;
 
         //Create ids
         let ids = ids!["n", "root"];
@@ -592,7 +592,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 5));
+        vm.run_context.fp = 5;
 
         //Create ids
         let ids = ids!["n", "root"];
@@ -633,8 +633,8 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 4));
-        vm.run_context.ap = MaybeRelocatable::from((1, 5));
+        vm.run_context.fp = 4;
+        vm.run_context.ap = 5;
 
         //Create ids
         let ids = ids!["a"];
@@ -676,8 +676,8 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 4));
-        vm.run_context.ap = MaybeRelocatable::from((1, 5));
+        vm.run_context.fp = 4;
+        vm.run_context.ap = 5;
 
         //Create ids
         let ids = ids!["a"];
@@ -720,8 +720,8 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 4));
-        vm.run_context.ap = MaybeRelocatable::from((1, 5));
+        vm.run_context.fp = 4;
+        vm.run_context.ap = 5;
 
         //Create ids
         let ids = ids!["a"];
@@ -739,7 +739,10 @@ mod tests {
 
         //Insert a value in ap so the hint insert fails
         vm.memory
-            .insert(&mut vm.run_context.ap, &MaybeRelocatable::from(bigint!(55)))
+            .insert(
+                &mut vm.run_context.get_ap(),
+                &MaybeRelocatable::from(bigint!(55)),
+            )
             .unwrap();
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -766,7 +769,7 @@ mod tests {
         let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["a", "div", "quotient", "remainder"];
@@ -809,7 +812,7 @@ mod tests {
         let hint_code = "a = (ids.a.high << 128) + ids.a.low\ndiv = (ids.div.high << 128) + ids.div.low\nquotient, remainder = divmod(a, div)\n\nids.quotient.low = quotient & ((1 << 128) - 1)\nids.quotient.high = quotient >> 128\nids.remainder.low = remainder & ((1 << 128) - 1)\nids.remainder.high = remainder >> 128";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 10));
+        vm.run_context.fp = 10;
 
         //Create ids
         let ids = ids!["a", "div", "quotient", "remainder"];
