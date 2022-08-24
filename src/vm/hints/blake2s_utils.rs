@@ -273,9 +273,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((0, 0), (1, 5))];
+        vm.memory = memory![((1, 0), (2, 5))];
         //Create ids
         let ids = ids!["output"];
         //Create references
@@ -303,12 +303,12 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (output)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((1, 26)),
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 26)),
             )
             .unwrap();
         //Create ids
@@ -326,7 +326,7 @@ mod tests {
                 &ApTracking::default()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
+                MaybeRelocatable::from((2, 0))
             ))
         );
     }
@@ -337,9 +337,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((0, 0), 12)];
+        vm.memory = memory![((1, 0), 12)];
         //Create ids
         let ids = ids!["output"];
         //Create references
@@ -355,7 +355,7 @@ mod tests {
                 &ApTracking::default()
             ),
             Err(VirtualMachineError::ExpectedRelocatable(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -367,17 +367,17 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         //Insert ids into memory
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         vm.memory = memory![
-            ((0, 0), (1, 26)),
-            ((1, 0), 7842562439562793675803603603688959_i128),
-            ((1, 1), 7842562439562793675803603603688959_i128),
-            ((1, 2), 7842562439562793675803603603688959_i128),
-            ((1, 3), 7842562439562793675803603603688959_i128),
-            ((1, 4), 7842562439562793675803603603688959_i128),
-            ((1, 5), 7842562439562793675803603603688959_i128),
-            ((1, 6), 7842562439562793675803603603688959_i128),
-            ((1, 7), 7842562439562793675803603603688959_i128)
+            ((1, 0), (2, 26)),
+            ((2, 0), 7842562439562793675803603603688959_i128),
+            ((2, 1), 7842562439562793675803603603688959_i128),
+            ((2, 2), 7842562439562793675803603603688959_i128),
+            ((2, 3), 7842562439562793675803603603688959_i128),
+            ((2, 4), 7842562439562793675803603603688959_i128),
+            ((2, 5), 7842562439562793675803603603688959_i128),
+            ((2, 6), 7842562439562793675803603603688959_i128),
+            ((2, 7), 7842562439562793675803603603688959_i128)
         ];
         //Create ids
         let ids = ids!["output"];
@@ -403,9 +403,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((0, 0), (1, 26)), ((1, 0), (4, 5))];
+        vm.memory = memory![((1, 0), (2, 26)), ((2, 0), (5, 5))];
         //Create ids
         let ids = ids!["output"];
         //Create references
@@ -421,7 +421,7 @@ mod tests {
                 &ApTracking::default()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 0))
+                MaybeRelocatable::from((2, 0))
             ))
         );
     }
@@ -432,9 +432,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((0, 0), (1, 0))];
+        vm.memory = memory![((1, 0), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["blake2s_ptr_end"];
@@ -476,7 +476,7 @@ mod tests {
         //Get data from memory
         let data = get_fixed_size_u32_array::<204>(
             &vm.memory
-                .get_integer_range(&relocatable!(1, 0), 204)
+                .get_integer_range(&relocatable!(2, 0), 204)
                 .unwrap(),
         )
         .unwrap();
@@ -489,9 +489,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory = memory![((0, 0), (1, 0)), ((1, 0), (1, 0))];
+        vm.memory = memory![((1, 0), (2, 0)), ((2, 0), (2, 0))];
         //Create ids
         let ids = ids!["blake2s_ptr_end"];
         //Create references
@@ -508,8 +508,8 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::from((1, 0)),
+                    MaybeRelocatable::from((2, 0)),
+                    MaybeRelocatable::from((2, 0)),
                     MaybeRelocatable::from(bigint!(1795745351))
                 )
             ))
@@ -522,7 +522,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create references
         vm.references = references!(1);
         //Execute the hint
@@ -545,9 +545,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 0), ((0, 2), 0)];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["data", "high", "low"];
@@ -566,38 +566,38 @@ mod tests {
         );
         //Check data ptr
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            vm.memory.get(&MaybeRelocatable::from((2, 2))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            vm.memory.get(&MaybeRelocatable::from((2, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            vm.memory.get(&MaybeRelocatable::from((2, 4))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            vm.memory.get(&MaybeRelocatable::from((2, 5))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            vm.memory.get(&MaybeRelocatable::from((2, 6))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            vm.memory.get(&MaybeRelocatable::from((2, 7))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 
     #[test]
@@ -606,9 +606,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 25), ((0, 2), 20)];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["data", "high", "low"];
@@ -628,38 +628,38 @@ mod tests {
         );
         //Check data ptr
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(20))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            vm.memory.get(&MaybeRelocatable::from((2, 2))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            vm.memory.get(&MaybeRelocatable::from((2, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            vm.memory.get(&MaybeRelocatable::from((2, 4))),
             Ok(Some(&MaybeRelocatable::from(bigint!(25))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            vm.memory.get(&MaybeRelocatable::from((2, 5))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            vm.memory.get(&MaybeRelocatable::from((2, 6))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            vm.memory.get(&MaybeRelocatable::from((2, 7))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 
     #[test]
@@ -668,9 +668,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 0), ((0, 2), 0)];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["data", "high", "low"];
@@ -690,38 +690,38 @@ mod tests {
         );
         //Check data ptr
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            vm.memory.get(&MaybeRelocatable::from((2, 2))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            vm.memory.get(&MaybeRelocatable::from((2, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            vm.memory.get(&MaybeRelocatable::from((2, 4))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            vm.memory.get(&MaybeRelocatable::from((2, 5))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            vm.memory.get(&MaybeRelocatable::from((2, 6))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            vm.memory.get(&MaybeRelocatable::from((2, 7))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 
     #[test]
@@ -730,9 +730,9 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 25), ((0, 2), 20)];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["data", "high", "low"];
@@ -752,37 +752,37 @@ mod tests {
         );
         //Check data ptr
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
+            vm.memory.get(&MaybeRelocatable::from((2, 2))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
+            vm.memory.get(&MaybeRelocatable::from((2, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(25))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 4))),
+            vm.memory.get(&MaybeRelocatable::from((2, 4))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 5))),
+            vm.memory.get(&MaybeRelocatable::from((2, 5))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 6))),
+            vm.memory.get(&MaybeRelocatable::from((2, 6))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 7))),
+            vm.memory.get(&MaybeRelocatable::from((2, 7))),
             Ok(Some(&MaybeRelocatable::from(bigint!(20))))
         );
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((1, 8))), Ok(None));
+        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 }
