@@ -119,6 +119,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1ad822118d20d2c234f427000d5acc36eabe1e29a348c89b63dd60b13f28e5d"
 
 [[package]]
+name = "cairo-rs"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "clap",
+ "generic-array",
+ "hex",
+ "keccak",
+ "lazy_static",
+ "mimalloc",
+ "nom",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "parse-hyperlinks",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.10.2",
+ "sha3",
+ "starknet-crypto",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -170,30 +194,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cleopatra_cairo"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "clap",
- "generic-array",
- "hex",
- "keccak",
- "lazy_static",
- "mimalloc",
- "nom",
- "num-bigint",
- "num-integer",
- "num-traits",
- "parse-hyperlinks",
- "serde",
- "serde_bytes",
- "serde_json",
- "sha2 0.10.2",
- "sha3",
- "starknet-crypto",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -238,7 +238,7 @@ dependencies = [
 name = "custom_hint_example"
 version = "0.1.0"
 dependencies = [
- "cleopatra_cairo",
+ "cairo-rs",
 ]
 
 [[package]]

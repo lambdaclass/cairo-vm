@@ -1,14 +1,14 @@
-use cleopatra_cairo::cairo_run::cairo_run;
-use cleopatra_cairo::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
+use cairo_rs::cairo_run::cairo_run;
+use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
     BuiltinHintProcessor, HintFunc,
 };
-use cleopatra_cairo::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use cleopatra_cairo::hint_processor::hint_processor_definition::HintReference;
-use cleopatra_cairo::hint_processor::proxies::{
+use cairo_rs::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
+use cairo_rs::hint_processor::hint_processor_definition::HintReference;
+use cairo_rs::hint_processor::proxies::{
     exec_scopes_proxy::ExecutionScopesProxy, vm_proxy::VMProxy,
 };
-use cleopatra_cairo::serde::deserialize_program::ApTracking;
-use cleopatra_cairo::vm::errors::vm_errors::VirtualMachineError;
+use cairo_rs::serde::deserialize_program::ApTracking;
+use cairo_rs::vm::errors::vm_errors::VirtualMachineError;
 use std::collections::HashMap;
 use std::path::Path;
 
