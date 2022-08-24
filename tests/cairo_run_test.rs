@@ -8,7 +8,6 @@ use cleopatra_cairo::{
 #[test]
 fn cairo_run_test() {
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let hint_processor = BuiltinHintProcessor::new_empty();
     cairo_run::cairo_run(
         Path::new("cairo_programs/fibonacci.json"),
         "main",

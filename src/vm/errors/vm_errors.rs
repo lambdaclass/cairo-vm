@@ -113,6 +113,7 @@ pub enum VirtualMachineError {
     SliceToArrayError,
     WrongHintData,
     CompileHintFail(String),
+    NoRegisterInReference,
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -318,6 +319,7 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::WrongHintData => {
                 write!(f, "HintProcessor failed retrieve the compiled data necessary for hint execution")
             },
+            VirtualMachineError::NoRegisterInReference => write!(f, "An address was being tried to compute but there was no register in the reference."),
             VirtualMachineError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
         }
     }
