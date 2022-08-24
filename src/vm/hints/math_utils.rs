@@ -437,10 +437,10 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (-1))];
+        vm.memory = memory![((1, 9), (-1))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a"];
@@ -469,10 +469,10 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 4), 1)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a"];
@@ -506,12 +506,12 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 4)),
                 //(-prime) + 1
                 &MaybeRelocatable::from(
                     BigInt::new(Sign::Minus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]) + bigint!(1),
@@ -548,10 +548,10 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 4), 1)];
         //Create ids
         let ids = ids!["a"];
         //Create references
@@ -578,7 +578,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
+        vm.run_context.ap = 0;
         //Create ids
         let ids = ids!["b"];
         //Execute the hint
@@ -603,8 +603,8 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Dont insert ids into memory
         //Create ids
         let ids = ids!["a"];
@@ -621,7 +621,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 4))
             ))
         );
     }
@@ -631,10 +631,10 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (2, 3))];
+        vm.memory = memory![((1, 4), (2, 3))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a"];
@@ -651,7 +651,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 4))
             ))
         );
     }
@@ -661,9 +661,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 3), 4)];
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 3), 4)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a", "b", "small_inputs"];
@@ -693,10 +693,10 @@ mod tests {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1), ((0, 1), 2)];
+        vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a", "b"];
@@ -723,9 +723,9 @@ mod tests {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm_with_range_check!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((0, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
-        vm.memory = memory![((0, 0), 1), ((0, 1), 2)];
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 2;
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2)];
         let ids = ids!["a", "b"];
         //Create references
         vm.references = references!(2);
@@ -741,7 +741,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::Int(bigint!(1)),
                     MaybeRelocatable::Int(bigint!(0))
                 )
@@ -753,9 +753,9 @@ mod tests {
     fn run_is_le_felt_hint_incorrect_ids() {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm!();
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
-        vm.memory = memory![((0, 0), 1), ((0, 1), 2)];
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
+        vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
         let ids = ids!["a", "c"];
         //Create references
         vm.references = references!(2);
@@ -779,9 +779,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 0), 1)];
         //Create ids
         let ids = ids!["a"];
         //Create references
@@ -806,9 +806,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (-1))];
+        vm.memory = memory![((1, 0), (-1))];
         //Create ids
         let ids = ids!["a"];
         //Create references
@@ -832,9 +832,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (-1))];
+        vm.memory = memory![((1, 0), (-1))];
         //Create ids
         let ids = ids!["incorrect_id"];
         //Create references
@@ -858,9 +858,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (-1))];
+        vm.memory = memory![((1, 0), (-1))];
         //Create ids
         let mut ids = HashMap::<String, usize>::new();
         ids.insert(String::from("a"), 2);
@@ -885,9 +885,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (10, 10))];
+        vm.memory = memory![((1, 0), (10, 10))];
         //Create ids
         let ids = ids!["a"];
         //Create references
@@ -903,7 +903,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -913,9 +913,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 0), 1)];
         //Create ids
         let ids = ids!["a"];
         //Create references
@@ -940,7 +940,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.segments.add(&mut vm.memory, None);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create ids
         let ids = ids!["a"];
         //Create references
@@ -956,7 +956,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -966,9 +966,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 2), ((0, 1), 1), ((0, 3), 4)];
+        vm.memory = memory![((1, 0), 2), ((1, 1), 1), ((1, 3), 4)];
         let ids = ids!["a", "b", "small_inputs"];
         //Create references
         vm.references = references!(3);
@@ -991,9 +991,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 4)];
+        vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 4)];
         //Create ids
         let ids = ids!["a", "b", "small_inputs"];
         //Create references
@@ -1010,7 +1010,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 2)),
+                    MaybeRelocatable::from((1, 2)),
                     MaybeRelocatable::from(bigint!(4)),
                     MaybeRelocatable::from(bigint!(1))
                 )
@@ -1023,9 +1023,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (0, 0)), ((0, 1), 1), ((0, 3), 4)];
+        vm.memory = memory![((1, 0), (1, 0)), ((1, 1), 1), ((1, 3), 4)];
         //Create ids
         let ids = ids!["a", "b", "small_inputs"];
         //Create references
@@ -1041,7 +1041,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -1051,9 +1051,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1), ((0, 1), (0, 0)), ((0, 3), 4)];
+        vm.memory = memory![((1, 0), 1), ((1, 1), (1, 0)), ((1, 3), 4)];
         //Create ids
         let ids = ids!["a", "b", "small_inputs"];
         //Create references
@@ -1069,7 +1069,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -1080,10 +1080,10 @@ mod tests {
             "memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 2)];
+        vm.memory = memory![((1, 4), 2)];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a"];
@@ -1112,10 +1112,10 @@ mod tests {
             "memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (-1))];
+        vm.memory = memory![((1, 4), (-1))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids = ids!["a"];
@@ -1142,10 +1142,10 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1), ((0, 1), 1)];
+        vm.memory = memory![((1, 8), 1), ((1, 9), 1)];
         let ids = ids!["a", "b"];
         //Create references
         vm.references = references!(2);
@@ -1171,10 +1171,10 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1), ((0, 1), 3)];
+        vm.memory = memory![((1, 8), 1), ((1, 9), 3)];
         //Create ids
         let ids = ids!["a", "b"];
         //Create references
@@ -1201,19 +1201,19 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 8)),
                 //-1 % prime = prime -1
                 &MaybeRelocatable::from(bigint!(-1)),
             )
             .unwrap();
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 9)),
                 //prime -1
                 &MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020480"
@@ -1248,10 +1248,10 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (0, 0)), ((0, 1), (0, 0))];
+        vm.memory = memory![((1, 8), (1, 0)), ((1, 9), (1, 0))];
         //Create ids
         let ids = ids!["a", "b"];
         //Create references
@@ -1267,8 +1267,8 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::AssertNotEqualFail(
-                MaybeRelocatable::from((0, 0)),
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0)),
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -1278,10 +1278,10 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (0, 1)), ((0, 1), (0, 0))];
+        vm.memory = memory![((1, 8), (0, 1)), ((1, 9), (0, 0))];
         //Create ids
         let ids = ids!["a", "b"];
         //Create references
@@ -1305,10 +1305,10 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (0, 0))];
+        vm.memory = memory![((1, 8), (2, 0)), ((1, 9), (1, 0))];
         //Create ids
         let ids = ids!["a", "b"];
         //Create references
@@ -1324,8 +1324,8 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::DiffIndexComp(
-                relocatable!(1, 0),
-                relocatable!(0, 0)
+                relocatable!(2, 0),
+                relocatable!(1, 0)
             ))
         );
     }
@@ -1335,10 +1335,10 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), 1)];
+        vm.memory = memory![((1, 8), (1, 0)), ((1, 9), 1)];
         //Create ids
         let ids = ids!["a", "b"];
         //Create references
@@ -1368,10 +1368,10 @@ mod tests {
         //Create references
         vm.references = references!(1);
         // //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5)];
+        vm.memory = memory![((1, 4), 5)];
         //Create ids
         let ids = ids!["value"];
 
@@ -1396,10 +1396,10 @@ mod tests {
         //Create references
         vm.references = references!(1);
         // //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 0)];
+        vm.memory = memory![((1, 4), 0)];
         //Create ids
         let ids = ids!["value"];
 
@@ -1423,14 +1423,16 @@ mod tests {
         let mut vm = vm!();
         //Create references
         vm.references = references!(1);
-        vm.segments.add(&mut vm.memory, None);
-        // //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
+        //Initialize ap, fp
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(vm.prime.clone()),
             )
             .unwrap();
@@ -1461,10 +1463,10 @@ mod tests {
         //Create references
         vm.references = references!(1);
         // //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5)];
+        vm.memory = memory![((1, 4), 5)];
         //Create invalid id value
         let mut ids = HashMap::<String, usize>::new();
         ids.insert(String::from("value"), 10);
@@ -1489,10 +1491,10 @@ mod tests {
         //Create references
         vm.references = references!(1);
         // //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 0)];
+        vm.memory = memory![((1, 4), 0)];
         //Create invalid id key
         let ids = ids!["incorrect_id"];
 
@@ -1516,10 +1518,10 @@ mod tests {
         let mut vm = vm!();
         vm.references = references!(1);
         // //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (0, 0))];
+        vm.memory = memory![((1, 4), (1, 0))];
         //Create ids
         let ids = ids!["value"];
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -1532,7 +1534,7 @@ mod tests {
                 &ApTracking::new()
             ),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 4))
             ))
         );
     }
@@ -1542,10 +1544,10 @@ mod tests {
         let hint_code = "assert ids.value == 0, 'split_int(): value is out of range.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 4), 1)];
         //Create ids
         let ids = ids!["value"];
         //Create references
@@ -1569,10 +1571,10 @@ mod tests {
         let hint_code = "assert ids.value == 0, 'split_int(): value is out of range.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 0)];
+        vm.memory = memory![((1, 4), 0)];
         //Create ids
         let ids = ids!["value"];
         //Create references
@@ -1596,10 +1598,10 @@ mod tests {
         let hint_code = "memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), (2, 0)), ((0, 1), 2), ((0, 2), 10), ((0, 3), 100)];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 2), ((1, 2), 10), ((1, 3), 100)];
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
@@ -1630,14 +1632,14 @@ mod tests {
         let hint_code = "memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'";
         let mut vm = vm!();
         //Initialize ap, fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![
-            ((0, 0), (2, 0)),
-            ((0, 1), 100),
-            ((0, 2), 10000),
-            ((0, 3), 10)
+            ((1, 0), (2, 0)),
+            ((1, 1), 100),
+            ((1, 2), 10000),
+            ((1, 3), 10)
         ];
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
@@ -1666,9 +1668,9 @@ mod tests {
         "from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((0, 0), 250)];
+        vm.memory = memory![((1, 0), 250)];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         //Create ids
         let ids = ids!["value", "is_positive"];
@@ -1687,7 +1689,7 @@ mod tests {
             .expect("Error while executing hint");
         //Check that is_positive now contains 1 (true)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -1698,9 +1700,9 @@ mod tests {
         "from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((0, 0), (-250))];
+        vm.memory = memory![((1, 0), (-250))];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         //Create ids
         let ids = ids!["value", "is_positive"];
@@ -1719,7 +1721,7 @@ mod tests {
             .expect("Error while executing hint");
         //Check that is_positive now contains 0 (false)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
@@ -1733,11 +1735,11 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(BigInt::new(
                     Sign::Plus,
                     vec![1, 0, 0, 0, 0, 0, 17, 134217727],
@@ -1775,18 +1777,18 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //Insert ids.is_positive into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(4)),
             )
             .unwrap();
@@ -1806,7 +1808,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::from(bigint!(4)),
                     MaybeRelocatable::from(bigint!(1))
                 )
@@ -1819,9 +1821,9 @@ mod tests {
         let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((0, 0), 81)];
+        vm.memory = memory![((1, 0), 81)];
         //Create ids
         let ids = ids!["value", "root"];
         //Create references
@@ -1840,7 +1842,7 @@ mod tests {
         );
         //Check that root (0,1) has the square root of 81
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(9))))
         );
     }
@@ -1850,9 +1852,9 @@ mod tests {
         let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((0, 0), (-81))];
+        vm.memory = memory![((1, 0), (-81))];
         //Create ids
         let ids = ids!["value", "root"];
         //Create references
@@ -1878,9 +1880,9 @@ mod tests {
         let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory = memory![((0, 0), 81), ((0, 1), 7)];
+        vm.memory = memory![((1, 0), 81), ((1, 1), 7)];
         //Create ids
         let ids = ids!["value", "root"];
         //Create references
@@ -1897,7 +1899,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::from(bigint!(7)),
                     MaybeRelocatable::from(bigint!(9))
                 )
@@ -1910,10 +1912,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 2), 5), ((0, 3), 7)];
+        vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids = ids!["r", "q", "div", "value"];
         //Create references
@@ -1930,11 +1932,11 @@ mod tests {
             )
             .is_ok());
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(2))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -1944,10 +1946,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 2), (-5)), ((0, 3), 7)];
+        vm.memory = memory![((1, 2), (-5)), ((1, 3), 7)];
         //Create ids
         let ids = ids!["r", "q", "div", "value"];
         //Create references
@@ -1974,10 +1976,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 2), 5), ((0, 3), 7)];
+        vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids = ids!["r", "q", "div", "value"];
         //Create references
@@ -2000,10 +2002,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 2), 5), ((0, 3), 7)];
+        vm.memory = memory![((1, 0), 5), ((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids = ids!["r", "q", "div", "value"];
         //Create references
@@ -2020,7 +2022,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::Int(bigint!(5)),
                     MaybeRelocatable::Int(bigint!(2))
                 )
@@ -2036,10 +2038,10 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 4;
         //Insert ids into memory
-        vm.memory = memory![((0, 2), 5), ((0, 3), 7)];
+        vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids = ids!["a", "b", "iv", "vlue"];
         //Create references
@@ -2066,10 +2068,10 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
+        vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids = ids!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Create references
@@ -2086,11 +2088,11 @@ mod tests {
             )
             .is_ok());
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(31))))
         );
     }
@@ -2100,10 +2102,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((0, 3), 7), ((0, 4), (-10)), ((0, 5), 29)];
+        vm.memory = memory![((1, 3), 7), ((1, 4), (-10)), ((1, 5), 29)];
         //Create ids
         let ids = ids!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Create references
@@ -2120,11 +2122,11 @@ mod tests {
             )
             .is_ok());
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(4))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(27))))
         );
     }
@@ -2134,10 +2136,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((0, 3), (-5)), ((0, 4), 10), ((0, 5), 29)];
+        vm.memory = memory![((1, 3), (-5)), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids = ids!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Create references
@@ -2164,10 +2166,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
+        vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids = ids!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Create references
@@ -2190,10 +2192,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((0, 1), 10), ((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
+        vm.memory = memory![((1, 1), 10), ((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids = ids!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Create references
@@ -2210,7 +2212,7 @@ mod tests {
             ),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 1)),
+                    MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::Int(bigint!(10)),
                     MaybeRelocatable::Int(bigint!(31))
                 )
@@ -2223,10 +2225,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = MaybeRelocatable::from((1, 0));
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.ap = 0;
+        vm.run_context.fp = 6;
         //Insert ids into memory
-        vm.memory = memory![((0, 3), 5), ((0, 4), 10), ((0, 5), 29)];
+        vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids = ids!["r", "b", "r", "d", "v", "b"];
         //Create references
@@ -2250,9 +2252,9 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 0), 1)];
         //Create ids
         let ids = ids!["value", "high", "low"];
         //Create references
@@ -2272,11 +2274,11 @@ mod tests {
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 2))),
+            vm.memory.get(&MaybeRelocatable::from((1, 2))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -2290,12 +2292,12 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Insert ids into memory
         //ids.value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(bigint!(1).shl(251i32)),
             )
             .unwrap();
@@ -2329,7 +2331,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+        vm.run_context.fp = 7;
 
         //Insert ids.value into memory
         vm.memory
@@ -2392,7 +2394,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+        vm.run_context.fp = 7;
 
         //Insert ids.value into memory
         vm.memory
@@ -2443,7 +2445,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+        vm.run_context.fp = 7;
 
         //Insert ids.value into memory
         vm.memory
@@ -2493,7 +2495,7 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+        vm.run_context.fp = 7;
         //Insert ids.value into memory
         vm.memory
             .insert(
@@ -2555,7 +2557,7 @@ mod tests {
         vm.memory = memory![((1, 4), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+        vm.run_context.fp = 7;
         //Insert ids.value into memory
         vm.memory
             .insert(
@@ -2608,7 +2610,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         vm.memory = memory![((1, 3), (1, 0)), ((1, 4), (2, 0))];
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 7));
+        vm.run_context.fp = 7;
         //Create ids
         let ids = ids!["value", "low", "high"];
 
@@ -2646,7 +2648,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+        vm.run_context.fp = 3;
 
         //Insert ids.a into memory
         vm.memory
@@ -2689,7 +2691,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+        vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), 3), ((1, 2), 2)];
         //Create ids
         let ids = ids!["a", "b"];
@@ -2715,7 +2717,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+        vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), 1), ((1, 2), 2)];
         //Create Incorrects ids
         let ids = ids!["a"];
@@ -2741,7 +2743,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+        vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), (1, 0)), ((1, 2), 2)];
         //Create ids
         let ids = ids!["a", "b"];
@@ -2769,7 +2771,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+        vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), 1), ((1, 2), (1, 0))];
         //Create ids
         let ids = ids!["a", "b"];
@@ -2797,7 +2799,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 3));
+        vm.run_context.fp = 3;
         //Insert ids.a into memory
         vm.memory = memory![((1, 1), 1)];
         //Create incorrects ids
