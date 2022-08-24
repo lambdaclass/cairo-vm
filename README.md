@@ -26,9 +26,9 @@ cargo build --release
 ```
 
 ## Testing
-Run the test suite with cargo:
+Run the test suite:
 ```bash
-cargo test
+make test
 ```
 
 ## Code Coverage
