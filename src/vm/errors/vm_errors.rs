@@ -64,10 +64,8 @@ pub enum VirtualMachineError {
     MemoryGet(MaybeRelocatable),
     #[error("Expected integer at address {0:?}")]
     ExpectedInteger(MaybeRelocatable),
-    #[error("Expected address to be a Relocatable, got {0:?}")]
-    ExpectedRelocatable(MaybeRelocatable),
     #[error("Expected relocatable at address {0:?}")]
-    ExpectedRelocatableAtAddr(MaybeRelocatable),
+    ExpectedRelocatable(MaybeRelocatable),
     #[error("Failed to get ids for hint execution")]
     FailedToGetIds,
     #[error("Assertion failed, {0}, is not less or equal to {1}")]
