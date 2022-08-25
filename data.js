@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661461945323,
+  "lastUpdate": 1661464787460,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -28051,6 +28051,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 227245209,
             "range": "± 473711",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "6b9487ba01a1993ed39135144f4337c9cf38a1ec",
+          "message": "Fix error types in compute_operands",
+          "timestamp": "2022-08-25T21:27:09Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/389/commits/6b9487ba01a1993ed39135144f4337c9cf38a1ec"
+        },
+        "date": 1661464785623,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1687072273,
+            "range": "± 5715622",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 536135108,
+            "range": "± 781651",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 267520858,
+            "range": "± 709972",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1335355323,
+            "range": "± 2753086",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 195049289,
+            "range": "± 709152",
             "unit": "ns/iter"
           }
         ]
