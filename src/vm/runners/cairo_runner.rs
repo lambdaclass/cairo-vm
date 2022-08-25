@@ -149,7 +149,7 @@ impl CairoRunner {
                 )
                 .map_err(RunnerError::MemoryInitializationError)?;
         } else {
-            return Err(RunnerError::NoExecBase);
+            return Err(RunnerError::NoProgBase);
         }
         Ok(())
     }
@@ -651,7 +651,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn initialize_state_no_program_base() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
@@ -679,7 +678,7 @@ mod tests {
             MaybeRelocatable::from(bigint!(4)),
             MaybeRelocatable::from(bigint!(6)),
         ];
-        cairo_runner.initialize_state(1, stack).unwrap();
+        assert!(cairo_runner.initialize_state(1, stack).is_err());
     }
 
     #[test]
