@@ -42,4 +42,16 @@ pub enum RunnerError {
     EcOpBuiltinScalarLimit(BigInt),
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
+    #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
+    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
+    #[error(
+        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+    Attempting to compute P + m * Q where:\n
+    P = {0:?} \n
+    m = {1}\n
+    Q = {2:?}."
+    )]
+    EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
+    #[error("EcOpBuiltin: point {0:?} is not on the curve")]
+    PointNotOnCurve((usize, usize)),
 }
