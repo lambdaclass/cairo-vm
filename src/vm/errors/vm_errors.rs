@@ -174,7 +174,7 @@ pub enum VirtualMachineError {
     LastPosNotFound,
     #[error("Set starting point {0:?} is bigger it's ending point {1:?}")]
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
-    #[error("Encountered unexpected memory gap")]
+    #[error("Failed to construct a fixed size array of size: {0}")]
     FixedSizeArrayFail(usize),
     #[error("{0}")]
     AssertionFailed(String),
