@@ -535,83 +535,78 @@ impl VirtualMachine {
         let should_update_op0 = matches!(op0, None);
         let should_update_op1 = matches!(op1, None);
 
-        if matches!(op0, None) {
-            match self.deduce_memory_cell(&op0_addr) {
-                Ok(None) => {
+        if op0.is_none() {
+            match self.deduce_memory_cell(&op0_addr)? {
+                None => {
                     (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
                 }
-                Ok(deduced_memory_cell) => {
+                deduced_memory_cell => {
                     op0 = deduced_memory_cell;
                 }
-                Err(e) => return Err(e),
             }
         }
 
         if matches!(op1, None) {
-            match self.deduce_memory_cell(&op1_addr) {
-                Ok(None) => {
+            match self.deduce_memory_cell(&op1_addr)? {
+                None => {
                     let deduced_operands =
                         self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
                     op1 = deduced_operands.0;
 
-                    if matches!(res, None) {
+                    if res.is_none() {
                         res = deduced_operands.1
                     }
                 }
-                Ok(deduced_memory_cell) => {
+                deduced_memory_cell => {
                     op1 = deduced_memory_cell;
                 }
-                Err(e) => return Err(e),
             }
         }
 
-        if matches!(res, None) {
+        if res.is_none() {
             match (&op0, &op1) {
                 (Some(ref unwrapped_op0), Some(ref unwrapped_op1)) => {
                     res = self.compute_res(instruction, unwrapped_op0, unwrapped_op1)?;
                 }
-                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                _ => return Err(VirtualMachineError::FailedToComputeOperands),
             }
         }
 
         if matches!(dst, None) {
-            match instruction.opcode {
-                Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
-                Opcode::Call => dst = Some(self.run_context.fp.clone()),
-                _ => match self.deduce_dst(instruction, res.as_ref()) {
-                    Some(d) => dst = Some(d),
-                    None => return Err(VirtualMachineError::NoDst),
-                },
+            dst = match instruction.opcode {
+                Opcode::AssertEq if res.is_some() => res.clone(),
+                Opcode::Call => Some(self.run_context.fp.clone()),
+                _ => self.deduce_dst(instruction, res.as_ref()),
             }
         }
 
         if should_update_dst {
             match dst {
-                Some(ref unwrapped_dst) => match self.memory.insert(&dst_addr, unwrapped_dst) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
+                Some(ref unwrapped_dst) => self
+                    .memory
+                    .insert(&dst_addr, unwrapped_dst)
+                    .map_err(VirtualMachineError::MemoryError)?,
                 _ => return Err(VirtualMachineError::NoDst),
             }
         }
 
         if should_update_op0 {
             match op0 {
-                Some(ref unwrapped_op0) => match self.memory.insert(&op0_addr, unwrapped_op0) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
-                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                Some(ref unwrapped_op0) => self
+                    .memory
+                    .insert(&op0_addr, unwrapped_op0)
+                    .map_err(VirtualMachineError::MemoryError)?,
+                _ => return Err(VirtualMachineError::FailedToComputeOperands),
             }
         }
 
         if should_update_op1 {
             match op1 {
-                Some(ref unwrapped_op1) => match self.memory.insert(&op1_addr, unwrapped_op1) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
-                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                Some(ref unwrapped_op1) => self
+                    .memory
+                    .insert(&op1_addr, unwrapped_op1)
+                    .map_err(VirtualMachineError::MemoryError)?,
+                _ => return Err(VirtualMachineError::FailedToComputeOperands),
             };
         }
 
@@ -632,7 +627,7 @@ impl VirtualMachine {
                     accessed_addresses,
                 ))
             }
-            _ => Err(VirtualMachineError::InvalidInstructionEncoding),
+            _ => Err(VirtualMachineError::FailedToComputeOperands),
         }
     }
 
