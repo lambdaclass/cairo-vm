@@ -506,15 +506,16 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Option<OperandsAddresses>), VirtualMachineError> {
+        //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
-        let mut dst = self
+        let dst_op = self
             .memory
             .get(&dst_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
-        let mut op0 = self
+        let op0_op = self
             .memory
             .get(&op0_addr)
             .map_err(VirtualMachineError::MemoryError)?
@@ -522,8 +523,8 @@ impl VirtualMachine {
 
         let op1_addr = self
             .run_context
-            .compute_op1_addr(instruction, op0.as_ref())?;
-        let mut op1 = self
+            .compute_op1_addr(instruction, op0_op.as_ref())?;
+        let op1_op = self
             .memory
             .get(&op1_addr)
             .map_err(VirtualMachineError::MemoryError)?
@@ -531,104 +532,77 @@ impl VirtualMachine {
 
         let mut res: Option<MaybeRelocatable> = None;
 
-        let should_update_dst = matches!(dst, None);
-        let should_update_op0 = matches!(op0, None);
-        let should_update_op1 = matches!(op1, None);
-
-        if op0.is_none() {
-            match self.deduce_memory_cell(&op0_addr)? {
-                None => {
-                    (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
-                }
-                deduced_memory_cell => {
-                    op0 = deduced_memory_cell;
-                }
-            }
-        }
-
-        if matches!(op1, None) {
-            match self.deduce_memory_cell(&op1_addr)? {
-                None => {
-                    let deduced_operands =
-                        self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
-                    op1 = deduced_operands.0;
-
-                    if res.is_none() {
-                        res = deduced_operands.1
+        //Deduce op0 if it wasnt previously computed
+        let op0 = match op0_op {
+            Some(op0) => op0,
+            None => {
+                let op0_op = match self.deduce_memory_cell(&op0_addr)? {
+                    None => {
+                        let op0;
+                        (op0, res) =
+                            self.deduce_op0(instruction, dst_op.as_ref(), op1_op.as_ref())?;
+                        op0
                     }
-                }
-                deduced_memory_cell => {
-                    op1 = deduced_memory_cell;
-                }
-            }
-        }
-
-        if res.is_none() {
-            match (&op0, &op1) {
-                (Some(ref unwrapped_op0), Some(ref unwrapped_op1)) => {
-                    res = self.compute_res(instruction, unwrapped_op0, unwrapped_op1)?;
-                }
-                _ => return Err(VirtualMachineError::FailedToComputeOperands),
-            }
-        }
-
-        if matches!(dst, None) {
-            dst = match instruction.opcode {
-                Opcode::AssertEq if res.is_some() => res.clone(),
-                Opcode::Call => Some(self.run_context.fp.clone()),
-                _ => self.deduce_dst(instruction, res.as_ref()),
-            }
-        }
-
-        if should_update_dst {
-            match dst {
-                Some(ref unwrapped_dst) => self
-                    .memory
-                    .insert(&dst_addr, unwrapped_dst)
-                    .map_err(VirtualMachineError::MemoryError)?,
-                _ => return Err(VirtualMachineError::NoDst),
-            }
-        }
-
-        if should_update_op0 {
-            match op0 {
-                Some(ref unwrapped_op0) => self
-                    .memory
-                    .insert(&op0_addr, unwrapped_op0)
-                    .map_err(VirtualMachineError::MemoryError)?,
-                _ => return Err(VirtualMachineError::FailedToComputeOperands),
-            }
-        }
-
-        if should_update_op1 {
-            match op1 {
-                Some(ref unwrapped_op1) => self
-                    .memory
-                    .insert(&op1_addr, unwrapped_op1)
-                    .map_err(VirtualMachineError::MemoryError)?,
-                _ => return Err(VirtualMachineError::FailedToComputeOperands),
-            };
-        }
-
-        match (dst, op0, op1) {
-            (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => {
-                let accessed_addresses = if self.accessed_addresses.is_some() {
-                    Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
-                } else {
-                    None
+                    deduced_memory_cell => deduced_memory_cell,
                 };
-                Ok((
-                    Operands {
-                        dst: unwrapped_dst,
-                        op0: unwrapped_op0,
-                        op1: unwrapped_op1,
-                        res,
-                    },
-                    accessed_addresses,
-                ))
+                let op0 = op0_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+                self.memory
+                    .insert(&op0_addr, &op0)
+                    .map_err(VirtualMachineError::MemoryError)?;
+                op0
             }
-            _ => Err(VirtualMachineError::FailedToComputeOperands),
+        };
+
+        //Deduce op1 if it wasnt previously computed
+        let op1 = match op1_op {
+            Some(op1) => op1,
+            None => {
+                let op1_op = match self.deduce_memory_cell(&op1_addr)? {
+                    None => {
+                        let (op1, deduced_res) =
+                            self.deduce_op1(instruction, dst_op.as_ref(), Some(op0.clone()))?;
+                        if res.is_none() {
+                            res = deduced_res
+                        }
+                        op1
+                    }
+                    deduced_memory_cell => deduced_memory_cell,
+                };
+                let op1 = op1_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+                self.memory
+                    .insert(&op1_addr, &op1)
+                    .map_err(VirtualMachineError::MemoryError)?;
+                op1
+            }
+        };
+
+        //Compute res if it wasnt previously deduced
+        if res.is_none() {
+            res = self.compute_res(instruction, &op0, &op1)?;
         }
+
+        //Deduce dst if it wasnt previously computed
+        let dst = match dst_op {
+            Some(dst) => dst,
+            None => {
+                let dst_op = match instruction.opcode {
+                    Opcode::AssertEq if res.is_some() => res.clone(),
+                    Opcode::Call => Some(self.run_context.fp.clone()),
+                    _ => self.deduce_dst(instruction, res.as_ref()),
+                };
+                let dst = dst_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+                self.memory
+                    .insert(&dst_addr, &dst)
+                    .map_err(VirtualMachineError::MemoryError)?;
+                dst
+            }
+        };
+        let accessed_addresses = if self.accessed_addresses.is_some() {
+            Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
+        } else {
+            None
+        };
+        Ok((Operands { dst, op0, op1, res }, accessed_addresses))
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
