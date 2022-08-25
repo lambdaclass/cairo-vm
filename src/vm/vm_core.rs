@@ -506,28 +506,28 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Option<OperandsAddresses>), VirtualMachineError> {
-        let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
+        let dst_addr = self.run_context.compute_dst_addr(instruction)?;
+        let mut dst = self
+            .memory
+            .get(&dst_addr)
+            .map_err(VirtualMachineError::MemoryError)?
+            .cloned();
 
-        let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
-            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            Ok(result) => result.cloned(),
-        };
+        let op0_addr = self.run_context.compute_op0_addr(instruction)?;
+        let mut op0 = self
+            .memory
+            .get(&op0_addr)
+            .map_err(VirtualMachineError::MemoryError)?
+            .cloned();
 
-        let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction)?;
-
-        let mut op0: Option<MaybeRelocatable> = match self.memory.get(&op0_addr) {
-            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            Ok(result) => result.cloned(),
-        };
-
-        let op1_addr: MaybeRelocatable = self
+        let op1_addr = self
             .run_context
             .compute_op1_addr(instruction, op0.as_ref())?;
-
-        let mut op1: Option<MaybeRelocatable> = match self.memory.get(&op1_addr) {
-            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            Ok(result) => result.cloned(),
-        };
+        let mut op1 = self
+            .memory
+            .get(&op1_addr)
+            .map_err(VirtualMachineError::MemoryError)?
+            .cloned();
 
         let mut res: Option<MaybeRelocatable> = None;
 
