@@ -287,7 +287,10 @@ mod test {
     use super::*;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::trace::trace_entry::TraceEntry;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::Sign;
 
     #[test]
     fn to_field_element_no_change_a() {
@@ -420,5 +423,78 @@ mod test {
 
         check_memory_address!(memory, (1, 1), (1, 0));
         check_memory_address!(memory, (1, 2), 1);
+    }
+
+    #[test]
+    fn from_bigint_str_test() {
+        from_bigint_str![8];
+        let may_rel = MaybeRelocatable::from((b"11520396", 10));
+        assert_eq!(MaybeRelocatable::from(bigint!(11520396)), may_rel);
+    }
+
+    #[test]
+    fn create_run_context() {
+        let mut vm = vm!();
+        run_context!(vm, 2, 6, 10);
+
+        assert_eq!(vm.run_context.pc, MaybeRelocatable::from((0, 2)));
+        assert_eq!(vm.run_context.ap, MaybeRelocatable::from((1, 6)));
+        assert_eq!(vm.run_context.fp, MaybeRelocatable::from((1, 10)));
+    }
+
+    #[test]
+    fn assert_trace() {
+        let trace = vec![
+            TraceEntry {
+                pc: Relocatable {
+                    segment_index: 1,
+                    offset: 2,
+                },
+                ap: Relocatable {
+                    segment_index: 3,
+                    offset: 7,
+                },
+                fp: Relocatable {
+                    segment_index: 4,
+                    offset: 1,
+                },
+            },
+            TraceEntry {
+                pc: Relocatable {
+                    segment_index: 7,
+                    offset: 5,
+                },
+                ap: Relocatable {
+                    segment_index: 4,
+                    offset: 1,
+                },
+                fp: Relocatable {
+                    segment_index: 7,
+                    offset: 0,
+                },
+            },
+            TraceEntry {
+                pc: Relocatable {
+                    segment_index: 4,
+                    offset: 9,
+                },
+                ap: Relocatable {
+                    segment_index: 5,
+                    offset: 5,
+                },
+                fp: Relocatable {
+                    segment_index: 3,
+                    offset: 7,
+                },
+            },
+        ];
+        trace_check!(
+            trace,
+            [
+                ((1, 2), (3, 7), (4, 1)),
+                ((7, 5), (4, 1), (7, 0)),
+                ((4, 9), (5, 5), (3, 7))
+            ]
+        );
     }
 }
