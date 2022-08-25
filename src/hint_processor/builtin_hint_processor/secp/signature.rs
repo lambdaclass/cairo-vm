@@ -141,7 +141,7 @@ mod tests {
             ((1, 2), 2147483647),
             ((1, 3), 2147483647)
         ];
-        vm.run_context.fp = 2;
+        vm.run_context.fp = 1;
         let ids_data = HashMap::from([
             ("v".to_string(), HintReference::new_simple(-1)),
             ("x_cube".to_string(), HintReference::new_simple(0)),

@@ -619,7 +619,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\na = ids.a % PRIME\nb = ids.b % PRIME\nassert a <= b, f'a = {a} is not less than or equal to b = {b}.'\n\nids.small_inputs = int(\n    a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 3), 4)];
         vm.segments.add(&mut vm.memory, None);
@@ -704,7 +704,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 1;
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1)];
         //Create ids_data & hint_data
@@ -724,7 +724,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 1;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (-1))];
         //Create ids_data & hint_data
@@ -781,7 +781,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 1;
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1)];
         let ids_data = ids_data!["a"];

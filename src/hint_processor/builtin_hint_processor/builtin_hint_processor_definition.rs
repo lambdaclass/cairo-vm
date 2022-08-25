@@ -580,7 +580,7 @@ mod tests {
         }
 
         // initialize fp
-        vm.run_context.fp = 3;
+        vm.run_context.fp = 2;
 
         // insert ids.len into memory
         vm.memory
@@ -608,7 +608,7 @@ mod tests {
         }
 
         // initialize fp
-        vm.run_context.fp = 3;
+        vm.run_context.fp = 2;
 
         // insert ids.len into memory
         // we insert a relocatable value in the address of ids.len so that it raises an error.
@@ -637,19 +637,19 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
 
         // initialize fp
-        vm.run_context.fp = 3;
+        vm.run_context.fp = 2;
 
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
 
         // initialize ids.continue_copying
-        // we create a memory gap so that there is None in (0, 0), the actual addr of continue_copying
+        // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
         vm.memory
             .insert(
                 &MaybeRelocatable::from((1, 2)),
@@ -712,7 +712,7 @@ mod tests {
         }
 
         // initialize fp
-        vm.run_context.fp = 3;
+        vm.run_context.fp = 2;
 
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
@@ -813,7 +813,7 @@ mod tests {
         }
 
         // initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 5;
 
         // insert ids.len into memory
         vm.memory
@@ -886,7 +886,7 @@ mod tests {
         }
 
         // initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 5;
 
         // insert ids.len into memory
         vm.memory
@@ -1027,7 +1027,7 @@ mod tests {
         }
 
         // initialize fp
-        vm.run_context.fp = 4;
+        vm.run_context.fp = 5;
 
         // insert ids.len into memory
         vm.memory
