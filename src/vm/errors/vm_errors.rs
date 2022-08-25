@@ -212,4 +212,6 @@ pub enum VirtualMachineError {
     WrongHintData,
     #[error("Failed to compile hint: {0}")]
     CompileHintFail(String),
+    #[error("op1_addr is Op1Addr.IMM, but no immediate given")]
+    NoImm,
 }
