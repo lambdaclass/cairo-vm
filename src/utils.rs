@@ -70,13 +70,14 @@ pub mod test_utils {
         )
         .unwrap();
     }
+
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
-        {
-            let mut memory = Memory::new();
-            memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
-        memory
-        }
+            {
+                let mut memory = Memory::new();
+                memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
+                memory
+            }
         };
     }
     pub(crate) use memory;
@@ -150,32 +151,29 @@ pub mod test_utils {
     }
     pub(crate) use mayberelocatable;
 
+    macro_rules! from_bigint_str {
+        ( $( $val: expr ),* ) => {
+            $(
+                impl From<(&[u8; $val], u32)> for MaybeRelocatable {
+                    fn from(val_base: (&[u8; $val], u32)) -> Self {
+                        MaybeRelocatable::from(bigint_str!(val_base.0, val_base.1))
+                    }
+                }
+            )*
+        }
+    }
+    pub(crate) use from_bigint_str;
+
     macro_rules! references {
         ($num: expr) => {{
             let mut references = HashMap::<usize, HintReference>::new();
             for i in 0..$num {
-                references.insert(i, HintReference::new_simple((i as i32 - $num)));
+                references.insert(i as usize, HintReference::new_simple((i as i32 - $num)));
             }
             references
         }};
     }
     pub(crate) use references;
-
-    macro_rules! not_continuous_references {
-        ( $( $offset:expr ),*) => {
-            {
-            let mut references = HashMap::<usize, HintReference>::new();
-            let mut index = -1;
-
-            $(
-                index += 1;
-                references.insert(index as usize, HintReference::new_simple(($offset)));
-            )*
-        references
-        }
-    };
-    }
-    pub(crate) use not_continuous_references;
 
     macro_rules! vm_with_range_check {
         () => {
@@ -192,37 +190,74 @@ pub mod test_utils {
     pub(crate) use vm_with_range_check;
 
     macro_rules! vm {
-        () => {
+        () => {{
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 vec![],
                 false,
             )
-        };
+        }};
+
+        ($use_trace:expr) => {{
+            VirtualMachine::new(
+                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+                vec![],
+                $use_trace,
+            )
+        }};
     }
     pub(crate) use vm;
 
-    macro_rules! ids {
+    macro_rules! run_context {
+        ( $vm: expr, $pc_off: expr, $ap_off: expr, $fp_off: expr ) => {
+            $vm.run_context.pc = Relocatable::from((0, $pc_off));
+            $vm.run_context.ap = $ap_off;
+            $vm.run_context.fp = $fp_off;
+        };
+    }
+    pub(crate) use run_context;
+
+    macro_rules! ids_data {
         ( $( $name: expr ),* ) => {
             {
-                let mut ids = HashMap::<String, usize>::new();
-                let mut num = -1;
-                $(
-                    num += 1;
-                    ids_inner!($name, num.try_into().unwrap(), ids);
-                )*
-                ids
+                let ids_names = vec![$( $name ),*];
+                let references = references!(ids_names.len() as i32);
+                let mut ids_data = HashMap::<String, HintReference>::new();
+                for (i, name) in ids_names.iter().enumerate() {
+                    ids_data.insert(name.to_string(), references.get(&i).unwrap().clone());
+                }
+                ids_data
             }
         };
     }
-    pub(crate) use ids;
+    pub(crate) use ids_data;
 
-    macro_rules! ids_inner {
-        ( $name: expr, $num: expr, $ids: expr ) => {
-            $ids.insert(String::from($name), $num)
+    macro_rules! trace_check {
+        ( $trace: expr, [ $( (($si_pc:expr, $off_pc:expr), ($si_ap:expr, $off_ap:expr), ($si_fp:expr, $off_fp:expr)) ),+ ] ) => {
+            let mut index = -1;
+            $(
+                index += 1;
+                assert_eq!(
+                    $trace[index as usize],
+                    TraceEntry {
+                        pc: Relocatable {
+                            segment_index: $si_pc,
+                            offset: $off_pc
+                        },
+                        ap: Relocatable {
+                            segment_index: $si_ap,
+                            offset: $off_ap
+                        },
+                        fp: Relocatable {
+                            segment_index: $si_fp,
+                            offset: $off_fp
+                        },
+                    }
+                );
+            )*
         };
     }
-    pub(crate) use ids_inner;
+    pub(crate) use trace_check;
 
     macro_rules! exec_scopes_ref {
         () => {
@@ -237,17 +272,25 @@ pub mod test_utils {
         };
     }
     pub(crate) use exec_scopes_proxy_ref;
+
+    macro_rules! add_dict_manager {
+        ($es_proxy:expr, $dict:expr) => {
+            $es_proxy.insert_value("dict_manager", Rc::new(RefCell::new($dict)))
+        };
+    }
+    pub(crate) use add_dict_manager;
 }
 
 #[cfg(test)]
 mod test {
 
     use super::*;
-    use crate::types::instruction::Register;
+    use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::hints::execute_hint::HintReference;
-    use crate::{types::relocatable::MaybeRelocatable, vm::vm_memory::memory::Memory};
-    use std::collections::HashMap;
+    use crate::vm::trace::trace_entry::TraceEntry;
+    use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
+    use num_bigint::Sign;
 
     #[test]
     fn to_field_element_no_change_a() {
@@ -383,34 +426,75 @@ mod test {
     }
 
     #[test]
-    fn check_not_continuous_references_macro_test() {
-        let references = HashMap::from([
-            (
-                0,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -10,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                    dereference: true,
-                },
-            ),
-            (
-                1,
-                HintReference {
-                    register: Register::FP,
-                    offset1: -23,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: None,
-                    immediate: None,
-                    dereference: true,
-                },
-            ),
-        ]);
+    fn from_bigint_str_test() {
+        from_bigint_str![8];
+        let may_rel = MaybeRelocatable::from((b"11520396", 10));
+        assert_eq!(MaybeRelocatable::from(bigint!(11520396)), may_rel);
+    }
 
-        assert_eq!(references, not_continuous_references![-10, -23])
+    #[test]
+    fn create_run_context() {
+        let mut vm = vm!();
+        run_context!(vm, 2, 6, 10);
+
+        assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
+        assert_eq!(vm.run_context.ap, 6);
+        assert_eq!(vm.run_context.fp, 10);
+    }
+
+    #[test]
+    fn assert_trace() {
+        let trace = vec![
+            TraceEntry {
+                pc: Relocatable {
+                    segment_index: 1,
+                    offset: 2,
+                },
+                ap: Relocatable {
+                    segment_index: 3,
+                    offset: 7,
+                },
+                fp: Relocatable {
+                    segment_index: 4,
+                    offset: 1,
+                },
+            },
+            TraceEntry {
+                pc: Relocatable {
+                    segment_index: 7,
+                    offset: 5,
+                },
+                ap: Relocatable {
+                    segment_index: 4,
+                    offset: 1,
+                },
+                fp: Relocatable {
+                    segment_index: 7,
+                    offset: 0,
+                },
+            },
+            TraceEntry {
+                pc: Relocatable {
+                    segment_index: 4,
+                    offset: 9,
+                },
+                ap: Relocatable {
+                    segment_index: 5,
+                    offset: 5,
+                },
+                fp: Relocatable {
+                    segment_index: 3,
+                    offset: 7,
+                },
+            },
+        ];
+        trace_check!(
+            trace,
+            [
+                ((1, 2), (3, 7), (4, 1)),
+                ((7, 5), (4, 1), (7, 0)),
+                ((4, 9), (5, 5), (3, 7))
+            ]
+        );
     }
 }

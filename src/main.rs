@@ -1,10 +1,10 @@
 #![deny(warnings)]
+use cairo_rs::cairo_run;
+use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use cairo_rs::vm::errors::cairo_run_errors::CairoRunError;
+use cairo_rs::vm::errors::runner_errors::RunnerError;
+use cairo_rs::vm::errors::trace_errors::TraceError;
 use clap::{Parser, ValueHint};
-use cleopatra_cairo::cairo_run;
-use cleopatra_cairo::vm::errors::cairo_run_errors::CairoRunError;
-use cleopatra_cairo::vm::errors::runner_errors::RunnerError;
-use cleopatra_cairo::vm::errors::trace_errors::TraceError;
-use cleopatra_cairo::vm::hints::execute_hint::BuiltinHintExecutor;
 use std::path::PathBuf;
 
 #[cfg(feature = "with_mimalloc")]
@@ -31,7 +31,7 @@ struct Args {
 }
 
 fn main() -> Result<(), CairoRunError> {
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();

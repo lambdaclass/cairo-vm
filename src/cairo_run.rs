@@ -1,4 +1,5 @@
-use crate::types::{hint_executor::HintExecutor, program::Program};
+use crate::hint_processor::hint_processor_definition::HintProcessor;
+use crate::types::program::Program;
 use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
@@ -11,7 +12,7 @@ pub fn cairo_run(
     path: &Path,
     entrypoint: &str,
     trace_enabled: bool,
-    hint_executor: &'static dyn HintExecutor,
+    hint_executor: &'static dyn HintProcessor,
 ) -> Result<CairoRunner, CairoRunError> {
     let program = match Program::new(path, entrypoint) {
         Ok(program) => program,
@@ -123,11 +124,13 @@ fn encode_relocated_memory(memory_bytes: &mut Vec<u8>, addr: usize, memory_cell:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
-    use crate::vm::hints::execute_hint::BuiltinHintExecutor;
+    use crate::{
+        bigint,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    };
     use std::io::Read;
 
-    static HINT_EXECUTOR: BuiltinHintExecutor = BuiltinHintExecutor {};
+    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     fn run_test_program(program_path: &Path) -> Result<CairoRunner, CairoRunError> {
         let program = match Program::new(program_path, "main") {
@@ -217,8 +220,8 @@ mod tests {
     #[test]
     fn write_binary_trace_file() {
         let program_path = Path::new("cairo_programs/struct.json");
-        let expected_trace_path = Path::new("cairo_programs/struct.trace");
-        let cleopatra_trace_path = Path::new("cairo_programs/struct_cleopatra.trace");
+        let expected_trace_path = Path::new("cairo_programs/trace_memory/cairo_trace_struct");
+        let cairo_rs_trace_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.trace");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
@@ -229,21 +232,20 @@ mod tests {
         assert!(cairo_runner.vm.trace.is_some());
         assert!(cairo_runner.relocated_trace.is_some());
 
-        // write cleopatra vm trace file
+        // write cairo_rs vm trace file
         assert!(
-            write_binary_trace(&cairo_runner.relocated_trace.unwrap(), cleopatra_trace_path)
-                .is_ok()
+            write_binary_trace(&cairo_runner.relocated_trace.unwrap(), cairo_rs_trace_path).is_ok()
         );
 
-        // compare that the original cairo vm trace file and cleopatra vm trace files are equal
-        assert!(compare_files(cleopatra_trace_path, expected_trace_path).is_ok());
+        // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
+        assert!(compare_files(cairo_rs_trace_path, expected_trace_path).is_ok());
     }
 
     #[test]
     fn write_binary_memory_file() {
         let program_path = Path::new("cairo_programs/struct.json");
-        let expected_memory_path = Path::new("cairo_programs/struct.memory");
-        let cleopatra_memory_path = Path::new("cairo_programs/struct_cleopatra.memory");
+        let expected_memory_path = Path::new("cairo_programs/trace_memory/cairo_memory_struct");
+        let cairo_rs_memory_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.memory");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
@@ -252,11 +254,11 @@ mod tests {
         // relocate memory so we can dump it to file
         assert!(cairo_runner.relocate().is_ok());
 
-        // write cleopatra vm memory file
-        assert!(write_binary_memory(&cairo_runner.relocated_memory, cleopatra_memory_path).is_ok());
+        // write cairo_rs vm memory file
+        assert!(write_binary_memory(&cairo_runner.relocated_memory, cairo_rs_memory_path).is_ok());
 
-        // compare that the original cairo vm memory file and cleopatra vm memory files are equal
-        assert!(compare_files(cleopatra_memory_path, expected_memory_path).is_ok());
+        // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
+        assert!(compare_files(cairo_rs_memory_path, expected_memory_path).is_ok());
     }
 
     #[test]
