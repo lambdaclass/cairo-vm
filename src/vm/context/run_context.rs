@@ -64,307 +64,308 @@ impl RunContext {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::bigint;
-//     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
+    use crate::utils::test_utils::*;
+    use crate::{bigint, relocatable};
 
-//     #[test]
-//     fn compute_dst_addr_for_ap_register() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::AP,
-//             op0_register: Register::FP,
-//             op1_addr: Op1Addr::AP,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_dst_addr_for_ap_register() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(6))),
-//             run_context.compute_dst_addr(&instruction)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(1, 6)),
+            run_context.compute_dst_addr(&instruction)
+        );
+    }
 
-//     #[test]
-//     fn compute_dst_addr_for_fp_register() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::AP,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_dst_addr_for_fp_register() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(7))),
-//             run_context.compute_dst_addr(&instruction)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(1, 7)),
+            run_context.compute_dst_addr(&instruction)
+        );
+    }
 
-//     #[test]
-//     fn compute_op0_addr_for_ap_register() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::AP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::AP,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op0_addr_for_ap_register() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::AP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(7))),
-//             run_context.compute_op0_addr(&instruction)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(1, 7)),
+            run_context.compute_op0_addr(&instruction)
+        );
+    }
 
-//     #[test]
-//     fn compute_op0_addr_for_fp_register() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::FP,
-//             op1_addr: Op1Addr::AP,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op0_addr_for_fp_register() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::FP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(8))),
-//             run_context.compute_op0_addr(&instruction)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(1, 8)),
+            run_context.compute_op0_addr(&instruction)
+        );
+    }
 
-//     #[test]
-//     fn compute_op1_addr_for_fp_op1_addr() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::FP,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op1_addr_for_fp_op1_addr() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::FP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(9))),
-//             run_context.compute_op1_addr(&instruction, None)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(1, 9)),
+            run_context.compute_op1_addr(&instruction, None)
+        );
+    }
 
-//     #[test]
-//     fn compute_op1_addr_for_ap_op1_addr() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::AP,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op1_addr_for_ap_op1_addr() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(8))),
-//             run_context.compute_op1_addr(&instruction, None)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(1, 8)),
+            run_context.compute_op1_addr(&instruction, None)
+        );
+    }
 
-//     #[test]
-//     fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(1),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::Imm,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op1_addr_for_imm_op1_addr_correct_off2() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(1),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::Imm,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(5))),
-//             run_context.compute_op1_addr(&instruction, None)
-//         );
-//     }
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+        assert_eq!(
+            Ok(mayberelocatable!(0, 5)),
+            run_context.compute_op1_addr(&instruction, None)
+        );
+    }
 
-//     #[test]
-//     fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::Imm,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op1_addr_for_imm_op1_addr_incorrect_off2() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::Imm,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
 
-//         let error = run_context.compute_op1_addr(&instruction, None);
-//         assert_eq!(error, Err(VirtualMachineError::ImmShouldBe1));
-//         assert_eq!(
-//             error.unwrap_err().to_string(),
-//             "In immediate mode, off2 should be 1"
-//         );
-//     }
+        let error = run_context.compute_op1_addr(&instruction, None);
+        assert_eq!(error, Err(VirtualMachineError::ImmShouldBe1));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "In immediate mode, off2 should be 1"
+        );
+    }
 
-//     #[test]
-//     fn compute_op1_addr_for_op0_op1_addr_with_op0() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(1),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::Op0,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op1_addr_for_op0_op1_addr_with_op0() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(1),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
 
-//         let op0 = MaybeRelocatable::from(bigint!(7));
-//         assert_eq!(
-//             Ok(MaybeRelocatable::Int(bigint!(8))),
-//             run_context.compute_op1_addr(&instruction, Some(&op0))
-//         );
-//     }
+        let op0 = MaybeRelocatable::from(bigint!(7));
+        assert_eq!(
+            Ok(MaybeRelocatable::Int(bigint!(8))),
+            run_context.compute_op1_addr(&instruction, Some(&op0))
+        );
+    }
 
-//     #[test]
-//     fn compute_op1_addr_for_op0_op1_addr_without_op0() {
-//         let instruction = Instruction {
-//             off0: bigint!(1),
-//             off1: bigint!(2),
-//             off2: bigint!(3),
-//             imm: None,
-//             dst_register: Register::FP,
-//             op0_register: Register::AP,
-//             op1_addr: Op1Addr::Op0,
-//             res: Res::Add,
-//             pc_update: PcUpdate::Regular,
-//             ap_update: ApUpdate::Regular,
-//             fp_update: FpUpdate::Regular,
-//             opcode: Opcode::NOp,
-//         };
+    #[test]
+    fn compute_op1_addr_for_op0_op1_addr_without_op0() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
 
-//         let run_context = RunContext {
-//             pc: MaybeRelocatable::from(bigint!(4)),
-//             ap: MaybeRelocatable::from(bigint!(5)),
-//             fp: MaybeRelocatable::from(bigint!(6)),
-//             prime: bigint!(39),
-//         };
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
 
-//         let error = run_context.compute_op1_addr(&instruction, None);
-//         assert_eq!(error, Err(VirtualMachineError::UnknownOp0));
-//         assert_eq!(
-//             error.unwrap_err().to_string(),
-//             "op0 must be known in double dereference"
-//         );
-//     }
-// }
+        let error = run_context.compute_op1_addr(&instruction, None);
+        assert_eq!(error, Err(VirtualMachineError::UnknownOp0));
+        assert_eq!(
+            error.unwrap_err().to_string(),
+            "op0 must be known in double dereference"
+        );
+    }
+}
