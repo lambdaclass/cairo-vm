@@ -175,8 +175,6 @@ pub enum VirtualMachineError {
     #[error("Set starting point {0:?} is bigger it's ending point {1:?}")]
     InvalidSetRange(MaybeRelocatable, MaybeRelocatable),
     #[error("Encountered unexpected memory gap")]
-    UnexpectMemoryGap,
-    #[error("Failed to construct a fixed size array of size: {0}")]
     FixedSizeArrayFail(usize),
     #[error("{0}")]
     AssertionFailed(String),
@@ -198,11 +196,11 @@ pub enum VirtualMachineError {
     InvalidKeccakInputLength(BigInt),
     #[error("None value was found in memory range cell")]
     NoneInMemoryRange,
-    #[error("xpected integer, found: {0:?}")]
+    #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
-    #[error("xpected size to be in the range from [0, 100), got: {0}")]
+    #[error("Expected size to be in the range from [0, 100), got: {0}")]
     InvalidKeccakStateSizeFelts(usize),
-    #[error("xpected size to be in range from [0, 10), got: {0}")]
+    #[error("Expected size to be in range from [0, 10), got: {0}")]
     InvalidBlockSize(usize),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
