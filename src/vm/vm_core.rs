@@ -428,6 +428,8 @@ impl VirtualMachine {
                 Ok(())
             }
             Opcode::Call => {
+                //TODO
+                //This if statements are allways be false
                 if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
                     (&operands.op0, &self.run_context.get_pc())
                 {
@@ -797,7 +799,7 @@ mod tests {
         let mut vm = vm!();
         run_context!(vm, 4, 5, 6);
 
-        vm.update_fp(&instruction, &operands);
+        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
         assert_eq!(vm.run_context.fp, 7)
     }
 
@@ -819,15 +821,15 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: mayberelocatable!(1, 6),
+            res: Some(mayberelocatable!(8)),
+            op0: mayberelocatable!(9),
+            op1: mayberelocatable!(10),
         };
 
         let mut vm = vm!();
 
-        vm.update_fp(&instruction, &operands);
+        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
         assert_eq!(vm.run_context.fp, 6)
     }
 
@@ -857,7 +859,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.update_fp(&instruction, &operands);
+        assert_eq!(Ok(()), vm.update_fp(&instruction, &operands));
         assert_eq!(vm.run_context.fp, 0)
     }
 
@@ -2037,16 +2039,16 @@ mod tests {
         vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(5)),
-            res: Some(MaybeRelocatable::Int(bigint!(5))),
-            op0: MaybeRelocatable::Int(bigint!(2)),
-            op1: MaybeRelocatable::Int(bigint!(3)),
+            dst: dst_addr_value.clone(),
+            res: Some(dst_addr_value.clone()),
+            op0: op0_addr_value.clone(),
+            op1: op1_addr_value.clone(),
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::from((0, 1)),
-            MaybeRelocatable::from((0, 2)),
+            dst_addr.clone(),
+            op0_addr.clone(),
+            op1_addr.clone(),
         ));
 
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
@@ -2088,16 +2090,16 @@ mod tests {
         vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(6)),
-            res: Some(MaybeRelocatable::Int(bigint!(6))),
-            op0: MaybeRelocatable::Int(bigint!(2)),
-            op1: MaybeRelocatable::Int(bigint!(3)),
+            dst: dst_addr_value.clone(),
+            res: Some(dst_addr_value.clone()),
+            op0: op0_addr_value.clone(),
+            op1: op1_addr_value.clone(),
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::from((0, 1)),
-            MaybeRelocatable::from((0, 2)),
+            dst_addr.clone(),
+            op0_addr.clone(),
+            op1_addr.clone(),
         ));
 
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
@@ -2122,21 +2124,25 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.memory = memory!(((0, 1), 145944781867024385_u64), ((1, 1), 4));
+        let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
+        vm.memory = memory![
+            ((0, 0), 0x206800180018001_i64),
+            ((1, 1), 0x4),
+            ((0, 1), 0x4)
+        ];
 
         let expected_operands = Operands {
             dst: mayberelocatable!(4),
             res: None,
             op0: mayberelocatable!(4),
-            op1: mayberelocatable!(145944781867024385_u64),
+            op1: mayberelocatable!(4),
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((1, 1)),
-            MaybeRelocatable::from((1, 1)),
-            MaybeRelocatable::from((0, 1)),
+            mayberelocatable!(1, 1),
+            mayberelocatable!(1, 1),
+            mayberelocatable!(0, 1),
         ));
 
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
@@ -2238,78 +2244,6 @@ mod tests {
             Err(VirtualMachineError::DiffAssertValues(
                 bigint!(8),
                 bigint!(9)
-            ))
-        );
-    }
-
-    #[test]
-    fn opcode_assertions_inconsistent_op0() {
-        let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
-            imm: None,
-            dst_register: Register::FP,
-            op0_register: Register::AP,
-            op1_addr: Op1Addr::AP,
-            res: Res::Add,
-            pc_update: PcUpdate::Regular,
-            ap_update: ApUpdate::Regular,
-            fp_update: FpUpdate::APPlus2,
-            opcode: Opcode::Call,
-        };
-
-        let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(8)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
-        };
-
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
-        vm.run_context.pc = Relocatable::from((0, 4));
-        vm.run_context.ap = 5;
-        vm.run_context.fp = 6;
-
-        assert_eq!(
-            vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::CantWriteReturnPc(
-                bigint!(9),
-                bigint!(5)
-            ))
-        );
-    }
-
-    #[test]
-    fn opcode_assertions_inconsistent_dst() {
-        let instruction = Instruction {
-            off0: bigint!(1),
-            off1: bigint!(2),
-            off2: bigint!(3),
-            imm: None,
-            dst_register: Register::FP,
-            op0_register: Register::AP,
-            op1_addr: Op1Addr::AP,
-            res: Res::Add,
-            pc_update: PcUpdate::Regular,
-            ap_update: ApUpdate::Regular,
-            fp_update: FpUpdate::APPlus2,
-            opcode: Opcode::Call,
-        };
-
-        let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(8)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
-        };
-        let vm = vm!();
-
-        assert_eq!(
-            vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::CantWriteReturnFp(
-                bigint!(8),
-                bigint!(6)
             ))
         );
     }
