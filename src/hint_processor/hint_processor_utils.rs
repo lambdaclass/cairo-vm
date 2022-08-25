@@ -94,11 +94,9 @@ pub fn compute_addr_from_reference(
                 .as_ref()
                 .ok_or(VirtualMachineError::NoneApTrackingData)?;
 
-            let run_context_ap = run_context.get_ap();
-            let ap = run_context_ap
-                .get_relocatable()
-                .map_err(|_| VirtualMachineError::InvalidApValue(run_context_ap.clone()))?;
-            apply_ap_tracking_correction(ap, var_ap_trackig, hint_ap_tracking)?
+            let ap = run_context.get_ap().get_relocatable()?.clone();
+
+            apply_ap_tracking_correction(&ap, var_ap_trackig, hint_ap_tracking)?
         }
     };
     if hint_reference.offset1.is_negative()
