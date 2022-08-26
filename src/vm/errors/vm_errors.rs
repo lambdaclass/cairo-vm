@@ -114,10 +114,8 @@ pub enum VirtualMachineError {
     WrongHintData,
     CompileHintFail(String),
     FailedToComputeOperands,
-
     NoRegisterInReference,
     CustomHint(String),
-
 }
 
 impl fmt::Display for VirtualMachineError {
