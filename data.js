@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661542595171,
+  "lastUpdate": 1661543148847,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -29367,6 +29367,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 257246159,
             "range": "± 13455944",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "58b78d3661555ea3802995b255ca3bf463b73bf6",
+          "message": "Merge pull request #381 from lambdaclass/add-hint\n\nAdd extensible feature to BuiltinHintProcessor (Phase 7)",
+          "timestamp": "2022-08-26T16:33:29-03:00",
+          "tree_id": "5274245f1ae9447f8091015e8a2af98a3a60aba7",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/58b78d3661555ea3802995b255ca3bf463b73bf6"
+        },
+        "date": 1661543146540,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1716155534,
+            "range": "± 4924855",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 624476231,
+            "range": "± 554430",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 313255378,
+            "range": "± 581964",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1586683082,
+            "range": "± 5417241",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 227604910,
+            "range": "± 589032",
             "unit": "ns/iter"
           }
         ]
