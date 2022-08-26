@@ -14,7 +14,7 @@ use std::path::Path;
 
 
 // Create the function that implements the custom hint
-fn hint_func(
+fn print_a_hint(
     vm_proxy: &mut VMProxy,
     _exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
@@ -26,11 +26,14 @@ fn hint_func(
 }
 
 fn main() {
+    // Wrap the Rust hint implementation in a Box smart pointer inside a HintFunc 
+    let hint = HintFunc(Box::new(print_a_hint));
+
     //Instantiate the hint processor
     let mut hint_processor = BuiltinHintProcessor::new_empty();
 
     //Add the custom hint, together with the Python code
-    hint_processor.add_hint(String::from("print(ids.a)"), HintFunc(Box::new(hint_func)));
+    hint_processor.add_hint(String::from("print(ids.a)"), hint);
 
     //Run the cairo program
     cairo_run(

@@ -12,36 +12,40 @@ Cargo.toml
 cairo-rs =  {path = "[path to cairo-rs directory"}
 ```
 #### Step 2: Code the implementation of your custom hint (Using the helpers and proxies described in the sections below)
-For this step, you will have to code your hint implementation as a closure, and then wrap it inside a Box (smart pointer), and a HintFunc (type alias for hint functions).
+For this step, you will have to code your hint implementation as a Rust function, and then wrap it inside a Box smart pointer, and a HintFunc (type alias for hint functions).
 
-*Note: The reason for using a closure is due to the functions being Fn trait objects, more on this from the [rust documentation](https://doc.rust-lang.org/std/ops/trait.Fn.html).*
+**Note**: Passing your function as a closure to the Box smart pointer inside HintFunc works too.
 
 The hint implementation must also follow a specific structure in terms of variable input and output:
 ```rust
-HintFunc(Box::new(
-        |vm_proxy: &mut VMProxy,
-         _exec_scopes_proxy: &mut ExecutionScopesProxy,
-         ids_data: &HashMap<String, HintReference>,
-         ap_tracking: &ApTracking|
-         -> Result<(), VirtualMachineError> {
-            //Your implementation
-        },
+fn hint_func(
+  vm_proxy: &mut VMProxy,
+  _exec_scopes_proxy: &mut ExecutionScopesProxy,
+  ids_data: &HashMap<String, HintReference>,
+  ap_tracking: &ApTracking)
+  -> Result<(), VirtualMachineError> {
+    // Your implementation
+  }
+
+let hint = HintFunc(Box::new(hint_func));
+
 ```
 
 For example, this function implements the hint "print(ids.a)":
 
 ```rust
-let hint_func: HintFunc = HintFunc(Box::new(
-        |vm_proxy: &mut VMProxy,
-         _exec_scopes_proxy: &mut ExecutionScopesProxy,
-         ids_data: &HashMap<String, HintReference>,
-         ap_tracking: &ApTracking|
-         -> Result<(), VirtualMachineError> {
-            let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-            println!("{}", a);
-            Ok(())
-        },
-    ));
+fn print_a_hint(
+  vm_proxy: &mut VMProxy,
+  _exec_scopes_proxy: &mut ExecutionScopesProxy,
+  ids_data: &HashMap<String, HintReference>,
+  ap_tracking: &ApTracking
+) -> Result<(), VirtualMachineError> {
+    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
+    println!("{}", a);
+    Ok(())
+}
+
+let hint = HintFunc(Box::new(print_a_hint));
 ```
 
 #### Step 3: Instantiate the BuiltinHintProcessor and add your custom hint implementation
@@ -50,11 +54,11 @@ Import the BuiltinHintProcessor from cairo-rs, instantiate it using the `new_emp
 use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor
 
 let mut hint_processor = BuiltinHintProcessor::new_empty();
-hint_processor.add_hint(String::from("print(ids.a)"), hint_func);
+hint_processor.add_hint(String::from("print(ids.a)"), hint);
 ```
 You can also create a dictionary of HintFunc and use the method `new()` to create a BuiltinHintProcessor with a preset dictionary of functions instead of using `add_hint()` for each custom hint.
 
-#### Step 4: Run your cairo program using your modified BuiltinHintProcessor
+#### Step 4: Run your cairo program using BuiltinHintProcessor extended with your hint
 Import the function cairo_run from cairo-rs, and run your compiled program
 
 ```rust
