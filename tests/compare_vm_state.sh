@@ -18,7 +18,7 @@ for i in $@; do
     esac
 done
 
-for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
+for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
     path_file="$tests_path/$file"
 
     if $trace; then
