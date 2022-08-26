@@ -12,25 +12,25 @@ use cairo_rs::vm::errors::vm_errors::VirtualMachineError;
 use std::collections::HashMap;
 use std::path::Path;
 
-fn main() {
-    // Create the function that implements the custom hint
-    let hint_func: HintFunc = HintFunc(Box::new(
-        |vm_proxy: &mut VMProxy,
-         _exec_scopes_proxy: &mut ExecutionScopesProxy,
-         ids_data: &HashMap<String, HintReference>,
-         ap_tracking: &ApTracking|
-         -> Result<(), VirtualMachineError> {
-            let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-            println!("{}", a);
-            Ok(())
-        },
-    ));
 
+// Create the function that implements the custom hint
+fn hint_func(
+    vm_proxy: &mut VMProxy,
+    _exec_scopes_proxy: &mut ExecutionScopesProxy,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), VirtualMachineError> {
+    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
+    println!("{}", a);
+    Ok(())
+}
+
+fn main() {
     //Instantiate the hint processor
     let mut hint_processor = BuiltinHintProcessor::new_empty();
 
     //Add the custom hint, together with the Python code
-    hint_processor.add_hint(String::from("print(ids.a)"), hint_func);
+    hint_processor.add_hint(String::from("print(ids.a)"), HintFunc(Box::new(hint_func)));
 
     //Run the cairo program
     cairo_run(
