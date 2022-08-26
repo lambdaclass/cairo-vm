@@ -53,13 +53,13 @@ pub fn bigint_to_uint256(
 
 #[cfg(test)]
 mod tests {
-    use crate::types::relocatable::Relocatable;
-use crate::any_box;
+    use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::relocatable::Relocatable;
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;
     use std::any::Any;
@@ -111,13 +111,8 @@ use crate::any_box;
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "value".to_string()
             ))

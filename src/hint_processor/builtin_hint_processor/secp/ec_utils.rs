@@ -350,14 +350,11 @@ mod tests {
         vm.run_context.fp = 1;
         //Create hint_data
         let ids_data = ids_data!["point"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check 'value' is defined in the vm scope
@@ -386,15 +383,12 @@ mod tests {
         vm.run_context.fp = 1;
 
         let ids_data = ids_data!["point"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
 
@@ -442,15 +436,12 @@ mod tests {
             ("point0".to_string(), HintReference::new_simple(-14)),
             ("point1".to_string(), HintReference::new_simple(-8)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
 
@@ -495,15 +486,12 @@ mod tests {
             ("point".to_string(), HintReference::new_simple(-10)),
             ("slope".to_string(), HintReference::new_simple(-4)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
 
@@ -586,12 +574,9 @@ mod tests {
             )),
         );
         //Execute the hint
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Ok(())
         );
 
@@ -646,15 +631,12 @@ mod tests {
             ("point1".to_string(), HintReference::new_simple(-9)),
             ("slope".to_string(), HintReference::new_simple(-6)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
 
@@ -711,13 +693,10 @@ mod tests {
                 b"4310143708685312414132851373791311001152018708061750480"
             )),
         );
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Ok(())
         );
 
@@ -754,15 +733,9 @@ mod tests {
         vm.run_context.ap = 2;
 
         let ids_data = ids_data!["scalar"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         //Check hint memory inserts
         check_memory![&vm.memory, ((1, 2), 0)];
