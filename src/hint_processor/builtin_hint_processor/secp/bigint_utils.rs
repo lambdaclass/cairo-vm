@@ -53,7 +53,8 @@ pub fn bigint_to_uint256(
 
 #[cfg(test)]
 mod tests {
-    use crate::any_box;
+    use crate::types::relocatable::Relocatable;
+use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
@@ -83,19 +84,13 @@ mod tests {
                 b"7737125245533626718119526477371252455336267181195264773712524553362"
             )),
         );
-        //Initialize fp
-        vm.run_context.fp = 6;
-        //Initialize ap
-        vm.run_context.ap = 6;
+        //Initialize RubContext
+        run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check hint memory inserts
@@ -112,10 +107,8 @@ mod tests {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
         // we don't initialize `value` now:
-        //Initialize fp
-        vm.run_context.fp = 6;
-        //Initialize ap
-        vm.run_context.ap = 6;
+        //Initialize RubContext
+        run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -141,13 +134,9 @@ mod tests {
         exec_scopes.assign_or_update_variable("value", any_box!(bigint!(-1)));
         //Create hint_data
         let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }
