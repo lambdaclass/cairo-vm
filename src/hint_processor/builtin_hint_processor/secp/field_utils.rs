@@ -153,10 +153,10 @@ mod tests {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 9));
+        vm.run_context.fp = 9;
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 9));
+        vm.run_context.ap = 9;
         //Create hint data
         let ids_data = HashMap::from([
             (
@@ -224,10 +224,10 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 9));
+        vm.run_context.fp = 9;
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 9));
+        vm.run_context.ap = 9;
         //Create hint data
         let ids_data = HashMap::from([
             (
@@ -312,10 +312,10 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 9));
+        vm.run_context.fp = 9;
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 9));
+        vm.run_context.ap = 9;
 
         //Create hint data
         let ids_data = HashMap::from([
@@ -414,7 +414,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 25));
+        vm.run_context.fp = 25;
 
         //Create hint data
         let ids_data = HashMap::from([(
@@ -485,7 +485,7 @@ mod tests {
         }
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 25));
+        vm.run_context.fp = 25;
 
         //Create hint data
         let ids_data = HashMap::from([(
@@ -530,7 +530,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+        vm.run_context.fp = 15;
 
         //Create hint data
         let ids_data = HashMap::from([(
@@ -583,7 +583,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 15));
+        vm.run_context.fp = 15;
 
         //Create hint data
         let ids_data = HashMap::from([(
@@ -632,7 +632,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+        vm.run_context.ap = 15;
 
         let mut exec_scopes = ExecutionScopes::new();
         //Initialize vm scope with variable `x`
@@ -651,7 +651,7 @@ mod tests {
         //Check hint memory insert
         //memory[ap] = to_felt_or_relocatable(x == 0)
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::from(bigint!(1i32))))
         );
     }
@@ -667,7 +667,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+        vm.run_context.ap = 15;
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
@@ -686,7 +686,7 @@ mod tests {
         //Check hint memory insert
         //memory[ap] = to_felt_or_relocatable(x == 0)
         assert_eq!(
-            vm.memory.get(&vm.run_context.ap),
+            vm.memory.get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::from(bigint!(0i32))))
         );
     }
@@ -702,7 +702,7 @@ mod tests {
         }
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+        vm.run_context.ap = 15;
 
         //Skip `x` assignment
         // exec_scopes
@@ -729,7 +729,7 @@ mod tests {
         vm.memory = memory![((1, 15), 55)];
 
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 15));
+        vm.run_context.ap = 15;
 
         //Initialize vm scope with variable `x`
         let mut exec_scopes = ExecutionScopes::new();
@@ -744,7 +744,7 @@ mod tests {
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    vm.run_context.ap,
+                    vm.run_context.get_ap(),
                     MaybeRelocatable::from(bigint!(55i32)),
                     MaybeRelocatable::from(bigint!(1i32))
                 )

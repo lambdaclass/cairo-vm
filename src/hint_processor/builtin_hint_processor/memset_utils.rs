@@ -81,9 +81,9 @@ mod tests {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         // insert ids into memory
-        vm.memory = memory![((0, 1), 5)];
+        vm.memory = memory![((1, 1), 5)];
         let ids_data = ids_data!["n"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -98,10 +98,10 @@ mod tests {
         let hint_code = "vm_enter_scope({'n': ids.n})";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         // insert ids.n into memory
         // insert a relocatable value in the address of ids.len so that it raises an error.
-        vm.memory = memory![((0, 1), (0, 0))];
+        vm.memory = memory![((1, 1), (1, 0))];
         let ids_data = ids_data!["n"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -109,7 +109,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -119,13 +119,13 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 1
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
         // initialize ids.continue_loop
-        // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
-        vm.memory = memory![((0, 1), 5)];
+        // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
+        vm.memory = memory![((1, 1), 5)];
         let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -137,7 +137,7 @@ mod tests {
 
         // assert ids.continue_loop = 0
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
@@ -147,7 +147,7 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
 
         // initialize vm scope with variable `n` = 5
         let mut exec_scopes = ExecutionScopes::new();
@@ -155,7 +155,7 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
-        vm.memory = memory![((0, 2), 5)];
+        vm.memory = memory![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -167,7 +167,7 @@ mod tests {
 
         // assert ids.continue_loop = 1
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -177,7 +177,7 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 3;
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
@@ -185,7 +185,7 @@ mod tests {
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
-        vm.memory = memory![((0, 2), 5)];
+        vm.memory = memory![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -203,13 +203,13 @@ mod tests {
         let hint_code = "n -= 1\nids.continue_loop = 1 if n > 0 else 0";
         let mut vm = vm!();
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
-        vm.memory = memory![((0, 0), 5)];
+        vm.memory = memory![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -219,7 +219,7 @@ mod tests {
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from(bigint!(5)),
                     MaybeRelocatable::from(bigint!(0))
                 )

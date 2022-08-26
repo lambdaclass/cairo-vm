@@ -206,15 +206,15 @@ impl<'a> CairoRunner<'a> {
 
     pub fn initialize_vm(&mut self) -> Result<(), RunnerError> {
         match &self.initial_pc {
-            Some(pc) => self.vm.run_context.pc = MaybeRelocatable::RelocatableValue(pc.clone()),
+            Some(pc) => self.vm.run_context.pc = pc.clone(),
             None => return Err(RunnerError::NoPC),
         }
         match &self.initial_ap {
-            Some(ap) => self.vm.run_context.ap = MaybeRelocatable::RelocatableValue(ap.clone()),
+            Some(ap) => self.vm.run_context.ap = ap.offset,
             None => return Err(RunnerError::NoAP),
         }
         match &self.initial_fp {
-            Some(fp) => self.vm.run_context.fp = MaybeRelocatable::RelocatableValue(fp.clone()),
+            Some(fp) => self.vm.run_context.fp = fp.offset,
             None => return Err(RunnerError::NoFP),
         }
         match &self.program_base {
@@ -286,7 +286,7 @@ impl<'a> CairoRunner<'a> {
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references)?;
-        while self.vm.run_context.pc != address {
+        while self.vm.run_context.get_pc() != address {
             self.vm.step(
                 self.hint_executor,
                 &mut self.exec_scopes,
@@ -923,18 +923,9 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_vm().unwrap();
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 1))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 2))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 2))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, relocatable!(0, 1));
+        assert_eq!(cairo_runner.vm.run_context.ap, 2);
+        assert_eq!(cairo_runner.vm.run_context.fp, 2);
         assert_eq!(
             cairo_runner.vm._program_base,
             Some(MaybeRelocatable::from((0, 0)))
@@ -1093,18 +1084,9 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 3))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 2))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 2))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, relocatable!(0, 3));
+        assert_eq!(cairo_runner.vm.run_context.ap, 2);
+        assert_eq!(cairo_runner.vm.run_context.fp, 2);
         //Memory
         assert_eq!(
             cairo_runner
@@ -1259,18 +1241,9 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 4))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 3))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 3))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, relocatable!(0, 4));
+        assert_eq!(cairo_runner.vm.run_context.ap, 3);
+        assert_eq!(cairo_runner.vm.run_context.fp, 3);
         //Memory
         assert_eq!(
             cairo_runner
@@ -1463,18 +1436,9 @@ mod tests {
 
         //RunContext check
         //Registers
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((0, 8))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 3))
-        );
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((1, 3))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, relocatable!(0, 8));
+        assert_eq!(cairo_runner.vm.run_context.ap, 3);
+        assert_eq!(cairo_runner.vm.run_context.fp, 3);
         //Memory
         assert_eq!(
             cairo_runner
@@ -1697,20 +1661,11 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((3, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, Relocatable::from((3, 0)));
 
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 6))
-        );
+        assert_eq!(cairo_runner.vm.run_context.ap, 6);
 
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((2, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.fp, 0);
 
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
@@ -1865,20 +1820,11 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((4, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, Relocatable::from((4, 0)));
 
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 10))
-        );
+        assert_eq!(cairo_runner.vm.run_context.ap, 10);
 
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((3, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.fp, 0);
 
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
@@ -2160,20 +2106,12 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((4, 0))
-        );
+        //todo
+        assert_eq!(cairo_runner.vm.run_context.pc, Relocatable::from((4, 0)));
 
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 12))
-        );
+        assert_eq!(cairo_runner.vm.run_context.ap, 12);
 
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((3, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.fp, 0);
 
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
@@ -2512,20 +2450,11 @@ mod tests {
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
         //Check final values against Python VM
         //Check final register values
-        assert_eq!(
-            cairo_runner.vm.run_context.pc,
-            MaybeRelocatable::from((5, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.pc, Relocatable::from((5, 0)));
 
-        assert_eq!(
-            cairo_runner.vm.run_context.ap,
-            MaybeRelocatable::from((1, 18))
-        );
+        assert_eq!(cairo_runner.vm.run_context.ap, 18);
 
-        assert_eq!(
-            cairo_runner.vm.run_context.fp,
-            MaybeRelocatable::from((4, 0))
-        );
+        assert_eq!(cairo_runner.vm.run_context.fp, 0);
 
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();

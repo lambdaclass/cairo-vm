@@ -171,25 +171,25 @@ mod tests {
         let mut vm = vm!();
 
         const FP_OFFSET_START: usize = 4;
-        vm.run_context.fp = MaybeRelocatable::from((0, FP_OFFSET_START));
+        vm.run_context.fp = FP_OFFSET_START;
 
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
 
         let addresses = vec![
-            MaybeRelocatable::from((0, 0)),
-            MaybeRelocatable::from((0, 1)),
-            MaybeRelocatable::from((0, 2)),
-            MaybeRelocatable::from((0, 4)),
             MaybeRelocatable::from((1, 0)),
             MaybeRelocatable::from((1, 1)),
             MaybeRelocatable::from((1, 2)),
-            MaybeRelocatable::from((1, 3)),
+            MaybeRelocatable::from((1, 4)),
+            MaybeRelocatable::from((2, 0)),
+            MaybeRelocatable::from((2, 1)),
+            MaybeRelocatable::from((2, 2)),
+            MaybeRelocatable::from((2, 3)),
         ];
 
         let default_values = vec![
-            ("array_ptr", MaybeRelocatable::from((1, 0))),
+            ("array_ptr", MaybeRelocatable::from((2, 0))),
             ("elm_size", MaybeRelocatable::from(bigint!(2))),
             ("n_elms", MaybeRelocatable::from(bigint!(2))),
             ("key", MaybeRelocatable::from(bigint!(3))),
@@ -243,7 +243,7 @@ mod tests {
             Ok(())
         );
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
@@ -264,7 +264,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn find_elm_failed_ids_get_from_mem() {
         let mut vm = vm!();
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
         let hint_data =
             HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
@@ -313,7 +313,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 4))
+                MaybeRelocatable::from((1, 4))
             ))
         );
     }
@@ -331,7 +331,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn find_elm_not_int_n_elms() {
-        let relocatable = MaybeRelocatable::from((0, 2));
+        let relocatable = MaybeRelocatable::from((1, 2));
         let (mut vm, ids_data) =
             init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
         let hint_data =
@@ -430,7 +430,7 @@ mod tests {
 
     #[test]
     fn find_elm_key_not_int() {
-        let relocatable = MaybeRelocatable::from((0, 4));
+        let relocatable = MaybeRelocatable::from((1, 4));
         let (mut vm, ids_data) =
             init_vm_ids_data(HashMap::from([("key".to_string(), relocatable.clone())]));
         let hint_data =
@@ -456,7 +456,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         )
     }
@@ -477,7 +477,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(2))))
         )
     }
@@ -495,7 +495,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 1))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -536,7 +536,7 @@ mod tests {
     fn search_sorted_lower_not_int_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::from((1, 2)),
+            MaybeRelocatable::from((2, 2)),
         )]));
         let hint_data =
             HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
@@ -545,7 +545,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 2))
+                MaybeRelocatable::from((1, 2))
             ))
         );
     }

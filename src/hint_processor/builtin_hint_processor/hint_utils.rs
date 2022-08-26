@@ -31,8 +31,7 @@ pub fn insert_value_into_ap(
 ) -> Result<(), VirtualMachineError> {
     memory.insert_value(
         &(run_context
-            .ap
-            .clone()
+            .get_ap()
             .try_into()
             .map_err(VirtualMachineError::MemoryError)?),
         value,

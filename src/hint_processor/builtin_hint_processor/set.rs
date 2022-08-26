@@ -96,74 +96,74 @@ mod tests {
     ) -> (VirtualMachine, HashMap<String, HintReference>) {
         let mut vm = vm_with_range_check!();
 
-        for _ in 0..3 {
+        for _ in 0..4 {
             vm.segments.add(&mut vm.memory, None);
         }
 
-        vm.run_context.fp = MaybeRelocatable::from((0, 6));
+        vm.run_context.fp = 6;
 
-        let set_ptr_default = MaybeRelocatable::from((1, 0));
+        let set_ptr_default = MaybeRelocatable::from((2, 0));
         let elm_size_default = MaybeRelocatable::from(bigint!(2));
         let elm_a_default = MaybeRelocatable::from(bigint!(2));
         let elm_b_default = MaybeRelocatable::from(bigint!(3));
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 2)),
                 set_ptr.unwrap_or(&set_ptr_default),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 elm_size.unwrap_or(&elm_size_default),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((3, 0)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
+                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 2)),
+            )
+            .expect("Unexpected memory insert fail");
+        vm.memory
+            .insert(
                 &MaybeRelocatable::from((2, 0)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::from((1, 2)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(3)),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(7)),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((2, 0)),
+                &MaybeRelocatable::from((3, 0)),
                 elm_a.unwrap_or(&elm_a_default),
             )
             .expect("Unexpected memory insert fail");
         vm.memory
             .insert(
-                &MaybeRelocatable::from((2, 1)),
+                &MaybeRelocatable::from((3, 1)),
                 elm_b.unwrap_or(&elm_b_default),
             )
             .expect("Unexpected memory insert fail");
@@ -192,7 +192,7 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
         )
     }
@@ -214,12 +214,12 @@ mod tests {
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
         );
 
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
         )
     }
@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 3))
+                MaybeRelocatable::from((1, 3))
             ))
         );
     }
@@ -269,15 +269,15 @@ mod tests {
     #[test]
     fn set_ptr_gt_set_end_ptr() {
         let (mut vm, ids_data) =
-            init_vm_ids_data(Some(&MaybeRelocatable::from((1, 3))), None, None, None);
+            init_vm_ids_data(Some(&MaybeRelocatable::from((2, 3))), None, None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::InvalidSetRange(
-                MaybeRelocatable::from((1, 3)),
-                MaybeRelocatable::from((1, 2)),
+                MaybeRelocatable::from((2, 3)),
+                MaybeRelocatable::from((2, 2)),
             ))
         );
     }

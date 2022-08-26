@@ -94,17 +94,16 @@ pub fn compute_addr_from_reference(
 ) -> Result<Relocatable, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         //This should never fail
-        Some(Register::FP) => run_context.fp.get_relocatable()?.clone(),
+        Some(Register::FP) => run_context.get_fp().get_relocatable()?.clone(),
         Some(Register::AP) => {
             let var_ap_trackig = hint_reference
                 .ap_tracking_data
                 .as_ref()
                 .ok_or(VirtualMachineError::NoneApTrackingData)?;
-            let ap = run_context
-                .ap
-                .get_relocatable()
-                .map_err(|_| VirtualMachineError::InvalidApValue(run_context.ap.clone()))?;
-            apply_ap_tracking_correction(ap, var_ap_trackig, hint_ap_tracking)?
+
+            let ap = run_context.get_ap().get_relocatable()?.clone();
+
+            apply_ap_tracking_correction(&ap, var_ap_trackig, hint_ap_tracking)?
         }
         None => return Err(VirtualMachineError::NoRegisterInReference),
     };

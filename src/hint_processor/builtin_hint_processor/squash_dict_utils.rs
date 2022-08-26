@@ -347,7 +347,7 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -355,12 +355,12 @@ mod tests {
         exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
         exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Create ids_data
@@ -387,7 +387,7 @@ mod tests {
         assert_eq!(current_access_index, bigint!(3));
         //Check that current_access_index is now at range_check_ptr
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.get(&MaybeRelocatable::from((2, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
     }
@@ -402,7 +402,7 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -410,12 +410,12 @@ mod tests {
         exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
         exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Create ids_data
@@ -437,16 +437,16 @@ mod tests {
         //No scope variables
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Create ids
@@ -471,14 +471,14 @@ mod tests {
         let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
-        for _ in 0..1 {
+        for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -492,7 +492,7 @@ mod tests {
         );
         //Check the value of ids.should_skip_loop
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -504,14 +504,14 @@ mod tests {
         let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(4), bigint!(7)]);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..1 {
+        for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -525,7 +525,7 @@ mod tests {
         );
         //Check the value of ids.should_skip_loop
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
@@ -539,7 +539,7 @@ mod tests {
         let current_access_index: Box<dyn Any> = Box::new(bigint!(1));
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -547,7 +547,7 @@ mod tests {
         exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         exec_scopes.assign_or_update_variable("current_access_index", current_access_index);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -575,7 +575,7 @@ mod tests {
         //new_index - current_index -1
         //5 - 1 - 1 = 3
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
     }
@@ -588,7 +588,7 @@ mod tests {
         let current_access_index: Box<dyn Any> = Box::new(bigint!(1));
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -596,12 +596,12 @@ mod tests {
         exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         exec_scopes.assign_or_update_variable("current_access_index", current_access_index);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (loop_temps)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Create ids_data
@@ -624,14 +624,14 @@ mod tests {
         let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(4), bigint!(7)]);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -645,7 +645,7 @@ mod tests {
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(1))))
         );
     }
@@ -657,14 +657,14 @@ mod tests {
         let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -678,7 +678,7 @@ mod tests {
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 3))),
+            vm.memory.get(&MaybeRelocatable::from((1, 3))),
             Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         );
     }
@@ -738,7 +738,7 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -746,11 +746,11 @@ mod tests {
         exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
         exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(bigint!(4)),
             )
             .unwrap();
@@ -777,7 +777,7 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -785,11 +785,11 @@ mod tests {
         exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
         exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 0)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();
@@ -819,7 +819,7 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
@@ -827,12 +827,12 @@ mod tests {
         exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
         exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
-                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((1, 2)),
             )
             .unwrap();
         //Create hint_data
@@ -845,7 +845,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -919,14 +919,14 @@ mod tests {
         let keys: Box<dyn Any> = Box::new(vec![bigint!(1), bigint!(3)]);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..1 {
+        for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("keys", keys);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create hint_data
         let ids_data = ids_data!["next_key"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -940,7 +940,7 @@ mod tests {
         );
         //Check the value of ids.next_key
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::from(bigint!(3))))
         );
         //Check local variables
@@ -957,14 +957,14 @@ mod tests {
         let keys: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
-        for _ in 0..1 {
+        for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("keys", keys);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create hint_data
         let ids_data = ids_data!["next_key"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -984,23 +984,23 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(6)),
             )
             .unwrap();
@@ -1008,50 +1008,50 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1086,13 +1086,13 @@ mod tests {
         //Check ids variables
         let big_keys = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 1)))
+            .get(&MaybeRelocatable::from((1, 1)))
             .unwrap()
             .unwrap();
         assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
         let first_key = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 2)))
+            .get(&MaybeRelocatable::from((1, 2)))
             .unwrap()
             .unwrap();
         assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
@@ -1104,23 +1104,23 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(4)),
             )
             .unwrap();
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(6)),
             )
             .unwrap();
@@ -1128,92 +1128,92 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //dict_accesses[2].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 6)),
+                &MaybeRelocatable::from((2, 6)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //dict_accesses[2].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 7)),
+                &MaybeRelocatable::from((2, 7)),
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
         //dict_accesses[2].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 8)),
+                &MaybeRelocatable::from((2, 8)),
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
         //dict_accesses[3].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 9)),
+                &MaybeRelocatable::from((2, 9)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //dict_accesses[3].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 10)),
+                &MaybeRelocatable::from((2, 10)),
                 &MaybeRelocatable::from(bigint!(10)),
             )
             .unwrap();
         //dict_accesses[3].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 11)),
+                &MaybeRelocatable::from((2, 11)),
                 &MaybeRelocatable::from(bigint!(20)),
             )
             .unwrap();
@@ -1252,13 +1252,13 @@ mod tests {
         //Check ids variables
         let big_keys = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 1)))
+            .get(&MaybeRelocatable::from((1, 1)))
             .unwrap()
             .unwrap();
         assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
         let first_key = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 2)))
+            .get(&MaybeRelocatable::from((1, 2)))
             .unwrap()
             .unwrap();
         assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
@@ -1270,7 +1270,7 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Create scope variables
@@ -1278,19 +1278,19 @@ mod tests {
         let max_size: Box<dyn Any> = Box::new(bigint!(12));
         exec_scopes.assign_or_update_variable("__squash_dict_max_size", max_size);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(6)),
             )
             .unwrap();
@@ -1298,50 +1298,50 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1376,13 +1376,13 @@ mod tests {
         //Check ids variables
         let big_keys = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 1)))
+            .get(&MaybeRelocatable::from((1, 1)))
             .unwrap()
             .unwrap();
         assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
         let first_key = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 2)))
+            .get(&MaybeRelocatable::from((1, 2)))
             .unwrap()
             .unwrap();
         assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
@@ -1394,7 +1394,7 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Create scope variables
@@ -1402,19 +1402,19 @@ mod tests {
         let max_size: Box<dyn Any> = Box::new(bigint!(1));
         exec_scopes.assign_or_update_variable("__squash_dict_max_size", max_size);
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(6)),
             )
             .unwrap();
@@ -1422,50 +1422,50 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1498,23 +1498,23 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(7)),
             )
             .unwrap();
@@ -1522,50 +1522,50 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1593,16 +1593,16 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(BigInt::new(
                     Sign::Plus,
                     vec![1, 0, 0, 0, 0, 0, 17, 134217728],
@@ -1612,7 +1612,7 @@ mod tests {
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(6)),
             )
             .unwrap();
@@ -1620,50 +1620,50 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1695,23 +1695,23 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
+        for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
         //Insert ids into memory
         //ids.n_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
         //ids.n_ptr_diff
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 3)),
+                &MaybeRelocatable::from((1, 3)),
                 &MaybeRelocatable::from(bigint!(6)),
             )
             .unwrap();
@@ -1719,15 +1719,15 @@ mod tests {
         //ids.dict_accesses
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
                 &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         //Points to the first dict_access
         //dict_accesses[0].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(BigInt::new(
                     Sign::Plus,
                     vec![1, 0, 0, 0, 0, 0, 17, 134217727],
@@ -1737,21 +1737,21 @@ mod tests {
         //dict_accesses[0].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[0].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].key
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((2, 3)),
                 &MaybeRelocatable::from(BigInt::new(
                     Sign::Plus,
                     vec![1, 0, 0, 0, 0, 0, 17, 134217727],
@@ -1761,14 +1761,14 @@ mod tests {
         //dict_accesses[1].prev_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((2, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
         //dict_accesses[1].next_value
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 5)),
+                &MaybeRelocatable::from((2, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1810,13 +1810,13 @@ mod tests {
         //Check ids variables
         let big_keys = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 1)))
+            .get(&MaybeRelocatable::from((1, 1)))
             .unwrap()
             .unwrap();
         assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(1)));
         let first_key = vm
             .memory
-            .get(&MaybeRelocatable::from((0, 2)))
+            .get(&MaybeRelocatable::from((1, 2)))
             .unwrap()
             .unwrap();
         assert_eq!(

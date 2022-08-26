@@ -297,6 +297,8 @@ mod tests {
     fn run_dict_new_with_initial_dict_empty() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
+        vm.segments.add(&mut vm.memory, None);
+
         //Store initial dict in scope
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
@@ -310,22 +312,22 @@ mod tests {
             .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
-        assert_eq!(vm.segments.num_segments, 1);
-        //new segment base (0,0) is inserted into ap (0,0)
+        assert_eq!(vm.segments.num_segments, 2);
+        //new segment base (1,0) is inserted into ap (1,0)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
-            Ok(Some(&MaybeRelocatable::from((0, 0))))
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from((1, 0))))
         );
         //Check the dict manager has a tracker for segment 0,
-        //and that tracker contains the ptr (0,0) and an empty dict
+        //and that tracker contains the ptr (1,0) and an empty dict
         assert_eq!(
             exec_scopes_proxy
                 .get_dict_manager()
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&0),
-            Some(&DictTracker::new_empty(&relocatable!(0, 0)))
+                .get(&1),
+            Some(&DictTracker::new_empty(&relocatable!(1, 0)))
         );
     }
 
@@ -350,7 +352,7 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes
             .assign_or_update_variable("initial_dict", any_box!(HashMap::<BigInt, BigInt>::new()));
-        vm.memory = memory![((0, 0), 1)];
+        vm.memory = memory![((1, 0), 1)];
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -360,7 +362,7 @@ mod tests {
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((1, 0)),
                     MaybeRelocatable::from(bigint!(1)),
                     MaybeRelocatable::from((0, 0))
                 )
@@ -373,15 +375,15 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         tracker.insert_value(&bigint!(5_i32), &bigint!(12_i32));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 2), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -395,9 +397,9 @@ mod tests {
             hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Ok(())
         );
-        //Check that value variable (at address (0,1)) contains the proper value
+        //Check that value variable (at address (1,1)) contains the proper value
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 1))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(12))))
         );
         //Check that the tracker's current_ptr has moved accordingly
@@ -407,10 +409,10 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -419,18 +421,18 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Initialize dictionary
         let mut dictionary = HashMap::<BigInt, BigInt>::new();
         dictionary.insert(bigint!(5), bigint!(12));
         //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         tracker.data = Dictionary::SimpleDictionary(dictionary);
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -449,14 +451,14 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.value = dict_tracker.data[ids.key]";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Create manager
         let dict_manager = DictManager::new();
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 6), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -465,7 +467,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
-            Err(VirtualMachineError::NoDictTracker(1))
+            Err(VirtualMachineError::NoDictTracker(2))
         );
     }
 
@@ -474,7 +476,8 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 1));
+        vm.run_context.fp = 1;
+        vm.run_context.ap = 1;
         //insert ids.default_value into memory
         vm.memory = memory![((1, 0), 17)];
         let ids_data = ids_data!["default_value"];
@@ -490,7 +493,7 @@ mod tests {
         assert_eq!(vm.memory.data.len(), 3);
         //new segment base (0,0) is inserted into ap (0,0)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
+            vm.memory.get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from((0, 0))))
         );
         //Check the dict manager has a tracker for segment 0,
@@ -515,7 +518,7 @@ mod tests {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_default_dict(segments, ids.default_value)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         let ids_data = ids_data!["default_value"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -523,7 +526,7 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 0))
             ))
         );
     }
@@ -533,28 +536,28 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2), None);
+        //current_ptr = dict_ptr = (2, 0)
+        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(2), None);
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 17)];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 17)];
         vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
@@ -573,7 +576,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(17))
@@ -585,14 +588,14 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the default_value (2)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(2))))
         );
     }
@@ -602,26 +605,26 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(2), None);
+        //current_ptr = dict_ptr = (2, 0)
+        let mut tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(2), None);
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5_i32), &bigint!(10_i32));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -638,7 +641,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(17))
@@ -650,14 +653,14 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(10))))
         );
     }
@@ -667,26 +670,26 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        //current_ptr = dict_ptr = (2, 0)
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.value (at (1, 0))
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.value (at (2, 0))
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -703,7 +706,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(17))
@@ -715,14 +718,14 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
         //Check the value of dict_ptr.prev_value, should be equal to the previously inserted value (10)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.get(&MaybeRelocatable::from((2, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(10))))
         );
     }
@@ -732,24 +735,24 @@ mod tests {
         let hint_code = "dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ndict_tracker.current_ptr += ids.DictAccess.SIZE\nids.dict_ptr.prev_value = dict_tracker.data[ids.key]\ndict_tracker.data[ids.key] = ids.new_value";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        //current_ptr = dict_ptr = (2, 0)
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         //ids.value (at (1, 0))
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -766,25 +769,25 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        //current_ptr = dict_ptr = (2, 0)
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -801,7 +804,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(20))
@@ -813,10 +816,10 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -825,25 +828,25 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        //current_ptr = dict_ptr = (2, 0)
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -860,7 +863,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(10))
@@ -872,10 +875,10 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -884,25 +887,25 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        //current_ptr = dict_ptr = (2, 0)
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 11), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 20), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -924,25 +927,25 @@ mod tests {
             ;
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        //current_ptr = dict_ptr = (2, 0)
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 6), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -959,26 +962,26 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
+        //current_ptr = dict_ptr = (2, 0)
         let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
+            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -995,7 +998,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(20))
@@ -1007,10 +1010,10 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -1019,26 +1022,26 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
+        //current_ptr = dict_ptr = (2, 0)
         let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
+            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1055,7 +1058,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(10))
@@ -1067,10 +1070,10 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -1079,26 +1082,26 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
+        //current_ptr = dict_ptr = (2, 0)
         let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
+            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 11), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 10), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1119,26 +1122,26 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
+        //current_ptr = dict_ptr = (2, 0)
         let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
+            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
         //Add key-value pair (5, 10)
         tracker.insert_value(&bigint!(5), &bigint!(10));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 6), ((0, 1), 10), ((0, 2), 10), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1159,24 +1162,24 @@ mod tests {
         let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 4));
+        vm.run_context.fp = 4;
         //Create tracker
-        //current_ptr = dict_ptr = (1, 0)
+        //current_ptr = dict_ptr = (2, 0)
         let tracker =
-            DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(17), Some(HashMap::new()));
+            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
-        vm.memory = memory![((0, 0), 5), ((0, 1), 17), ((0, 2), 20), ((0, 3), (1, 0))];
+        vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), 20), ((1, 3), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
-        //ids.dict_ptr (1, 0):
-        //  dict_ptr.key = (1, 1)
-        //  dict_ptr.prev_value = (1, 2)
-        //  dict_ptr.new_value = (1, 3)
+        //ids.dict_ptr (2, 0):
+        //  dict_ptr.key = (2, 1)
+        //  dict_ptr.prev_value = (2, 2)
+        //  dict_ptr.new_value = (2, 3)
         let ids_data = ids_data!["key", "prev_value", "new_value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1193,7 +1196,7 @@ mod tests {
                 .unwrap()
                 .borrow_mut()
                 .trackers
-                .get_mut(&1)
+                .get_mut(&2)
                 .unwrap()
                 .get_value(&bigint!(5)),
             Ok(&bigint!(20))
@@ -1205,10 +1208,10 @@ mod tests {
                 .unwrap()
                 .borrow()
                 .trackers
-                .get(&1)
+                .get(&2)
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -1217,17 +1220,17 @@ mod tests {
         let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Initialize dictionary
         let dictionary = HashMap::<BigInt, BigInt>::new();
         //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         tracker.data = Dictionary::SimpleDictionary(dictionary);
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         //ids.dict_access
-        vm.memory = memory![((0, 0), (1, 0))];
+        vm.memory = memory![((1, 0), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1260,19 +1263,19 @@ mod tests {
         let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Initialize dictionary
         let mut dictionary = HashMap::<BigInt, BigInt>::new();
         dictionary.insert(bigint!(1), bigint!(2));
         dictionary.insert(bigint!(3), bigint!(4));
         dictionary.insert(bigint!(5), bigint!(6));
         //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         tracker.data = Dictionary::SimpleDictionary(dictionary);
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
-        vm.memory = memory![((0, 0), (1, 0))];
+        dict_manager.trackers.insert(2, tracker);
+        vm.memory = memory![((1, 0), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1309,13 +1312,13 @@ mod tests {
         let hint_code = "# Prepare arguments for dict_new. In particular, the same dictionary values should be copied\n# to the new (squashed) dictionary.\nvm_enter_scope({\n    # Make __dict_manager accessible.\n    '__dict_manager': __dict_manager,\n    # Create a copy of the dict, in case it changes in the future.\n    'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),\n})";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
         //Create manager
         let dict_manager = DictManager::new();
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
-        vm.memory = memory![((0, 0), (1, 0))];
+        vm.memory = memory![((1, 0), (2, 0))];
         vm.segments.add(&mut vm.memory, None);
         let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1324,7 +1327,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
-            Err(VirtualMachineError::NoDictTracker(1))
+            Err(VirtualMachineError::NoDictTracker(2))
         );
     }
 
@@ -1333,13 +1336,13 @@ mod tests {
         let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Create manager
         let dict_manager = DictManager::new();
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
@@ -1349,7 +1352,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
-            Err(VirtualMachineError::NoDictTracker(1))
+            Err(VirtualMachineError::NoDictTracker(2))
         );
     }
 
@@ -1358,21 +1361,21 @@ mod tests {
         let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Initialize dictionary
         let mut dictionary = HashMap::<BigInt, BigInt>::new();
         dictionary.insert(bigint!(1), bigint!(2));
         //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         tracker.data = Dictionary::SimpleDictionary(dictionary);
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //ids.squash_dict_start
-        vm.memory = memory![((0, 0), (1, 0)), ((0, 1), (1, 3))];
+        vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
@@ -1390,10 +1393,10 @@ mod tests {
                 .get_dict_manager()
                 .unwrap()
                 .borrow()
-                .get_tracker(&relocatable!(1, 3))
+                .get_tracker(&relocatable!(2, 3))
                 .unwrap()
                 .current_ptr,
-            relocatable!(1, 3)
+            relocatable!(2, 3)
         );
     }
 
@@ -1402,20 +1405,20 @@ mod tests {
         let hint_code = "# Update the DictTracker's current_ptr to point to the end of the squashed dict.\n__dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \\\n    ids.squashed_dict_end.address_";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
         //Initialize dictionary
         let mut dictionary = HashMap::<BigInt, BigInt>::new();
         dictionary.insert(bigint!(1), bigint!(2));
         //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(1, 0));
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
         tracker.data = Dictionary::SimpleDictionary(dictionary);
         //Create manager
         let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(1, tracker);
+        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
-        vm.memory = memory![((0, 0), (1, 3)), ((0, 1), (1, 6))];
+        vm.memory = memory![((1, 0), (2, 3)), ((1, 1), (2, 6))];
         vm.segments.add(&mut vm.memory, None);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
@@ -1426,8 +1429,8 @@ mod tests {
         assert_eq!(
             hint_processor.execute_hint(vm_proxy, &mut exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MismatchedDictPtr(
-                relocatable!(1, 0),
-                relocatable!(1, 3)
+                relocatable!(2, 0),
+                relocatable!(2, 3)
             ))
         );
     }
