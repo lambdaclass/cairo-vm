@@ -428,29 +428,21 @@ impl VirtualMachine {
                 Ok(())
             }
             Opcode::Call => {
-                //TODO
-                //This if statements are allways be false
-                if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
-                    (&operands.op0, &self.run_context.get_pc())
-                {
-                    let return_pc = run_pc + instruction.size();
-                    if op0_num != &return_pc {
+                if let MaybeRelocatable::RelocatableValue(op0) = &operands.op0 {
+                    let return_pc = &self.run_context.pc + instruction.size();
+                    if op0 != &return_pc {
                         return Err(VirtualMachineError::CantWriteReturnPc(
-                            op0_num.clone(),
+                            op0.clone(),
                             return_pc,
                         ));
                     };
                 };
 
-                if let (MaybeRelocatable::Int(return_fp), MaybeRelocatable::Int(dst_num)) =
-                    (&self.run_context.get_fp(), &operands.dst)
-                {
-                    if dst_num != return_fp {
-                        return Err(VirtualMachineError::CantWriteReturnFp(
-                            dst_num.clone(),
-                            return_fp.clone(),
-                        ));
-                    };
+                if self.run_context.get_fp() != operands.dst {
+                    return Err(VirtualMachineError::CantWriteReturnFp(
+                        operands.dst.clone(),
+                        self.run_context.get_fp(),
+                    ));
                 };
                 Ok(())
             }
