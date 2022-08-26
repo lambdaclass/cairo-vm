@@ -267,19 +267,15 @@ mod tests {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
 
-        for _ in 0..1 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         vm.memory = memory![
-            ((0, 0), 233),
-            ((0, 1), 351),
-            ((0, 2), (1, 0)),
-            ((1, 4), 5_i32)
+            ((1, 0), 233),
+            ((1, 1), 351),
+            ((1, 2), (2, 0)),
+            ((2, 4), 5_i32)
         ];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
 
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
@@ -301,10 +297,10 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
 
-        vm.memory = memory![((0, 0), 233), ((0, 1), 351), ((0, 2), (1, 0))];
+        vm.memory = memory![((1, 0), 233), ((1, 1), 351), ((1, 2), (2, 0))];
 
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 3));
+        vm.run_context.fp = 3;
 
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
@@ -323,10 +319,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         vm.segments.add(&mut vm.memory, None);
-        vm.memory = memory![((0, 0), 24)];
+        vm.memory = memory![((1, 0), 24)];
 
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        vm.run_context.ap = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
+        vm.run_context.ap = 1;
         let ids_data = ids_data!["n_bytes"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -344,10 +340,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         vm.segments.add(&mut vm.memory, None);
-        vm.memory = memory![((0, 0), 24)];
+        vm.memory = memory![((1, 0), 24)];
 
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        vm.run_context.ap = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
+        vm.run_context.ap = 1;
 
         let ids_data = ids_data!["n_bytes"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -365,10 +361,10 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         vm.segments.add(&mut vm.memory, None);
-        vm.memory = memory![((0, 0), 24)];
+        vm.memory = memory![((1, 0), 24)];
 
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
-        vm.run_context.ap = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 1;
+        vm.run_context.ap = 1;
 
         let ids_data = ids_data!["n_bytes"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
