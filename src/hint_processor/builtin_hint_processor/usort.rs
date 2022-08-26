@@ -170,10 +170,10 @@ mod tests {
         let hint = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
         let mut vm = vm_with_range_check!();
 
-        vm.run_context.fp = MaybeRelocatable::from((0, 2));
+        vm.run_context.fp = 2;
 
         vm.segments.add(&mut vm.memory, None);
-        vm.memory = memory![((0, 0), (1, 1)), ((0, 1), 5)];
+        vm.memory = memory![((1, 0), (2, 1)), ((1, 1), 5)];
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];
         let hint_data = HintProcessorData::new_default(hint.to_string(), ids_data);

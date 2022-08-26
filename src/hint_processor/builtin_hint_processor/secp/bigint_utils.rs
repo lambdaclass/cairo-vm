@@ -21,7 +21,6 @@ Implements hint:
     segments.write_arg(ids.res.address_, split(value))
 %}
 */
-
 pub fn nondet_bigint3(
     vm_proxy: &mut VMProxy,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
@@ -89,9 +88,9 @@ mod tests {
             )),
         );
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 6));
+        vm.run_context.fp = 6;
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 6));
+        vm.run_context.ap = 6;
         //Create hint_data
         let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -117,9 +116,9 @@ mod tests {
         let mut vm = vm_with_range_check!();
         // we don't initialize `value` now:
         //Initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((1, 6));
+        vm.run_context.fp = 6;
         //Initialize ap
-        vm.run_context.ap = MaybeRelocatable::from((1, 6));
+        vm.run_context.ap = 6;
         //Create hint_data
         let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
