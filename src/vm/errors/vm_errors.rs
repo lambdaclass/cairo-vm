@@ -210,4 +210,8 @@ pub enum VirtualMachineError {
     CompileHintFail(String),
     #[error("op1_addr is Op1Addr.IMM, but no immediate given")]
     NoImm,
+    #[error("Tried to compute an address but there was no register in the reference.")]
+    NoRegisterInReference,
+    #[error("Custom Hint Error: {0}")]
+    CustomHint(String),
 }

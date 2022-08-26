@@ -260,7 +260,6 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     fn keccak_write_args_valid_test() {
@@ -282,8 +281,9 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -306,8 +306,9 @@ mod tests {
         let ids_data = ids_data!["low", "high", "inputs"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         let error =
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data));
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data));
 
         assert!(matches!(error, Err(VirtualMachineError::MemoryError(_))));
     }
@@ -326,8 +327,9 @@ mod tests {
         let ids_data = ids_data!["n_bytes"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -348,8 +350,9 @@ mod tests {
         let ids_data = ids_data!["n_bytes"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }
@@ -369,8 +372,9 @@ mod tests {
         let ids_data = ids_data!["n_bytes"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
     }

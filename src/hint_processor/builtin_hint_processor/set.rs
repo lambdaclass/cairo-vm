@@ -86,8 +86,6 @@ mod tests {
     use num_bigint::Sign;
     use std::any::Any;
 
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
     fn init_vm_ids_data(
@@ -187,8 +185,9 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
 
@@ -208,8 +207,9 @@ mod tests {
         );
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Ok(())
         );
 
@@ -230,8 +230,9 @@ mod tests {
             init_vm_ids_data(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -245,8 +246,9 @@ mod tests {
             init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int)), None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
@@ -258,8 +260,9 @@ mod tests {
             init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ValueNotPositive(int))
         );
     }
@@ -269,8 +272,9 @@ mod tests {
             init_vm_ids_data(Some(&MaybeRelocatable::from((2, 3))), None, None, None);
         let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::InvalidSetRange(
                 MaybeRelocatable::from((2, 3)),
                 MaybeRelocatable::from((2, 2)),
