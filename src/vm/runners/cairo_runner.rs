@@ -423,10 +423,14 @@ mod tests {
     use num_traits::FromPrimitive;
 
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::ReferenceManager;
-    use crate::vm::trace::trace_entry::TraceEntry;
-    use crate::{bigint_str, relocatable};
+    use crate::{
+        bigint_str,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        relocatable,
+        serde::deserialize_program::ReferenceManager,
+        utils::test_utils::*,
+        vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
+    };
     use std::collections::HashMap;
 
     static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
@@ -603,24 +607,7 @@ mod tests {
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
         cairo_runner.initialize_state(1, stack).unwrap();
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::RelocatableValue(
-                    cairo_runner.program_base.unwrap()
-                ))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(4)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(6)))
-        );
+        check_memory!(cairo_runner.vm.memory, ((1, 0), 4), ((1, 1), 6));
     }
 
     #[test]
@@ -948,22 +935,7 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_segments(None);
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(23)),
-            )
-            .unwrap();
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(233)),
-            )
-            .unwrap();
+        cairo_runner.vm.memory = memory![((2, 0), 23), ((2, 1), 233)];
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].0,
             String::from("range_check")
@@ -987,7 +959,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn initialize_vm_with_range_check_invalid() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
@@ -1005,23 +976,12 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_segments(None);
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(23)),
-            )
-            .unwrap();
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(-1)),
-            )
-            .unwrap();
-        cairo_runner.initialize_vm().unwrap();
+        cairo_runner.vm.memory = memory![((2, 1), 23), ((2, 4), (-1))];
+
+        assert_eq!(
+            cairo_runner.initialize_vm(),
+            Err(RunnerError::MemoryValidationError(MemoryError::FoundNonInt))
+        );
     }
 
     //Integration tests for initialization phase
@@ -1047,20 +1007,17 @@ mod tests {
             builtins: vec![],
             prime: bigint!(17),
             data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(5207990763031199744).unwrap()),
+                MaybeRelocatable::from(bigint!(5207990763031199744_i64)),
                 MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::Int(BigInt::new(
-                    Sign::Plus,
-                    vec![
-                        4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                        134217728,
-                    ],
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
+                MaybeRelocatable::from((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    10,
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             ],
             main: Some(3),
             hints: HashMap::new(),
