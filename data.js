@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661539525607,
+  "lastUpdate": 1661540506340,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -29217,6 +29217,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 225839541,
             "range": "± 674931",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "d87f9c9352a4d76680156ad1cca59102c4884477",
+          "message": "Use this error for error handling + remove asserts",
+          "timestamp": "2022-08-26T18:12:07Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/388/commits/d87f9c9352a4d76680156ad1cca59102c4884477"
+        },
+        "date": 1661540502565,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 2188026096,
+            "range": "± 24382174",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 794822652,
+            "range": "± 13194062",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 394386578,
+            "range": "± 6637854",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1822280105,
+            "range": "± 28083743",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 288048920,
+            "range": "± 6434554",
             "unit": "ns/iter"
           }
         ]
