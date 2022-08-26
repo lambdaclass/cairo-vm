@@ -360,7 +360,7 @@ impl EcOpBuiltinRunner {
         beta: &BigInt,
         prime: &BigInt,
     ) -> bool {
-        (y.pow(2).mod_floor(&prime)) == (x.pow(3) + alpha * x + beta).mod_floor(&prime)
+        (y.pow(2).mod_floor(prime)) == (x.pow(3) + alpha * x + beta).mod_floor(prime)
     }
 
     ///Returns the result of the EC operation P + m * Q.
