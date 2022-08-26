@@ -428,14 +428,14 @@ impl VirtualMachine {
                 Ok(())
             }
             Opcode::Call => {
-                if let MaybeRelocatable::RelocatableValue(op0) = &operands.op0 {
-                    let return_pc = &self.run_context.pc + instruction.size();
-                    if op0 != &return_pc {
-                        return Err(VirtualMachineError::CantWriteReturnPc(
-                            op0.clone(),
-                            return_pc,
-                        ));
-                    };
+                let return_pc = MaybeRelocatable::from(&self.run_context.pc + instruction.size());
+                if operands.op0 != return_pc {
+                    println!("operands.op0: {:?}", operands.op0);
+                    println!("return_pc: {:?}", return_pc);
+                    return Err(VirtualMachineError::CantWriteReturnPc(
+                        operands.op0.clone(),
+                        return_pc,
+                    ));
                 };
 
                 if self.run_context.get_fp() != operands.dst {

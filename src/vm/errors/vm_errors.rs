@@ -20,7 +20,7 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     UnconstrainedResAssertEq,
     DiffAssertValues(BigInt, BigInt),
-    CantWriteReturnPc(Relocatable, Relocatable),
+    CantWriteReturnPc(MaybeRelocatable, MaybeRelocatable),
     CantWriteReturnFp(MaybeRelocatable, MaybeRelocatable),
     NoDst,
     PureValue,
