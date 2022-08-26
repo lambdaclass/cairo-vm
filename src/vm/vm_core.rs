@@ -20,7 +20,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
@@ -209,7 +209,7 @@ impl VirtualMachine {
     /// Used for JNZ instructions
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
-            MaybeRelocatable::Int(num) => Ok(num == bigint!(0)),
+            MaybeRelocatable::Int(num) => Ok(num.is_zero()),
             MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
         }
     }
