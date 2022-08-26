@@ -53,7 +53,11 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-/* NOM PARSERS */
+/*
+NOM PARSERS
+See the docs for context and grammar explanation:
+cleopatra_cairo/docs/references_parsing/README.md
+*/
 
 // Checks if the input has outer brackets. This is used to set
 // the `dereference` field of ValueAddress.
@@ -350,6 +354,27 @@ mod tests {
                     immediate: None,
                     dereference: true,
                     inner_dereference: false
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_inner_deref_and_offset2() {
+        let value = "[cast([ap] + 1, felt*)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: Some(Register::AP),
+                    offset1: 0,
+                    offset2: 1,
+                    immediate: None,
+                    dereference: true,
+                    inner_dereference: true
                 }
             ))
         );

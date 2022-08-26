@@ -222,8 +222,8 @@ mod tests {
     #[test]
     fn write_binary_trace_file() {
         let program_path = Path::new("cairo_programs/struct.json");
-        let expected_trace_path = Path::new("cairo_programs/struct.trace");
-        let cairo_rs_trace_path = Path::new("cairo_programs/struct_rs.trace");
+        let expected_trace_path = Path::new("cairo_programs/trace_memory/cairo_trace_struct");
+        let cairo_rs_trace_path = Path::new("cairo_programs/trace_memory/struct_cairo_rs.trace");
 
         // run test program until the end
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -247,8 +247,8 @@ mod tests {
     #[test]
     fn write_binary_memory_file() {
         let program_path = Path::new("cairo_programs/struct.json");
-        let expected_memory_path = Path::new("cairo_programs/struct.memory");
-        let cairo_rs_memory_path = Path::new("cairo_programs/struct_rs.memory");
+        let expected_memory_path = Path::new("cairo_programs/trace_memory/cairo_memory_struct");
+        let cairo_rs_memory_path = Path::new("cairo_programs/trace_memory/struct_cairo_rs.memory");
 
         // run test program until the end
         let hint_processor = BuiltinHintProcessor::new_empty();

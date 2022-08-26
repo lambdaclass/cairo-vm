@@ -89,6 +89,6 @@ end
 
 func main{range_check_ptr}():
     # These values have triggered a bug in the past
-    run_tests(3, 5)
+    run_tests(4, 5)
     return()
 end
