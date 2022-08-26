@@ -4,13 +4,21 @@ How to run a cairo program with custom hints
 ### Step by Step Guide:
 
 #### Step 1: Add cairo-rs to your project as a crate
+Add cairo-rs as a dependency to your Cargo.toml
 
-Cargo.toml
+By using either path:
 
 ```rust
 [dependencies]
 cairo-rs =  {path = "[path to cairo-rs directory"}
 ```
+
+Or by github link:
+```rust
+[dependencies]
+cairo-rs =  {git = "https://github.com/lambdaclass/cairo-rs.git"}
+```
+
 #### Step 2: Code the implementation of your custom hint (Using the helpers and proxies described in the sections below)
 For this step, you will have to code your hint implementation as a Rust function, and then wrap it inside a Box smart pointer, and a HintFunc (type alias for hint functions).
 
