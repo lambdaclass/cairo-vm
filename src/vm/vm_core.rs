@@ -560,7 +560,7 @@ impl VirtualMachine {
             Opcode::Call => Some(self.run_context.fp.clone()),
             _ => self.deduce_dst(instruction, res.as_ref()),
         };
-        let dst = dst_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        let dst = dst_op.ok_or(VirtualMachineError::NoDst)?;
         self.memory
             .insert(dst_addr, &dst)
             .map_err(VirtualMachineError::MemoryError)?;

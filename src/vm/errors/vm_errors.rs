@@ -320,7 +320,7 @@ impl fmt::Display for VirtualMachineError {
                 write!(f, "HintProcessor failed retrieve the compiled data necessary for hint execution")
             },
             VirtualMachineError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
-            VirtualMachineError::FailedToComputeOperands => write!(f, "Couldnt compute operands"),
+            VirtualMachineError::FailedToComputeOperands => write!(f, "Couldn't compute operands"),
         }
     }
 }
