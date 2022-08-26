@@ -486,6 +486,7 @@ mod tests {
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
+        vm.segments.add(&mut vm.memory, None);
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -493,11 +494,11 @@ mod tests {
             .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
             .expect("Error while executing hint");
         //first new segment is added
-        assert_eq!(vm.segments.num_segments, 1);
-        //new segment base (0,0) is inserted into ap (0,0)
+        assert_eq!(vm.segments.num_segments, 2);
+        //new segment base (1,0) is inserted into ap (1,0)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((0, 0))),
-            Ok(Some(&MaybeRelocatable::from((0, 0))))
+            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            Ok(Some(&MaybeRelocatable::from((1, 0))))
         );
     }
 
@@ -509,7 +510,7 @@ mod tests {
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
-        vm.run_context.ap = MaybeRelocatable::from((2, 6));
+        vm.run_context.ap = 6;
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -518,9 +519,9 @@ mod tests {
             .expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
-        //new segment base (3,0) is inserted into ap (2,6)
+        //new segment base (3,0) is inserted into ap (1,6)
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 6))),
+            vm.memory.get(&MaybeRelocatable::from((1, 6))),
             Ok(Some(&MaybeRelocatable::from((3, 0))))
         );
     }
@@ -533,12 +534,12 @@ mod tests {
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory, None);
         }
-        vm.run_context.ap = MaybeRelocatable::from((2, 6));
+        vm.run_context.ap = 6;
         //Insert something into ap
         vm.memory
             .insert(
-                &MaybeRelocatable::from((2, 6)),
-                &MaybeRelocatable::from((2, 6)),
+                &MaybeRelocatable::from((1, 6)),
+                &MaybeRelocatable::from((1, 6)),
             )
             .unwrap();
         //ids and references are not needed for this test
@@ -548,8 +549,8 @@ mod tests {
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((2, 6)),
-                    MaybeRelocatable::from((2, 6)),
+                    MaybeRelocatable::from((1, 6)),
+                    MaybeRelocatable::from((1, 6)),
                     MaybeRelocatable::from((3, 0))
                 )
             ))
@@ -574,15 +575,17 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 2;
 
         // insert ids.len into memory
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();
@@ -600,16 +603,18 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 2;
 
         // insert ids.len into memory
         // we insert a relocatable value in the address of ids.len so that it raises an error.
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from((0, 0)),
             )
             .unwrap();
@@ -621,7 +626,7 @@ mod tests {
         assert_eq!(
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
             Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((0, 0))
+                MaybeRelocatable::from((1, 1))
             ))
         );
     }
@@ -632,20 +637,22 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 2;
 
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
 
         // initialize ids.continue_copying
-        // we create a memory gap so that there is None in (0, 0), the actual addr of continue_copying
+        // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 2)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();
@@ -668,7 +675,7 @@ mod tests {
         vm.segments.add(&mut vm.memory, None);
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 3;
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
@@ -700,10 +707,12 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 1));
+        vm.run_context.fp = 2;
 
         // initialize with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
@@ -713,7 +722,7 @@ mod tests {
         // a value is written in the address so the hint cant insert value there
         vm.memory
             .insert(
-                &MaybeRelocatable::from((0, 0)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();
@@ -726,7 +735,7 @@ mod tests {
             HINT_EXECUTOR.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    MaybeRelocatable::from((0, 0)),
+                    MaybeRelocatable::from((1, 1)),
                     MaybeRelocatable::from(bigint!(5)),
                     MaybeRelocatable::from(bigint!(0))
                 )
@@ -799,17 +808,18 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
 
         // insert ids.len into memory
         vm.memory
             // length
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(3)),
             )
             .unwrap();
@@ -817,21 +827,21 @@ mod tests {
         vm.memory
             // data
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
@@ -839,15 +849,15 @@ mod tests {
         vm.memory
             // pointer to data
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
 
         vm.memory
-            // we create a memory gap in (0, 3) and (0, 4)
+            // we create a memory gap in (1, 3) and (1, 4)
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
@@ -871,17 +881,18 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
 
         // insert ids.len into memory
         vm.memory
             // length
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(5)),
             )
             .unwrap();
@@ -889,21 +900,21 @@ mod tests {
         vm.memory
             // data
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
@@ -911,15 +922,15 @@ mod tests {
         vm.memory
             // pointer to data
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
 
         vm.memory
             // we create a memory gap in (0, 3) and (0, 4)
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
@@ -942,17 +953,18 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 4;
 
         // insert ids.len into memory
         vm.memory
             // length
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(18446744073709551616_i128)),
             )
             .unwrap();
@@ -960,21 +972,21 @@ mod tests {
         vm.memory
             // data
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
@@ -982,15 +994,15 @@ mod tests {
         vm.memory
             // pointer to data
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
 
         vm.memory
-            // we create a memory gap in (0, 3) and (0, 4)
+            // we create a memory gap in (1, 3) and (1, 4)
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
@@ -1010,17 +1022,18 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..3 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 5));
+        vm.run_context.fp = 5;
 
         // insert ids.len into memory
         vm.memory
             // length
             .insert(
-                &MaybeRelocatable::from((0, 1)),
+                &MaybeRelocatable::from((1, 1)),
                 &MaybeRelocatable::from(bigint!(3)),
             )
             .unwrap();
@@ -1028,21 +1041,21 @@ mod tests {
         vm.memory
             // data
             .insert(
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((2, 0)),
                 &MaybeRelocatable::from(bigint!(-1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((2, 1)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
 
         vm.memory
             .insert(
-                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 2)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
@@ -1050,15 +1063,15 @@ mod tests {
         vm.memory
             // pointer to data
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((2, 0)),
             )
             .unwrap();
 
         vm.memory
-            // we create a memory gap in (0, 3) and (0, 4)
+            // we create a memory gap in (1, 3) and (1, 4)
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
@@ -1082,39 +1095,41 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 9));
+        vm.run_context.fp = 9;
 
         vm.memory
             // pointer to keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 2)),
             )
             .unwrap();
 
         vm.memory
             // field start_ptr of keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((1, 4)),
             )
             .unwrap();
 
         vm.memory
             // field end_ptr of keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((1, 5)),
             )
             .unwrap();
 
         vm.memory
             // the number that is pointed to by start_pointer
             .insert(
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 4)),
                 &MaybeRelocatable::from(bigint!(1)),
             )
             .unwrap();
@@ -1122,7 +1137,7 @@ mod tests {
         vm.memory
             // the number that is pointed to by end_pointer
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
@@ -1131,7 +1146,7 @@ mod tests {
             // we create a memory gap in (0, 6) and (0, 7)
             // for high and low variables
             .insert(
-                &MaybeRelocatable::from((0, 8)),
+                &MaybeRelocatable::from((1, 8)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
@@ -1155,49 +1170,51 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 9));
+        vm.run_context.fp = 9;
 
         vm.memory
             // pointer to keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 2)),
             )
             .unwrap();
 
         vm.memory
             // field start_ptr of keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((1, 4)),
             )
             .unwrap();
 
         vm.memory
             // field end_ptr of keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((1, 5)),
             )
             .unwrap();
 
         vm.memory
             // the number that is pointed to by end_pointer
-            // we create a gap in (0, 4)
+            // we create a gap in (1, 4)
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
 
         vm.memory
-            // we create a memory gap in (0, 6) and (0, 7)
+            // we create a memory gap in (1, 6) and (1, 7)
             // for high and low variables
             .insert(
-                &MaybeRelocatable::from((0, 8)),
+                &MaybeRelocatable::from((1, 8)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
@@ -1222,32 +1239,34 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        for _ in 0..2 {
+            vm.segments.add(&mut vm.memory, None);
+        }
 
         // initialize fp
-        vm.run_context.fp = MaybeRelocatable::from((0, 9));
+        vm.run_context.fp = 9;
 
         vm.memory
             // pointer to keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 1)),
-                &MaybeRelocatable::from((0, 2)),
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from((1, 2)),
             )
             .unwrap();
 
         vm.memory
             // field start_ptr of keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from((0, 4)),
+                &MaybeRelocatable::from((1, 2)),
+                &MaybeRelocatable::from((1, 4)),
             )
             .unwrap();
 
         vm.memory
             // field end_ptr of keccak_state
             .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 3)),
+                &MaybeRelocatable::from((1, 5)),
             )
             .unwrap();
 
@@ -1255,24 +1274,24 @@ mod tests {
             // this is the cell pointed by start_ptr and should be
             // a number, not a pointer. This causes the error
             .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 4)),
+                &MaybeRelocatable::from((1, 5)),
             )
             .unwrap();
 
         vm.memory
             // the number that is pointed to by end_pointer
             .insert(
-                &MaybeRelocatable::from((0, 5)),
+                &MaybeRelocatable::from((1, 5)),
                 &MaybeRelocatable::from(bigint!(2)),
             )
             .unwrap();
 
         vm.memory
-            // we create a memory gap in (0, 6) and (0, 7)
+            // we create a memory gap in (1, 6) and (1, 7)
             // for high and low variables
             .insert(
-                &MaybeRelocatable::from((0, 8)),
+                &MaybeRelocatable::from((1, 8)),
                 &MaybeRelocatable::from(bigint!(0)),
             )
             .unwrap();
