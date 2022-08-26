@@ -278,14 +278,7 @@ mod tests {
 
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
