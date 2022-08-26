@@ -2900,8 +2900,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
-        let mut builtin = HashBuiltinRunner::new(true, 8);
-        builtin.base = Some(relocatable!(0, 0));
+        let builtin = HashBuiltinRunner::new(8);
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.memory.data.push(Vec::new());
@@ -2970,8 +2969,8 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = HashBuiltinRunner::new(true, 8);
-        builtin.base = Some(relocatable!(3, 0));
+        let mut builtin = HashBuiltinRunner::new(8);
+        builtin.base = 3;
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
@@ -3110,8 +3109,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
-        let mut builtin = BitwiseBuiltinRunner::new(true, 8);
-        builtin.base = Some(relocatable!(0, 0));
+        let builtin = BitwiseBuiltinRunner::new(8);
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         vm.memory.data.push(Vec::new());
@@ -3167,8 +3165,8 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
-        builtin.base = Some(relocatable!(2, 0));
+        let mut builtin = BitwiseBuiltinRunner::new(256);
+        builtin.base = 2;
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
@@ -3261,8 +3259,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
-        let mut builtin = EcOpBuiltinRunner::new(true, 256);
-        builtin.base = Some(relocatable!(0, 0));
+        let builtin = EcOpBuiltinRunner::new(256);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
         vm.memory.data.push(Vec::new());
@@ -3340,8 +3337,8 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(true, 256);
-        builtin.base = Some(relocatable!(3, 0));
+        let mut builtin = EcOpBuiltinRunner::new(256);
+        builtin.base = 3;
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
@@ -3399,8 +3396,8 @@ mod tests {
 
     #[test]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(true, 256);
-        builtin.base = Some(relocatable!(3, 0));
+        let mut builtin = EcOpBuiltinRunner::new(256);
+        builtin.base = 3;
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
@@ -3483,8 +3480,8 @@ mod tests {
     end
     */
     fn verify_auto_deductions_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(true, 256);
-        builtin.base = Some(relocatable!(2, 0));
+        let mut builtin = BitwiseBuiltinRunner::new(256);
+        builtin.base = 2;
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
@@ -3531,8 +3528,8 @@ mod tests {
     end
      */
     fn verify_auto_deductions_pedersen() {
-        let mut builtin = HashBuiltinRunner::new(true, 8);
-        builtin.base = Some(relocatable!(3, 0));
+        let mut builtin = HashBuiltinRunner::new(8);
+        builtin.base = 3;
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
