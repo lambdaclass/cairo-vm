@@ -338,6 +338,11 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         self
     }
 }
+impl Default for OutputBuiltinRunner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl EcOpBuiltinRunner {
     pub fn new(ratio: usize) -> Self {

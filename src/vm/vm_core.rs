@@ -636,26 +636,19 @@ impl VirtualMachine {
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
-        for (i, segment) in self.memory.data.iter().enumerate() {
-            for (j, value) in segment.iter().enumerate() {
-                for (name, builtin) in self.builtin_runners.iter_mut() {
-                    if builtin.base().segment_index == i {
-                        match builtin
-                            .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory)
-                        {
-                            Ok(None) => None,
-                            Ok(Some(deduced_memory_cell)) => {
-                                if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
-                                    return Err(VirtualMachineError::InconsistentAutoDeduction(
-                                        name.to_owned(),
-                                        deduced_memory_cell,
-                                        value.to_owned(),
-                                    ));
-                                }
-                                Some(deduced_memory_cell)
-                            }
-                            _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                        };
+        for (name, builtin) in self.builtin_runners.iter_mut() {
+            let index = builtin.base().segment_index;
+            for (offset, value) in self.memory.data[index].iter().enumerate() {
+                if let Some(deduced_memory_cell) = builtin
+                    .deduce_memory_cell(&MaybeRelocatable::from((index, offset)), &self.memory)
+                    .map_err(VirtualMachineError::RunnerError)?
+                {
+                    if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
+                        return Err(VirtualMachineError::InconsistentAutoDeduction(
+                            name.to_owned(),
+                            deduced_memory_cell,
+                            value.to_owned(),
+                        ));
                     }
                 }
             }
