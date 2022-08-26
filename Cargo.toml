@@ -42,7 +42,7 @@ version = "0.3"
 features = ["html_reports"]
 
 [[bench]]
-path = "bench/criterion/criterion_benchmark.rs"
+path = "bench/criterion_benchmark.rs"
 name = "criterion_benchmark"
 harness = false
 
