@@ -1,5 +1,6 @@
 use crate::types::relocatable::Relocatable;
 use num_bigint::BigInt;
+use num_integer::Integer;
 
 #[macro_export]
 macro_rules! bigint {
@@ -54,7 +55,7 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 ///equivalent to val modulo prime.
 pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
     let half_prime = prime.clone() / bigint!(2);
-    ((num + half_prime.clone()) % prime) - half_prime
+    ((num + half_prime.clone()).mod_floor(&prime)) - half_prime
 }
 
 #[cfg(test)]

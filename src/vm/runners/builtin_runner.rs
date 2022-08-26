@@ -6,6 +6,7 @@ use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
+use num_integer::Integer;
 use num_traits::{One, Zero};
 use starknet_crypto::{pedersen_hash, FieldElement};
 use std::any::Any;
@@ -200,7 +201,7 @@ impl BuiltinRunner for HashBuiltinRunner {
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            if relocatable.offset % self.cells_per_instance != 2
+            if relocatable.offset.mod_floor(&self.cells_per_instance) != 2
                 || self.verified_addresses.contains(address)
             {
                 return Ok(None);
@@ -284,7 +285,7 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            let index = relocatable.offset % self.cells_per_instance;
+            let index = relocatable.offset.mod_floor(&self.cells_per_instance);
             if index == 0 || index == 1 {
                 return Ok(None);
             }
@@ -359,7 +360,7 @@ impl EcOpBuiltinRunner {
         beta: &BigInt,
         prime: &BigInt,
     ) -> bool {
-        (y.pow(2) % prime) == (x.pow(3) + alpha * x + beta) % prime
+        (y.pow(2).mod_floor(&prime)) == (x.pow(3) + alpha * x + beta).mod_floor(&prime)
     }
 
     ///Returns the result of the EC operation P + m * Q.
@@ -427,7 +428,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
             );
 
-            let index = relocatable.offset % self.cells_per_instance;
+            let index = relocatable.offset.mod_floor(&self.cells_per_instance);
             //Index should be an output cell
             if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
                 return Ok(None);
