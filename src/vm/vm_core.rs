@@ -314,13 +314,11 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         if let MaybeRelocatable::RelocatableValue(addr) = address {
             for (_, builtin) in self.builtin_runners.iter_mut() {
-                if let Some(base) = builtin.base() {
-                    if base.segment_index == addr.segment_index {
-                        match builtin.deduce_memory_cell(address, &self.memory) {
-                            Ok(maybe_reloc) => return Ok(maybe_reloc),
-                            Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                        };
-                    }
+                if builtin.base().segment_index == addr.segment_index {
+                    match builtin.deduce_memory_cell(address, &self.memory) {
+                        Ok(maybe_reloc) => return Ok(maybe_reloc),
+                        Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                    };
                 }
             }
             return Ok(None);
@@ -641,35 +639,23 @@ impl VirtualMachine {
         for (i, segment) in self.memory.data.iter().enumerate() {
             for (j, value) in segment.iter().enumerate() {
                 for (name, builtin) in self.builtin_runners.iter_mut() {
-                    match builtin.base() {
-                        Some(builtin_base) => {
-                            if builtin_base.segment_index == i {
-                                match builtin.deduce_memory_cell(
-                                    &MaybeRelocatable::from((i, j)),
-                                    &self.memory,
-                                ) {
-                                    Ok(None) => None,
-                                    Ok(Some(deduced_memory_cell)) => {
-                                        if Some(&deduced_memory_cell) != value.as_ref()
-                                            && value != &None
-                                        {
-                                            return Err(
-                                                VirtualMachineError::InconsistentAutoDeduction(
-                                                    name.to_owned(),
-                                                    deduced_memory_cell,
-                                                    value.to_owned(),
-                                                ),
-                                            );
-                                        }
-                                        Some(deduced_memory_cell)
-                                    }
-                                    _ => {
-                                        return Err(VirtualMachineError::InvalidInstructionEncoding)
-                                    }
-                                };
+                    if builtin.base().segment_index == i {
+                        match builtin
+                            .deduce_memory_cell(&MaybeRelocatable::from((i, j)), &self.memory)
+                        {
+                            Ok(None) => None,
+                            Ok(Some(deduced_memory_cell)) => {
+                                if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
+                                    return Err(VirtualMachineError::InconsistentAutoDeduction(
+                                        name.to_owned(),
+                                        deduced_memory_cell,
+                                        value.to_owned(),
+                                    ));
+                                }
+                                Some(deduced_memory_cell)
                             }
-                        }
-                        _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                            _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
+                        };
                     }
                 }
             }

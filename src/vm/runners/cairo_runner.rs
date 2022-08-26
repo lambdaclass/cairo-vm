@@ -58,37 +58,28 @@ impl CairoRunner {
         let mut builtin_runners = Vec::<(String, Box<dyn BuiltinRunner>)>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    Box::new(OutputBuiltinRunner::new(true)),
-                ));
+                builtin_runners.push((builtin_name.clone(), Box::new(OutputBuiltinRunner::new())));
             }
 
             if builtin_name == "pedersen" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    Box::new(HashBuiltinRunner::new(true, 8)),
-                ));
+                builtin_runners.push((builtin_name.clone(), Box::new(HashBuiltinRunner::new(8))));
             }
 
             if builtin_name == "range_check" {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
                 builtin_runners.push((
                     builtin_name.clone(),
-                    Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                    Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
                 ));
             }
             if builtin_name == "bitwise" {
                 builtin_runners.push((
                     builtin_name.clone(),
-                    Box::new(BitwiseBuiltinRunner::new(true, 256)),
+                    Box::new(BitwiseBuiltinRunner::new(256)),
                 ));
             }
             if builtin_name == "ec_op" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    Box::new(EcOpBuiltinRunner::new(true, 256)),
-                ));
+                builtin_runners.push((builtin_name.clone(), Box::new(EcOpBuiltinRunner::new(256))));
             }
         }
         //Initialize a vm, with empty values, will later be filled with actual data in initialize_vm
@@ -131,23 +122,23 @@ impl CairoRunner {
                 offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
-            match self.vm.segments.load_data(
-                &mut self.vm.memory,
-                &MaybeRelocatable::RelocatableValue(prog_base),
-                self.program.data.clone(),
-            ) {
-                Ok(_) => {}
-                Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
-            }
-            if let Some(exec_base) = &self.execution_base {
-                match self.vm.segments.load_data(
+            self.vm
+                .segments
+                .load_data(
                     &mut self.vm.memory,
-                    &MaybeRelocatable::RelocatableValue(exec_base.clone()),
-                    stack,
-                ) {
-                    Ok(_) => {}
-                    Err(e) => return Err(RunnerError::MemoryInitializationError(e)),
-                }
+                    &MaybeRelocatable::RelocatableValue(prog_base),
+                    self.program.data.clone(),
+                )
+                .map_err(RunnerError::MemoryInitializationError)?;
+            if let Some(exec_base) = &self.execution_base {
+                self.vm
+                    .segments
+                    .load_data(
+                        &mut self.vm.memory,
+                        &MaybeRelocatable::RelocatableValue(exec_base.clone()),
+                        stack,
+                    )
+                    .map_err(RunnerError::MemoryInitializationError)?;
             } else {
                 return Err(RunnerError::NoExecBase);
             }
@@ -188,7 +179,7 @@ impl CairoRunner {
         //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
         for (_name, builtin_runner) in self.vm.builtin_runners.iter() {
-            stack.append(&mut builtin_runner.initial_stack()?);
+            stack.append(&mut builtin_runner.initial_stack());
         }
         //Different process if proof_mode is enabled
         let return_fp = self.vm.segments.add(&mut self.vm.memory, None);
@@ -380,10 +371,7 @@ impl CairoRunner {
             let builtin = &self.vm.builtin_runners[0].1;
             self.vm.segments.compute_effective_sizes(&self.vm.memory);
 
-            let base = match builtin.base() {
-                Some(base) => base,
-                None => return Err(RunnerError::UninitializedBase),
-            };
+            let base = builtin.base();
 
             // After this if block,
             // segment_used_sizes is always Some(_)
@@ -393,13 +381,11 @@ impl CairoRunner {
 
             // See previous comment, the unwrap below is safe.
             for i in 0..self.vm.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
-                let value =
-                    match self.vm.memory.get(
-                        &MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None),
-                    ) {
-                        Ok(val) => val,
-                        Err(e) => return Err(RunnerError::FailedMemoryGet(e)),
-                    };
+                let value = self
+                    .vm
+                    .memory
+                    .get(&MaybeRelocatable::RelocatableValue(base.clone()).add_usize_mod(i, None))
+                    .map_err(RunnerError::FailedMemoryGet)?;
 
                 if let Some(&MaybeRelocatable::Int(ref num)) = value {
                     let write_result = writeln!(
@@ -502,7 +488,7 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(7, 0))
+            Relocatable::from((7, 0))
         );
 
         assert_eq!(cairo_runner.vm.segments.num_segments, 8);
@@ -540,7 +526,7 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            Relocatable::from((2, 0))
         );
 
         assert_eq!(cairo_runner.vm.segments.num_segments, 3);
@@ -970,7 +956,7 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            relocatable!(2, 0)
         );
         cairo_runner.initialize_vm().unwrap();
         assert!(cairo_runner
@@ -2042,7 +2028,7 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            relocatable!(2, 0)
         );
         assert_eq!(
             cairo_runner
@@ -2367,7 +2353,7 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            relocatable!(2, 0)
         );
         assert_eq!(
             cairo_runner
@@ -2823,7 +2809,7 @@ mod tests {
         );
         assert_eq!(
             cairo_runner.vm.builtin_runners[1].1.base(),
-            Some(relocatable!(3, 0))
+            relocatable!(3, 0)
         );
         assert_eq!(
             cairo_runner
@@ -2854,7 +2840,7 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            relocatable!(2, 0)
         );
 
         assert_eq!(
@@ -3335,7 +3321,7 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            relocatable!(2, 0)
         );
         cairo_runner
             .vm
@@ -3431,7 +3417,7 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].1.base(),
-            Some(relocatable!(2, 0))
+            relocatable!(2, 0)
         );
         cairo_runner
             .vm

@@ -167,7 +167,7 @@ pub mod test_utils {
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 vec![(
                     "range_check".to_string(),
-                    Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                    Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
                 )],
                 false,
             )
