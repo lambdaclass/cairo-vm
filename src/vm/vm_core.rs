@@ -23,8 +23,6 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
-use super::errors::memory_errors::MemoryError;
-
 #[derive(PartialEq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
@@ -132,15 +130,8 @@ impl VirtualMachine {
             FpUpdate::Dst => operands.dst.clone(),
             FpUpdate::Regular => return Ok(()),
         };
-        match new_fp {
-            MaybeRelocatable::RelocatableValue(rel) => {
-                self.run_context.fp = rel.offset;
-                Ok(())
-            }
-            _ => Err(VirtualMachineError::MemoryError(
-                MemoryError::AddressNotRelocatable,
-            )),
-        }
+        self.run_context.fp = new_fp.get_relocatable()?.offset;
+        Ok(())
     }
 
     fn update_ap(
@@ -157,15 +148,8 @@ impl VirtualMachine {
             ApUpdate::Add2 => self.run_context.get_ap().add_usize_mod(2, None),
             ApUpdate::Regular => return Ok(()),
         };
-        match new_ap {
-            MaybeRelocatable::RelocatableValue(rel) => {
-                self.run_context.ap = rel.offset;
-                Ok(())
-            }
-            _ => Err(VirtualMachineError::MemoryError(
-                MemoryError::AddressNotRelocatable,
-            )),
-        }
+        self.run_context.ap = new_ap.get_relocatable()?.offset;
+        Ok(())
     }
 
     fn update_pc(
@@ -206,15 +190,8 @@ impl VirtualMachine {
                 }
             },
         };
-        match new_pc {
-            MaybeRelocatable::RelocatableValue(rel) => {
-                self.run_context.pc = rel;
-                Ok(())
-            }
-            _ => Err(VirtualMachineError::MemoryError(
-                MemoryError::AddressNotRelocatable,
-            )),
-        }
+        self.run_context.pc = new_pc.get_relocatable()?.clone();
+        Ok(())
     }
 
     fn update_registers(
@@ -430,8 +407,6 @@ impl VirtualMachine {
             Opcode::Call => {
                 let return_pc = MaybeRelocatable::from(&self.run_context.pc + instruction.size());
                 if operands.op0 != return_pc {
-                    println!("operands.op0: {:?}", operands.op0);
-                    println!("return_pc: {:?}", return_pc);
                     return Err(VirtualMachineError::CantWriteReturnPc(
                         operands.op0.clone(),
                         return_pc,
@@ -511,12 +486,7 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = hint_data_dictionary.get(
-            //This should never fail
-            &Relocatable::try_from(&self.run_context.get_pc())
-                .map_err(VirtualMachineError::MemoryError)?
-                .offset,
-        ) {
+        if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
                 //We create a new proxy with every hint as the current scope can change
@@ -2017,7 +1987,6 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory, None);
         }
-        vm.run_context.ap = 0;
 
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
@@ -2167,9 +2136,6 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
 
         vm.memory = memory!(((1, 0), 145944781867024385_i64));
-        vm.run_context.pc = Relocatable::from((0, 0));
-        vm.run_context.ap = 0;
-        vm.run_context.fp = 0;
 
         let error = vm.compute_operands(&instruction);
         assert_eq!(error, Err(VirtualMachineError::NoDst));

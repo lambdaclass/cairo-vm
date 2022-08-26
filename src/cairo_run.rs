@@ -221,7 +221,7 @@ mod tests {
     fn write_binary_trace_file() {
         let program_path = Path::new("cairo_programs/struct.json");
         let expected_trace_path = Path::new("cairo_programs/trace_memory/cairo_trace_struct");
-        let cairo_rs_trace_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.trace");
+        let cairo_rs_trace_path = Path::new("cairo_programs/trace_memory/struct_cairo_rs.trace");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
@@ -245,7 +245,7 @@ mod tests {
     fn write_binary_memory_file() {
         let program_path = Path::new("cairo_programs/struct.json");
         let expected_memory_path = Path::new("cairo_programs/trace_memory/cairo_memory_struct");
-        let cairo_rs_memory_path = Path::new("cairo_programs/trace_memory/struct_cleopatra.memory");
+        let cairo_rs_memory_path = Path::new("cairo_programs/trace_memory/struct_cairo_rs.memory");
 
         // run test program until the end
         let cairo_runner_result = run_test_program(program_path);
