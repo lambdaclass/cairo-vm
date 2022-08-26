@@ -30,10 +30,10 @@ pub enum VirtualMachineError {
     UnconstrainedResAssertEq,
     #[error("ASSERT_EQ instruction failed; res:{0} != dst:{1}")]
     DiffAssertValues(BigInt, BigInt),
-    #[error("Call failed to write return-pc (inconsistent op0): {0} != {1}. Did you forget to increment ap?")]
-    CantWriteReturnPc(BigInt, BigInt),
-    #[error("Call failed to write return-fp (inconsistent dst): {0} != {1}. Did you forget to increment ap?")]
-    CantWriteReturnFp(BigInt, BigInt),
+    #[error("Call failed to write return-pc (inconsistent op0): {0:?} != {1:?}. Did you forget to increment ap?")]
+    CantWriteReturnPc(MaybeRelocatable, MaybeRelocatable),
+    #[error("Call failed to write return-fp (inconsistent dst): {0:?} != {1:?}. Did you forget to increment ap?")]
+    CantWriteReturnFp(MaybeRelocatable, MaybeRelocatable),
     #[error("Couldn't get or load dst")]
     NoDst,
     #[error("Pure Value Error")]
