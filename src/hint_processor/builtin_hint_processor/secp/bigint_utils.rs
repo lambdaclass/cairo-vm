@@ -74,9 +74,7 @@ mod tests {
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
+        add_segments!(vm, 3);
         // initialize vm scope with variable `n`
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable(

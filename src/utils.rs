@@ -295,6 +295,15 @@ pub mod test_utils {
         }};
     }
     pub(crate) use run_hint;
+
+    macro_rules! add_segments {
+        ($vm:expr, $n:expr) => {
+            for _ in 0..$n {
+                $vm.segments.add(&mut $vm.memory, None);
+            }
+        };
+    }
+    pub(crate) use add_segments;
 }
 
 #[cfg(test)]
