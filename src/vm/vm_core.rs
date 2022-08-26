@@ -20,8 +20,8 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::{ToPrimitive, Zero};
 use num_integer::Integer;
+use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
@@ -256,7 +256,7 @@ impl VirtualMachine {
                                 if num_op1 != bigint!(0) {
                                     return Ok((
                                         Some(MaybeRelocatable::Int(
-                                            (num_dst / num_op1).mod_floor(&self.prime.clone()),
+                                            (num_dst / num_op1).mod_floor(&self.prime),
                                         )),
                                         Some(dst_addr.clone()),
                                     ));
@@ -304,7 +304,7 @@ impl VirtualMachine {
                             if num_op0 != bigint!(0) {
                                 return Ok((
                                     Some(MaybeRelocatable::Int(
-                                        (num_dst / num_op0).mod_floor(&self.prime.clone()),
+                                        (num_dst / num_op0).mod_floor(&self.prime),
                                     )),
                                     Some(dst_addr.clone()),
                                 ));
@@ -353,7 +353,7 @@ impl VirtualMachine {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
                     return Ok(Some(MaybeRelocatable::Int(
-                        (num_op0 * num_op1).mod_floor(&self.prime.clone()),
+                        (num_op0 * num_op1).mod_floor(&self.prime),
                     )));
                 }
                 Err(VirtualMachineError::PureValue)
