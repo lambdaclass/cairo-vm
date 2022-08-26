@@ -114,6 +114,10 @@ pub enum VirtualMachineError {
     WrongHintData,
     CompileHintFail(String),
     FailedToComputeOperands,
+
+    NoRegisterInReference,
+    CustomHint(String),
+
 }
 
 impl fmt::Display for VirtualMachineError {
@@ -319,8 +323,11 @@ impl fmt::Display for VirtualMachineError {
             VirtualMachineError::WrongHintData => {
                 write!(f, "HintProcessor failed retrieve the compiled data necessary for hint execution")
             },
+            VirtualMachineError::NoRegisterInReference => write!(f, "An address was being tried to compute but there was no register in the reference."),
             VirtualMachineError::CompileHintFail(code) => write!(f, "Failed to compile hint: {}", code),
             VirtualMachineError::FailedToComputeOperands => write!(f, "Couldn't compute operands"),
+            VirtualMachineError::CustomHint(string) => write!(f, "Custom Hint Error: {}", string),
+
         }
     }
 }

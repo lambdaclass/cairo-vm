@@ -5,7 +5,6 @@ use cairo_rs::{
 };
 use std::path::Path;
 
-static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 #[test]
 fn bitwise_integration_test() {
     let program = Program::new(
@@ -13,7 +12,8 @@ fn bitwise_integration_test() {
         "main",
     )
     .expect("Failed to deserialize program");
-    let mut cairo_runner = CairoRunner::new(&program, true, &HINT_EXECUTOR);
+    let hint_processor = BuiltinHintProcessor::new_empty();
+    let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor);
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
 

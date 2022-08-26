@@ -492,7 +492,7 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &'static dyn HintProcessor,
+        hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
@@ -707,8 +707,6 @@ mod tests {
     use std::collections::HashSet;
 
     from_bigint_str![75, 76];
-
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -2114,8 +2112,9 @@ mod tests {
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, relocatable!(0, 4));
@@ -2232,6 +2231,8 @@ mod tests {
         let mut vm = vm!(true);
         vm.accessed_addresses = Some(Vec::new());
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
         run_context!(vm, 0, 2, 2);
 
         vm.memory = memory![
@@ -2241,7 +2242,7 @@ mod tests {
         ];
 
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         let trace = vm.trace.unwrap();
@@ -2313,10 +2314,11 @@ mod tests {
         ];
 
         let final_pc = MaybeRelocatable::from((3, 0));
+        let hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
         while vm.run_context.get_pc() != final_pc {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+                vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
             );
         }
@@ -2410,8 +2412,9 @@ mod tests {
 
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, 2);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
@@ -2421,8 +2424,9 @@ mod tests {
             vm.memory.get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x4)))),
         );
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
@@ -2433,8 +2437,9 @@ mod tests {
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x5))))
         );
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
@@ -2919,6 +2924,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize memory
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
         vm.memory = memory![
             ((0, 0), 290341444919459839_i64),
             ((0, 1), 1),
@@ -2942,7 +2950,7 @@ mod tests {
         //Run Steps
         for _ in 0..6 {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &hint_data_dictionary),
+                vm.step(&hint_processor, exec_scopes_ref!(), &hint_data_dictionary),
                 Ok(())
             );
         }

@@ -38,9 +38,16 @@ pub fn insert_value_from_reference(
 ///Returns the Integer value stored in the given ids variable
 pub fn get_integer_from_reference<'a>(
     vm_proxy: &'a VMProxy,
-    hint_reference: &HintReference,
+    hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
+    // if the reference register is none, this means it is an immediate value and we
+    // should return that value.
+    if hint_reference.register.is_none() && hint_reference.immediate.is_some() {
+        // safe tu unwrap here because it has been checked that immediate is not None.
+        return Ok(hint_reference.immediate.as_ref().unwrap());
+    }
+
     let var_addr = compute_addr_from_reference(
         hint_reference,
         vm_proxy.run_context,
@@ -87,8 +94,8 @@ pub fn compute_addr_from_reference(
 ) -> Result<Relocatable, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         //This should never fail
-        Register::FP => run_context.get_fp().get_relocatable()?.clone(),
-        Register::AP => {
+        Some(Register::FP) => run_context.get_fp().get_relocatable()?.clone(),
+        Some(Register::AP) => {
             let var_ap_trackig = hint_reference
                 .ap_tracking_data
                 .as_ref()
@@ -98,6 +105,7 @@ pub fn compute_addr_from_reference(
 
             apply_ap_tracking_correction(&ap, var_ap_trackig, hint_ap_tracking)?
         }
+        None => return Err(VirtualMachineError::NoRegisterInReference),
     };
     if hint_reference.offset1.is_negative()
         && base_addr.offset < hint_reference.offset1.abs() as usize
