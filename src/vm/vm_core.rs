@@ -703,19 +703,6 @@ mod tests {
     use num_bigint::Sign;
     use std::collections::HashSet;
 
-    pub fn memory_from(
-        key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
-        num_segements: usize,
-    ) -> Result<Memory, MemoryError> {
-        let mut memory = Memory::new();
-        for _ in 0..num_segements {
-            memory.data.push(Vec::new());
-        }
-        for (key, val) in key_val_list.iter() {
-            memory.insert(key, val)?;
-        }
-        Ok(memory)
-    }
     from_bigint_str![75, 76];
 
     #[test]
