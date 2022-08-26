@@ -1,6 +1,7 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
+use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
 use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
@@ -102,9 +103,20 @@ pub fn get_relocatable_from_var_name(
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
     vm_proxy: &'a VMProxy,
-    ids_data: &HashMap<String, HintReference>,
+    ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    vm_proxy.memory.get_integer(&relocatable)
+    // let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
+    // vm_proxy.memory.get_integer(&relocatable)
+    let reference = get_reference_from_var_name(var_name, ids_data)?;
+    get_integer_from_reference(vm_proxy, reference, ap_tracking)
+}
+
+pub fn get_reference_from_var_name<'a>(
+    var_name: &str,
+    ids_data: &'a HashMap<String, HintReference>,
+) -> Result<&'a HintReference, VirtualMachineError> {
+    ids_data
+        .get(var_name)
+        .ok_or(VirtualMachineError::FailedToGetIds)
 }
