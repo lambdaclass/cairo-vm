@@ -508,7 +508,7 @@ impl VirtualMachine {
         dst_op: &Option<MaybeRelocatable>,
         op1_op: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let op0_op = match self.deduce_memory_cell(&op0_addr)? {
+        let op0_op = match self.deduce_memory_cell(op0_addr)? {
             None => {
                 let op0;
                 (op0, *res) = self.deduce_op0(instruction, dst_op.as_ref(), op1_op.as_ref())?;
@@ -531,7 +531,7 @@ impl VirtualMachine {
         dst_op: &Option<MaybeRelocatable>,
         op0: &MaybeRelocatable,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let op1_op = match self.deduce_memory_cell(&op1_addr)? {
+        let op1_op = match self.deduce_memory_cell(op1_addr)? {
             None => {
                 let (op1, deduced_res) =
                     self.deduce_op1(instruction, dst_op.as_ref(), Some(op0.clone()))?;
