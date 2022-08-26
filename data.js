@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661530963802,
+  "lastUpdate": 1661531563138,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -28801,6 +28801,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 219731383,
             "range": "± 563906",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "880590d9cbf7c4b65921b9a92ddf9e6c6d1b5c50",
+          "message": "Refactor RunContext registers (#382)\n\n* change RunContext.{pc, ap, fp} to usize\r\n\r\n* fix some unit test from cairo_runner.rs and vm_core.rs\r\n\r\n* update hint_utils.rs with new changes\r\n\r\n* remove unnecessary clones and references\r\n\r\n* RunContext pc: Relocatable\r\n\r\n* fix cairo_runner.rs tests\r\n\r\n* wip fix vm_core.ts unit test\r\n\r\n* vm_core.rs unit tests\r\n\r\n* fix unit tests keccak_hints.rs\r\n\r\n* fix unit tests blake2s_utils.rs\r\n\r\n* fix unit tests execute_hint.rs\r\n\r\n* fix unit tests dict_hint_utils.rs\r\n\r\n* fix unit tests find_element_hint.rs\r\n\r\n* fix unit tests hint_utils.rs\r\n\r\n* fix unit tests math_utils.rs\r\n\r\n* fix unit tests memset_utils.rs\r\n\r\n* fix unit tests pow_utils.rs\r\n\r\n* fix unit tests bigint_utils.rs\r\n\r\n* fix unit tests ec_utils.rs filed_utils.rs uint256_utils.rs\r\n\r\n* fix unit tests signature.rs usort.rs\r\n\r\n* fix unit tests set.rs sha256.rs\r\n\r\n* fix unit tests squash_dict_utils.rs\r\n\r\n* fix usort.rs tests\r\n\r\n* fix unit tests from src/hint_processor/\r\n\r\n* cargo clippy\r\n\r\n* fix unit tests vm_core.rs\r\n\r\n* remove src/vm/hints/find_element_hint.rs && src/vm/hints/hint_utils.rs\r\n\r\n* fix unit tests run_context.rs\r\n\r\n* minor modifications in compute_addr_from_reference\r\n\r\n* review corrections",
+          "timestamp": "2022-08-26T13:18:31-03:00",
+          "tree_id": "a67b1cb0b43916dad303fa0e9df63a4aa52fc82a",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/880590d9cbf7c4b65921b9a92ddf9e6c6d1b5c50"
+        },
+        "date": 1661531560908,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1988324448,
+            "range": "± 29047153",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 740303953,
+            "range": "± 12078178",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 355554972,
+            "range": "± 5981976",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1758989263,
+            "range": "± 27112739",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 263346486,
+            "range": "± 3165327",
             "unit": "ns/iter"
           }
         ]
