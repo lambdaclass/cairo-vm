@@ -271,7 +271,7 @@ impl<'a> CairoRunner<'a> {
     pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references)?;
-        while self.vm.run_context.get_pc() != address {
+        while &self.vm.run_context.get_pc() != address.get_relocatable()? {
             self.vm.step(
                 self.hint_executor,
                 &mut self.exec_scopes,

@@ -1,6 +1,7 @@
 use crate::bigint;
 use crate::types::instruction::{Instruction, Op1Addr, Register};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError::AddressNotRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 
@@ -12,19 +13,19 @@ pub struct RunContext {
 }
 
 impl RunContext {
-    pub fn get_pc(&self) -> MaybeRelocatable {
-        MaybeRelocatable::from(&self.pc)
+    pub fn get_pc(&self) -> Relocatable {
+        Relocatable::from(&self.pc)
     }
-    pub fn get_ap(&self) -> MaybeRelocatable {
-        MaybeRelocatable::from((1, self.ap))
+    pub fn get_ap(&self) -> Relocatable {
+        Relocatable::from((1, self.ap))
     }
-    pub fn get_fp(&self) -> MaybeRelocatable {
-        MaybeRelocatable::from((1, self.fp))
+    pub fn get_fp(&self) -> Relocatable {
+        Relocatable::from((1, self.fp))
     }
     pub fn compute_dst_addr(
         &self,
         instruction: &Instruction,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    ) -> Result<Relocatable, VirtualMachineError> {
         let base_addr = match instruction.dst_register {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
@@ -35,7 +36,7 @@ impl RunContext {
     pub fn compute_op0_addr(
         &self,
         instruction: &Instruction,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    ) -> Result<Relocatable, VirtualMachineError> {
         let base_addr = match instruction.op0_register {
             Register::AP => self.get_ap(),
             Register::FP => self.get_fp(),
@@ -47,7 +48,7 @@ impl RunContext {
         &self,
         instruction: &Instruction,
         op0: Option<&MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+    ) -> Result<Relocatable, VirtualMachineError> {
         let base_addr = match instruction.op1_addr {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
@@ -56,7 +57,8 @@ impl RunContext {
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {
-                Some(addr) => return addr.add_int_mod(&instruction.off2, &self.prime),
+                Some(MaybeRelocatable::RelocatableValue(addr)) => addr.clone(),
+                Some(_) => return Err(VirtualMachineError::MemoryError(AddressNotRelocatable)),
                 None => return Err(VirtualMachineError::UnknownOp0),
             },
         };
