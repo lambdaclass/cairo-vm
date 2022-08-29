@@ -654,38 +654,30 @@ mod tests {
     fn run_fast_ec_add_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
         let mut vm = vm_with_range_check!();
-        let mut exec_scopes = ExecutionScopes::new();
         //Insert 'slope' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "slope",
-            any_box!(bigint_str!(
+        let mut exec_scopes = scope![
+            (
+                "slope",
+                bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            )),
-        );
-
-        //Insert 'x0' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "x0",
-            any_box!(bigint_str!(
-                b"838083498911032969414721426845751663479194726707495046"
-            )),
-        );
-
-        //Insert 'new_x' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "new_x",
-            any_box!(bigint_str!(
+            )
+            ),
+            (
+                "x0",
+                bigint_str!(b"838083498911032969414721426845751663479194726707495046")
+            ),
+            (
+                "new_x",
+                bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )),
-        );
+            )
+            ),
+            (
+                "y0",
+                bigint_str!(b"4310143708685312414132851373791311001152018708061750480")
+            )
+        ];
 
-        //Insert 'y0' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "y0",
-            any_box!(bigint_str!(
-                b"4310143708685312414132851373791311001152018708061750480"
-            )),
-        );
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(

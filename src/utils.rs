@@ -314,6 +314,22 @@ pub mod test_utils {
     }
     pub(crate) use check_scope;
 
+    macro_rules! scope {
+        (  $( ($name: expr, $val: expr)),*  ) => {
+            {
+                let mut exec_scopes = ExecutionScopes::new();
+                $(
+                    exec_scopes.assign_or_update_variable(
+                        $name,
+                        any_box!($val),
+                    );
+                )*
+                exec_scopes
+            }
+        };
+    }
+    pub(crate) use scope;
+
     use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 
     pub fn check_scope_value<T: std::fmt::Debug + std::cmp::PartialEq + 'static>(
