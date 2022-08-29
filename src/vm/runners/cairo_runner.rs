@@ -410,7 +410,6 @@ mod tests {
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
     use num_bigint::Sign;
-    use num_traits::FromPrimitive;
     use std::collections::HashMap;
 
     #[test]
@@ -1602,21 +1601,11 @@ mod tests {
             cairo_runner.vm.builtin_runners[1].1.base(),
             Some(relocatable!(3, 0))
         );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((3, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((3, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(2).pow(64) - bigint!(8)))
+
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((3, 0), 7),
+            ((3, 1), 18446744073709551608_i128)
         );
         assert_eq!(
             cairo_runner
@@ -1634,14 +1623,7 @@ mod tests {
             Some(relocatable!(2, 0))
         );
 
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&(MaybeRelocatable::from((2, 0))))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
-        );
+        check_memory!(cairo_runner.vm.memory, ((2, 0), 7));
         assert_eq!(
             cairo_runner
                 .vm
@@ -1696,6 +1678,7 @@ mod tests {
                 .segments
                 .add(&mut cairo_runner.vm.memory, None);
         }
+        // Memory initialization without macro
         cairo_runner
             .vm
             .memory
@@ -2118,22 +2101,8 @@ mod tests {
             cairo_runner.vm.builtin_runners[0].1.base(),
             Some(relocatable!(2, 0))
         );
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
+
+        cairo_runner.vm.memory = memory![((2, 0), 1), ((2, 1), 2)];
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
@@ -2157,24 +2126,24 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
             data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
+                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
+                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
+                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
                 MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
                 MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
+                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
                 MaybeRelocatable::from(bigint_str!(
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
+                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
             ],
             main: Some(4),
             hints: HashMap::new(),
@@ -2216,16 +2185,13 @@ mod tests {
             cairo_runner.vm.builtin_runners[0].1.base(),
             Some(relocatable!(2, 0))
         );
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
-                )),
+        cairo_runner.vm.memory = memory![(
+            (2, 0),
+            (
+                b"3270867057177188607814717243084834301278723532952411121381966378910183338911",
+                10
             )
-            .unwrap();
+        )];
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 1]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
