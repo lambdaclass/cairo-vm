@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use crate::math_utils::{ec_add, ec_double};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -10,6 +8,7 @@ use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
 use num_traits::{One, Zero};
 use starknet_crypto::{pedersen_hash, FieldElement};
+use std::any::Any;
 use std::ops::Shl;
 
 pub struct RangeCheckBuiltinRunner {
@@ -344,20 +343,20 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
             ) = (memory.get(&x_addr), memory.get(&y_addr))
             {
                 let _2_pow_bits = bigint!(1).shl(self.total_n_bits);
-                assert!(
-                    num_x < &_2_pow_bits,
-                    "Expected integer at address {:?} to be smaller than 2^{}, Got {}",
-                    x_addr,
-                    self.total_n_bits,
-                    num_x
-                );
-                assert!(
-                    num_y < &_2_pow_bits,
-                    "Expected integer at address {:?} to be smaller than 2^{}, Got {}",
-                    y_addr,
-                    self.total_n_bits,
-                    num_y
-                );
+                if num_x >= &_2_pow_bits {
+                    return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                        x_addr,
+                        self.total_n_bits,
+                        num_x.clone(),
+                    ));
+                };
+                if num_y >= &_2_pow_bits {
+                    return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                        y_addr,
+                        self.total_n_bits,
+                        num_y.clone(),
+                    ));
+                };
                 let res = match index {
                     2 => Some(MaybeRelocatable::from(num_x & num_y)),
                     3 => Some(MaybeRelocatable::from(num_x ^ num_y)),
@@ -418,21 +417,23 @@ impl EcOpBuiltinRunner {
         alpha: &BigInt,
         prime: &BigInt,
         height: usize,
-    ) -> (BigInt, BigInt) {
+    ) -> Result<(BigInt, BigInt), RunnerError> {
         let mut slope = m.clone();
         for _ in 0..height {
-            assert!((doubled_point.0.clone() - partial_sum.0.clone())% prime != bigint!(0), "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
-            Attempting to compute P + m * Q where:\n
-            P = {:?} \n
-            m = {}\n
-            Q = {:?}.", partial_sum,m, doubled_point);
+            if (doubled_point.0.clone() - partial_sum.0.clone()) % prime == bigint!(0) {
+                return Err(RunnerError::EcOpSameXCoordinate(
+                    partial_sum,
+                    m.clone(),
+                    doubled_point,
+                ));
+            };
             if slope.clone() & bigint!(1) != bigint!(0) {
                 partial_sum = ec_add(partial_sum, doubled_point.clone(), prime);
             }
             doubled_point = ec_double(doubled_point, alpha, prime);
             slope = slope.clone() >> 1_i32;
         }
-        partial_sum
+        Ok(partial_sum)
     }
 }
 
@@ -489,20 +490,20 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             //If an input cell is not filled, return None
             let mut input_cells = Vec::<&BigInt>::with_capacity(self.n_input_cells);
             for i in 0..self.n_input_cells {
-                match memory.get(&instance.add_usize_mod(i, None)) {
-                    Err(_) => return Err(RunnerError::MemoryGet(instance.add_usize_mod(i, None))),
-                    Ok(value) => match value {
-                        None => return Ok(None),
-                        Some(addr) => {
-                            if let &MaybeRelocatable::Int(ref num) = addr {
-                                input_cells.push(num);
-                            } else {
-                                return Err(RunnerError::ExpectedInteger(
-                                    instance.add_usize_mod(i, None),
-                                ));
-                            }
+                match memory
+                    .get(&instance.add_usize_mod(i, None))
+                    .map_err(RunnerError::FailedMemoryGet)?
+                {
+                    None => return Ok(None),
+                    Some(addr) => {
+                        if let &MaybeRelocatable::Int(ref num) = addr {
+                            input_cells.push(num);
+                        } else {
+                            return Err(RunnerError::ExpectedInteger(
+                                instance.add_usize_mod(i, None),
+                            ));
                         }
-                    },
+                    }
                 };
             }
             //Assert that m is under the limit defined by scalar_limit.
@@ -514,17 +515,15 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 
             // Assert that if the current address is part of a point, the point is on the curve
             for pair in &EC_POINT_INDICES[0..1] {
-                assert!(
-                    EcOpBuiltinRunner::point_on_curve(
-                        input_cells[pair.0],
-                        input_cells[pair.1],
-                        &alpha,
-                        &beta,
-                        &field_prime
-                    ),
-                    "EcOpBuiltin: point {:?} is not on the curve",
-                    pair
-                );
+                if !EcOpBuiltinRunner::point_on_curve(
+                    input_cells[pair.0],
+                    input_cells[pair.1],
+                    &alpha,
+                    &beta,
+                    &field_prime,
+                ) {
+                    return Err(RunnerError::PointNotOnCurve(*pair));
+                };
             }
             let result = EcOpBuiltinRunner::ec_op_impl(
                 (input_cells[0].clone(), input_cells[1].clone()),
@@ -533,7 +532,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
                 &alpha,
                 &field_prime,
                 self.scalar_height,
-            );
+            )?;
             match index - self.n_input_cells {
                 0 => Ok(Some(MaybeRelocatable::Int(result.0))),
                 _ => Ok(Some(MaybeRelocatable::Int(result.1))),
@@ -1032,14 +1031,14 @@ mod tests {
             EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
             result,
-            (
+            Ok((
                 bigint_str!(
                     b"1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
                 bigint_str!(
                     b"2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
-            )
+            ))
         );
     }
 
@@ -1071,14 +1070,14 @@ mod tests {
             EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
             result,
-            (
+            Ok((
                 bigint_str!(
                     b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 ),
                 bigint_str!(
                     b"3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
-            )
+            ))
         );
     }
 

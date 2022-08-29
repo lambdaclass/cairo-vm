@@ -629,7 +629,7 @@ fn cairo_run_usort_bad() {
     assert!(err.is_err());
     assert_eq!(
         err.err().unwrap().to_string(),
-        "VM failure: unexpected verify multiplicity fail: positions length != 0"
+        "unexpected verify multiplicity fail: positions length != 0"
     );
 }
 
@@ -653,7 +653,7 @@ fn cairo_run_dict_write_bad() {
     .err();
     assert_eq!(
         err.unwrap().to_string(),
-        "VM failure: Dict Error: Tried to create a dict whithout an initial dict"
+        "Dict Error: Tried to create a dict whithout an initial dict"
     );
 }
 
@@ -676,7 +676,7 @@ fn cairo_run_dict_update_bad() {
     .err();
     assert_eq!(
         err.unwrap().to_string(),
-        "VM failure: Dict Error: Got the wrong value for dict_update, expected value: 3, got: 5 for key: 2"
+        "Dict Error: Got the wrong value for dict_update, expected value: 3, got: 5 for key: 2"
     );
 }
 

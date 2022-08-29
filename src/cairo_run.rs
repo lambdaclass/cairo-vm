@@ -19,7 +19,7 @@ pub fn cairo_run<'a>(
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let mut cairo_runner = CairoRunner::new(&program, trace_enabled, hint_processor);
+    let mut cairo_runner = CairoRunner::new(&program, trace_enabled, hint_processor)?;
     cairo_runner.initialize_segments(None);
 
     let end = match cairo_runner.initialize_main_entrypoint() {
@@ -139,7 +139,7 @@ mod tests {
             Err(e) => return Err(CairoRunError::Program(e)),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, true, hint_processor);
+        let mut cairo_runner = CairoRunner::new(&program, true, hint_processor).unwrap();
 
         cairo_runner.initialize_segments(None);
 
@@ -161,7 +161,7 @@ mod tests {
         let program = Program::new(program_path, "not_main").unwrap();
 
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor);
+        let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         cairo_runner.initialize_segments(None);
 
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
@@ -270,7 +270,7 @@ mod tests {
         let program_path = Path::new("cairo_programs/struct.json");
         let program = Program::new(program_path, "main").unwrap();
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor);
+        let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
         assert!(cairo_runner.initialize_vm().is_ok());
