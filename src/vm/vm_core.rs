@@ -20,7 +20,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
@@ -209,7 +209,7 @@ impl VirtualMachine {
     /// Used for JNZ instructions
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
-            MaybeRelocatable::Int(num) => Ok(num == bigint!(0)),
+            MaybeRelocatable::Int(num) => Ok(num.is_zero()),
             MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
         }
     }
@@ -405,29 +405,19 @@ impl VirtualMachine {
                 Ok(())
             }
             Opcode::Call => {
-                //TODO
-                //This if statements are allways be false
-                if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
-                    (&operands.op0, &self.run_context.get_pc())
-                {
-                    let return_pc = run_pc + instruction.size();
-                    if op0_num != &return_pc {
-                        return Err(VirtualMachineError::CantWriteReturnPc(
-                            op0_num.clone(),
-                            return_pc,
-                        ));
-                    };
+                let return_pc = MaybeRelocatable::from(&self.run_context.pc + instruction.size());
+                if operands.op0 != return_pc {
+                    return Err(VirtualMachineError::CantWriteReturnPc(
+                        operands.op0.clone(),
+                        return_pc,
+                    ));
                 };
 
-                if let (MaybeRelocatable::Int(return_fp), MaybeRelocatable::Int(dst_num)) =
-                    (&self.run_context.get_fp(), &operands.dst)
-                {
-                    if dst_num != return_fp {
-                        return Err(VirtualMachineError::CantWriteReturnFp(
-                            dst_num.clone(),
-                            return_fp.clone(),
-                        ));
-                    };
+                if self.run_context.get_fp() != operands.dst {
+                    return Err(VirtualMachineError::CantWriteReturnFp(
+                        operands.dst.clone(),
+                        self.run_context.get_fp(),
+                    ));
                 };
                 Ok(())
             }
@@ -2206,6 +2196,77 @@ mod tests {
             Err(VirtualMachineError::DiffAssertValues(
                 bigint!(8),
                 bigint!(9)
+            ))
+        );
+    }
+
+    #[test]
+    fn opcode_assertions_inconsistent_op0() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
+        };
+
+        let operands = Operands {
+            dst: mayberelocatable!(0, 8),
+            res: Some(mayberelocatable!(8)),
+            op0: mayberelocatable!(9),
+            op1: mayberelocatable!(10),
+        };
+
+        let mut vm = vm!();
+        vm.run_context.pc = relocatable!(0, 4);
+
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::CantWriteReturnPc(
+                mayberelocatable!(9),
+                mayberelocatable!(0, 5),
+            ))
+        );
+    }
+
+    #[test]
+    fn opcode_assertions_inconsistent_dst() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
+        };
+
+        let operands = Operands {
+            dst: mayberelocatable!(8),
+            res: Some(mayberelocatable!(8)),
+            op0: mayberelocatable!(0, 1),
+            op1: mayberelocatable!(10),
+        };
+        let mut vm = vm!();
+        vm.run_context.fp = 6;
+
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::CantWriteReturnFp(
+                mayberelocatable!(8),
+                mayberelocatable!(1, 6)
             ))
         );
     }
