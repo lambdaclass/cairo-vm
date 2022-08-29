@@ -15,17 +15,16 @@ const BENCH_NAMES: &'static [&'static str] = &[
 ];
 const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
 
-static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
-
 pub fn criterion_benchmarks(c: &mut Criterion) {
     for benchmark_name in build_bench_strings() {
+        let hint_processor = BuiltinHintProcessor::new_empty();
         c.bench_function(&benchmark_name.0, |b| {
             b.iter(|| {
                 cairo_run::cairo_run(
                     black_box(Path::new(&benchmark_name.1)),
                     "main",
                     false,
-                    &HINT_EXECUTOR,
+                    &hint_processor,
                 )
             })
         });

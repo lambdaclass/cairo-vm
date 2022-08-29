@@ -20,7 +20,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
@@ -209,7 +209,7 @@ impl VirtualMachine {
     /// Used for JNZ instructions
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
-            MaybeRelocatable::Int(num) => Ok(num == bigint!(0)),
+            MaybeRelocatable::Int(num) => Ok(num.is_zero()),
             MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
         }
     }
@@ -403,29 +403,19 @@ impl VirtualMachine {
                 Ok(())
             }
             Opcode::Call => {
-                //TODO
-                //This if statements are allways be false
-                if let (MaybeRelocatable::Int(op0_num), MaybeRelocatable::Int(run_pc)) =
-                    (&operands.op0, &self.run_context.get_pc())
-                {
-                    let return_pc = run_pc + instruction.size();
-                    if op0_num != &return_pc {
-                        return Err(VirtualMachineError::CantWriteReturnPc(
-                            op0_num.clone(),
-                            return_pc,
-                        ));
-                    };
+                let return_pc = MaybeRelocatable::from(&self.run_context.pc + instruction.size());
+                if operands.op0 != return_pc {
+                    return Err(VirtualMachineError::CantWriteReturnPc(
+                        operands.op0.clone(),
+                        return_pc,
+                    ));
                 };
 
-                if let (MaybeRelocatable::Int(return_fp), MaybeRelocatable::Int(dst_num)) =
-                    (&self.run_context.get_fp(), &operands.dst)
-                {
-                    if dst_num != return_fp {
-                        return Err(VirtualMachineError::CantWriteReturnFp(
-                            dst_num.clone(),
-                            return_fp.clone(),
-                        ));
-                    };
+                if self.run_context.get_fp() != operands.dst {
+                    return Err(VirtualMachineError::CantWriteReturnFp(
+                        operands.dst.clone(),
+                        self.run_context.get_fp(),
+                    ));
                 };
                 Ok(())
             }
@@ -490,7 +480,7 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &'static dyn HintProcessor,
+        hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
@@ -691,8 +681,6 @@ mod tests {
     use std::collections::HashSet;
 
     from_bigint_str![75, 76];
-
-    static HINT_EXECUTOR: BuiltinHintProcessor = BuiltinHintProcessor {};
 
     #[test]
     fn get_instruction_encoding_successful_without_imm() {
@@ -2098,8 +2086,9 @@ mod tests {
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, relocatable!(0, 4));
@@ -2196,6 +2185,77 @@ mod tests {
     }
 
     #[test]
+    fn opcode_assertions_inconsistent_op0() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
+        };
+
+        let operands = Operands {
+            dst: mayberelocatable!(0, 8),
+            res: Some(mayberelocatable!(8)),
+            op0: mayberelocatable!(9),
+            op1: mayberelocatable!(10),
+        };
+
+        let mut vm = vm!();
+        vm.run_context.pc = relocatable!(0, 4);
+
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::CantWriteReturnPc(
+                mayberelocatable!(9),
+                mayberelocatable!(0, 5),
+            ))
+        );
+    }
+
+    #[test]
+    fn opcode_assertions_inconsistent_dst() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(3),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::APPlus2,
+            opcode: Opcode::Call,
+        };
+
+        let operands = Operands {
+            dst: mayberelocatable!(8),
+            res: Some(mayberelocatable!(8)),
+            op0: mayberelocatable!(0, 1),
+            op1: mayberelocatable!(10),
+        };
+        let mut vm = vm!();
+        vm.run_context.fp = 6;
+
+        assert_eq!(
+            vm.opcode_assertions(&instruction, &operands),
+            Err(VirtualMachineError::CantWriteReturnFp(
+                mayberelocatable!(8),
+                mayberelocatable!(1, 6)
+            ))
+        );
+    }
+
+    #[test]
     /// Test for a simple program execution
     /// Used program code:
     /// func main():
@@ -2216,6 +2276,8 @@ mod tests {
         let mut vm = vm!(true);
         vm.accessed_addresses = Some(Vec::new());
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
         run_context!(vm, 0, 2, 2);
 
         vm.memory = memory![
@@ -2225,7 +2287,7 @@ mod tests {
         ];
 
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         let trace = vm.trace.unwrap();
@@ -2297,10 +2359,11 @@ mod tests {
         ];
 
         let final_pc = MaybeRelocatable::from((3, 0));
+        let hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
         while vm.run_context.get_pc() != final_pc {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+                vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
             );
         }
@@ -2394,8 +2457,9 @@ mod tests {
 
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 0)));
         assert_eq!(vm.run_context.ap, 2);
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
@@ -2405,8 +2469,9 @@ mod tests {
             vm.memory.get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x4)))),
         );
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
@@ -2417,8 +2482,9 @@ mod tests {
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x5))))
         );
 
+        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
@@ -2902,6 +2968,9 @@ mod tests {
             vm.segments.add(&mut vm.memory, None);
         }
         //Initialize memory
+
+        let hint_processor = BuiltinHintProcessor::new_empty();
+
         vm.memory = memory![
             ((0, 0), 290341444919459839_i64),
             ((0, 1), 1),
@@ -2925,7 +2994,7 @@ mod tests {
         //Run Steps
         for _ in 0..6 {
             assert_eq!(
-                vm.step(&HINT_EXECUTOR, exec_scopes_ref!(), &hint_data_dictionary),
+                vm.step(&hint_processor, exec_scopes_ref!(), &hint_data_dictionary),
                 Ok(())
             );
         }

@@ -1,41 +1,14 @@
-use std::fmt;
 use std::io;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ProgramError {
-    IO(io::Error),
-    Parse(serde_json::Error),
+    #[error(transparent)]
+    IO(#[from] io::Error),
+    #[error(transparent)]
+    Parse(#[from] serde_json::Error),
+    #[error("Entrypoint {0} not found")]
     EntrypointNotFound(String),
-}
-
-impl From<serde_json::Error> for ProgramError {
-    fn from(err: serde_json::Error) -> Self {
-        ProgramError::Parse(err)
-    }
-}
-
-impl From<io::Error> for ProgramError {
-    fn from(err: io::Error) -> Self {
-        ProgramError::IO(err)
-    }
-}
-
-impl fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ProgramError::IO(error) => {
-                write!(f, "IO error: ")?;
-                error.fmt(f)
-            }
-            ProgramError::Parse(error) => {
-                write!(f, "Parsing error: ")?;
-                error.fmt(f)
-            }
-            ProgramError::EntrypointNotFound(entrypoint) => {
-                f.write_fmt(format_args!("Entrypoint {} not found", entrypoint))
-            }
-        }
-    }
 }
 
 #[cfg(test)]

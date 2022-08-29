@@ -1,83 +1,57 @@
 use crate::types::relocatable::MaybeRelocatable;
 use num_bigint::BigInt;
-use std::fmt;
 
 use super::memory_errors::MemoryError;
+use thiserror::Error;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {
+    #[error("Can't initialize state without an execution base")]
     NoExecBase,
+    #[error("Can't initialize the function entrypoint without an execution base")]
     NoExecBaseForEntrypoint,
+    #[error("Initialization failure: No program base")]
     NoProgBase,
+    #[error("Missing main()")]
     MissingMain,
+    #[error("Uninitialized base for builtin")]
     UninitializedBase,
+    #[error("Failed to write program output")]
     WriteFail,
+    #[error("Found None PC during VM initialization")]
     NoPC,
+    #[error("Found None AP during VM initialization")]
     NoAP,
+    #[error("Found None FP during VM initialization")]
     NoFP,
+    #[error("Memory validation failed during VM initialization: {0}")]
     MemoryValidationError(MemoryError),
+    #[error("Memory loading failed during state initialization: {0}")]
     MemoryInitializationError(MemoryError),
+    #[error("Memory addresses must be relocatable")]
     NonRelocatableAddress,
+    #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
+    #[error("Expected integer at address {0:?}")]
     ExpectedInteger(MaybeRelocatable),
+    #[error("Failed to retrieve value from address {0:?}")]
     MemoryGet(MaybeRelocatable),
+    #[error(transparent)]
     FailedMemoryGet(MemoryError),
+    #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(BigInt),
-    FailedToParseIdsNameFromPath(String),
-}
-
-impl fmt::Display for RunnerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            RunnerError::NoExecBase => {
-                write!(f, "Can't initialize state without an execution base")
-            }
-            RunnerError::NoProgBase => write!(f, "Can't without a program base"),
-            RunnerError::NoExecBaseForEntrypoint => write!(
-                f,
-                "Can't initialize the function entrypoint without an execution base"
-            ),
-            RunnerError::MissingMain => write!(f, "Missing main()"),
-            RunnerError::UninitializedBase => write!(f, "Uninitialized self.base"),
-            RunnerError::WriteFail => write!(f, "Failed to write program output"),
-            RunnerError::NoPC => write!(f, "Found None PC during VM initialization"),
-            RunnerError::NoAP => write!(f, "Found None AP during VM initialization"),
-            RunnerError::NoFP => write!(f, "Found None FP during VM initialization"),
-            RunnerError::MemoryValidationError(error) => {
-                write!(f, "Memory validation failed during VM initialization.")?;
-                error.fmt(f)
-            }
-            RunnerError::MemoryInitializationError(error) => {
-                write!(f, "Memory loading failed during state initialization.")?;
-                error.fmt(f)
-            }
-            RunnerError::NonRelocatableAddress => write!(f, "Memory addresses must be relocatable"),
-            RunnerError::FailedStringConversion => {
-                write!(f, "Failed to convert string to FieldElement")
-            }
-
-            RunnerError::ExpectedInteger(addr) => {
-                write!(f, "Expected integer at address {:?}", addr)
-            }
-
-            RunnerError::MemoryGet(addr) => {
-                write!(f, "Failed to retrieve value from address {:?}", addr)
-            }
-            RunnerError::FailedMemoryGet(error) => {
-                write!(f, "Failed to fetch memory address.")?;
-                error.fmt(f)
-            }
-
-            RunnerError::EcOpBuiltinScalarLimit(scalar) => {
-                write!(f, "EcOpBuiltin: m should be at most {}", scalar)
-            }
-            RunnerError::FailedToParseIdsNameFromPath(path) => {
-                write!(
-                    f,
-                    "Failed to get variable name from path: {:?}, when parsing reference ids",
-                    path
-                )
-            }
-        }
-    }
+    #[error("Given builtins are not in appropiate order")]
+    DisorderedBuiltins,
+    #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
+    IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
+    #[error(
+        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+    Attempting to compute P + m * Q where:\n
+    P = {0:?} \n
+    m = {1}\n
+    Q = {2:?}."
+    )]
+    EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
+    #[error("EcOpBuiltin: point {0:?} is not on the curve")]
+    PointNotOnCurve((usize, usize)),
 }
