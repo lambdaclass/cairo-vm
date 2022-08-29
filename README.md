@@ -82,7 +82,7 @@ These is a list of recommended books to learn how to implement a compiler or an 
 * [Dark forest's intro + circuits PART 1](https://blog.zkga.me/intro-to-zksnarks)
 * [Dark forest's intro + circuits PART 2](https://blog.zkga.me/df-init-circuit)
 
-### ZK STARKs
+### STARKs
 
 Introduction:
 * [Cryptography Stack Exchange Answer](https://crypto.stackexchange.com/questions/56327/what-are-zk-starks)

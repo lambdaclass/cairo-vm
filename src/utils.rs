@@ -1,5 +1,7 @@
 use crate::types::relocatable::Relocatable;
 use num_bigint::BigInt;
+use num_integer::Integer;
+use std::ops::Shr;
 
 #[macro_export]
 macro_rules! bigint {
@@ -53,8 +55,8 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
 ///equivalent to val modulo prime.
 pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
-    let half_prime = prime.clone() / bigint!(2);
-    ((num + half_prime.clone()) % prime) - half_prime
+    let half_prime = prime.clone().shr(1_usize);
+    ((num + &half_prime).mod_floor(&prime)) - half_prime
 }
 
 #[cfg(test)]
@@ -181,7 +183,7 @@ pub mod test_utils {
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
                 vec![(
                     "range_check".to_string(),
-                    Box::new(RangeCheckBuiltinRunner::new(true, bigint!(8), 8)),
+                    Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
                 )],
                 false,
             )

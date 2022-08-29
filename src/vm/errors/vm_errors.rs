@@ -212,6 +212,8 @@ pub enum VirtualMachineError {
     NoImm,
     #[error("Tried to compute an address but there was no register in the reference.")]
     NoRegisterInReference,
+    #[error("Couldn't compute operands")]
+    FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
 }
