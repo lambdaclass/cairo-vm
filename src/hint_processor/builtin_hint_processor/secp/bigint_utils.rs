@@ -77,17 +77,14 @@ mod tests {
         let mut vm = vm_with_range_check!();
         add_segments!(vm, 3);
         // initialize vm scope with variable `n`
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable(
+        let mut exec_scopes = scope![(
             "value",
-            any_box!(bigint_str!(
-                b"7737125245533626718119526477371252455336267181195264773712524553362"
-            )),
-        );
+            bigint_str!(b"7737125245533626718119526477371252455336267181195264773712524553362")
+        )];
         //Initialize RubContext
         run_context!(vm, 0, 6, 6);
         //Create hint_data
-        let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
+        let ids_data = non_continuous_ids_data![("res", 5)];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
@@ -110,7 +107,7 @@ mod tests {
         //Initialize RubContext
         run_context!(vm, 0, 6, 6);
         //Create hint_data
-        let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
+        let ids_data = non_continuous_ids_data![("res", 5)];
         assert_eq!(
             run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::VariableNotInScopeError(
@@ -125,10 +122,9 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         // initialize vm scope with variable `n`
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("value", any_box!(bigint!(-1)));
+        let mut exec_scopes = scope![("value", bigint!(-1))];
         //Create hint_data
-        let ids_data = HashMap::from([("res".to_string(), HintReference::new_simple(5))]);
+        let ids_data = non_continuous_ids_data![("res", 5)];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),

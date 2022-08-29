@@ -157,10 +157,7 @@ mod tests {
         //Initialize run_context
         run_context!(vm, 0, 9, 9);
         //Create hint data
-        let ids_data = HashMap::from([
-            ("val".to_string(), HintReference::new_simple(-5)),
-            ("q".to_string(), HintReference::new_simple(0)),
-        ]);
+        let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0)];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -198,10 +195,7 @@ mod tests {
         run_context!(vm, 0, 9, 9);
 
         //Create hint data
-        let ids_data = HashMap::from([
-            ("val".to_string(), HintReference::new_simple(-5)),
-            ("q".to_string(), HintReference::new_simple(0)),
-        ]);
+        let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_eq!(
@@ -226,7 +220,7 @@ mod tests {
         vm.run_context.fp = 25;
 
         //Create hint data
-        let ids_data = HashMap::from([("x".to_string(), HintReference::new_simple(-5))]);
+        let ids_data = non_continuous_ids_data![("x", -5)];
 
         vm.memory = memory![
             ((1, 20), (b"132181232131231239112312312313213083892150", 10)),
@@ -299,11 +293,14 @@ mod tests {
         );
 
         //Check 'x' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("x"),
-            Ok(bigint_str!(
-                b"1389505070847794345082847096905107459917719328738389700703952672838091425185"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [(
+                "x",
+                bigint_str!(
+                    b"1389505070847794345082847096905107459917719328738389700703952672838091425185"
+                )
+            )]
         );
     }
 
