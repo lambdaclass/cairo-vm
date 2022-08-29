@@ -535,39 +535,28 @@ mod tests {
     fn run_ec_double_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x - new_x) - y) % SECP_P";
         let mut vm = vm_with_range_check!();
-        let mut exec_scopes = ExecutionScopes::new();
-
-        //Insert 'slope' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "slope",
-            any_box!(bigint_str!(
+        let mut exec_scopes = scope![
+            (
+                "slope",
+                bigint_str!(
                 b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            )),
-        );
-
-        //Insert 'x' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "x",
-            any_box!(bigint_str!(
-                b"838083498911032969414721426845751663479194726707495046"
-            )),
-        );
-
-        //Insert 'new_x' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "new_x",
-            any_box!(bigint_str!(
+            )
+            ),
+            (
+                "x",
+                bigint_str!(b"838083498911032969414721426845751663479194726707495046")
+            ),
+            (
+                "new_x",
+                bigint_str!(
                 b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            )),
-        );
-
-        //Insert 'y' into vm scope
-        exec_scopes.assign_or_update_variable(
-            "y",
-            any_box!(bigint_str!(
-                b"4310143708685312414132851373791311001152018708061750480"
-            )),
-        );
+            )
+            ),
+            (
+                "y",
+                bigint_str!(b"4310143708685312414132851373791311001152018708061750480")
+            )
+        ];
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
@@ -575,20 +564,22 @@ mod tests {
             Ok(())
         );
 
-        //Check 'value' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
-                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            ))
-        );
-
-        //Check 'new_y' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("new_y"),
-            Ok(bigint_str!(
-                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+        )
+                ),
+                (
+                    "new_y",
+                    bigint_str!(
+            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+        )
+                )
+            ]
         );
     }
 
@@ -633,20 +624,22 @@ mod tests {
             Ok(())
         );
 
-        //Check 'value' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
-                b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
-            ))
-        );
-
-        //Check 'new_x' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("new_x"),
-            Ok(bigint_str!(
-                b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+        )
+                ),
+                (
+                    "new_x",
+                    bigint_str!(
+            b"8891838197222656627233627110766426698842623939023296165598688719819499152657"
+        )
+                )
+            ]
         );
     }
 
@@ -654,7 +647,7 @@ mod tests {
     fn run_fast_ec_add_assign_new_y_ok() {
         let hint_code = "value = new_y = (slope * (x0 - new_x) - y0) % SECP_P";
         let mut vm = vm_with_range_check!();
-        //Insert 'slope' into vm scope
+
         let mut exec_scopes = scope![
             (
                 "slope",
@@ -685,20 +678,22 @@ mod tests {
             Ok(())
         );
 
-        //Check 'value' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
-                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            ))
-        );
-
-        //Check 'new_y' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("new_y"),
-            Ok(bigint_str!(
-                b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+        )
+                ),
+                (
+                    "new_y",
+                    bigint_str!(
+            b"7948634220683381957329555864604318996476649323793038777651086572350147290350"
+        )
+                )
+            ]
         );
     }
 
