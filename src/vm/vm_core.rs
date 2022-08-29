@@ -32,7 +32,7 @@ pub struct Operands {
 }
 
 #[derive(PartialEq, Debug)]
-struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
+struct OperandsAddresses(Relocatable, Relocatable, Relocatable);
 
 #[derive(Clone, Debug)]
 pub struct HintData {
@@ -49,7 +49,7 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
-    accessed_addresses: Option<Vec<MaybeRelocatable>>,
+    accessed_addresses: Option<Vec<Relocatable>>,
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
@@ -436,7 +436,7 @@ impl VirtualMachine {
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
-                MaybeRelocatable::from(self.run_context.get_pc()),
+                self.run_context.pc.clone(),
             ];
             accessed_addresses.extend_from_slice(addresses);
         }
@@ -600,11 +600,7 @@ impl VirtualMachine {
         match (dst, op0, op1) {
             (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => {
                 let accessed_addresses = if self.accessed_addresses.is_some() {
-                    Some(OperandsAddresses(
-                        MaybeRelocatable::from(dst_addr),
-                        MaybeRelocatable::from(op0_addr),
-                        MaybeRelocatable::from(op1_addr),
-                    ))
+                    Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
                 } else {
                     None
                 };
