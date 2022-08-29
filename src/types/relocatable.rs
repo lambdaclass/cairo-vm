@@ -482,56 +482,6 @@ mod tests {
     }
 
     #[test]
-    fn add_maybe_mod_ok() {
-        assert_eq!(
-            Ok(relocatable!(1, 2)),
-            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(2), &bigint!(71))
-        );
-        assert_eq!(
-            Ok(relocatable!(0, 58)),
-            relocatable!(0, 29).add_maybe_mod(&mayberelocatable!(100), &bigint!(71))
-        );
-        assert_eq!(
-            Ok(relocatable!(2, 45)),
-            relocatable!(2, 12).add_maybe_mod(&mayberelocatable!(104), &bigint!(71))
-        );
-
-        assert_eq!(
-            Ok(relocatable!(1, 0)),
-            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(0), &bigint!(71))
-        );
-        assert_eq!(
-            Ok(relocatable!(1, 2)),
-            relocatable!(1, 2).add_maybe_mod(&mayberelocatable!(71), &bigint!(71))
-        );
-
-        assert_eq!(
-            Ok(relocatable!(14, 0)),
-            relocatable!(14, (71 * 12))
-                .add_maybe_mod(&mayberelocatable!((pow(71, 3))), &bigint!(71))
-        );
-    }
-
-    #[test]
-    fn add_maybe_mod_add_two_relocatable_error() {
-        assert_eq!(
-            Err(VirtualMachineError::RelocatableAdd),
-            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(1, 2), &bigint!(71))
-        );
-    }
-
-    #[test]
-    fn add_maybe_mod_offset_exceeded_error() {
-        assert_eq!(
-            Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
-            relocatable!(1, 0).add_maybe_mod(
-                &mayberelocatable!(bigint!(usize::MAX) + 1),
-                &(bigint!(usize::MAX) + 8)
-            )
-        );
-    }
-
-    #[test]
     fn add_int_to_int_prime() {
         let addr_a = &MaybeRelocatable::Int(BigInt::new(
             Sign::Plus,
@@ -742,6 +692,56 @@ mod tests {
         assert_eq!(
             Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
             relocatable!(0, 0).add_int_mod(&(bigint!(usize::MAX) + 1), &(bigint!(usize::MAX) + 2))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_ok() {
+        assert_eq!(
+            Ok(relocatable!(1, 2)),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(2), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(0, 58)),
+            relocatable!(0, 29).add_maybe_mod(&mayberelocatable!(100), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(2, 45)),
+            relocatable!(2, 12).add_maybe_mod(&mayberelocatable!(104), &bigint!(71))
+        );
+
+        assert_eq!(
+            Ok(relocatable!(1, 0)),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(0), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(1, 2)),
+            relocatable!(1, 2).add_maybe_mod(&mayberelocatable!(71), &bigint!(71))
+        );
+
+        assert_eq!(
+            Ok(relocatable!(14, 0)),
+            relocatable!(14, (71 * 12))
+                .add_maybe_mod(&mayberelocatable!((pow(71, 3))), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_add_two_relocatable_error() {
+        assert_eq!(
+            Err(VirtualMachineError::RelocatableAdd),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(1, 2), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_offset_exceeded_error() {
+        assert_eq!(
+            Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
+            relocatable!(1, 0).add_maybe_mod(
+                &mayberelocatable!(bigint!(usize::MAX) + 1),
+                &(bigint!(usize::MAX) + 8)
+            )
         );
     }
 }
