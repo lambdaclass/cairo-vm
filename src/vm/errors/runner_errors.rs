@@ -36,7 +36,7 @@ pub enum RunnerError {
     ExpectedInteger(MaybeRelocatable),
     #[error("Failed to retrieve value from address {0:?}")]
     MemoryGet(MaybeRelocatable),
-    #[error("Failed to fetch memory address.")]
+    #[error(transparent)]
     FailedMemoryGet(MemoryError),
     #[error("EcOpBuiltin: m should be at most {0}")]
     EcOpBuiltinScalarLimit(BigInt),
