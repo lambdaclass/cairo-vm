@@ -279,6 +279,23 @@ pub mod test_utils {
         };
     }
     pub(crate) use add_dict_manager;
+
+    macro_rules! vec_data {
+        ( $( ($val:tt) ),* ) => {
+            vec![$( vec_data_inner!($val) ),*]
+        };
+    }
+    pub(crate) use vec_data;
+
+    macro_rules! vec_data_inner {
+        (( $val1:expr, $val2:expr )) => {
+            mayberelocatable!($val1, $val2)
+        };
+        (( $val:expr )) => {
+            mayberelocatable!($val)
+        };
+    }
+    pub(crate) use vec_data_inner;
 }
 
 #[cfg(test)]

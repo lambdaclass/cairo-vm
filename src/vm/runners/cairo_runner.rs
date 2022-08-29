@@ -565,10 +565,7 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4)),
-                MaybeRelocatable::from(bigint!(6)),
-            ],
+            data: vec_data!((4), (6)),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -616,10 +613,7 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
-        let stack = vec![
-            MaybeRelocatable::from(bigint!(4)),
-            MaybeRelocatable::from(bigint!(6)),
-        ];
+        let stack = vec![mayberelocatable!(4), mayberelocatable!(6)];
         cairo_runner.initialize_state(1, stack).unwrap();
         check_memory!(cairo_runner.vm.memory, ((2, 0), 4), ((2, 1), 6));
     }
@@ -940,19 +934,19 @@ mod tests {
         let program = Program {
             builtins: vec![],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(bigint!(5207990763031199744_i64)),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from((
+            data: vec_data!(
+                (5207990763031199744_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
-                    10,
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(3),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1015,21 +1009,21 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from((
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
-                    10,
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1101,25 +1095,25 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("range_check")],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(18446744073709551615_i128)),
-                MaybeRelocatable::from(bigint!(5199546496550207487_i64)),
-                MaybeRelocatable::from(bigint!(4612389712311386111_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(7)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from((
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
-                    10,
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1195,19 +1189,19 @@ mod tests {
         let program = Program {
             builtins: vec![],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(5207990763031199744_i64)),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from((
+            data: vec_data!(
+                (5207990763031199744_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
-                    10,
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(3),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1271,25 +1265,25 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("range_check")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(18446744073709551615_i128)),
-                MaybeRelocatable::from(bigint!(5199546496550207487_i64)),
-                MaybeRelocatable::from(bigint!(4612389712311386111_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(7)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from((
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
                     b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
-                    10,
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1387,26 +1381,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1515,36 +1511,38 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output"), String::from("range_check")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::Int(bigint!(18446744073709551615_i128)),
-                MaybeRelocatable::from(bigint!(5199546496550207487_i64)),
-                MaybeRelocatable::from(bigint!(4612389712311386111_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(7)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020469"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (5191102247248822272_i64),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020469",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5191102242953854976_i64)),
-                MaybeRelocatable::from(bigint!(5193354051357474816_i64)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020461"
+                (5191102242953854976_i64),
+                (5193354051357474816_i64),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020461",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5193354029882638336_i64)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (5193354029882638336_i64),
+                (2345108766317314046_i64)
+            ),
             main: Some(13),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1802,26 +1800,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1939,26 +1939,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2125,26 +2127,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
