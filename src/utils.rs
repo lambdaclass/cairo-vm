@@ -293,7 +293,7 @@ pub mod test_utils {
         (( $val1:expr, $val2:expr )) => {
             mayberelocatable!($val1, $val2)
         };
-        (( $val:expr )) => {
+        ( $val:expr ) => {
             mayberelocatable!($val)
         };
     }
