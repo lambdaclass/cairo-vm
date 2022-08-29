@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661803183399,
+  "lastUpdate": 1661804215234,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -30895,6 +30895,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 231310028,
             "range": "± 1035913",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "4e570caf178ed345aa7ca48d87ece02a40ecf20c",
+          "message": "Refactor functions to use Relocatable instead of MaybeRelocatable",
+          "timestamp": "2022-08-29T11:21:26Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/403/commits/4e570caf178ed345aa7ca48d87ece02a40ecf20c"
+        },
+        "date": 1661804211312,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1862850575,
+            "range": "± 22611015",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 692104561,
+            "range": "± 11662063",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 337633921,
+            "range": "± 6421308",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1671961910,
+            "range": "± 18903390",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 244670625,
+            "range": "± 4109658",
             "unit": "ns/iter"
           }
         ]
