@@ -13,9 +13,6 @@ pub struct RunContext {
 }
 
 impl RunContext {
-    pub fn get_pc(&self) -> Relocatable {
-        Relocatable::from(&self.pc)
-    }
     pub fn get_ap(&self) -> Relocatable {
         Relocatable::from((1, self.ap))
     }
@@ -53,7 +50,7 @@ impl RunContext {
             Op1Addr::FP => self.get_fp(),
             Op1Addr::AP => self.get_ap(),
             Op1Addr::Imm => match instruction.off2 == bigint!(1) {
-                true => self.get_pc(),
+                true => self.pc.clone(),
                 false => return Err(VirtualMachineError::ImmShouldBe1),
             },
             Op1Addr::Op0 => match op0 {

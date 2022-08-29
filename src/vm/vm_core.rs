@@ -106,12 +106,12 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.get_pc()) {
+        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
             Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = self.run_context.get_pc() + 1;
+        let imm_addr = &self.run_context.pc + 1;
 
         if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
@@ -158,30 +158,24 @@ impl VirtualMachine {
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
-            PcUpdate::Regular => self.run_context.get_pc() + instruction.size(),
+            PcUpdate::Regular => &self.run_context.pc + instruction.size(),
             PcUpdate::Jump => match operands.res.clone() {
                 Some(res) => res.get_relocatable()?.clone(),
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => self
-                        .run_context
-                        .get_pc()
-                        .add_int_mod(&num_res, &self.prime)?,
+                    MaybeRelocatable::Int(num_res) => {
+                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
+                    }
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
-                true => self.run_context.get_pc() + instruction.size(),
-                false => {
-                    (self
-                        .run_context
-                        .get_pc()
-                        .add_mod(&operands.op1, &self.prime))?
-                }
+                true => &self.run_context.pc + instruction.size(),
+                false => (self.run_context.pc.add_mod(&operands.op1, &self.prime))?,
             },
         };
         self.run_context.pc = new_pc;
@@ -221,7 +215,7 @@ impl VirtualMachine {
             Opcode::Call => {
                 return Ok((
                     Some(MaybeRelocatable::from(
-                        self.run_context.get_pc() + instruction.size(),
+                        &self.run_context.pc + instruction.size(),
                     )),
                     None,
                 ))
@@ -423,7 +417,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.get_pc(),
+                pc: self.run_context.pc.clone(),
                 ap: self.run_context.get_ap(),
                 fp: self.run_context.get_fp(),
             });
@@ -2364,7 +2358,7 @@ mod tests {
         let final_pc = MaybeRelocatable::from((3, 0));
         let hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
-        while vm.run_context.get_pc() != final_pc {
+        while vm.run_context.pc != final_pc {
             assert_eq!(
                 vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
