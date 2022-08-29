@@ -304,6 +304,26 @@ pub mod test_utils {
         };
     }
     pub(crate) use add_segments;
+
+    macro_rules! check_scope {
+        ( $exec_proxy: expr, [ $( ($name: expr, $val: expr)),* ] ) => {
+            $(
+                check_scope_value($exec_proxy, $name, $val);
+            )*
+        };
+    }
+    pub(crate) use check_scope;
+
+    use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+
+    pub fn check_scope_value<T: std::fmt::Debug + std::cmp::PartialEq + 'static>(
+        proxy: &ExecutionScopesProxy,
+        name: &str,
+        value: T,
+    ) {
+        let scope_value = proxy.get_any_boxed_ref(name).unwrap();
+        assert_eq!(scope_value.downcast_ref(), Some(&value));
+    }
 }
 
 #[cfg(test)]

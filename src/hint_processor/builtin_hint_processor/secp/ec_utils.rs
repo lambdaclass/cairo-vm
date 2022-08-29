@@ -331,6 +331,7 @@ mod tests {
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
@@ -391,21 +392,22 @@ mod tests {
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
-
-        //Check 'value' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
-                b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
-            ))
-        );
-
-        //Check 'slope' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("slope"),
-            Ok(bigint_str!(
-                b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            b"40442433062102151071094722250325492738932110061897694430475034100717288403728"
+        )
+                )
+            ]
         );
     }
 
@@ -444,21 +446,22 @@ mod tests {
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
-
-        //Check 'value' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
-                b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
-            ))
-        );
-
-        //Check 'slope' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("slope"),
-            Ok(bigint_str!(
-                b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "value",
+                    bigint_str!(
+            b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
+        )
+                ),
+                (
+                    "slope",
+                    bigint_str!(
+            b"41419765295989780131385135514529906223027172305400087935755859001910844026631"
+        )
+                )
+            ]
         );
     }
 
@@ -495,44 +498,36 @@ mod tests {
             Ok(())
         );
 
-        //Check 'slope' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("slope"),
-            Ok(bigint_str!(
-                b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
-            ))
-        );
-
-        //Check 'x' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("x"),
-            Ok(bigint_str!(
-                b"838083498911032969414721426845751663479194726707495046"
-            ))
-        );
-
-        //Check 'y' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("y"),
-            Ok(bigint_str!(
-                b"4310143708685312414132851373791311001152018708061750480"
-            ))
-        );
-
-        //Check 'value' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
-                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            ))
-        );
-
-        //Check 'new_x' is defined in the vm scope
-        assert_eq!(
-            exec_scopes_proxy.get_int("new_x"),
-            Ok(bigint_str!(
-                b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "slope",
+                    bigint_str!(
+            b"48526828616392201132917323266456307435009781900148206102108934970258721901549"
+        )
+                ),
+                (
+                    "x",
+                    bigint_str!(b"838083498911032969414721426845751663479194726707495046")
+                ),
+                (
+                    "y",
+                    bigint_str!(b"4310143708685312414132851373791311001152018708061750480")
+                ),
+                (
+                    "value",
+                    bigint_str!(
+            b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+        )
+                ),
+                (
+                    "new_x",
+                    bigint_str!(
+            b"59479631769792988345961122678598249997181612138456851058217178025444564264149"
+        )
+                )
+            ]
         );
     }
 
@@ -621,11 +616,9 @@ mod tests {
             ((1, 11), 16032182557092050689870202_i128)
         ];
 
-        //Initialize fp
-        vm.run_context.fp = 15;
+        //Initialize run_context
+        run_context!(vm, 0, 20, 15);
 
-        //Initialize ap
-        vm.run_context.ap = 20;
         let ids_data = HashMap::from([
             ("point0".to_string(), HintReference::new_simple(-15)),
             ("point1".to_string(), HintReference::new_simple(-9)),
@@ -726,11 +719,8 @@ mod tests {
         //Insert ids.scalar into memory
         vm.memory = memory![((1, 0), scalar)];
 
-        //Initialize fp
-        vm.run_context.fp = 1;
-
-        //Initialize ap
-        vm.run_context.ap = 2;
+        //Initialize RunContext
+        run_context!(vm, 0, 2, 1);
 
         let ids_data = ids_data!["scalar"];
 
