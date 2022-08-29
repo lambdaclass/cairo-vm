@@ -720,4 +720,28 @@ mod tests {
             Err(MemoryError::Relocation)
         );
     }
+
+    #[test]
+    fn relocatable_add_int_mod_ok() {
+        assert_eq!(
+            Ok(relocatable!(1, 6)),
+            relocatable!(1, 2).add_int_mod(&bigint!(4), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(3, 2)),
+            relocatable!(3, 2).add_int_mod(&bigint!(0), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(9, 12)),
+            relocatable!(9, 48).add_int_mod(&bigint!(35), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn relocatable_add_int_mod_offset_exceeded_error() {
+        assert_eq!(
+            Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
+            relocatable!(0, 0).add_int_mod(&(bigint!(usize::MAX) + 1), &(bigint!(usize::MAX) + 2))
+        );
+    }
 }
