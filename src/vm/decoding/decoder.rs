@@ -71,10 +71,9 @@ pub fn decode_instruction(
     };
 
     if op1_addr == instruction::Op1Addr::Imm {
-        assert!(
-            imm.is_some(),
-            "op1_addr is Op1Addr.IMM, but no immediate given"
-        )
+        if imm.is_none() {
+            return Err(VirtualMachineError::NoImm);
+        }
     } else {
         imm = None
     }

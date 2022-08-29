@@ -11,7 +11,7 @@ fn pedersen_integration_test() {
     let program = Program::new(Path::new("cairo_programs/pedersen_test.json"), "main")
         .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor);
+    let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
     cairo_runner.initialize_segments(None);
     let end = cairo_runner.initialize_main_entrypoint().unwrap();
     assert!(cairo_runner.initialize_vm() == Ok(()), "Execution failed");

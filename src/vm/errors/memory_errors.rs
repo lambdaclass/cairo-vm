@@ -1,48 +1,23 @@
-use std::fmt;
+use thiserror::Error;
 
 use crate::types::relocatable::MaybeRelocatable;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Error)]
 pub enum MemoryError {
+    #[error("Can't insert into segment #{0}; memory only has {1} segment")]
     UnallocatedSegment(usize, usize),
+    #[error("Memory addresses must be relocatable")]
     AddressNotRelocatable,
+    #[error("Range-check validation failed, number is out of valid range")]
     NumOutOfBounds,
+    #[error("Range-check validation failed, encountered non-int value")]
     FoundNonInt,
+    #[error("Inconsistent memory assignment at address {0:?}. {1:?} != {2:?}")]
     InconsistentMemory(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable),
+    #[error("compute_effective_sizes should be called before relocate_segments")]
     EffectiveSizesNotCalled,
+    #[error("Inconsistent Relocation")]
     Relocation,
+    #[error("Could not cast arguments")]
     WriteArg,
-}
-
-impl fmt::Display for MemoryError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            MemoryError::UnallocatedSegment(len, accessed) => write!(
-                f,
-                "Can't insert into segment #{}; memory only has {} segment",
-                accessed, len
-            ),
-            MemoryError::AddressNotRelocatable => write!(f, "Memory addresses must be relocatable"),
-            MemoryError::NumOutOfBounds => write!(
-                f,
-                "Range-check validation failed, number is out of valid range"
-            ),
-            MemoryError::FoundNonInt => write!(
-                f,
-                "Range-check validation failed, encountered non-int value"
-            ),
-            MemoryError::InconsistentMemory(addr, val_a, val_b) => write!(
-                f,
-                "Inconsistent memory assignment at address {:?}. {:?} != {:?}",
-                addr, val_a, val_b
-            ),
-
-            MemoryError::EffectiveSizesNotCalled => write!(
-                f,
-                "compute_effective_sizes should be called before relocate_segments"
-            ),
-            MemoryError::Relocation => write!(f, "Inconsistent Relocation"),
-            MemoryError::WriteArg => write!(f, "Could not cast arguments"),
-        }
-    }
 }
