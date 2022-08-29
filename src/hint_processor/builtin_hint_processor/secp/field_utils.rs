@@ -177,10 +177,7 @@ mod tests {
         //Initialize run_context
         run_context!(vm, 0, 9, 9);
         //Create hint data
-        let ids_data = HashMap::from([
-            ("val".to_string(), HintReference::new_simple(-5)),
-            ("q".to_string(), HintReference::new_simple(0)),
-        ]);
+        let ids_data = non_continuous_ids_data![("val", -5), ("q", 0)];
         vm.memory = memory![((1, 4), 0), ((1, 5), 0), ((1, 6), 150)];
         //Execute the hint
         assert_eq!(

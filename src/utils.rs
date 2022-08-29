@@ -232,6 +232,19 @@ pub mod test_utils {
     }
     pub(crate) use ids_data;
 
+    macro_rules! non_continuous_ids_data {
+        ( $( ($name: expr, $offset:expr) ),* ) => {
+            {
+                let mut ids_data = HashMap::<String, HintReference>::new();
+                $(
+                    ids_data.insert(String::from($name), HintReference::new_simple($offset));
+                )*
+                ids_data
+            }
+        };
+    }
+    pub(crate) use non_continuous_ids_data;
+
     macro_rules! trace_check {
         ( $trace: expr, [ $( (($si_pc:expr, $off_pc:expr), ($si_ap:expr, $off_ap:expr), ($si_fp:expr, $off_fp:expr)) ),+ ] ) => {
             let mut index = -1;
