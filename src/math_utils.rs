@@ -69,7 +69,7 @@ fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
             );
             let (mut c, mut q);
             while !b.is_zero() {
-                (q, c) = (a.div_floor(&b), a % &b);
+                (q, c) = (a.div_floor(&b), a.mod_floor(&b));
                 (a, b, r, s, x, y) = (b, c, x - &q * &r, y - q * &s, r, s)
             }
             (x * x_sign, y * y_sign, a)
@@ -103,7 +103,7 @@ pub fn line_slope(
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
 ) -> BigInt {
-    assert!(!(&point_a.0 - &point_b.0 % prime).is_zero());
+    assert!(!(&point_a.0 - &point_b.0.mod_floor(prime)).is_zero());
     div_mod(
         &(&point_a.1 - &point_b.1),
         &(&point_a.0 - &point_b.0),
@@ -115,7 +115,7 @@ pub fn line_slope(
 /// Assumes the point is given in affine form (x, y) and has y != 0.
 pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
     let m = ec_double_slope(point.clone(), alpha, prime);
-    let x = ((m.clone() * m.clone()) - (bigint!(2) * point.0.clone())) % prime;
+    let x = ((m.clone() * m.clone()) - (bigint!(2) * point.0.clone())).mod_floor(prime);
     let y = (m * (point.0.clone() - x.clone()) - point.1).mod_floor(prime);
     (x, y)
 }
