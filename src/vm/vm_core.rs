@@ -499,140 +499,135 @@ impl VirtualMachine {
         Ok(())
     }
 
+    fn compute_op0_deductions(
+        &mut self,
+        op0_addr: &MaybeRelocatable,
+        res: &mut Option<MaybeRelocatable>,
+        instruction: &Instruction,
+        dst_op: &Option<MaybeRelocatable>,
+        op1_op: &Option<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        let op0_op = match self.deduce_memory_cell(op0_addr)? {
+            None => {
+                let op0;
+                (op0, *res) = self.deduce_op0(instruction, dst_op.as_ref(), op1_op.as_ref())?;
+                op0
+            }
+            deduced_memory_cell => deduced_memory_cell,
+        };
+        let op0 = op0_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        self.memory
+            .insert(op0_addr, &op0)
+            .map_err(VirtualMachineError::MemoryError)?;
+        Ok(op0)
+    }
+
+    fn compute_op1_deductions(
+        &mut self,
+        op1_addr: &MaybeRelocatable,
+        res: &mut Option<MaybeRelocatable>,
+        instruction: &Instruction,
+        dst_op: &Option<MaybeRelocatable>,
+        op0: &MaybeRelocatable,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        let op1_op = match self.deduce_memory_cell(op1_addr)? {
+            None => {
+                let (op1, deduced_res) =
+                    self.deduce_op1(instruction, dst_op.as_ref(), Some(op0.clone()))?;
+                if res.is_none() {
+                    *res = deduced_res
+                }
+                op1
+            }
+            deduced_memory_cell => deduced_memory_cell,
+        };
+        let op1 = op1_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
+        self.memory
+            .insert(op1_addr, &op1)
+            .map_err(VirtualMachineError::MemoryError)?;
+        Ok(op1)
+    }
+
+    fn compute_dst_deductions(
+        &mut self,
+        dst_addr: &MaybeRelocatable,
+        instruction: &Instruction,
+        res: &Option<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        let dst_op = match instruction.opcode {
+            Opcode::AssertEq if res.is_some() => res.clone(),
+            Opcode::Call => Some(self.run_context.get_fp()),
+            _ => self.deduce_dst(instruction, res.as_ref()),
+        };
+        let dst = dst_op.ok_or(VirtualMachineError::NoDst)?;
+        self.memory
+            .insert(dst_addr, &dst)
+            .map_err(VirtualMachineError::MemoryError)?;
+        Ok(dst)
+    }
+
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
     /// value.
     fn compute_operands(
         &mut self,
         instruction: &Instruction,
     ) -> Result<(Operands, Option<OperandsAddresses>), VirtualMachineError> {
-        let dst_addr: MaybeRelocatable = self.run_context.compute_dst_addr(instruction)?;
+        //Get operands from memory
+        let dst_addr = self.run_context.compute_dst_addr(instruction)?;
+        let dst_op = self
+            .memory
+            .get(&dst_addr)
+            .map_err(VirtualMachineError::MemoryError)?
+            .cloned();
 
-        let mut dst: Option<MaybeRelocatable> = match self.memory.get(&dst_addr) {
-            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            Ok(result) => result.cloned(),
-        };
+        let op0_addr = self.run_context.compute_op0_addr(instruction)?;
+        let op0_op = self
+            .memory
+            .get(&op0_addr)
+            .map_err(VirtualMachineError::MemoryError)?
+            .cloned();
 
-        let op0_addr: MaybeRelocatable = self.run_context.compute_op0_addr(instruction)?;
-
-        let mut op0: Option<MaybeRelocatable> = match self.memory.get(&op0_addr) {
-            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            Ok(result) => result.cloned(),
-        };
-
-        let op1_addr: MaybeRelocatable = self
+        let op1_addr = self
             .run_context
-            .compute_op1_addr(instruction, op0.as_ref())?;
-
-        let mut op1: Option<MaybeRelocatable> = match self.memory.get(&op1_addr) {
-            Err(_) => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            Ok(result) => result.cloned(),
-        };
+            .compute_op1_addr(instruction, op0_op.as_ref())?;
+        let op1_op = self
+            .memory
+            .get(&op1_addr)
+            .map_err(VirtualMachineError::MemoryError)?
+            .cloned();
 
         let mut res: Option<MaybeRelocatable> = None;
 
-        let should_update_dst = matches!(dst, None);
-        let should_update_op0 = matches!(op0, None);
-        let should_update_op1 = matches!(op1, None);
-
-        if matches!(op0, None) {
-            match self.deduce_memory_cell(&op0_addr) {
-                Ok(None) => {
-                    (op0, res) = self.deduce_op0(instruction, dst.as_ref(), op1.as_ref())?;
-                }
-                Ok(deduced_memory_cell) => {
-                    op0 = deduced_memory_cell;
-                }
-                Err(e) => return Err(e),
+        //Deduce op0 if it wasnt previously computed
+        let op0 = match op0_op {
+            Some(op0) => op0,
+            None => {
+                self.compute_op0_deductions(&op0_addr, &mut res, instruction, &dst_op, &op1_op)?
             }
+        };
+
+        //Deduce op1 if it wasnt previously computed
+        let op1 = match op1_op {
+            Some(op1) => op1,
+            None => self.compute_op1_deductions(&op1_addr, &mut res, instruction, &dst_op, &op0)?,
+        };
+
+        //Compute res if it wasnt previously deduced
+        if res.is_none() {
+            res = self.compute_res(instruction, &op0, &op1)?;
         }
 
-        if matches!(op1, None) {
-            match self.deduce_memory_cell(&op1_addr) {
-                Ok(None) => {
-                    let deduced_operands =
-                        self.deduce_op1(instruction, dst.as_ref(), op0.clone())?;
-                    op1 = deduced_operands.0;
-
-                    if matches!(res, None) {
-                        res = deduced_operands.1
-                    }
-                }
-                Ok(deduced_memory_cell) => {
-                    op1 = deduced_memory_cell;
-                }
-                Err(e) => return Err(e),
-            }
-        }
-
-        if matches!(res, None) {
-            match (&op0, &op1) {
-                (Some(ref unwrapped_op0), Some(ref unwrapped_op1)) => {
-                    res = self.compute_res(instruction, unwrapped_op0, unwrapped_op1)?;
-                }
-                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            }
-        }
-
-        if matches!(dst, None) {
-            match instruction.opcode {
-                Opcode::AssertEq if matches!(res, Some(_)) => dst = res.clone(),
-                Opcode::Call => dst = Some(self.run_context.get_fp()),
-                _ => match self.deduce_dst(instruction, res.as_ref()) {
-                    Some(d) => dst = Some(d),
-                    None => return Err(VirtualMachineError::NoDst),
-                },
-            }
-        }
-
-        if should_update_dst {
-            match dst {
-                Some(ref unwrapped_dst) => match self.memory.insert(&dst_addr, unwrapped_dst) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
-                _ => return Err(VirtualMachineError::NoDst),
-            }
-        }
-
-        if should_update_op0 {
-            match op0 {
-                Some(ref unwrapped_op0) => match self.memory.insert(&op0_addr, unwrapped_op0) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
-                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            }
-        }
-
-        if should_update_op1 {
-            match op1 {
-                Some(ref unwrapped_op1) => match self.memory.insert(&op1_addr, unwrapped_op1) {
-                    Ok(()) => (),
-                    _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-                },
-                _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-            };
-        }
-
-        match (dst, op0, op1) {
-            (Some(unwrapped_dst), Some(unwrapped_op0), Some(unwrapped_op1)) => {
-                let accessed_addresses = if self.accessed_addresses.is_some() {
-                    Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
-                } else {
-                    None
-                };
-                Ok((
-                    Operands {
-                        dst: unwrapped_dst,
-                        op0: unwrapped_op0,
-                        op1: unwrapped_op1,
-                        res,
-                    },
-                    accessed_addresses,
-                ))
-            }
-            _ => Err(VirtualMachineError::InvalidInstructionEncoding),
-        }
+        //Deduce dst if it wasnt previously computed
+        let dst = match dst_op {
+            Some(dst) => dst,
+            None => self.compute_dst_deductions(&dst_addr, instruction, &res)?,
+        };
+        let accessed_addresses = if self.accessed_addresses.is_some() {
+            Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
+        } else {
+            None
+        };
+        Ok((Operands { dst, op0, op1, res }, accessed_addresses))
     }
 
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
