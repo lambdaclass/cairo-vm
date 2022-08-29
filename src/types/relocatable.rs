@@ -157,25 +157,24 @@ impl Relocatable {
 
     ///Adds a MaybeRelocatable to self, then performs mod prime
     /// Cant add two relocatable values
-    pub fn add_mod(
+    pub fn add_maybe_mod(
         &self,
         other: &MaybeRelocatable,
         prime: &BigInt,
     ) -> Result<Relocatable, VirtualMachineError> {
-        match *other {
-            MaybeRelocatable::RelocatableValue(_) => Err(VirtualMachineError::RelocatableAdd),
-            MaybeRelocatable::Int(ref num_ref) => {
-                let big_offset: BigInt = (num_ref + self.offset).mod_floor(prime);
-                let new_offset = match big_offset.to_usize() {
-                    Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-                };
-                Ok(Relocatable {
-                    segment_index: self.segment_index,
-                    offset: new_offset,
-                })
-            }
-        }
+        let num_ref = other
+            .get_int_ref()
+            .map_err(|_| VirtualMachineError::RelocatableAdd)?;
+
+        let big_offset: BigInt = (num_ref + self.offset).mod_floor(prime);
+        let new_offset = match big_offset.to_usize() {
+            Some(usize) => usize,
+            None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
+        };
+        Ok(Relocatable {
+            segment_index: self.segment_index,
+            offset: new_offset,
+        })
     }
 
     pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {

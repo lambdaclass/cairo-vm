@@ -141,7 +141,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         let new_ap: Relocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self.run_context.get_ap().add_mod(&res, &self.prime)?,
+                Some(res) => self.run_context.get_ap().add_maybe_mod(&res, &self.prime)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
             ApUpdate::Add1 => self.run_context.get_ap() + 1,
@@ -175,7 +175,12 @@ impl VirtualMachine {
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
                 true => &self.run_context.pc + instruction.size(),
-                false => (self.run_context.pc.add_mod(&operands.op1, &self.prime))?,
+                false => {
+                    (self
+                        .run_context
+                        .pc
+                        .add_maybe_mod(&operands.op1, &self.prime))?
+                }
             },
         };
         self.run_context.pc = new_pc;
