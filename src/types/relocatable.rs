@@ -386,8 +386,10 @@ mod tests {
     use crate::bigint;
     use crate::bigint_str;
     use crate::relocatable;
+    use crate::utils::test_utils::mayberelocatable;
     use num_bigint::BigInt;
     use num_bigint::Sign;
+    use num_traits::pow;
 
     #[test]
     fn add_bigint_to_int() {
@@ -477,6 +479,56 @@ mod tests {
         let addr_b = &MaybeRelocatable::from(bigint!(17));
         let added_addr = addr_a.add_mod(addr_b, &bigint!(71));
         assert_eq!(Ok(MaybeRelocatable::from(bigint!(24))), added_addr);
+    }
+
+    #[test]
+    fn add_maybe_mod_ok() {
+        assert_eq!(
+            Ok(relocatable!(1, 2)),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(2), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(0, 58)),
+            relocatable!(0, 29).add_maybe_mod(&mayberelocatable!(100), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(2, 45)),
+            relocatable!(2, 12).add_maybe_mod(&mayberelocatable!(104), &bigint!(71))
+        );
+
+        assert_eq!(
+            Ok(relocatable!(1, 0)),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(0), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(1, 2)),
+            relocatable!(1, 2).add_maybe_mod(&mayberelocatable!(71), &bigint!(71))
+        );
+
+        assert_eq!(
+            Ok(relocatable!(14, 0)),
+            relocatable!(14, (71 * 12))
+                .add_maybe_mod(&mayberelocatable!((pow(71, 3))), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_add_two_relocatable_error() {
+        assert_eq!(
+            Err(VirtualMachineError::RelocatableAdd),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(1, 2), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_offset_exceeded_error() {
+        assert_eq!(
+            Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
+            relocatable!(1, 0).add_maybe_mod(
+                &mayberelocatable!(bigint!(usize::MAX) + 1),
+                &(bigint!(usize::MAX) + 8)
+            )
+        );
     }
 
     #[test]
