@@ -38,7 +38,7 @@ pub trait HintProcessor {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HintReference {
-    pub register: Register,
+    pub register: Option<Register>,
     pub offset1: i32,
     pub offset2: i32,
     pub dereference: bool,
@@ -50,7 +50,7 @@ pub struct HintReference {
 impl HintReference {
     pub fn new_simple(offset1: i32) -> Self {
         HintReference {
-            register: Register::FP,
+            register: Some(Register::FP),
             offset1,
             offset2: 0,
             inner_dereference: false,
@@ -62,7 +62,7 @@ impl HintReference {
 
     pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool) -> Self {
         HintReference {
-            register: Register::FP,
+            register: Some(Register::FP),
             offset1,
             offset2,
             inner_dereference,

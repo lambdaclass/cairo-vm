@@ -453,4 +453,10 @@ mod memory_tests {
             ))
         );
     }
+
+    #[test]
+    fn default_memory() {
+        let mem: Memory = Default::default();
+        assert_eq!(mem.data.len(), 0);
+    }
 }
