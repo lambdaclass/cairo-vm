@@ -343,6 +343,42 @@ pub mod test_utils {
     }
     pub(crate) use scope;
 
+    macro_rules! check_dictionary {
+        ( $exec_scopes_proxy: expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
+            $(
+                assert_eq!(
+                    $exec_scopes_proxy
+                        .get_dict_manager()
+                        .unwrap()
+                        .borrow_mut()
+                        .trackers
+                        .get_mut(&$tracker_num)
+                        .unwrap()
+                        .get_value(&bigint!($key)),
+                    Ok(&bigint!($val))
+                );
+            )*
+        };
+    }
+    pub(crate) use check_dictionary;
+
+    macro_rules! check_dict_ptr {
+        ($exec_scopes_proxy: expr, $tracker_num: expr, ($i:expr, $off:expr)) => {
+            assert_eq!(
+                $exec_scopes_proxy
+                    .get_dict_manager()
+                    .unwrap()
+                    .borrow()
+                    .trackers
+                    .get(&$tracker_num)
+                    .unwrap()
+                    .current_ptr,
+                relocatable!($i, $off)
+            );
+        };
+    }
+    pub(crate) use check_dict_ptr;
+
     use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 
     pub fn check_scope_value<T: std::fmt::Debug + std::cmp::PartialEq + 'static>(
