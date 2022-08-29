@@ -876,7 +876,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint().unwrap();
-        assert_eq!(return_pc, MaybeRelocatable::from((1, 0)));
+        assert_eq!(return_pc, Relocatable::from((1, 0)));
     }
 
     #[test]
@@ -1631,7 +1631,7 @@ mod tests {
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
-        assert_eq!(end, MaybeRelocatable::from((3, 0)));
+        assert_eq!(end, Relocatable::from((3, 0)));
         cairo_runner.initialize_vm().unwrap();
         //Execution Phase
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));

@@ -744,7 +744,7 @@ mod tests {
             hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    vm.run_context.get_ap(),
+                    MaybeRelocatable::from(vm.run_context.get_ap()),
                     MaybeRelocatable::from(bigint!(55i32)),
                     MaybeRelocatable::from(bigint!(1i32))
                 )

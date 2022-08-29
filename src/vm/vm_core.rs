@@ -674,6 +674,7 @@ mod tests {
         },
     };
 
+    use crate::bigint;
     use num_bigint::Sign;
     use std::collections::HashSet;
 
@@ -1981,9 +1982,9 @@ mod tests {
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            dst_addr.clone(),
-            op0_addr.clone(),
-            op1_addr.clone(),
+            dst_addr.get_relocatable().unwrap().clone(),
+            op0_addr.get_relocatable().unwrap().clone(),
+            op1_addr.get_relocatable().unwrap().clone(),
         ));
 
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
@@ -2032,9 +2033,9 @@ mod tests {
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            dst_addr.clone(),
-            op0_addr.clone(),
-            op1_addr.clone(),
+            dst_addr.get_relocatable().unwrap().clone(),
+            op0_addr.get_relocatable().unwrap().clone(),
+            op1_addr.get_relocatable().unwrap().clone(),
         ));
 
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
@@ -2075,9 +2076,9 @@ mod tests {
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            mayberelocatable!(1, 1),
-            mayberelocatable!(1, 1),
-            mayberelocatable!(0, 1),
+            relocatable!(1, 1),
+            relocatable!(1, 1),
+            relocatable!(0, 1),
         ));
 
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
@@ -2295,9 +2296,9 @@ mod tests {
         assert_eq!(vm.run_context.fp, 0);
 
         let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 0))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
     }
 
     #[test]
@@ -2355,7 +2356,7 @@ mod tests {
             ((1, 1), (3, 0))
         ];
 
-        let final_pc = MaybeRelocatable::from((3, 0));
+        let final_pc = Relocatable::from((3, 0));
         let hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
         while vm.run_context.pc != final_pc {
@@ -2391,23 +2392,23 @@ mod tests {
             .accessed_addresses
             .unwrap()
             .into_iter()
-            .collect::<HashSet<MaybeRelocatable>>();
+            .collect::<HashSet<Relocatable>>();
         assert_eq!(accessed_addresses.len(), 14);
         //Check each element individually
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 1))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 7))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 2))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 4))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 0))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 5))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 3))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 4))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 6))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 2))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 5))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 0))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 3))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 1))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 7))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 2))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 4))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 5))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 3))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 4))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 6))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 2))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 5))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 3))));
     }
 
     #[test]
@@ -2597,9 +2598,9 @@ mod tests {
             )),
         };
         let expected_operands_mem_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((1, 13)),
-            MaybeRelocatable::from((1, 7)),
-            MaybeRelocatable::from((3, 2)),
+            Relocatable::from((1, 13)),
+            Relocatable::from((1, 7)),
+            Relocatable::from((3, 2)),
         ));
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
@@ -2678,9 +2679,9 @@ mod tests {
             op1: MaybeRelocatable::from(bigint!(8)),
         };
         let expected_operands_mem_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((1, 9)),
-            MaybeRelocatable::from((1, 3)),
-            MaybeRelocatable::from((2, 2)),
+            Relocatable::from((1, 9)),
+            Relocatable::from((1, 3)),
+            Relocatable::from((2, 2)),
         ));
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),

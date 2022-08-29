@@ -67,7 +67,8 @@ impl RunContext {
 mod tests {
     use super::*;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
-    use crate::utils::test_utils::*;
+    use crate::utils::test_utils::mayberelocatable;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::{bigint, relocatable};
 
     #[test]
@@ -94,7 +95,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(1, 6)),
+            Ok(relocatable!(1, 6)),
             run_context.compute_dst_addr(&instruction)
         );
     }
@@ -123,7 +124,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(1, 7)),
+            Ok(relocatable!(1, 7)),
             run_context.compute_dst_addr(&instruction)
         );
     }
@@ -152,7 +153,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(1, 7)),
+            Ok(relocatable!(1, 7)),
             run_context.compute_op0_addr(&instruction)
         );
     }
@@ -181,7 +182,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(1, 8)),
+            Ok(relocatable!(1, 8)),
             run_context.compute_op0_addr(&instruction)
         );
     }
@@ -210,7 +211,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(1, 9)),
+            Ok(relocatable!(1, 9)),
             run_context.compute_op1_addr(&instruction, None)
         );
     }
@@ -239,7 +240,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(1, 8)),
+            Ok(relocatable!(1, 8)),
             run_context.compute_op1_addr(&instruction, None)
         );
     }
@@ -268,7 +269,7 @@ mod tests {
             prime: bigint!(39),
         };
         assert_eq!(
-            Ok(mayberelocatable!(0, 5)),
+            Ok(relocatable!(0, 5)),
             run_context.compute_op1_addr(&instruction, None)
         );
     }
@@ -329,9 +330,42 @@ mod tests {
             prime: bigint!(39),
         };
 
+        let op0 = mayberelocatable!(1, 7);
+        assert_eq!(
+            Ok(relocatable!(1, 8)),
+            run_context.compute_op1_addr(&instruction, Some(&op0))
+        );
+    }
+
+    #[test]
+    fn compute_op1_addr_with_no_relocatable_address() {
+        let instruction = Instruction {
+            off0: bigint!(1),
+            off1: bigint!(2),
+            off2: bigint!(1),
+            imm: None,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::Op0,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::NOp,
+        };
+
+        let run_context = RunContext {
+            pc: relocatable!(0, 4),
+            ap: 5,
+            fp: 6,
+            prime: bigint!(39),
+        };
+
         let op0 = MaybeRelocatable::from(bigint!(7));
         assert_eq!(
-            Ok(MaybeRelocatable::Int(bigint!(8))),
+            Err(VirtualMachineError::MemoryError(
+                MemoryError::AddressNotRelocatable
+            )),
             run_context.compute_op1_addr(&instruction, Some(&op0))
         );
     }
