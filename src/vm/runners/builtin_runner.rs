@@ -89,9 +89,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::RelocatableValue(Relocatable::from((
-            self.base, 0,
-        )))]
+        vec![MaybeRelocatable::from((self.base, 0))]
     }
 
     fn base(&self) -> Relocatable {
@@ -145,9 +143,7 @@ impl BuiltinRunner for OutputBuiltinRunner {
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::RelocatableValue(Relocatable::from((
-            self.base, 0,
-        )))]
+        vec![MaybeRelocatable::from((self.base, 0))]
     }
 
     fn base(&self) -> Relocatable {
@@ -189,9 +185,7 @@ impl BuiltinRunner for HashBuiltinRunner {
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::RelocatableValue(Relocatable::from((
-            self.base, 0,
-        )))]
+        vec![MaybeRelocatable::from((self.base, 0))]
     }
 
     fn base(&self) -> Relocatable {
@@ -275,9 +269,7 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::RelocatableValue(Relocatable::from((
-            self.base, 0,
-        )))]
+        vec![MaybeRelocatable::from((self.base, 0))]
     }
 
     fn base(&self) -> Relocatable {
@@ -409,9 +401,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
-        vec![MaybeRelocatable::RelocatableValue(Relocatable::from((
-            self.base, 0,
-        )))]
+        vec![MaybeRelocatable::from((self.base, 0))]
     }
 
     fn base(&self) -> Relocatable {
