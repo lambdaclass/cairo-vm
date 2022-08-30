@@ -13,7 +13,7 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
+        errors::vm_errors::VirtualMachineError,
         runners::builtin_runner::BuiltinRunner,
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
@@ -311,23 +311,17 @@ impl VirtualMachine {
 
     fn deduce_memory_cell(
         &mut self,
-        address: &MaybeRelocatable,
+        address: &Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        if let MaybeRelocatable::RelocatableValue(addr) = address {
-            for (_, builtin) in self.builtin_runners.iter_mut() {
-                if builtin.base().segment_index == addr.segment_index {
-                    match builtin.deduce_memory_cell(address, &self.memory) {
-                        Ok(maybe_reloc) => return Ok(maybe_reloc),
-                        Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                    };
-                }
+        for (_, builtin) in self.builtin_runners.iter_mut() {
+            if builtin.base().segment_index == address.segment_index {
+                match builtin.deduce_memory_cell(&MaybeRelocatable::from(address), &self.memory) {
+                    Ok(maybe_reloc) => return Ok(maybe_reloc),
+                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                };
             }
-            return Ok(None);
         }
-
-        Err(VirtualMachineError::RunnerError(
-            RunnerError::NonRelocatableAddress,
-        ))
+        Ok(None)
     }
 
     ///Computes the value of res if possible
@@ -482,7 +476,7 @@ impl VirtualMachine {
 
     fn compute_op0_deductions(
         &mut self,
-        op0_addr: &MaybeRelocatable,
+        op0_addr: &Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
         dst_op: &Option<MaybeRelocatable>,
@@ -505,7 +499,7 @@ impl VirtualMachine {
 
     fn compute_op1_deductions(
         &mut self,
-        op1_addr: &MaybeRelocatable,
+        op1_addr: &Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
         dst_op: &Option<MaybeRelocatable>,
@@ -531,7 +525,7 @@ impl VirtualMachine {
 
     fn compute_dst_deductions(
         &mut self,
-        dst_addr: &MaybeRelocatable,
+        dst_addr: &Relocatable,
         instruction: &Instruction,
         res: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -582,25 +576,15 @@ impl VirtualMachine {
         //Deduce op0 if it wasnt previously computed
         let op0 = match op0_op {
             Some(op0) => op0,
-            None => self.compute_op0_deductions(
-                &MaybeRelocatable::from(&op0_addr),
-                &mut res,
-                instruction,
-                &dst_op,
-                &op1_op,
-            )?,
+            None => {
+                self.compute_op0_deductions(&op0_addr, &mut res, instruction, &dst_op, &op1_op)?
+            }
         };
 
         //Deduce op1 if it wasnt previously computed
         let op1 = match op1_op {
             Some(op1) => op1,
-            None => self.compute_op1_deductions(
-                &MaybeRelocatable::from(&op1_addr),
-                &mut res,
-                instruction,
-                &dst_op,
-                &op0,
-            )?,
+            None => self.compute_op1_deductions(&op1_addr, &mut res, instruction, &dst_op, &op0)?,
         };
 
         //Compute res if it wasnt previously deduced
@@ -611,9 +595,7 @@ impl VirtualMachine {
         //Deduce dst if it wasnt previously computed
         let dst = match dst_op {
             Some(dst) => dst,
-            None => {
-                self.compute_dst_deductions(&MaybeRelocatable::from(&dst_addr), instruction, &res)?
-            }
+            None => self.compute_dst_deductions(&dst_addr, instruction, &res)?,
         };
         let accessed_addresses = if self.accessed_addresses.is_some() {
             Some(OperandsAddresses(dst_addr, op0_addr, op1_addr))
@@ -2489,10 +2471,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let mut vm = vm!();
-        assert_eq!(
-            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))),
-            Ok(None)
-        );
+        assert_eq!(vm.deduce_memory_cell(&Relocatable::from((0, 0))), Ok(None));
     }
 
     #[test]
@@ -2503,7 +2482,7 @@ mod tests {
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
-            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
+            vm.deduce_memory_cell(&Relocatable::from((0, 5))),
             Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
@@ -2607,7 +2586,7 @@ mod tests {
             .push((String::from("bitwise"), Box::new(builtin)));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
-            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
+            vm.deduce_memory_cell(&Relocatable::from((0, 7))),
             Ok(Some(MaybeRelocatable::from(bigint!(8))))
         );
     }
@@ -2727,7 +2706,7 @@ mod tests {
             )
         ];
 
-        let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
+        let result = vm.deduce_memory_cell(&Relocatable::from((0, 6)));
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
