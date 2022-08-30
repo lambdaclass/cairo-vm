@@ -107,7 +107,7 @@ mod tests {
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
 
         // initialize fp
         vm.run_context.fp = 1;

@@ -523,7 +523,7 @@ mod tests {
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids and references are not needed for this test
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
@@ -546,7 +546,7 @@ mod tests {
         let mut vm = vm!();
         //Add 3 segments to the memory
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         vm.run_context.ap = 6;
         //ids and references are not needed for this test
@@ -571,7 +571,7 @@ mod tests {
         let mut vm = vm!();
         //Add 3 segments to the memory
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         vm.run_context.ap = 6;
         //Insert something into ap
@@ -617,7 +617,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -646,7 +646,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -681,7 +681,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -716,7 +716,7 @@ mod tests {
         let mut vm = vm!();
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
 
         // initialize fp
         vm.run_context.fp = 3;
@@ -753,7 +753,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -800,7 +800,7 @@ mod tests {
         exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         // Initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -818,7 +818,7 @@ mod tests {
         //vm.exec_scopes.enter_scope(HashMap::from([(String::from("a"),  bigint!(1)))]));
 
         // initialize memory segments
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -858,7 +858,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -932,7 +932,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -1005,7 +1005,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -1075,7 +1075,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -1149,7 +1149,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -1225,7 +1225,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
@@ -1295,7 +1295,7 @@ mod tests {
 
         // initialize memory segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         // initialize fp
