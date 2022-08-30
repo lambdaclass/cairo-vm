@@ -274,7 +274,7 @@ mod tests {
         let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -346,7 +346,7 @@ mod tests {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -390,7 +390,7 @@ mod tests {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -433,7 +433,7 @@ mod tests {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -483,7 +483,7 @@ mod tests {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -513,7 +513,7 @@ mod tests {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -549,7 +549,7 @@ mod tests {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -584,7 +584,7 @@ mod tests {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -618,7 +618,7 @@ mod tests {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -655,7 +655,7 @@ mod tests {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp

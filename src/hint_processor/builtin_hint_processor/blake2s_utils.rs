@@ -295,7 +295,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 1;
@@ -406,7 +406,7 @@ mod tests {
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
         vm.memory = memory![((1, 0), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create hint data
         let ids_data = ids_data!["blake2s_ptr_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -500,7 +500,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -555,7 +555,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -610,7 +610,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -665,7 +665,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint

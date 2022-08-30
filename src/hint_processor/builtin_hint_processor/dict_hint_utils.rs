@@ -297,7 +297,7 @@ mod tests {
     fn run_dict_new_with_initial_dict_empty() {
         let hint_code = "if '__dict_manager' not in globals():\n    from starkware.cairo.common.dict import DictManager\n    __dict_manager = DictManager()\n\nmemory[ap] = __dict_manager.new_dict(segments, initial_dict)\ndel initial_dict";
         let mut vm = vm!();
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
 
         //Store initial dict in scope
         let mut exec_scopes = ExecutionScopes::new();
@@ -384,7 +384,7 @@ mod tests {
         dict_manager.trackers.insert(2, tracker);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 2), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
@@ -459,7 +459,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -548,7 +548,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.value (at (1, 0))
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -619,7 +619,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.value (at (1, 0))
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -684,7 +684,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.value (at (2, 0))
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -747,7 +747,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.value (at (1, 0))
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
@@ -783,7 +783,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -842,7 +842,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -901,7 +901,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 20), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -941,7 +941,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -977,7 +977,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -1037,7 +1037,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -1097,7 +1097,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 10), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -1137,7 +1137,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -1175,7 +1175,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), 20), ((1, 3), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //ids.dict_ptr (2, 0):
         //  dict_ptr.key = (2, 1)
         //  dict_ptr.prev_value = (2, 2)
@@ -1231,7 +1231,7 @@ mod tests {
         dict_manager.trackers.insert(2, tracker);
         //ids.dict_access
         vm.memory = memory![((1, 0), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1276,7 +1276,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         vm.memory = memory![((1, 0), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1319,7 +1319,7 @@ mod tests {
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((1, 0), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["dict_accesses_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -1343,7 +1343,7 @@ mod tests {
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1376,7 +1376,7 @@ mod tests {
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         //ids.squash_dict_start
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1419,7 +1419,7 @@ mod tests {
         let mut exec_scopes_proxy = get_exec_scopes_proxy(&mut exec_scopes);
         add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((1, 0), (2, 3)), ((1, 1), (2, 6))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids
         let ids_data = ids_data!["squashed_dict_start", "squashed_dict_end"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);

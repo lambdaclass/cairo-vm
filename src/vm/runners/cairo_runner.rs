@@ -107,9 +107,9 @@ impl<'a> CairoRunner<'a> {
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
-            None => Some(self.vm.segments.add(&mut self.vm.memory, None)),
+            None => Some(self.vm.segments.add(&mut self.vm.memory)),
         };
-        self.execution_base = Some(self.vm.segments.add(&mut self.vm.memory, None));
+        self.execution_base = Some(self.vm.segments.add(&mut self.vm.memory));
         for (_key, builtin_runner) in self.vm.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.vm.segments, &mut self.vm.memory);
         }
@@ -156,7 +156,7 @@ impl<'a> CairoRunner<'a> {
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Result<MaybeRelocatable, RunnerError> {
-        let end = self.vm.segments.add(&mut self.vm.memory, None);
+        let end = self.vm.segments.add(&mut self.vm.memory);
         stack.append(&mut vec![
             return_fp,
             MaybeRelocatable::RelocatableValue(end.clone()),
@@ -185,7 +185,7 @@ impl<'a> CairoRunner<'a> {
             stack.append(&mut builtin_runner.initial_stack());
         }
         //Different process if proof_mode is enabled
-        let return_fp = self.vm.segments.add(&mut self.vm.memory, None);
+        let return_fp = self.vm.segments.add(&mut self.vm.memory);
         if let Some(main) = &self.program.main {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
@@ -565,10 +565,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         for _ in 0..2 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         cairo_runner.program_base = Some(Relocatable {
             segment_index: 1,
@@ -596,10 +593,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         for _ in 0..3 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
@@ -624,10 +618,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         for _ in 0..2 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         cairo_runner.execution_base = Some(Relocatable {
             segment_index: 2,
@@ -657,10 +648,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         for _ in 0..2 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
@@ -686,10 +674,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         for _ in 0..2 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -719,10 +704,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
         for _ in 0..2 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
@@ -1661,10 +1643,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
         for _ in 0..4 {
-            cairo_runner
-                .vm
-                .segments
-                .add(&mut cairo_runner.vm.memory, None);
+            cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
         // Memory initialization without macro
         cairo_runner
