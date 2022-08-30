@@ -37,7 +37,6 @@ mod tests {
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::types::instruction::Register;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -53,97 +52,27 @@ mod tests {
     fn run_pow_ok() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize ap
-        vm.run_context.ap = 12;
-
-        //Create hint_data
-        let ids_data = HashMap::from([
-            (
-                "prev_locs".to_string(),
-                HintReference {
-                    dereference: true,
-                    register: Some(Register::AP),
-                    offset1: -5,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 4,
-                        offset: 3,
-                    }),
-                    immediate: None,
-                },
-            ),
-            (
-                "locs".to_string(),
-                HintReference {
-                    dereference: true,
-                    register: Some(Register::AP),
-                    offset1: 0,
-                    offset2: 0,
-                    inner_dereference: false,
-                    ap_tracking_data: Some(ApTracking {
-                        group: 4,
-                        offset: 3,
-                    }),
-                    immediate: None,
-                },
-            ),
-        ]);
-        let hint_data = HintProcessorData {
-            code: hint_code.to_string(),
-            ids_data,
-            ap_tracking: ApTracking {
-                group: 4,
-                offset: 4,
-            },
-        };
-        //Insert ids.prev_locs.exp into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 10)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        vm.run_context.fp = 12;
+        vm.memory = memory![((1, 11), 3)];
+        let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", 0)];
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 11))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![vm.memory, ((1, 12), 1)];
     }
 
     #[test]
     fn run_pow_incorrect_ids() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        add_segments!(vm, 2);
         //Initialize ap
         vm.run_context.ap = 11;
-
         //Create incorrect ids
-        //Create hint_data
         let ids_data = ids_data!["locs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -152,23 +81,14 @@ mod tests {
     fn run_pow_incorrect_references() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
+        add_segments!(vm, 2);
         //Initialize fp
         vm.run_context.fp = 11;
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("prev_locs".to_string(), HintReference::new_simple(-5)),
-            ("locs".to_string(), HintReference::new_simple(-12)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", -12)];
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -182,19 +102,13 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 11;
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("prev_locs".to_string(), HintReference::new_simple(-5)),
-            ("locs".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", -12)];
         //Insert ids.prev_locs.exp into memory as a RelocatableValue
         vm.memory = memory![((1, 10), (1, 11))];
-        vm.segments.add(&mut vm.memory, None);
+        add_segments!(vm, 1);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 10))
             ))
@@ -205,38 +119,15 @@ mod tests {
     fn run_pow_invalid_memory_insert() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize ap
         vm.run_context.fp = 11;
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("prev_locs".to_string(), HintReference::new_simple(-5)),
-            ("locs".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        //Insert ids.prev_locs.exp into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 10)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-
-        // Insert ids.locs.bit before the hint execution, so the hint memory.insert fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 11)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let ids_data = non_continuous_ids_data![("prev_locs", -5), ("locs", 0)];
+        //Insert ids into memory
+        vm.memory = memory![((1, 10), 3), ((1, 11), 3)];
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 11)),
