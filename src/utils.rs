@@ -516,4 +516,14 @@ mod test {
             ]
         );
     }
+
+    #[test]
+    fn data_vec_test() {
+        from_bigint_str![3];
+        let data = vec_data!((1), ((2, 2)), ((b"499", 10)), ((b"a9c", 16)));
+        assert_eq!(data[0], mayberelocatable!(1));
+        assert_eq!(data[1], mayberelocatable!(2, 2));
+        assert_eq!(data[2], mayberelocatable!(499));
+        assert_eq!(data[3], mayberelocatable!(2716));
+    }
 }

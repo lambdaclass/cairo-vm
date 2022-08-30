@@ -1724,6 +1724,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
+        println!("{:?}", rel_table);
         assert_eq!(cairo_runner.relocate_memory(&rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
