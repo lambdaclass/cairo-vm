@@ -512,6 +512,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::{exec_scope_errors::ExecScopeError, memory_errors::MemoryError};
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{any_box, bigint};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
@@ -590,7 +591,7 @@ mod tests {
         // insert ids.len into memory
         vm.memory = memory![((1, 1), 5)];
         let ids_data = ids_data!["len"];
-        assert!(run_hint!(vm, HashMap::new(), hint_code).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code).is_ok());
     }
 
     #[test]
@@ -607,7 +608,7 @@ mod tests {
 
         let ids_data = ids_data!["len"];
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -645,7 +646,7 @@ mod tests {
         vm.memory = memory![((0, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -669,7 +670,7 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
@@ -793,7 +794,7 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        assert!(run_hint!(vm, HashMap::new(), hint_code).is_err());
+        assert!(run_hint!(vm, ids_data, hint_code).is_err());
     }
 
     #[test]
@@ -839,7 +840,7 @@ mod tests {
             ((1, 8), 0)
         ];
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
-        assert!(run_hint!(vm, HashMap::new(), hint_code).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code).is_ok());
     }
 
     #[test]
@@ -854,13 +855,12 @@ mod tests {
             ((1, 1), (1, 2)),
             ((1, 2), (1, 4)),
             ((1, 3), (1, 5)),
-            ((1, 4), 1),
             ((1, 5), 2),
             ((1, 8), 0)
         ];
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::NoneInMemoryRange)
         );
     }
@@ -877,11 +877,11 @@ mod tests {
             ((1, 1), (1, 2)),
             ((1, 2), (1, 4)),
             ((1, 3), (1, 5)),
-            ((1, 4), 1),
+            ((1, 4), (1, 5)),
             ((1, 5), 2),
             ((1, 8), 0)
         ];
         let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
-        assert!(run_hint!(vm, HashMap::new(), hint_code).is_err());
+        assert!(run_hint!(vm, ids_data, hint_code).is_err());
     }
 }
