@@ -170,7 +170,7 @@ mod tests {
 
         vm.run_context.fp = 2;
 
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), (2, 1)), ((1, 1), 5)];
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];

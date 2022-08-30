@@ -97,7 +97,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
 
         for _ in 0..4 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         vm.run_context.fp = 6;

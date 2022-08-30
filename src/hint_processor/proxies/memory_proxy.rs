@@ -80,7 +80,7 @@ impl MemoryProxy<'_> {
 
     /// Adds a new memory segment and returns it base
     pub fn add_segment(&mut self, segments: &mut MemorySegmentManager) -> Relocatable {
-        segments.add(self.memory, None)
+        segments.add(self.memory)
     }
 
     ///Writes data into the memory at address ptr and returns the first address after the data.
