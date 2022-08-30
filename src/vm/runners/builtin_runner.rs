@@ -547,17 +547,14 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );
-        assert_eq!(
-            builtin.verified_addresses,
-            vec![MaybeRelocatable::from((0, 5))]
-        );
+        assert_eq!(builtin.verified_addresses, vec![Relocatable::from((0, 5))]);
     }
 
     #[test]
@@ -583,7 +580,7 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -604,7 +601,7 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -631,17 +628,9 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        builtin.verified_addresses = vec![Relocatable::from((0, 5))];
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    fn deduce_memory_cell_pedersen_for_no_relocatable_address() {
-        let memory = Memory::new();
-        let mut builtin = HashBuiltinRunner::new(8);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
 
     #[test]
@@ -667,7 +656,7 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 7)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
     }
 
@@ -694,7 +683,7 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 8)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
     }
 
@@ -721,7 +710,7 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 9)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
     }
 
@@ -748,7 +737,7 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -769,16 +758,8 @@ mod tests {
                 &MaybeRelocatable::Int(bigint!(0)),
             )
             .unwrap();
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    fn deduce_memory_cell_bitwise_for_no_relocatable_address() {
-        let memory = Memory::new();
-        let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
 
     #[test]
@@ -1009,7 +990,7 @@ mod tests {
             )
             .unwrap();
 
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
@@ -1064,7 +1045,7 @@ mod tests {
             )
             .unwrap();
 
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -1122,7 +1103,7 @@ mod tests {
             )
             .unwrap();
 
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 3)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -1179,7 +1160,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory),
+            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
             Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
         );
     }
@@ -1241,7 +1222,7 @@ mod tests {
             )
             .unwrap();
 
-        let error = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             error,
             Err(RunnerError::EcOpBuiltinScalarLimit(
