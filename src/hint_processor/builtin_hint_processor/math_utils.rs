@@ -437,14 +437,14 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap, fp
         vm.run_context.ap = 0;
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 9), (-1))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -470,7 +470,7 @@ mod tests {
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 1)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids_data
         let ids_data = ids_data!["a"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -494,7 +494,7 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap, fp
         vm.run_context.ap = 0;
@@ -530,7 +530,7 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap, fp
         vm.run_context.ap = 0;
@@ -554,7 +554,7 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap
         vm.run_context.ap = 0;
@@ -575,7 +575,7 @@ mod tests {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap, fp
         vm.run_context.ap = 0;
@@ -604,7 +604,7 @@ mod tests {
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), (2, 3))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids_data
         let ids_data = ids_data!["a"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -627,7 +627,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 3), 4)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "small_inputs"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -650,7 +650,7 @@ mod tests {
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["a", "b"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
@@ -812,7 +812,7 @@ mod tests {
     fn run_assert_nn_reference_is_not_in_memory() {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Initialize fp
         vm.run_context.fp = 4;
         let ids_data = ids_data!["a"];
@@ -924,7 +924,7 @@ mod tests {
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 2)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids_data
         let ids_data = ids_data!["a"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -950,7 +950,7 @@ mod tests {
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), (-1))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Create ids_data
         let ids_data = ids_data!["a"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1013,7 +1013,7 @@ mod tests {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap, fp
         vm.run_context.ap = 0;
@@ -1190,7 +1190,7 @@ mod tests {
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize ap, fp
         vm.run_context.ap = 0;
@@ -1312,7 +1312,7 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 2), ((1, 2), 10), ((1, 3), 100)];
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         let ids_data = ids_data!["output", "value", "base", "bound"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1344,7 +1344,7 @@ mod tests {
             ((1, 3), 10)
         ];
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         let ids_data = ids_data!["output", "value", "base", "bound"];
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
@@ -1414,7 +1414,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0";
         let mut vm = vm_with_range_check!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 2;
@@ -1449,7 +1449,7 @@ mod tests {
         ;
         let mut vm = vm_with_range_check!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 2;
@@ -1661,7 +1661,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.ap = 0;
@@ -1685,7 +1685,7 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         for _ in 0..5 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.ap = 0;
@@ -1867,7 +1867,7 @@ mod tests {
              ;
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1899,7 +1899,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -1955,7 +1955,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -1996,7 +1996,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 7;
@@ -2052,7 +2052,7 @@ mod tests {
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
         vm.memory = memory![((1, 4), (2, 0))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Initialize fp
         vm.run_context.fp = 7;
         //Insert ids.value into memory
@@ -2126,7 +2126,7 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize memory segements
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp

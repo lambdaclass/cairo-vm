@@ -349,7 +349,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -404,7 +404,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -439,7 +439,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 1;
@@ -473,7 +473,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -506,7 +506,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -541,7 +541,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -590,7 +590,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -626,7 +626,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -659,7 +659,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -740,7 +740,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -779,7 +779,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -821,7 +821,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -921,7 +921,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -959,7 +959,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Store scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -986,7 +986,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 5;
@@ -1106,7 +1106,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 5;
@@ -1272,7 +1272,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Create scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -1396,7 +1396,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Create scope variables
         let mut exec_scopes = ExecutionScopes::new();
@@ -1500,7 +1500,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 5;
@@ -1595,7 +1595,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 5;
@@ -1697,7 +1697,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize fp
         vm.run_context.fp = 5;

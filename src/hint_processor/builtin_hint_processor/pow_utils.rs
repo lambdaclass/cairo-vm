@@ -54,7 +54,7 @@ mod tests {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize ap
@@ -129,7 +129,7 @@ mod tests {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize ap
@@ -153,7 +153,7 @@ mod tests {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize fp
@@ -189,7 +189,7 @@ mod tests {
         let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Insert ids.prev_locs.exp into memory as a RelocatableValue
         vm.memory = memory![((1, 10), (1, 11))];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         //Execute the hint
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -206,7 +206,7 @@ mod tests {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         //Initialize ap

@@ -1934,7 +1934,7 @@ mod tests {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         vm.memory.data.push(Vec::new());
@@ -1985,7 +1985,7 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
@@ -2934,7 +2934,7 @@ mod tests {
 
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
         //Initialize memory
 

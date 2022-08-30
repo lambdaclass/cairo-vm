@@ -86,7 +86,7 @@ impl RangeCheckBuiltinRunner {
 }
 impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = segments.add(memory, None).segment_index
+        self.base = segments.add(memory).segment_index
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -140,7 +140,7 @@ impl OutputBuiltinRunner {
 
 impl BuiltinRunner for OutputBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = segments.add(memory, None).segment_index
+        self.base = segments.add(memory).segment_index
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -182,7 +182,7 @@ impl HashBuiltinRunner {
 
 impl BuiltinRunner for HashBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = segments.add(memory, None).segment_index
+        self.base = segments.add(memory).segment_index
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -266,7 +266,7 @@ impl BitwiseBuiltinRunner {
 
 impl BuiltinRunner for BitwiseBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = segments.add(memory, None).segment_index
+        self.base = segments.add(memory).segment_index
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -398,7 +398,7 @@ impl EcOpBuiltinRunner {
 
 impl BuiltinRunner for EcOpBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
-        self.base = segments.add(memory, None).segment_index
+        self.base = segments.add(memory).segment_index
     }
 
     fn initial_stack(&self) -> Vec<MaybeRelocatable> {
