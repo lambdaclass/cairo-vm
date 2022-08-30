@@ -523,21 +523,13 @@ mod tests {
     fn run_alloc_hint_empty_memory() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //ids and references are not needed for this test
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
+        run_hint!(vm, HashMap::new(), hint_code).expect("Error while executing hint");
         //first new segment is added
         assert_eq!(vm.segments.num_segments, 2);
         //new segment base (1,0) is inserted into ap (1,0)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from((1, 0))))
-        );
+        check_memory![vm.memory, ((1, 0), (1, 0))];
     }
 
     #[test]
@@ -545,24 +537,14 @@ mod tests {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
         //Add 3 segments to the memory
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 3);
         vm.run_context.ap = 6;
         //ids and references are not needed for this test
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
+        run_hint!(vm, HashMap::new(), hint_code).expect("Error while executing hint");
         //Segment N°4 is added
         assert_eq!(vm.segments.num_segments, 4);
         //new segment base (3,0) is inserted into ap (1,6)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 6))),
-            Ok(Some(&MaybeRelocatable::from((3, 0))))
-        );
+        check_memory![vm.memory, ((1, 6), (3, 0))];
     }
 
     #[test]
@@ -570,23 +552,13 @@ mod tests {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
         //Add 3 segments to the memory
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 3);
         vm.run_context.ap = 6;
         //Insert something into ap
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from((1, 6)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 6), (1, 6))];
         //ids and references are not needed for this test
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 6)),
@@ -601,11 +573,8 @@ mod tests {
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
         let mut vm = vm!();
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::UnknownHint(hint_code.to_string())),
         );
     }
@@ -614,60 +583,31 @@ mod tests {
     fn memcpy_enter_scope_valid() {
         let hint_code = "vm_enter_scope({'n': ids.len})";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 2;
-
         // insert ids.len into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 1), 5)];
         let ids_data = ids_data!["len"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_ok());
+        assert!(run_hint!(vm, HashMap::new(), hint_code).is_ok());
     }
 
     #[test]
     fn memcpy_enter_scope_invalid() {
         let hint_code = "vm_enter_scope({'n': ids.len})";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 2;
-
         // insert ids.len into memory
         // we insert a relocatable value in the address of ids.len so that it raises an error.
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((0, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 1), (1, 0))];
 
         let ids_data = ids_data!["len"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -678,68 +618,34 @@ mod tests {
     fn memcpy_continue_copying_valid() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 3);
         // initialize fp
         vm.run_context.fp = 2;
-
         // initialize vm scope with variable `n`
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
-
+        let mut exec_scopes = scope![("n", bigint!(1))];
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
+        vm.memory = memory![((1, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
-            .is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
     }
 
     #[test]
     fn memcpy_continue_copying_variable_not_in_scope_error() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
         let mut vm = vm!();
-
         // initialize memory segments
-        vm.segments.add(&mut vm.memory);
-
+        add_segments!(vm, 1);
         // initialize fp
         vm.run_context.fp = 3;
-
         // we don't initialize `n` now:
-        /*  vm.exec_scopes
-        .assign_or_update_variable("n",  bigint!(1)));  */
-
-        // initialize ids.continue_copying
-        // we create a memory gap so that there is None in (0, 1), the actual addr of continue_copying
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((0, 2)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
+        // initialize ids
+        vm.memory = memory![((0, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::VariableNotInScopeError(
                 "n".to_string()
             ))
@@ -750,35 +656,20 @@ mod tests {
     fn memcpy_continue_copying_insert_error() {
         let hint_code = "n -= 1\nids.continue_copying = 1 if n > 0 else 0";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 2;
-
         // initialize with variable `n`
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("n", any_box!(bigint!(1)));
-
+        let mut exec_scopes = scope![("n", bigint!(1))];
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 1), 5)];
 
         let ids_data = ids_data!["continue_copying"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
@@ -793,37 +684,25 @@ mod tests {
     fn exit_scope_valid() {
         let hint_code = "vm_exit_scope()";
         let mut vm = vm!();
-
         // Create new vm scope with dummy variable
         let mut exec_scopes = ExecutionScopes::new();
         let a_value: Box<dyn Any> = Box::new(bigint!(1));
         exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         // Initialize memory segments
-        vm.segments.add(&mut vm.memory);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        add_segments!(vm, 1);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
-            .is_ok());
+        assert!(run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy).is_ok());
     }
 
     #[test]
     fn exit_scope_invalid() {
         let hint_code = "vm_exit_scope()";
         let mut vm = vm!();
-
         // new vm scope is not created so that the hint raises an error:
-        //vm.exec_scopes.enter_scope(HashMap::from([(String::from("a"),  bigint!(1)))]));
-
         // initialize memory segments
-        vm.segments.add(&mut vm.memory);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        add_segments!(vm, 1);
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::ExitMainScopeError
             ))
@@ -836,13 +715,10 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check exec_scopes
@@ -855,145 +731,46 @@ mod tests {
     fn unsafe_keccak_valid() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 3);
         // initialize fp
         vm.run_context.fp = 5;
-
-        // insert ids.len into memory
-        vm.memory
-            // length
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-
-        vm.memory
-            // data
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            // pointer to data
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (1, 3) and (1, 4)
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
+        // insert ids into memory
+        vm.memory = memory![
+            ((1, 1), 3),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((1, 2), (2, 0)),
+            ((1, 5), 0)
+        ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(500)));
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("__keccak_max_size", bigint!(500))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data))
-            .is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
     }
 
     #[test]
     fn unsafe_keccak_max_size() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 3);
         // initialize fp
         vm.run_context.fp = 5;
-
-        // insert ids.len into memory
-        vm.memory
-            // length
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
-
-        vm.memory
-            // data
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            // pointer to data
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (0, 3) and (0, 4)
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
+        // insert ids into memory
+        vm.memory = memory![
+            ((1, 1), 5),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((1, 2), (2, 0))
+        ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(2)));
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("__keccak_max_size", bigint!(2))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
@@ -1002,142 +779,45 @@ mod tests {
     fn unsafe_keccak_invalid_input_length() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 3);
         // initialize fp
         vm.run_context.fp = 4;
-
-        // insert ids.len into memory
-        vm.memory
-            // length
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(18446744073709551616_i128)),
-            )
-            .unwrap();
-
-        vm.memory
-            // data
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            // pointer to data
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (1, 3) and (1, 4)
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
+        // insert ids into memory
+        vm.memory = memory![
+            ((1, 1), 18446744073709551616_i128),
+            ((1, 5), 0),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((1, 2), (2, 0))
+        ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_err());
+        assert!(run_hint!(vm, HashMap::new(), hint_code).is_err());
     }
 
     #[test]
     fn unsafe_keccak_invalid_word_size() {
         let hint_code = "from eth_hash.auto import keccak\n\ndata, length = ids.data, ids.length\n\nif '__keccak_max_size' in globals():\n    assert length <= __keccak_max_size, \\\n        f'unsafe_keccak() can only be used with length<={__keccak_max_size}. ' \\\n        f'Got: length={length}.'\n\nkeccak_input = bytearray()\nfor word_i, byte_i in enumerate(range(0, length, 16)):\n    word = memory[data + word_i]\n    n_bytes = min(16, length - byte_i)\n    assert 0 <= word < 2 ** (8 * n_bytes)\n    keccak_input += word.to_bytes(n_bytes, 'big')\n\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 3);
         // initialize fp
         vm.run_context.fp = 5;
-
-        // insert ids.len into memory
-        vm.memory
-            // length
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-
-        vm.memory
-            // data
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(-1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            // pointer to data
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (1, 3) and (1, 4)
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
+        // insert ids into memory
+        vm.memory = memory![
+            ((1, 1), 3),
+            ((1, 5), 0),
+            ((2, 0), (-1)),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((1, 2), (2, 0))
+        ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("__keccak_max_size", any_box!(bigint!(10)));
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("__keccak_max_size", bigint!(10))];
         let exec_scopes_proxy = &mut &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
         );
     }
@@ -1146,144 +826,41 @@ mod tests {
     fn unsafe_keccak_finalize_valid() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 9;
-
-        vm.memory
-            // pointer to keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 2)),
-            )
-            .unwrap();
-
-        vm.memory
-            // field start_ptr of keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((1, 4)),
-            )
-            .unwrap();
-
-        vm.memory
-            // field end_ptr of keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from((1, 5)),
-            )
-            .unwrap();
-
-        vm.memory
-            // the number that is pointed to by start_pointer
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        vm.memory
-            // the number that is pointed to by end_pointer
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (0, 6) and (0, 7)
-            // for high and low variables
-            .insert(
-                &MaybeRelocatable::from((1, 8)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        let ids_data = HashMap::from([
-            ("keccak_state".to_string(), HintReference::new_simple(-7)),
-            ("high".to_string(), HintReference::new_simple(-3)),
-            ("low".to_string(), HintReference::new_simple(-2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_ok());
+        vm.memory = memory![
+            ((1, 1), (1, 2)),
+            ((1, 2), (1, 4)),
+            ((1, 3), (1, 5)),
+            ((1, 4), 1),
+            ((1, 5), 2),
+            ((1, 8), 0)
+        ];
+        let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
+        assert!(run_hint!(vm, HashMap::new(), hint_code).is_ok());
     }
 
     #[test]
     fn unsafe_keccak_finalize_nones_in_range() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 9;
-
-        vm.memory
-            // pointer to keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 2)),
-            )
-            .unwrap();
-
-        vm.memory
-            // field start_ptr of keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((1, 4)),
-            )
-            .unwrap();
-
-        vm.memory
-            // field end_ptr of keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from((1, 5)),
-            )
-            .unwrap();
-
-        vm.memory
-            // the number that is pointed to by end_pointer
-            // we create a gap in (1, 4)
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (1, 6) and (1, 7)
-            // for high and low variables
-            .insert(
-                &MaybeRelocatable::from((1, 8)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        let ids_data = HashMap::from([
-            ("keccak_state".to_string(), HintReference::new_simple(-7)),
-            ("high".to_string(), HintReference::new_simple(-3)),
-            ("low".to_string(), HintReference::new_simple(-2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        vm.memory = memory![
+            ((1, 1), (1, 2)),
+            ((1, 2), (1, 4)),
+            ((1, 3), (1, 5)),
+            ((1, 4), 1),
+            ((1, 5), 2),
+            ((1, 8), 0)
+        ];
+        let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::NoneInMemoryRange)
         );
     }
@@ -1292,76 +869,19 @@ mod tests {
     fn unsafe_keccak_finalize_expected_integer_at_range() {
         let hint_code = "from eth_hash.auto import keccak\nkeccak_input = bytearray()\nn_elms = ids.keccak_state.end_ptr - ids.keccak_state.start_ptr\nfor word in memory.get_range(ids.keccak_state.start_ptr, n_elms):\n    keccak_input += word.to_bytes(16, 'big')\nhashed = keccak(keccak_input)\nids.high = int.from_bytes(hashed[:16], 'big')\nids.low = int.from_bytes(hashed[16:32], 'big')";
         let mut vm = vm!();
-
         // initialize memory segments
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        add_segments!(vm, 2);
         // initialize fp
         vm.run_context.fp = 9;
-
-        vm.memory
-            // pointer to keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from((1, 2)),
-            )
-            .unwrap();
-
-        vm.memory
-            // field start_ptr of keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from((1, 4)),
-            )
-            .unwrap();
-
-        vm.memory
-            // field end_ptr of keccak_state
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from((1, 5)),
-            )
-            .unwrap();
-
-        vm.memory
-            // this is the cell pointed by start_ptr and should be
-            // a number, not a pointer. This causes the error
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from((1, 5)),
-            )
-            .unwrap();
-
-        vm.memory
-            // the number that is pointed to by end_pointer
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        vm.memory
-            // we create a memory gap in (1, 6) and (1, 7)
-            // for high and low variables
-            .insert(
-                &MaybeRelocatable::from((1, 8)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        let ids_data = HashMap::from([
-            ("keccak_state".to_string(), HintReference::new_simple(-7)),
-            ("high".to_string(), HintReference::new_simple(-3)),
-            ("low".to_string(), HintReference::new_simple(-2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_err());
+        vm.memory = memory![
+            ((1, 1), (1, 2)),
+            ((1, 2), (1, 4)),
+            ((1, 3), (1, 5)),
+            ((1, 4), 1),
+            ((1, 5), 2),
+            ((1, 8), 0)
+        ];
+        let ids_data = non_continuous_ids_data![("keccak_state", -7), ("high", -3), ("low", -2)];
+        assert!(run_hint!(vm, HashMap::new(), hint_code).is_err());
     }
 }
