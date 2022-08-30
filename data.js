@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1661884141805,
+  "lastUpdate": 1661888211253,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -31649,6 +31649,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 209840335,
             "range": "± 607743",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8ea36ff9f3cc03141e8d3fb07bb55bcf14566f82",
+          "message": "Refactor MemorySegmentManager add method  (#405)\n\n* Remove MemorySegmentManager.add unused input _size: Option<usize\r\n\r\n* Update MemorySegmentManager.add",
+          "timestamp": "2022-08-30T16:25:03-03:00",
+          "tree_id": "21f322452722e35d5e24151def6b7a132d93c2f5",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/8ea36ff9f3cc03141e8d3fb07bb55bcf14566f82"
+        },
+        "date": 1661888208751,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1630133987,
+            "range": "± 4375878",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 586982988,
+            "range": "± 1194209",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 292908909,
+            "range": "± 532559",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1440136026,
+            "range": "± 1432664",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 212713588,
+            "range": "± 689091",
             "unit": "ns/iter"
           }
         ]
