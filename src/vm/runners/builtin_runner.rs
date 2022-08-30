@@ -500,8 +500,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::vm_memory::memory::Memory;
-    use crate::{bigint, bigint_str};
+    use crate::{bigint, bigint_str, utils::test_utils::*, vm::vm_memory::memory::Memory};
 
     #[test]
     fn initialize_segments_for_output() {
@@ -547,27 +546,9 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)]; //Memory::new();
         let mut builtin = HashBuiltinRunner::new(8);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::Int(bigint!(32)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(72)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
+
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
@@ -583,75 +564,24 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(32)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(72)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(72)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::Int(bigint!(32)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(72)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
@@ -667,129 +597,40 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(10)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::Int(bigint!(12)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 7)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 7)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(10)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::Int(bigint!(12)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 8)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 8)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(10)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 6)),
-                &MaybeRelocatable::Int(bigint!(12)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 9)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 9)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 3)),
-                &MaybeRelocatable::Int(bigint!(10)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 4)),
-                &MaybeRelocatable::Int(bigint!(12)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
-        let mut memory = Memory::new();
+        let memory = memory![((0, 5), 12), ((0, 7), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        memory.data.push(Vec::new());
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 5)),
-                &MaybeRelocatable::Int(bigint!(12)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((0, 7)),
-                &MaybeRelocatable::Int(bigint!(0)),
-            )
-            .unwrap();
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -978,57 +819,45 @@ mod tests {
            end
     */
     fn deduce_memory_cell_ec_op_for_preset_memory_valid() {
-        let mut memory = Memory::new();
+        let memory = memory![
+            (
+                (3, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    10
+                )
+            ),
+            ((3, 4), 34),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
+            )
+        ];
         let mut builtin = EcOpBuiltinRunner::new(256);
-        for _ in 0..4 {
-            memory.data.push(Vec::new());
-        }
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
 
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -1041,107 +870,84 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_unfilled_input_cells() {
-        let mut memory = Memory::new();
-        let mut builtin = EcOpBuiltinRunner::new(256);
-        for _ in 0..4 {
-            memory.data.push(Vec::new());
-        }
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
+        let memory = memory![
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    10
+                )
+            ),
+            ((3, 4), 34),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
             )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
+        ];
 
+        let mut builtin = EcOpBuiltinRunner::new(256);
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_addr_not_an_output_cell() {
-        let mut memory = Memory::new();
+        let memory = memory![
+            (
+                (3, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    10
+                )
+            ),
+            ((3, 4), 34),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
+            )
+        ];
         let mut builtin = EcOpBuiltinRunner::new(256);
-        for _ in 0..4 {
-            memory.data.push(Vec::new());
-        }
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
 
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
@@ -1149,55 +955,39 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_non_integer_input() {
-        let mut memory = Memory::new();
+        let memory = memory![
+            (
+                (3, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            ((3, 3), (1, 2)),
+            ((3, 4), 34),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
+            )
+        ];
         let mut builtin = EcOpBuiltinRunner::new(256);
-        for _ in 0..4 {
-            memory.data.push(Vec::new());
-        }
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::from((1, 2)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                &MaybeRelocatable::Int(bigint!(34)),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
 
         assert_eq!(
             builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory),
@@ -1207,60 +997,52 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_ec_op_for_preset_memory_m_over_scalar_limit() {
-        let mut memory = Memory::new();
+        let memory = memory![
+            (
+                (3, 0),
+                (
+                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584",
+                    10
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    b"214950771763870898744428659242275426967582168179217139798831865603966154129",
+                    10
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    b"874739451078007766457464989774322083649278607533249481151382481072868806602",
+                    10
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    b"152666792071518830868575557812948353041420400780739481342941381225525861407",
+                    10
+                )
+            ),
+            //Scalar Limit + 1
+            (
+                (3, 4),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020482",
+                    10
+                )
+            ),
+            (
+                (3, 5),
+                (
+                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757",
+                    10
+                )
+            )
+        ];
         let mut builtin = EcOpBuiltinRunner::new(256);
-        for _ in 0..4 {
-            memory.data.push(Vec::new());
-        }
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2962412995502985605007699495352191122971573493113767820301112397466445942584"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"214950771763870898744428659242275426967582168179217139798831865603966154129"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 2)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"874739451078007766457464989774322083649278607533249481151382481072868806602"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 3)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"152666792071518830868575557812948353041420400780739481342941381225525861407"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 4)),
-                //Scalar Limit + 1
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020482"
-                )),
-            )
-            .unwrap();
-        memory
-            .insert(
-                &MaybeRelocatable::from((3, 5)),
-                &MaybeRelocatable::Int(bigint_str!(
-                    b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                )),
-            )
-            .unwrap();
 
         let error = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
         assert_eq!(
