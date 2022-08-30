@@ -227,6 +227,7 @@ mod tests {
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::vm_core::VirtualMachine;
@@ -235,6 +236,8 @@ mod tests {
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
 
+    from_bigint_str![33];
+
     #[test]
     fn run_uint256_add_ok() {
         let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
@@ -242,29 +245,16 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-6)),
-            ("b".to_string(), HintReference::new_simple(-4)),
-            ("carry_high".to_string(), HintReference::new_simple(3)),
-            ("carry_low".to_string(), HintReference::new_simple(2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        vm.memory = memory![((1, 4), 2), ((1, 5), 3), ((1, 6), 4)];
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint!(2).pow(128)),
-            )
-            .unwrap();
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let ids_data =
+            non_continuous_ids_data![("a", -6), ("b", -4), ("carry_high", 3), ("carry_low", 2)];
+        vm.memory = memory![
+            ((1, 4), 2),
+            ((1, 5), 3),
+            ((1, 6), 4),
+            ((1, 7), (b"340282366920938463463374607431768211456", 10))
+        ];
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         check_memory![&vm.memory, ((1, 12), 0), ((1, 13), 1)];
     }
@@ -273,64 +263,22 @@ mod tests {
     fn run_uint256_add_fail_inserts() {
         let hint_code = "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0\nsum_high = ids.a.high + ids.b.high + ids.carry_low\nids.carry_high = 1 if sum_high >= ids.SHIFT else 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 10;
-
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-6)),
-            ("b".to_string(), HintReference::new_simple(-4)),
-            ("carry_high".to_string(), HintReference::new_simple(3)),
-            ("carry_low".to_string(), HintReference::new_simple(2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        //Insert ids.a.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .unwrap();
-        //Insert ids.b.low into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 6)),
-                &MaybeRelocatable::from(bigint!(4)),
-            )
-            .unwrap();
-        //Insert ids.b.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        //Insert a value in the ids.carry_low address, so the hint insertion fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 12)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let ids_data =
+            non_continuous_ids_data![("a", -6), ("b", -4), ("carry_high", 3), ("carry_low", 2)];
+        //Insert ids into memory
+        vm.memory = memory![
+            ((1, 4), 2),
+            ((1, 5), 3),
+            ((1, 6), 4),
+            ((1, 7), 2),
+            ((1, 12), 2)
+        ];
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 12)),
@@ -345,37 +293,14 @@ mod tests {
     fn run_split_64_ok() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 10;
-
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-3)),
-            ("high".to_string(), HintReference::new_simple(1)),
-            ("low".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
+        let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint_str!(b"850981239023189021389081239089023")),
-            )
-            .unwrap();
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        vm.memory = memory![((1, 7), (b"850981239023189021389081239089023", 10))];
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.low, ids.high
         check_memory![
@@ -389,35 +314,14 @@ mod tests {
     fn run_split_64_with_big_a() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 10;
-
         //Create ids_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-3)),
-            ("high".to_string(), HintReference::new_simple(1)),
-            ("low".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint_str!(b"400066369019890261321163226850167045262")),
-            )
-            .unwrap();
-
+        vm.memory = memory![((1, 7), (b"400066369019890261321163226850167045262", 10))];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
 
         //Check hint memory inserts
         //ids.low, ids.high
@@ -432,42 +336,18 @@ mod tests {
     fn run_split_64_memory_error() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 10;
-
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-3)),
-            ("high".to_string(), HintReference::new_simple(1)),
-            ("low".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
+        let ids_data = non_continuous_ids_data![("a", -3), ("high", 1), ("low", 0)];
         //Insert ids.a into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 7)),
-                &MaybeRelocatable::from(bigint_str!(b"850981239023189021389081239089023")),
-            )
-            .unwrap();
-
-        //Insert a value in the ids.low address, so the hint insert fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 10)),
-                &MaybeRelocatable::from(bigint!(0)),
-            )
-            .unwrap();
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        vm.memory = memory![
+            ((1, 7), (b"850981239023189021389081239089023", 10)),
+            ((1, 10), 0)
+        ];
         //Execute the hint
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
@@ -482,27 +362,13 @@ mod tests {
     fn run_uint256_sqrt_ok() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 5;
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("n".to_string(), HintReference::new_simple(-5)),
-            ("root".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
         vm.memory = memory![((1, 0), 17), ((1, 1), 7)];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.root.low, ids.root.high
         check_memory![&vm.memory, ((1, 5), 48805497317890012913_u128), ((1, 6), 0)];
@@ -512,32 +378,17 @@ mod tests {
     fn run_uint256_sqrt_assert_error() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 5;
-
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("n".to_string(), HintReference::new_simple(-5)),
-            ("root".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        vm.memory = memory![((1, 0), 0)];
-        //Insert ids.n.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint_str!(b"340282366920938463463374607431768211458")),
-            )
-            .unwrap();
+        let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
+        vm.memory = memory![
+            ((1, 0), 0),
+            ((1, 1), (b"340282366920938463463374607431768211458", 10))
+        ];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertionFailed(String::from(
                 "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
             )))
@@ -548,27 +399,15 @@ mod tests {
     fn run_uint256_invalid_memory_insert() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         //Initialize fp
         vm.run_context.fp = 5;
-
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("n".to_string(), HintReference::new_simple(-5)),
-            ("root".to_string(), HintReference::new_simple(0)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
+        let ids_data = non_continuous_ids_data![("n", -5), ("root", 0)];
         //Insert  ids.n.low into memory
         vm.memory = memory![((1, 0), 17), ((1, 1), 7), ((1, 5), 1)];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -583,31 +422,20 @@ mod tests {
     fn run_signed_nn_ok_result_one() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
-        //Initialize fp
-        vm.run_context.fp = 4;
-        vm.run_context.ap = 5;
+        //Initialize run_context
+        run_context!(vm, 0, 5, 4);
         //Create hint_data
-        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(-4))]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let ids_data = non_continuous_ids_data![("a", -4)];
         //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(&vm.prime + i128::MAX),
+        vm.memory = memory![(
+            (1, 1),
+            (
+                b"3618502788666131213697322783095070105793248398792065931704779359851756126208",
+                10
             )
-            .unwrap();
+        )];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
         check_memory![&vm.memory, ((1, 5), 1)];
@@ -617,34 +445,20 @@ mod tests {
     fn run_signed_nn_ok_result_zero() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
-        //Initialize fp
-        vm.run_context.fp = 4;
-        vm.run_context.ap = 5;
-
+        //Initialize run_context
+        run_context!(vm, 0, 5, 4);
         //Create hint_data
-        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(-4))]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
+        let ids_data = non_continuous_ids_data![("a", -4)];
         //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1).shl(127_i64) + &vm.prime),
+        vm.memory = memory![(
+            (1, 1),
+            (
+                b"3618502788666131213697322783095070105793248398792065931704779359851756126209",
+                10
             )
-            .unwrap();
-
+        )];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory insert
         //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
         check_memory![&vm.memory, ((1, 5), 0)];
@@ -654,38 +468,14 @@ mod tests {
     fn run_signed_nn_ok_invalid_memory_insert() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
-        //Initialize fp
-        vm.run_context.fp = 4;
-        vm.run_context.ap = 5;
-
+        //Initialize run_context
+        run_context!(vm, 0, 5, 4);
         //Create hint_data
-        let ids_data = HashMap::from([("a".to_string(), HintReference::new_simple(-4))]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        //Insert ids.a.high into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        //Insert a value in ap so the hint insert fails
-        vm.memory
-            .insert(
-                &mut vm.run_context.get_ap(),
-                &MaybeRelocatable::from(bigint!(55)),
-            )
-            .unwrap();
+        let ids_data = non_continuous_ids_data![("a", -4)];
+        vm.memory = memory![((1, 1), 1), ((1, 5), 55)];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 5)),
@@ -703,26 +493,14 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 10;
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-6)),
-            ("div".to_string(), HintReference::new_simple(-4)),
-            ("quotient".to_string(), HintReference::new_simple(0)),
-            ("remainder".to_string(), HintReference::new_simple(2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let ids_data =
+            non_continuous_ids_data![("a", -6), ("div", -4), ("quotient", 0), ("remainder", 2)];
         //Insert ids into memory
         vm.memory = memory![((1, 4), 89), ((1, 5), 72), ((1, 6), 3), ((1, 7), 7)];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
         //ids.quotient.low, ids.quotient.high, ids.remainder.low, ids.remainder.high
-
         check_memory![
             &vm.memory,
             ((1, 10), 10),
@@ -738,15 +516,9 @@ mod tests {
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 10;
-
         //Create hint_data
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-6)),
-            ("div".to_string(), HintReference::new_simple(-4)),
-            ("quotient".to_string(), HintReference::new_simple(0)),
-            ("remainder".to_string(), HintReference::new_simple(2)),
-        ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
+        let ids_data =
+            non_continuous_ids_data![("a", -6), ("div", -4), ("quotient", 0), ("remainder", 2)];
         //Insert ids into memory
         vm.memory = memory![
             ((1, 4), 89),
@@ -756,10 +528,8 @@ mod tests {
             ((1, 10), 0)
         ];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 10)),
