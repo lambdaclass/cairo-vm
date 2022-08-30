@@ -81,93 +81,42 @@ mod tests {
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
     use std::any::Any;
 
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
     fn init_vm_ids_data(
-        set_ptr: Option<&MaybeRelocatable>,
-        elm_size: Option<&MaybeRelocatable>,
-        elm_a: Option<&MaybeRelocatable>,
-        elm_b: Option<&MaybeRelocatable>,
+        set_ptr: Option<(usize, usize)>,
+        elm_size: Option<i32>,
+        elm_a: Option<usize>,
+        elm_b: Option<usize>,
     ) -> (VirtualMachine, HashMap<String, HintReference>) {
         let mut vm = vm_with_range_check!();
 
-        for _ in 0..4 {
-            vm.segments.add(&mut vm.memory, None);
-        }
-
         vm.run_context.fp = 6;
 
-        let set_ptr_default = MaybeRelocatable::from((2, 0));
-        let elm_size_default = MaybeRelocatable::from(bigint!(2));
-        let elm_a_default = MaybeRelocatable::from(bigint!(2));
-        let elm_b_default = MaybeRelocatable::from(bigint!(3));
+        let set_ptr = set_ptr.unwrap_or((2, 0));
+        let elm_size = elm_size.unwrap_or(2);
+        let elm_a = elm_a.unwrap_or(2);
+        let elm_b = elm_b.unwrap_or(3);
 
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                set_ptr.unwrap_or(&set_ptr_default),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                elm_size.unwrap_or(&elm_size_default),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from((3, 0)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 5)),
-                &MaybeRelocatable::from((2, 2)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(3)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(7)),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 0)),
-                elm_a.unwrap_or(&elm_a_default),
-            )
-            .expect("Unexpected memory insert fail");
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((3, 1)),
-                elm_b.unwrap_or(&elm_b_default),
-            )
-            .expect("Unexpected memory insert fail");
-
+        vm.memory = memory![
+            ((1, 2), (set_ptr.0, set_ptr.1)),
+            ((1, 3), elm_size),
+            ((1, 4), (3, 0)),
+            ((1, 5), (2, 2)),
+            ((2, 0), 1),
+            ((2, 1), 3),
+            ((2, 2), 5),
+            ((2, 3), 7),
+            ((3, 0), elm_a),
+            ((3, 1), elm_b)
+        ];
         let ids_data = ids_data![
             "is_elm_in_set",
             "index",
@@ -183,14 +132,7 @@ mod tests {
     #[test]
     fn set_add_new_elem() {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
@@ -199,56 +141,16 @@ mod tests {
 
     #[test]
     fn set_add_already_exists() {
-        let (mut vm, ids_data) = init_vm_ids_data(
-            None,
-            None,
-            Some(&MaybeRelocatable::from(bigint!(1))),
-            Some(&MaybeRelocatable::from(bigint!(3))),
-        );
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
-        );
-
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
-        )
-    }
-
-    #[test]
-    fn elm_size_not_int() {
-        let (mut vm, ids_data) =
-            init_vm_ids_data(None, Some(&MaybeRelocatable::from((7, 8))), None, None);
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Err(VirtualMachineError::ExpectedInteger(
-                MaybeRelocatable::from((1, 3))
-            ))
-        );
+        let (mut vm, ids_data) = init_vm_ids_data(None, None, Some(1), Some(3));
+        assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
+        check_memory![vm.memory, ((1, 0), 1), ((1, 1), 0)];
     }
 
     #[test]
     fn elm_size_negative() {
-        let int = bigint!(-2);
-        let (mut vm, ids_data) =
-            init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int)), None, None);
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let (mut vm, ids_data) = init_vm_ids_data(None, Some(-2), None, None);
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, HINT_CODE),
             Err(VirtualMachineError::BigintToUsizeFail)
         );
     }
@@ -256,25 +158,17 @@ mod tests {
     #[test]
     fn elm_size_zero() {
         let int = bigint!(0_i32);
-        let (mut vm, ids_data) =
-            init_vm_ids_data(None, Some(&MaybeRelocatable::Int(int.clone())), None, None);
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let (mut vm, ids_data) = init_vm_ids_data(None, Some(0), None, None);
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, HINT_CODE),
             Err(VirtualMachineError::ValueNotPositive(int))
         );
     }
     #[test]
     fn set_ptr_gt_set_end_ptr() {
-        let (mut vm, ids_data) =
-            init_vm_ids_data(Some(&MaybeRelocatable::from((2, 3))), None, None, None);
-        let hint_data = HintProcessorData::new_default(HINT_CODE.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
+        let (mut vm, ids_data) = init_vm_ids_data(Some((2, 3)), None, None, None);
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, HINT_CODE),
             Err(VirtualMachineError::InvalidSetRange(
                 MaybeRelocatable::from((2, 3)),
                 MaybeRelocatable::from((2, 2)),
