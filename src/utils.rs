@@ -286,13 +286,6 @@ pub mod test_utils {
     }
     pub(crate) use exec_scopes_proxy_ref;
 
-    macro_rules! add_dict_manager {
-        ($es_proxy:expr, $dict:expr) => {
-            $es_proxy.insert_value("dict_manager", Rc::new(RefCell::new($dict)))
-        };
-    }
-    pub(crate) use add_dict_manager;
-
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_proxy:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
@@ -378,6 +371,45 @@ pub mod test_utils {
         };
     }
     pub(crate) use check_dict_ptr;
+
+    macro_rules! dict_manager {
+        ($exec_scopes_proxy:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
+            let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
+            $(
+            tracker.insert_value(&bigint!($key), &bigint!($val));
+            )*
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+        ($exec_scopes_proxy:expr, $tracker_num:expr) => {
+            let  tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+
+    }
+    pub(crate) use dict_manager;
+
+    macro_rules! dict_manager_default {
+        ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
+            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            $(
+            tracker.insert_value(&bigint!($key), &bigint!($val));
+            )*
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+        ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr) => {
+            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+    }
+    pub(crate) use dict_manager_default;
 
     use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 

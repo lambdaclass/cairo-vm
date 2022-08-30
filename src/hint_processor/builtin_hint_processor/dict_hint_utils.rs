@@ -283,8 +283,8 @@ mod tests {
 
     use num_bigint::{BigInt, Sign};
 
+    use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
-    use crate::hint_processor::builtin_hint_processor::dict_manager::{DictManager, Dictionary};
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -359,19 +359,13 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
-        //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&bigint!(5_i32), &bigint!(12_i32));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 2), (2, 0))];
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         add_segments!(vm, 1);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 12));
         //Execute the hint
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
@@ -392,22 +386,13 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
-        //Initialize dictionary
-        let mut dictionary = HashMap::<BigInt, BigInt>::new();
-        dictionary.insert(bigint!(5), bigint!(12));
-        //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.data = Dictionary::SimpleDictionary(dictionary);
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
         let ids_data = ids_data!["key", "value", "dict_ptr"];
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 12));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::NoValueForKey(bigint!(6)))
@@ -420,10 +405,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 3;
         //Create manager
-        let dict_manager = DictManager::new();
-        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = scope![("dict_manager", Rc::new(RefCell::new(DictManager::new())))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
@@ -488,15 +472,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(2), None);
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager_default!(exec_scopes_proxy, 2, 2);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
@@ -525,17 +503,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(2), None);
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5_i32), &bigint!(10_i32));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager_default!(exec_scopes_proxy, 2, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
@@ -564,17 +534,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
@@ -604,15 +566,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), (2, 0))];
         add_segments!(vm, 1);
@@ -635,17 +591,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -671,17 +619,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -707,17 +647,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -739,22 +671,13 @@ mod tests {
 
     #[test]
     fn run_dict_update_simple_invalid_wrong_key() {
-        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE"
-            ;
+        let hint_code = "# Verify dict pointer and prev value.\ndict_tracker = __dict_manager.get_tracker(ids.dict_ptr)\ncurrent_value = dict_tracker.data[ids.key]\nassert current_value == ids.prev_value, \\\n    f'Wrong previous value in dict. Got {ids.prev_value}, expected {current_value}.'\n\n# Update value.\ndict_tracker.data[ids.key] = ids.new_value\ndict_tracker.current_ptr += ids.DictAccess.SIZE";
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -776,18 +699,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -813,18 +727,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -850,18 +755,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 11), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -887,18 +783,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let mut tracker =
-            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
-        //Add key-value pair (5, 10)
-        tracker.insert_value(&bigint!(5), &bigint!(10));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager_default!(exec_scopes_proxy, 2, 17, (5, 10));
         //Insert ids into memory
         vm.memory = memory![((1, 0), 6), ((1, 1), 10), ((1, 2), 10), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -924,16 +811,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 4;
-        //Create tracker
-        //current_ptr = dict_ptr = (2, 0)
-        let tracker =
-            DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), Some(HashMap::new()));
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager_default!(exec_scopes_proxy, 2, 17);
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 1), 17), ((1, 2), 20), ((1, 3), (2, 0))];
         add_segments!(vm, 1);
@@ -959,14 +839,6 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 1;
-        //Initialize dictionary
-        let dictionary = HashMap::<BigInt, BigInt>::new();
-        //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.data = Dictionary::SimpleDictionary(dictionary);
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         //ids.dict_access
         vm.memory = memory![((1, 0), (2, 0))];
         add_segments!(vm, 1);
@@ -974,7 +846,7 @@ mod tests {
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2);
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
@@ -999,24 +871,13 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 1;
-        //Initialize dictionary
-        let mut dictionary = HashMap::<BigInt, BigInt>::new();
-        dictionary.insert(bigint!(1), bigint!(2));
-        dictionary.insert(bigint!(3), bigint!(4));
-        dictionary.insert(bigint!(5), bigint!(6));
-        //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.data = Dictionary::SimpleDictionary(dictionary);
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         vm.memory = memory![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         let ids_data = ids_data!["dict_accesses_end"];
         //Execute the hint
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (1, 2), (3, 4), (5, 6));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
@@ -1047,9 +908,9 @@ mod tests {
         vm.run_context.fp = 1;
         //Create manager
         let dict_manager = DictManager::new();
-        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = scope![("dict_manager", Rc::new(RefCell::new(dict_manager)))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+
         vm.memory = memory![((1, 0), (2, 0))];
         add_segments!(vm, 1);
         let ids_data = ids_data!["dict_accesses_end"];
@@ -1068,9 +929,8 @@ mod tests {
         vm.run_context.fp = 2;
         //Create manager
         let dict_manager = DictManager::new();
-        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = scope![("dict_manager", Rc::new(RefCell::new(dict_manager)))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
         add_segments!(vm, 1);
         //Create ids
@@ -1088,18 +948,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 2;
-        //Initialize dictionary
-        let mut dictionary = HashMap::<BigInt, BigInt>::new();
-        dictionary.insert(bigint!(1), bigint!(2));
-        //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.data = Dictionary::SimpleDictionary(dictionary);
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager![exec_scopes_proxy, 2, (1, 2)];
         //ids.squash_dict_start
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), (2, 3))];
         add_segments!(vm, 1);
@@ -1111,16 +962,7 @@ mod tests {
             Ok(())
         );
         //Check the updated pointer
-        assert_eq!(
-            exec_scopes_proxy
-                .get_dict_manager()
-                .unwrap()
-                .borrow()
-                .get_tracker(&relocatable!(2, 3))
-                .unwrap()
-                .current_ptr,
-            relocatable!(2, 3)
-        );
+        check_dict_ptr!(exec_scopes_proxy, 2, (2, 3));
     }
 
     #[test]
@@ -1129,18 +971,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 2;
-        //Initialize dictionary
-        let mut dictionary = HashMap::<BigInt, BigInt>::new();
-        dictionary.insert(bigint!(1), bigint!(2));
-        //Create tracker
-        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.data = Dictionary::SimpleDictionary(dictionary);
-        //Create manager
-        let mut dict_manager = DictManager::new();
-        dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        add_dict_manager!(exec_scopes_proxy, dict_manager);
+        dict_manager!(exec_scopes_proxy, 2, (1, 2));
         vm.memory = memory![((1, 0), (2, 3)), ((1, 1), (2, 6))];
         add_segments!(vm, 1);
         //Create ids
