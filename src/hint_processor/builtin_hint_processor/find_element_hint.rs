@@ -174,7 +174,7 @@ mod tests {
         vm.run_context.fp = FP_OFFSET_START;
 
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory, None);
+            vm.segments.add(&mut vm.memory);
         }
 
         let addresses = vec![

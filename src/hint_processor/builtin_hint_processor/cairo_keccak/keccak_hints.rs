@@ -298,7 +298,7 @@ mod tests {
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
@@ -313,7 +313,7 @@ mod tests {
 
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
@@ -328,7 +328,7 @@ mod tests {
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);

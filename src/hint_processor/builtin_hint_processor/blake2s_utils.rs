@@ -466,7 +466,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -494,7 +494,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -550,7 +550,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory, None);
+        vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));

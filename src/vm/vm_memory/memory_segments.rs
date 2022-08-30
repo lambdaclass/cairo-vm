@@ -13,8 +13,7 @@ pub struct MemorySegmentManager {
 
 impl MemorySegmentManager {
     ///Adds a new segment and returns its starting location as a RelocatableValue.
-    ///If size is not None the segment is finalized with the given size. (size will be always none for initialization)
-    pub fn add(&mut self, memory: &mut Memory, _size: Option<usize>) -> Relocatable {
+    pub fn add(&mut self, memory: &mut Memory) -> Relocatable {
         let segment_index = self.num_segments;
         self.num_segments += 1;
         memory.data.push(Vec::new());
@@ -126,7 +125,7 @@ mod tests {
     fn add_segment_no_size() {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let base = segments.add(&mut memory, None);
+        let base = segments.add(&mut memory);
         assert_eq!(base, relocatable!(0, 0));
         assert_eq!(segments.num_segments, 1);
     }
@@ -135,8 +134,8 @@ mod tests {
     fn add_segment_no_size_test_two_segments() {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let mut _base = segments.add(&mut memory, None);
-        _base = segments.add(&mut memory, None);
+        let mut _base = segments.add(&mut memory);
+        _base = segments.add(&mut memory);
         assert_eq!(
             _base,
             Relocatable {
@@ -163,7 +162,7 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory, None);
+        segments.add(&mut memory);
         let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(
@@ -182,7 +181,7 @@ mod tests {
         let ptr = MaybeRelocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory, None);
+        segments.add(&mut memory);
         let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
@@ -211,7 +210,7 @@ mod tests {
     fn compute_effective_sizes_for_one_segment_memory_with_gap() {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory, None);
+        segments.add(&mut memory);
         memory
             .insert(
                 &MaybeRelocatable::from((0, 6)),
@@ -295,7 +294,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         for _ in 0..2 {
-            segments.add(&mut memory, None);
+            segments.add(&mut memory);
         }
 
         let exec = segments.write_arg(&mut memory, &ptr, &data, Some(&bigint!(5)));
@@ -317,7 +316,7 @@ mod tests {
         let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        segments.add(&mut memory, None);
+        segments.add(&mut memory);
         let exec = segments.write_arg(&mut memory, &ptr, &data, None);
 
         assert_eq!(exec, Ok(MaybeRelocatable::from((0, 3))));

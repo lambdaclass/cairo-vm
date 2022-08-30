@@ -3,6 +3,7 @@ use crate::hint_processor::hint_processor_utils::get_range_check_builtin;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
@@ -260,7 +261,7 @@ pub fn squash_dict(
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
-    if ptr_diff % DICT_ACCESS_SIZE != bigint!(0) {
+    if ptr_diff.mod_floor(&bigint!(DICT_ACCESS_SIZE)) != bigint!(0) {
         return Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize);
     }
     let squash_dict_max_size = exec_scopes_proxy.get_int("__squash_dict_max_size");
