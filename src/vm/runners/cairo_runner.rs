@@ -1,25 +1,30 @@
-use crate::bigint;
-use crate::hint_processor::hint_processor_definition::HintProcessor;
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::types::exec_scope::ExecutionScopes;
-use crate::types::instruction::Register;
-use crate::types::program::Program;
-use crate::types::relocatable::{relocate_value, MaybeRelocatable, Relocatable};
-use crate::utils::{is_subsequence, to_field_element};
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::errors::trace_errors::TraceError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::runners::builtin_runner::{
-    BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner, OutputBuiltinRunner,
-    RangeCheckBuiltinRunner,
+use crate::{
+    bigint,
+    hint_processor::hint_processor_definition::{HintProcessor, HintReference},
+    types::{
+        exec_scope::ExecutionScopes,
+        instruction::Register,
+        program::Program,
+        relocatable::{relocate_value, MaybeRelocatable, Relocatable},
+    },
+    utils::{is_subsequence, to_field_element},
+    vm::{
+        errors::{
+            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
+            vm_errors::VirtualMachineError,
+        },
+        {
+            runners::builtin_runner::{
+                BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
+                OutputBuiltinRunner, RangeCheckBuiltinRunner,
+            },
+            trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
+            vm_core::VirtualMachine,
+        },
+    },
 };
-use crate::vm::trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry};
-use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
-use std::any::Any;
-use std::collections::HashMap;
-use std::io;
+use std::{any::Any, collections::HashMap, io};
 
 pub struct CairoRunner<'a> {
     program: Program,
@@ -169,6 +174,7 @@ impl<'a> CairoRunner<'a> {
         self.final_pc = Some(end.clone());
         Ok(end)
     }
+
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
@@ -233,7 +239,7 @@ impl<'a> CairoRunner<'a> {
         references
     }
 
-    //Gets the data used by the HintProcessor to execute each hint
+    /// Gets the data used by the HintProcessor to execute each hint
     fn get_hint_data_dictionary(
         &self,
         references: &HashMap<usize, HintReference>,
@@ -384,14 +390,16 @@ impl<'a> CairoRunner<'a> {
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::Sign;
-    use num_traits::FromPrimitive;
-
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::ReferenceManager;
-    use crate::vm::trace::trace_entry::TraceEntry;
-    use crate::{bigint_str, relocatable};
+    use crate::{
+        bigint_str,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        relocatable,
+        serde::deserialize_program::ReferenceManager,
+        utils::test_utils::*,
+        vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
+    };
+    use num_bigint::Sign;
     use std::collections::HashMap;
 
     #[test]
@@ -547,10 +555,7 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4)),
-                MaybeRelocatable::from(bigint!(6)),
-            ],
+            data: vec_data!((4), (6)),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -569,24 +574,7 @@ mod tests {
         cairo_runner.execution_base = Some(relocatable!(2, 0));
         let stack = Vec::new();
         cairo_runner.initialize_state(1, stack).unwrap();
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::RelocatableValue(
-                    cairo_runner.program_base.unwrap()
-                ))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(4)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(6)))
-        );
+        check_memory!(cairo_runner.vm.memory, ((1, 0), 4), ((1, 1), 6));
     }
 
     #[test]
@@ -609,29 +597,9 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
-        let stack = vec![
-            MaybeRelocatable::from(bigint!(4)),
-            MaybeRelocatable::from(bigint!(6)),
-        ];
+        let stack = vec![mayberelocatable!(4), mayberelocatable!(6)];
         cairo_runner.initialize_state(1, stack).unwrap();
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::RelocatableValue(
-                    cairo_runner.execution_base.unwrap()
-                ))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(4)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(6)))
-        );
+        check_memory!(cairo_runner.vm.memory, ((2, 0), 4), ((2, 1), 6));
     }
 
     #[test]
@@ -717,22 +685,7 @@ mod tests {
             .unwrap();
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
         assert_eq!(cairo_runner.initial_fp, Some(relocatable!(1, 2)));
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(9)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((2, 0)))
-        );
+        check_memory!(cairo_runner.vm.memory, ((1, 0), 9), ((1, 1), (2, 0)));
     }
 
     #[test]
@@ -762,29 +715,11 @@ mod tests {
             .unwrap();
         assert_eq!(cairo_runner.initial_fp, cairo_runner.initial_ap);
         assert_eq!(cairo_runner.initial_fp, Some(relocatable!(1, 3)));
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(9)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 2)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((2, 0)))
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((1, 0), 7),
+            ((1, 1), 9),
+            ((1, 2), (2, 0))
         );
     }
 
@@ -899,22 +834,7 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_segments(None);
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(23)),
-            )
-            .unwrap();
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(233)),
-            )
-            .unwrap();
+        cairo_runner.vm.memory = memory![((2, 0), 23), ((2, 1), 233)];
         assert_eq!(
             cairo_runner.vm.builtin_runners[0].0,
             String::from("range_check")
@@ -938,7 +858,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn initialize_vm_with_range_check_invalid() {
         //This test works with basic Program definition, will later be updated to use Program::new() when fully defined
         let program = Program {
@@ -957,23 +876,12 @@ mod tests {
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
         cairo_runner.initial_fp = Some(relocatable!(1, 2));
         cairo_runner.initialize_segments(None);
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(23)),
-            )
-            .unwrap();
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(-1)),
-            )
-            .unwrap();
-        cairo_runner.initialize_vm().unwrap();
+        cairo_runner.vm.memory = memory![((2, 1), 23), ((2, 4), (-1))];
+
+        assert_eq!(
+            cairo_runner.initialize_vm(),
+            Err(RunnerError::MemoryValidationError(MemoryError::FoundNonInt))
+        );
     }
 
     //Integration tests for initialization phase
@@ -998,22 +906,19 @@ mod tests {
         let program = Program {
             builtins: vec![],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(5207990763031199744).unwrap()),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::Int(BigInt::new(
-                    Sign::Plus,
-                    vec![
-                        4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                        134217728,
-                    ],
+            data: vec_data!(
+                (5207990763031199744_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(3),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1036,101 +941,24 @@ mod tests {
         assert_eq!(cairo_runner.vm.run_context.ap, 2);
         assert_eq!(cairo_runner.vm.run_context.fp, 2);
         //Memory
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5207990763031199744).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(2)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 2)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(2345108766317314046).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 3)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5189976364521848832).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 4)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(1)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 5)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(1226245742482522112).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 6)))
-                .unwrap(),
-            Some(&MaybeRelocatable::Int(BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                    134217728,
-                ],
-            )))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 7)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(2345108766317314046).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((2, 0)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((3, 0)))
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((0, 0), 5207990763031199744_i64),
+            ((0, 1), 2),
+            ((0, 2), 2345108766317314046_i64),
+            ((0, 3), 5189976364521848832_i64),
+            ((0, 4), 1),
+            ((0, 5), 1226245742482522112_i64),
+            (
+                (0, 6),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    10
+                )
+            ),
+            ((0, 7), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
         );
     }
 
@@ -1153,24 +981,21 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::Int(BigInt::new(
-                    Sign::Plus,
-                    vec![
-                        4294967290, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                        134217728,
-                    ],
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1193,129 +1018,27 @@ mod tests {
         assert_eq!(cairo_runner.vm.run_context.ap, 3);
         assert_eq!(cairo_runner.vm.run_context.fp, 3);
         //Memory
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(4612671182993129469).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5198983563776393216).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 2)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(1)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 3)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(2345108766317314046).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 4)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5191102247248822272).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 5)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5189976364521848832).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 6)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(1)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 7)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(1226245742482522112).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 8)))
-                .unwrap(),
-            Some(&MaybeRelocatable::Int(BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967290, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                    134217728
-                ]
-            )))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 9)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(2345108766317314046).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((2, 0)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((3, 0)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 2)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((4, 0)))
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((0, 0), 4612671182993129469_i64),
+            ((0, 1), 5198983563776393216_i64),
+            ((0, 2), 1),
+            ((0, 3), 2345108766317314046_i64),
+            ((0, 4), 5191102247248822272_i64),
+            ((0, 5), 5189976364521848832_i64),
+            ((0, 6), 1),
+            ((0, 7), 1226245742482522112_i64),
+            (
+                (0, 8),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
+                )
+            ),
+            ((0, 9), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0)),
+            ((1, 2), (4, 0))
         );
     }
 
@@ -1344,36 +1067,35 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("range_check")],
             prime: bigint!(17),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::Int(BigInt::from_i128(18446744073709551615).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5199546496550207487).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(4612389712311386111).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(7)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::Int(BigInt::new(
-                    Sign::Plus,
-                    vec![
-                        4294967286, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                        134217728,
-                    ],
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
         };
+
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
+
         cairo_runner.initialize_segments(None);
         cairo_runner.initialize_main_entrypoint().unwrap();
         cairo_runner.initialize_vm().unwrap();
@@ -1388,169 +1110,31 @@ mod tests {
         assert_eq!(cairo_runner.vm.run_context.ap, 3);
         assert_eq!(cairo_runner.vm.run_context.fp, 3);
         //Memory
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(4612671182993129469).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5189976364521848832).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 2)))
-                .unwrap(),
-            Some(&MaybeRelocatable::Int(
-                BigInt::from_i128(18446744073709551615).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 3)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5199546496550207487).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 4)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(4612389712311386111).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 5)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5198983563776393216).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 6)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(2)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 7)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(2345108766317314046).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 8)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5191102247248822272).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 9)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(5189976364521848832).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 10)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 11)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(1226245742482522112).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 12)))
-                .unwrap(),
-            Some(&MaybeRelocatable::Int(BigInt::new(
-                Sign::Plus,
-                vec![
-                    4294967286, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                    134217728
-                ]
-            )))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((0, 13)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(
-                BigInt::from_i64(2345108766317314046).unwrap()
-            ))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((2, 0)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((3, 0)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((1, 2)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from((4, 0)))
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((0, 0), 4612671182993129469_i64),
+            ((0, 1), 5189976364521848832_i64),
+            ((0, 2), 18446744073709551615_i128),
+            ((0, 3), 5199546496550207487_i64),
+            ((0, 4), 4612389712311386111_i64),
+            ((0, 5), 5198983563776393216_i64),
+            ((0, 6), 2),
+            ((0, 7), 2345108766317314046_i64),
+            ((0, 8), 5191102247248822272_i64),
+            ((0, 9), 5189976364521848832_i64),
+            ((0, 10), 7),
+            ((0, 11), 1226245742482522112_i64),
+            (
+                (0, 12),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
+                )
+            ),
+            ((0, 13), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0)),
+            ((1, 2), (4, 0))
         );
     }
 
@@ -1577,22 +1161,19 @@ mod tests {
         let program = Program {
             builtins: vec![],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(5207990763031199744).unwrap()),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::Int(BigInt::new(
-                    Sign::Plus,
-                    vec![
-                        4294967292, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                        134217728,
-                    ],
+            data: vec_data!(
+                (5207990763031199744_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020476",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(3),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1618,90 +1199,15 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
         assert_eq!(trace.len(), 5);
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-            }
-        );
-        assert_eq!(
-            trace[1],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 5
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-            }
-        );
-        assert_eq!(
-            trace[2],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-            }
-        );
-        assert_eq!(
-            trace[3],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 2
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-            }
-        );
-        assert_eq!(
-            trace[4],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 7
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 2
-                },
-            }
+        trace_check!(
+            trace,
+            [
+                ((0, 3), (1, 2), (1, 2)),
+                ((0, 5), (1, 3), (1, 2)),
+                ((0, 0), (1, 5), (1, 5)),
+                ((0, 2), (1, 6), (1, 5)),
+                ((0, 7), (1, 6), (1, 2))
+            ]
         );
     }
 
@@ -1731,28 +1237,25 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("range_check")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::Int(BigInt::from_i128(18446744073709551615).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5199546496550207487).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(4612389712311386111).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(7)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::Int(BigInt::new(
-                    Sign::Plus,
-                    vec![
-                        4294967286, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295, 16,
-                        134217728,
-                    ],
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1777,175 +1280,20 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
         assert_eq!(trace.len(), 10);
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 8
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[1],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 9
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[2],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 11
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[3],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[4],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 1
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[5],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[6],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 4
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 9
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[7],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 5
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 9
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[8],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 7
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 10
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[9],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 13
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 10
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
+        trace_check!(
+            trace,
+            [
+                ((0, 8), (1, 3), (1, 3)),
+                ((0, 9), (1, 4), (1, 3)),
+                ((0, 11), (1, 5), (1, 3)),
+                ((0, 0), (1, 7), (1, 7)),
+                ((0, 1), (1, 7), (1, 7)),
+                ((0, 3), (1, 8), (1, 7)),
+                ((0, 4), (1, 9), (1, 7)),
+                ((0, 5), (1, 9), (1, 7)),
+                ((0, 7), (1, 10), (1, 7)),
+                ((0, 13), (1, 10), (1, 3))
+            ]
         );
         //Check the range_check builtin segment
         assert_eq!(
@@ -1956,29 +1304,15 @@ mod tests {
             cairo_runner.vm.builtin_runners[0].1.base(),
             relocatable!(2, 0)
         );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
+
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((2, 0), 7),
+            ((2, 1), 18446744073709551608_i128)
         );
         assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(2).pow(64) - bigint!(8)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 2)))
-                .unwrap(),
-            None
+            cairo_runner.vm.memory.get(&MaybeRelocatable::from((2, 2))),
+            Ok(None)
         );
     }
 
@@ -2019,26 +1353,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2064,209 +1400,22 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
         assert_eq!(trace.len(), 12);
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 4
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[1],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 5
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[2],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 7
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[3],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[4],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 1
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[5],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 7
-                },
-            }
-        );
-        assert_eq!(
-            trace[6],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 9
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[7],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 11
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 9
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
-        );
-        assert_eq!(
-            trace[8],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 11
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 11
-                },
-            }
-        );
-        assert_eq!(
-            trace[9],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 1
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 11
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 11
-                },
-            }
-        );
-        assert_eq!(
-            trace[10],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 12
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 11
-                },
-            }
-        );
-        assert_eq!(
-            trace[11],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 13
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 12
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 3
-                },
-            }
+        trace_check!(
+            trace,
+            [
+                ((0, 4), (1, 3), (1, 3)),
+                ((0, 5), (1, 4), (1, 3)),
+                ((0, 7), (1, 5), (1, 3)),
+                ((0, 0), (1, 7), (1, 7)),
+                ((0, 1), (1, 7), (1, 7)),
+                ((0, 3), (1, 8), (1, 7)),
+                ((0, 9), (1, 8), (1, 3)),
+                ((0, 11), (1, 9), (1, 3)),
+                ((0, 0), (1, 11), (1, 11)),
+                ((0, 1), (1, 11), (1, 11)),
+                ((0, 3), (1, 12), (1, 11)),
+                ((0, 13), (1, 12), (1, 3))
+            ]
         );
         //Check that the output to be printed is correct
         assert_eq!(cairo_runner.vm.builtin_runners[0].0, String::from("output"));
@@ -2274,29 +1423,10 @@ mod tests {
             cairo_runner.vm.builtin_runners[0].1.base(),
             relocatable!(2, 0)
         );
+        check_memory!(cairo_runner.vm.memory, ((2, 0), 1), ((2, 1), 17));
         assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(1)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(17)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((2, 2)))
-                .unwrap(),
-            None
+            cairo_runner.vm.memory.get(&MaybeRelocatable::from((2, 2))),
+            Ok(None)
         );
     }
 
@@ -2353,36 +1483,38 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output"), String::from("range_check")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::Int(BigInt::from_i128(18446744073709551615).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5199546496550207487).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(4612389712311386111).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(2)),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(7)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020469"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (4612671182993129469_i64),
+                (5189976364521848832_i64),
+                (18446744073709551615_i128),
+                (5199546496550207487_i64),
+                (4612389712311386111_i64),
+                (5198983563776393216_i64),
+                (2),
+                (5191102247248822272_i64),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (7),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020469",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5191102242953854976).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5193354051357474816).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020461"
+                (5191102242953854976_i64),
+                (5193354051357474816_i64),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020461",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5193354029882638336).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (5193354029882638336_i64),
+                (2345108766317314046_i64)
+            ),
             main: Some(13),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2407,311 +1539,28 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = cairo_runner.vm.trace.unwrap();
         assert_eq!(trace.len(), 18);
-        assert_eq!(
-            trace[0],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 13
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[1],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 14
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 5
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[2],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 16
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 6
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[3],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 4
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[4],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 5
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[5],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 7
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 9
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[6],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 8
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 10
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[7],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 9
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 10
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[8],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 11
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 11
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[9],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 12
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 12
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 8
-                },
-            }
-        );
-        assert_eq!(
-            trace[10],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 18
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 12
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[11],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 19
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 13
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[12],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 20
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 14
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[13],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 0
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 16
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 16
-                },
-            }
-        );
-        assert_eq!(
-            trace[14],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 1
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 16
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 16
-                },
-            }
-        );
-        assert_eq!(
-            trace[15],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 3
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 17
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 16
-                },
-            }
-        );
-        assert_eq!(
-            trace[16],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 22
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 17
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
-        );
-        assert_eq!(
-            trace[17],
-            TraceEntry {
-                pc: Relocatable {
-                    segment_index: 0,
-                    offset: 23
-                },
-                ap: Relocatable {
-                    segment_index: 1,
-                    offset: 18
-                },
-                fp: Relocatable {
-                    segment_index: 1,
-                    offset: 4
-                },
-            }
+        trace_check!(
+            trace,
+            [
+                ((0, 13), (1, 4), (1, 4)),
+                ((0, 14), (1, 5), (1, 4)),
+                ((0, 16), (1, 6), (1, 4)),
+                ((0, 4), (1, 8), (1, 8)),
+                ((0, 5), (1, 8), (1, 8)),
+                ((0, 7), (1, 9), (1, 8)),
+                ((0, 8), (1, 10), (1, 8)),
+                ((0, 9), (1, 10), (1, 8)),
+                ((0, 11), (1, 11), (1, 8)),
+                ((0, 12), (1, 12), (1, 8)),
+                ((0, 18), (1, 12), (1, 4)),
+                ((0, 19), (1, 13), (1, 4)),
+                ((0, 20), (1, 14), (1, 4)),
+                ((0, 0), (1, 16), (1, 16)),
+                ((0, 1), (1, 16), (1, 16)),
+                ((0, 3), (1, 17), (1, 16)),
+                ((0, 22), (1, 17), (1, 4)),
+                ((0, 23), (1, 18), (1, 4))
+            ]
         );
         //Check the range_check builtin segment
         assert_eq!(
@@ -2722,21 +1571,11 @@ mod tests {
             cairo_runner.vm.builtin_runners[1].1.base(),
             relocatable!(3, 0)
         );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((3, 0)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
-        );
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&MaybeRelocatable::from((3, 1)))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(2).pow(64) - bigint!(8)))
+
+        check_memory!(
+            cairo_runner.vm.memory,
+            ((3, 0), 7),
+            ((3, 1), 18446744073709551608_i128)
         );
         assert_eq!(
             cairo_runner
@@ -2754,14 +1593,7 @@ mod tests {
             relocatable!(2, 0)
         );
 
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .get(&(MaybeRelocatable::from((2, 0))))
-                .unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(7)))
-        );
+        check_memory!(cairo_runner.vm.memory, ((2, 0), 7));
         assert_eq!(
             cairo_runner
                 .vm
@@ -2813,6 +1645,7 @@ mod tests {
         for _ in 0..4 {
             cairo_runner.vm.segments.add(&mut cairo_runner.vm.memory);
         }
+        // Memory initialization without macro
         cairo_runner
             .vm
             .memory
@@ -2936,26 +1769,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -3073,26 +1908,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(bigint!(4612671182993129469_i64)),
-                MaybeRelocatable::from(bigint!(5198983563776393216_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-                MaybeRelocatable::from(bigint!(5191102247248822272_i64)),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(5189976364521848832_i64)),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(bigint!(1226245742482522112_i64)),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(bigint!(2345108766317314046_i64)),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -3235,22 +2072,8 @@ mod tests {
             cairo_runner.vm.builtin_runners[0].1.base(),
             relocatable!(2, 0)
         );
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
+
+        cairo_runner.vm.memory = memory![((2, 0), 1), ((2, 1), 2)];
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
@@ -3273,26 +2096,28 @@ mod tests {
         let program = Program {
             builtins: vec![String::from("output")],
             prime: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-            data: vec![
-                MaybeRelocatable::from(BigInt::from_i64(4612671182993129469).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5198983563776393216).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5191102247248822272).unwrap()),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(1)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            data: vec_data!(
+                (4612671182993129469_i64),
+                (5198983563776393216_i64),
+                (1),
+                (2345108766317314046_i64),
+                (5191102247248822272_i64),
+                (5189976364521848832_i64),
+                (1),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020474",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
-                MaybeRelocatable::from(bigint!(17)),
-                MaybeRelocatable::from(BigInt::from_i64(1226245742482522112).unwrap()),
-                MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470"
+                (5189976364521848832_i64),
+                (17),
+                (1226245742482522112_i64),
+                ((
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020470",
+                    10
                 )),
-                MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
-            ],
+                (2345108766317314046_i64)
+            ),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -3333,16 +2158,13 @@ mod tests {
             cairo_runner.vm.builtin_runners[0].1.base(),
             relocatable!(2, 0)
         );
-        cairo_runner
-            .vm
-            .memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
-                )),
+        cairo_runner.vm.memory = memory![(
+            (2, 0),
+            (
+                b"3270867057177188607814717243084834301278723532952411121381966378910183338911",
+                10
             )
-            .unwrap();
+        )];
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 1]);
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut stdout).unwrap();
