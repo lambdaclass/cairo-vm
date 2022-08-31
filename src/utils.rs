@@ -428,7 +428,10 @@ pub mod test_utils {
 #[cfg(test)]
 mod test {
 
+    use std::collections::HashMap;
+
     use super::*;
+    use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::trace::trace_entry::TraceEntry;
@@ -640,5 +643,15 @@ mod test {
                 ((4, 9), (5, 5), (3, 7))
             ]
         );
+    }
+
+    #[test]
+    fn test_non_continuous_ids_data() {
+        let ids_data_macro = non_continuous_ids_data![("a", -2), ("b", -6)];
+        let ids_data_verbose = HashMap::from([
+            ("a".to_string(), HintReference::new_simple(-2)),
+            ("b".to_string(), HintReference::new_simple(-6)),
+        ]);
+        assert_eq!(ids_data_macro, ids_data_verbose);
     }
 }
