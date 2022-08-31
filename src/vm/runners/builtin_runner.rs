@@ -546,7 +546,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
-        let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)]; //Memory::new();
+        let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
 
         let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
