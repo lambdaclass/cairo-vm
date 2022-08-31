@@ -34,13 +34,13 @@ Required functionality that is currently not implemented by cairo-rs:
     1c. rustpython
 
 Notes
-    - Create new crate, with a new hint runner, building on top of the builtinrunner but adding an embedded python interpreter
-    - How to provide the embedded python interpreter access to cairo-rs VM state?
-    - How hard will converting between type representations be? 
-    - One possibility that can be explored is writing a new implementation of MemorySegmentManager in python which works together with the python embedding mechanism, so that hints that get passed a reference to the MSM will be able to access cairo-rs instead of the python vm
-    - Another possibility that might be necesary is modifying the starknet hints in python to use a new interface mechanism.
-    - Of the three embedding options, cpython seems the most straighforward but also limited, pyo3 the most powerful, and rustpython the least mature
-    - From [here](https://www.infoworld.com/article/3664124/how-to-use-rust-with-python-and-python-with-rust.html):
+- Create new crate, with a new hint runner, building on top of the builtinrunner but adding an embedded python interpreter
+- How to provide the embedded python interpreter access to cairo-rs VM state?
+- How hard will converting between type representations be? 
+- One possibility that can be explored is writing a new implementation of MemorySegmentManager in python which works together with the python embedding mechanism, so that hints that get passed a reference to the MSM will be able to access cairo-rs instead of the python vm
+- Another possibility that might be necesary is modifying the starknet hints in python to use a new interface mechanism.
+- Of the three embedding options, cpython seems the most straighforward but also limited, pyo3 the most powerful, and rustpython the least mature
+- From [here](https://www.infoworld.com/article/3664124/how-to-use-rust-with-python-and-python-with-rust.html):
       An important caveat with both cpython and PyO3 is to always minimize the number of times data is passed back and forth between the two languages.
       Each call from Python to Rust or vice versa incurs some overhead.
       If the overhead outweighs the work you're doing in Rust, you won't see any significant performance improvement.
