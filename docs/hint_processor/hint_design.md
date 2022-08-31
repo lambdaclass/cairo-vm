@@ -29,9 +29,9 @@ Required functionality that is currently not implemented by cairo-rs:
     - (+) already doable
 
 1. embedded python runtime (write a hint runner which embeds a python interpreter)
-    1a. cpython crate ([example](https://github.com/dgrunwald/rust-cpython#example-program-displaying-the-value-of-sysversion))
-    1b. pyoxidizer + pyo3 ([some documentation](https://pyoxidizer.readthedocs.io/en/stable/pyoxidizer_overview.html#how-it-works))
-    1c. rustpython
+1a. cpython crate ([example](https://github.com/dgrunwald/rust-cpython#example-program-displaying-the-value-of-sysversion))
+1b. pyoxidizer + pyo3 ([some documentation](https://pyoxidizer.readthedocs.io/en/stable/pyoxidizer_overview.html#how-it-works))
+1c. rustpython
 
 Notes
 - Create new crate, with a new hint runner, building on top of the builtinrunner but adding an embedded python interpreter
