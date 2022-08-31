@@ -421,14 +421,26 @@ pub mod test_utils {
         value: T,
     ) {
         let scope_value = proxy.get_any_boxed_ref(name).unwrap();
-        assert_eq!(scope_value.downcast_ref(), Some(&value));
+        assert_eq!(scope_value.downcast_ref::<T>(), Some(&value));
     }
 }
 
 #[cfg(test)]
 mod test {
 
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
+    use crate::utils::test_utils::*;
+    use std::any::Any;
+    use std::cell::RefCell;
     use std::collections::HashMap;
+    use std::rc::Rc;
 
     use super::*;
     use crate::hint_processor::hint_processor_definition::HintReference;
@@ -653,5 +665,163 @@ mod test {
             ("b".to_string(), HintReference::new_simple(-6)),
         ]);
         assert_eq!(ids_data_macro, ids_data_verbose);
+    }
+
+    #[test]
+    fn run_hint_alloc() {
+        let hint_code = "memory[ap] = segments.add()";
+        let mut vm = vm!();
+        add_segments!(vm, 1);
+        assert_eq!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
+        //A segment is added
+        assert_eq!(vm.segments.num_segments, 2);
+    }
+
+    #[test]
+    fn check_scope_test_pass() {
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
+        exec_scopes.assign_or_update_variable(
+            "b",
+            any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
+        );
+        exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
+        let exec_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_scope!(
+            exec_proxy,
+            [
+                ("a", String::from("Hello")),
+                (
+                    "b",
+                    Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))
+                ),
+                ("c", vec![1, 2, 3, 4])
+            ]
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_scope_test_fail() {
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
+        exec_scopes.assign_or_update_variable(
+            "b",
+            any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
+        );
+        exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
+        let exec_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_scope!(
+            exec_proxy,
+            [
+                ("a", String::from("Hello")),
+                (
+                    "b",
+                    Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))
+                ),
+                ("c", vec![1, 2, 3, 5])
+            ]
+        );
+    }
+
+    #[test]
+    fn scope_macro_test() {
+        let scope_from_macro = scope![("a", bigint!(1))];
+        let mut scope_verbose = ExecutionScopes::new();
+        scope_verbose.assign_or_update_variable("a", any_box!(bigint!(1)));
+        assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
+        assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
+        assert_eq!(
+            scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
+            Some(&bigint!(1))
+        );
+    }
+
+    #[test]
+    fn check_dictionary_pass() {
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dictionary!(exec_scopes_proxy, 2, (5, 10));
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_dictionary_fail() {
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dictionary!(exec_scopes_proxy, 2, (5, 11));
+    }
+
+    #[test]
+    fn check_dict_ptr_pass() {
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dict_ptr!(exec_scopes_proxy, 2, (2, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_dict_ptr_fail() {
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dict_ptr!(exec_scopes_proxy, 2, (3, 0));
+    }
+
+    #[test]
+    fn dict_manager_macro() {
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        dict_manager!(exec_scopes_proxy, 2);
+        assert_eq!(
+            exec_scopes_proxy.get_dict_manager(),
+            Ok(Rc::new(RefCell::new(dict_manager)))
+        );
+    }
+
+    #[test]
+    fn dict_manager_default_macro() {
+        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), None);
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        dict_manager_default!(exec_scopes_proxy, 2, 17);
+        assert_eq!(
+            exec_scopes_proxy.get_dict_manager(),
+            Ok(Rc::new(RefCell::new(dict_manager)))
+        );
     }
 }
