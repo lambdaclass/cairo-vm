@@ -38,6 +38,13 @@ Required functionality that is currently not implemented by cairo-rs:
     - One possibility that can be explored is writing a new implementation of MemorySegmentManager in python which works together with the python embedding mechanism, so that hints that get passed a reference to the MSM will be able to access cairo-rs instead of the python vm
     - Another possibility that might be necesary is modifying the starknet hints in python to use a new interface mechanism.
     - Of the three embedding options, cpython seems the most straighforward but also limited, pyo3 the most powerful, and rustpython the least mature
+    - From [here](https://www.infoworld.com/article/3664124/how-to-use-rust-with-python-and-python-with-rust.html):
+	An important caveat with both cpython and PyO3 is to always minimize the number of times data is passed back and forth between the two languages.
+	Each call from Python to Rust or vice versa incurs some overhead.
+	If the overhead outweighs the work you're doing in Rust, you won't see any significant performance improvement.
+	As an example, if you're looping over an object collection, send the object to Rust and perform the looping there.
+	This is more efficient than looping on the Python side and calling the Rust code with each iteration of the loop.
+	This guideline also applies generally to integrations between Python and other code that uses the Python C ABI, such as Cython modules.
 
 2. protocol + external process
     - Run python cairo & starknet code in a separate python process started by cairo-rs, with RPC style communication
