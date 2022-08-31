@@ -19,19 +19,21 @@ Required functionality that is currently not implemented by cairo-rs:
 
 ## Alternatives
 0. Manually adding hint implementations (current way)
-	- depend on cairo-rs
-	- create helper crate with new hint implementations
-	- instantiate cairo vm in your rust program
-	- instantiate hint runner, set up with hints from the custom hint helper crate
-    - (-) hints must be implemented in rust, current hints unreusable
-    - (-) changes in starknet must be tracked and mirrored
-    - (+) good performance
-    - (+) already doable
+
+Notes
+- depend on cairo-rs
+- create helper crate with new hint implementations
+- instantiate cairo vm in your rust program
+- instantiate hint runner, set up with hints from the custom hint helper crate
+- (-) hints must be implemented in rust, current hints unreusable
+- (-) changes in starknet must be tracked and mirrored
+- (+) good performance
+- (+) already doable
 
 1. embedded python runtime (write a hint runner which embeds a python interpreter)
-1a. cpython crate ([example](https://github.com/dgrunwald/rust-cpython#example-program-displaying-the-value-of-sysversion))
-1b. pyoxidizer + pyo3 ([some documentation](https://pyoxidizer.readthedocs.io/en/stable/pyoxidizer_overview.html#how-it-works))
-1c. rustpython
+    a. cpython crate ([example](https://github.com/dgrunwald/rust-cpython#example-program-displaying-the-value-of-sysversion))
+    b. pyoxidizer + pyo3 ([some documentation](https://pyoxidizer.readthedocs.io/en/stable/pyoxidizer_overview.html#how-it-works))
+    c. rustpython
 
 Notes
 - Create new crate, with a new hint runner, building on top of the builtinrunner but adding an embedded python interpreter
@@ -48,7 +50,7 @@ Notes
       This is more efficient than looping on the Python side and calling the Rust code with each iteration of the loop.
       This guideline also applies generally to integrations between Python and other code that uses the Python C ABI, such as Cython modules.
 
-2. protocol + external process
+2. Protocol + external process
     - Run python cairo & starknet code in a separate python process started by cairo-rs, with RPC style communication
 	- How to provide access to vm state, and allow state modification by hints?
 	- Should the hint code running in python intermittingly call an API to modify cairo-rs VM state, or should it run in completion, and send changes back to cairo-rs once done?
@@ -58,14 +60,16 @@ Notes
 	- (+) more easily extensible to other languages?
 	- (-) likely more overhead from state (de)serialization
 
-3. embedded webassembly runtime + hint compilation to wasm
-    3a. just hints compiled to wasm
-    3b. all cairo compiled to wasm
-    - Learn to use wasm tooling
-    - Learn how to compile python to wasm
-    - Definir the interfaces between the embedded wasm vm and cairo-rs
-    - (-) More unknowns & possibly greater resulting complexity
-    - (+) Greater flexibility, extensibility, and possibly performance
+3. Embedded webassembly runtime + hint compilation to wasm
+    a. just hints compiled to wasm
+    b. all cairo compiled to wasm
+
+Notes
+- Learn to use wasm tooling
+- Learn how to compile python to wasm
+- Definir the interfaces between the embedded wasm vm and cairo-rs
+- (-) More unknowns & possibly greater resulting complexity
+- (+) Greater flexibility, extensibility, and possibly performance
 
 4. instead of embedding python un rust, do it the other way and embed cairo-rs in python cairo, replacing the current vm
      - Many questions, such doubt
