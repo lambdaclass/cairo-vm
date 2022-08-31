@@ -281,6 +281,23 @@ pub mod test_utils {
         };
     }
     pub(crate) use add_dict_manager;
+
+    macro_rules! vec_data {
+        ( $( ($val:tt) ),* ) => {
+            vec![$( vec_data_inner!($val) ),*]
+        };
+    }
+    pub(crate) use vec_data;
+
+    macro_rules! vec_data_inner {
+        (( $val1:expr, $val2:expr )) => {
+            mayberelocatable!($val1, $val2)
+        };
+        ( $val:expr ) => {
+            mayberelocatable!($val)
+        };
+    }
+    pub(crate) use vec_data_inner;
 }
 
 #[cfg(test)]
@@ -498,5 +515,14 @@ mod test {
                 ((4, 9), (5, 5), (3, 7))
             ]
         );
+    }
+
+    #[test]
+    fn data_vec_test() {
+        let data = vec_data!((1), ((2, 2)), ((b"49128305", 10)), ((b"3b6f00a9", 16)));
+        assert_eq!(data[0], mayberelocatable!(1));
+        assert_eq!(data[1], mayberelocatable!(2, 2));
+        assert_eq!(data[2], mayberelocatable!(49128305));
+        assert_eq!(data[3], mayberelocatable!(997130409));
     }
 }
