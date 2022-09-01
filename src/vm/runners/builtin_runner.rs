@@ -33,7 +33,7 @@ pub struct HashBuiltinRunner {
     cells_per_instance: usize,
     _n_input_cells: usize,
     _stop_ptr: Option<Relocatable>,
-    verified_addresses: Vec<MaybeRelocatable>,
+    verified_addresses: Vec<Relocatable>,
 }
 
 pub struct BitwiseBuiltinRunner {
@@ -63,7 +63,7 @@ pub trait BuiltinRunner {
     fn add_validation_rule(&self, memory: &mut Memory);
     fn deduce_memory_cell(
         &mut self,
-        address: &MaybeRelocatable,
+        address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
@@ -118,7 +118,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        _address: &MaybeRelocatable,
+        _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
@@ -155,7 +155,7 @@ impl BuiltinRunner for OutputBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        _address: &MaybeRelocatable,
+        _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
@@ -197,53 +197,44 @@ impl BuiltinRunner for HashBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        address: &MaybeRelocatable,
+        address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            if relocatable.offset.mod_floor(&self.cells_per_instance) != 2
-                || self.verified_addresses.contains(address)
-            {
-                return Ok(None);
-            };
-            if let (
-                Ok(Some(MaybeRelocatable::Int(num_a))),
-                Ok(Some(MaybeRelocatable::Int(num_b))),
-            ) = (
-                memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: relocatable.segment_index,
-                    offset: relocatable.offset - 1,
-                })),
-                memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: relocatable.segment_index,
-                    offset: relocatable.offset - 2,
-                })),
-            ) {
-                self.verified_addresses.push(address.clone());
+        if address.offset.mod_floor(&self.cells_per_instance) != 2
+            || self.verified_addresses.contains(address)
+        {
+            return Ok(None);
+        };
+        if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
+            memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: address.segment_index,
+                offset: address.offset - 1,
+            })),
+            memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+                segment_index: address.segment_index,
+                offset: address.offset - 2,
+            })),
+        ) {
+            self.verified_addresses.push(address.clone());
 
-                //Convert MaybeRelocatable to FieldElement
-                let a_string = num_a.to_str_radix(10);
-                let b_string = num_b.to_str_radix(10);
-                let (y, x) = match (
-                    FieldElement::from_dec_str(&a_string),
-                    FieldElement::from_dec_str(&b_string),
-                ) {
-                    (Ok(field_element_a), Ok(field_element_b)) => {
-                        (field_element_a, field_element_b)
-                    }
-                    _ => return Err(RunnerError::FailedStringConversion),
-                };
-                //Compute pedersen Hash
-                let fe_result = pedersen_hash(&x, &y);
-                //Convert result from FieldElement to MaybeRelocatable
-                let r_byte_slice = fe_result.to_bytes_be();
-                let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
-                return Ok(Some(MaybeRelocatable::from(result)));
-            }
-            Ok(None)
-        } else {
-            Err(RunnerError::NonRelocatableAddress)
+            //Convert MaybeRelocatable to FieldElement
+            let a_string = num_a.to_str_radix(10);
+            let b_string = num_b.to_str_radix(10);
+            let (y, x) = match (
+                FieldElement::from_dec_str(&a_string),
+                FieldElement::from_dec_str(&b_string),
+            ) {
+                (Ok(field_element_a), Ok(field_element_b)) => (field_element_a, field_element_b),
+                _ => return Err(RunnerError::FailedStringConversion),
+            };
+            //Compute pedersen Hash
+            let fe_result = pedersen_hash(&x, &y);
+            //Convert result from FieldElement to MaybeRelocatable
+            let r_byte_slice = fe_result.to_bytes_be();
+            let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
+            return Ok(Some(MaybeRelocatable::from(result)));
         }
+        Ok(None)
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -281,49 +272,42 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        address: &MaybeRelocatable,
+        address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            let index = relocatable.offset.mod_floor(&self.cells_per_instance);
-            if index == 0 || index == 1 {
-                return Ok(None);
-            }
-            let x_addr =
-                MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
-            let y_addr = x_addr.add_usize_mod(1, None);
-            if let (
-                Ok(Some(MaybeRelocatable::Int(num_x))),
-                Ok(Some(MaybeRelocatable::Int(num_y))),
-            ) = (memory.get(&x_addr), memory.get(&y_addr))
-            {
-                let _2_pow_bits = bigint!(1).shl(self.total_n_bits);
-                if num_x >= &_2_pow_bits {
-                    return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                        x_addr,
-                        self.total_n_bits,
-                        num_x.clone(),
-                    ));
-                };
-                if num_y >= &_2_pow_bits {
-                    return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
-                        y_addr,
-                        self.total_n_bits,
-                        num_y.clone(),
-                    ));
-                };
-                let res = match index {
-                    2 => Some(MaybeRelocatable::from(num_x & num_y)),
-                    3 => Some(MaybeRelocatable::from(num_x ^ num_y)),
-                    4 => Some(MaybeRelocatable::from(num_x | num_y)),
-                    _ => None,
-                };
-                return Ok(res);
-            }
-            Ok(None)
-        } else {
-            Err(RunnerError::NonRelocatableAddress)
+        let index = address.offset.mod_floor(&self.cells_per_instance);
+        if index == 0 || index == 1 {
+            return Ok(None);
         }
+        let x_addr = MaybeRelocatable::from((address.segment_index, address.offset - index));
+        let y_addr = x_addr.add_usize_mod(1, None);
+        if let (Ok(Some(MaybeRelocatable::Int(num_x))), Ok(Some(MaybeRelocatable::Int(num_y)))) =
+            (memory.get(&x_addr), memory.get(&y_addr))
+        {
+            let _2_pow_bits = bigint!(1).shl(self.total_n_bits);
+            if num_x >= &_2_pow_bits {
+                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                    x_addr,
+                    self.total_n_bits,
+                    num_x.clone(),
+                ));
+            };
+            if num_y >= &_2_pow_bits {
+                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                    y_addr,
+                    self.total_n_bits,
+                    num_y.clone(),
+                ));
+            };
+            let res = match index {
+                2 => Some(MaybeRelocatable::from(num_x & num_y)),
+                3 => Some(MaybeRelocatable::from(num_x ^ num_y)),
+                4 => Some(MaybeRelocatable::from(num_x | num_y)),
+                _ => None,
+            };
+            return Ok(res);
+        }
+        Ok(None)
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -412,83 +396,78 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 
     fn deduce_memory_cell(
         &mut self,
-        address: &MaybeRelocatable,
+        address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if let &MaybeRelocatable::RelocatableValue(ref relocatable) = address {
-            //Constant values declared here
-            const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
-            const M_INDEX: usize = 4;
-            const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-            let alpha: BigInt = bigint!(1);
-            let beta: BigInt = bigint_str!(
-                b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
-            );
-            let field_prime = bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            );
+        //Constant values declared here
+        const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
+        const M_INDEX: usize = 4;
+        const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
+        let alpha: BigInt = bigint!(1);
+        let beta: BigInt = bigint_str!(
+            b"3141592653589793238462643383279502884197169399375105820974944592307816406665"
+        );
+        let field_prime = bigint_str!(
+            b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+        );
 
-            let index = relocatable.offset.mod_floor(&self.cells_per_instance);
-            //Index should be an output cell
-            if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
-                return Ok(None);
-            }
-            let instance =
-                MaybeRelocatable::from((relocatable.segment_index, relocatable.offset - index));
-            //All input cells should be filled, and be integer values
-            //If an input cell is not filled, return None
-            let mut input_cells = Vec::<&BigInt>::with_capacity(self.n_input_cells);
-            for i in 0..self.n_input_cells {
-                match memory
-                    .get(&instance.add_usize_mod(i, None))
-                    .map_err(RunnerError::FailedMemoryGet)?
-                {
-                    None => return Ok(None),
-                    Some(addr) => {
-                        if let &MaybeRelocatable::Int(ref num) = addr {
-                            input_cells.push(num);
-                        } else {
-                            return Err(RunnerError::ExpectedInteger(
-                                instance.add_usize_mod(i, None),
-                            ));
-                        }
+        let index = address.offset.mod_floor(&self.cells_per_instance);
+        //Index should be an output cell
+        if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
+            return Ok(None);
+        }
+        let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
+        //All input cells should be filled, and be integer values
+        //If an input cell is not filled, return None
+        let mut input_cells = Vec::<&BigInt>::with_capacity(self.n_input_cells);
+        for i in 0..self.n_input_cells {
+            match memory
+                .get(&instance.add_usize_mod(i, None))
+                .map_err(RunnerError::FailedMemoryGet)?
+            {
+                None => return Ok(None),
+                Some(addr) => {
+                    if let &MaybeRelocatable::Int(ref num) = addr {
+                        input_cells.push(num);
+                    } else {
+                        return Err(RunnerError::ExpectedInteger(
+                            instance.add_usize_mod(i, None),
+                        ));
                     }
-                };
-            }
-            //Assert that m is under the limit defined by scalar_limit.
-            if input_cells[M_INDEX] >= &self.scalar_limit {
-                return Err(RunnerError::EcOpBuiltinScalarLimit(
-                    self.scalar_limit.clone(),
-                ));
-            }
+                }
+            };
+        }
+        //Assert that m is under the limit defined by scalar_limit.
+        if input_cells[M_INDEX] >= &self.scalar_limit {
+            return Err(RunnerError::EcOpBuiltinScalarLimit(
+                self.scalar_limit.clone(),
+            ));
+        }
 
-            // Assert that if the current address is part of a point, the point is on the curve
-            for pair in &EC_POINT_INDICES[0..1] {
-                if !EcOpBuiltinRunner::point_on_curve(
-                    input_cells[pair.0],
-                    input_cells[pair.1],
-                    &alpha,
-                    &beta,
-                    &field_prime,
-                ) {
-                    return Err(RunnerError::PointNotOnCurve(*pair));
-                };
-            }
-            let result = EcOpBuiltinRunner::ec_op_impl(
-                (input_cells[0].clone(), input_cells[1].clone()),
-                (input_cells[2].clone(), input_cells[3].clone()),
-                input_cells[4],
+        // Assert that if the current address is part of a point, the point is on the curve
+        for pair in &EC_POINT_INDICES[0..1] {
+            if !EcOpBuiltinRunner::point_on_curve(
+                input_cells[pair.0],
+                input_cells[pair.1],
                 &alpha,
+                &beta,
                 &field_prime,
-                self.scalar_height,
-            )?;
-            match index - self.n_input_cells {
-                0 => Ok(Some(MaybeRelocatable::Int(result.0))),
-                _ => Ok(Some(MaybeRelocatable::Int(result.1))),
-                //Default case corresponds to 1, as there are no other possible cases
-            }
-        } else {
-            Err(RunnerError::NonRelocatableAddress)
+            ) {
+                return Err(RunnerError::PointNotOnCurve(*pair));
+            };
+        }
+        let result = EcOpBuiltinRunner::ec_op_impl(
+            (input_cells[0].clone(), input_cells[1].clone()),
+            (input_cells[2].clone(), input_cells[3].clone()),
+            input_cells[4],
+            &alpha,
+            &field_prime,
+            self.scalar_height,
+        )?;
+        match index - self.n_input_cells {
+            0 => Ok(Some(MaybeRelocatable::Int(result.0))),
+            _ => Ok(Some(MaybeRelocatable::Int(result.1))),
+            //Default case corresponds to 1, as there are no other possible cases
         }
     }
 
@@ -549,24 +528,21 @@ mod tests {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
 
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
         );
-        assert_eq!(
-            builtin.verified_addresses,
-            vec![MaybeRelocatable::from((0, 5))]
-        );
+        assert_eq!(builtin.verified_addresses, vec![Relocatable::from((0, 5))]);
     }
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -574,7 +550,7 @@ mod tests {
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -582,24 +558,16 @@ mod tests {
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        builtin.verified_addresses = vec![MaybeRelocatable::from((0, 5))];
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        builtin.verified_addresses = vec![Relocatable::from((0, 5))];
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    fn deduce_memory_cell_pedersen_for_no_relocatable_address() {
-        let memory = Memory::new();
-        let mut builtin = HashBuiltinRunner::new(8);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 7)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
     }
 
@@ -607,7 +575,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 8)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
     }
 
@@ -615,7 +583,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 9)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
     }
 
@@ -623,7 +591,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -631,16 +599,8 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    fn deduce_memory_cell_bitwise_for_no_relocatable_address() {
-        let memory = Memory::new();
-        let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from(bigint!(5)), &memory);
-        assert_eq!(result, Err(RunnerError::NonRelocatableAddress));
     }
 
     #[test]
@@ -859,7 +819,7 @@ mod tests {
         ];
         let mut builtin = EcOpBuiltinRunner::new(256);
 
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
@@ -903,7 +863,7 @@ mod tests {
         ];
 
         let mut builtin = EcOpBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -949,7 +909,7 @@ mod tests {
         ];
         let mut builtin = EcOpBuiltinRunner::new(256);
 
-        let result = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 3)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
     }
 
@@ -990,7 +950,7 @@ mod tests {
         let mut builtin = EcOpBuiltinRunner::new(256);
 
         assert_eq!(
-            builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory),
+            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
             Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
         );
     }
@@ -1044,7 +1004,7 @@ mod tests {
         ];
         let mut builtin = EcOpBuiltinRunner::new(256);
 
-        let error = builtin.deduce_memory_cell(&MaybeRelocatable::from((3, 6)), &memory);
+        let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             error,
             Err(RunnerError::EcOpBuiltinScalarLimit(
