@@ -422,7 +422,7 @@ mod tests {
             run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
-                    vm.run_context.get_ap(),
+                    MaybeRelocatable::from(vm.run_context.get_ap()),
                     MaybeRelocatable::from(bigint!(55i32)),
                     MaybeRelocatable::from(bigint!(1i32))
                 )

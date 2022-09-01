@@ -155,7 +155,7 @@ impl<'a> CairoRunner<'a> {
         entrypoint: usize,
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
-    ) -> Result<MaybeRelocatable, RunnerError> {
+    ) -> Result<Relocatable, RunnerError> {
         let end = self.vm.segments.add(&mut self.vm.memory);
         stack.append(&mut vec![
             return_fp,
@@ -172,13 +172,13 @@ impl<'a> CairoRunner<'a> {
         }
         self.initialize_state(entrypoint, stack)?;
         self.final_pc = Some(end.clone());
-        Ok(MaybeRelocatable::RelocatableValue(end))
+        Ok(end)
     }
 
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
-    pub fn initialize_main_entrypoint(&mut self) -> Result<MaybeRelocatable, RunnerError> {
+    pub fn initialize_main_entrypoint(&mut self) -> Result<Relocatable, RunnerError> {
         //self.execution_public_memory = Vec::new() -> Not used now
         let mut stack = Vec::new();
         for (_name, builtin_runner) in self.vm.builtin_runners.iter() {
@@ -265,10 +265,10 @@ impl<'a> CairoRunner<'a> {
         Ok(hint_data_dictionary)
     }
 
-    pub fn run_until_pc(&mut self, address: MaybeRelocatable) -> Result<(), VirtualMachineError> {
+    pub fn run_until_pc(&mut self, address: Relocatable) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references)?;
-        while self.vm.run_context.get_pc() != address {
+        while self.vm.run_context.pc != address {
             self.vm.step(
                 self.hint_executor,
                 &mut self.exec_scopes,
@@ -783,7 +783,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(0, 0));
         let return_pc = cairo_runner.initialize_main_entrypoint().unwrap();
-        assert_eq!(return_pc, MaybeRelocatable::from((1, 0)));
+        assert_eq!(return_pc, Relocatable::from((1, 0)));
     }
 
     #[test]
@@ -1184,7 +1184,7 @@ mod tests {
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
-        assert_eq!(end, MaybeRelocatable::from((3, 0)));
+        assert_eq!(end, Relocatable::from((3, 0)));
         cairo_runner.initialize_vm().unwrap();
         //Execution Phase
         assert_eq!(cairo_runner.run_until_pc(end), Ok(()));
