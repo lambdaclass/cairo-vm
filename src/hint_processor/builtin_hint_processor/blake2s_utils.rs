@@ -279,12 +279,9 @@ mod tests {
         vm.memory = memory![((1, 0), (2, 5))];
         //Create hint data
         let ids_data = ids_data!["output"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::CantSubOffset(5, 26))
         );
     }
@@ -294,26 +291,16 @@ mod tests {
         let hint_code = "from starkware.cairo.common.cairo_blake2s.blake2s_utils import compute_blake2s_func\ncompute_blake2s_func(segments=segments, output_ptr=ids.output)";
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 26)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), (2, 26))];
+        add_segments!(vm, 1);
         //Create hint data
         let ids_data = ids_data!["output"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((2, 0))
             ))
@@ -331,12 +318,9 @@ mod tests {
         vm.memory = memory![((1, 0), 12)];
         //Create hint data
         let ids_data = ids_data!["output"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -364,12 +348,9 @@ mod tests {
         ];
         //Create hint data
         let ids_data = ids_data!["output"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::BigintToU32Fail)
         );
     }
@@ -385,12 +366,9 @@ mod tests {
         vm.memory = memory![((1, 0), (2, 26)), ((2, 0), (5, 5))];
         //Create hint data
         let ids_data = ids_data!["output"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((2, 0))
             ))
@@ -406,17 +384,11 @@ mod tests {
         vm.run_context.fp = 1;
         //Insert ids into memory (output)
         vm.memory = memory![((1, 0), (2, 0))];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //Create hint data
         let ids_data = ids_data!["blake2s_ptr_end"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check the inserted data
         let expected_data: [u32; 204] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -458,12 +430,9 @@ mod tests {
         //Insert ids into memory (output)
         vm.memory = memory![((1, 0), (2, 0)), ((2, 0), (2, 0))];
         let ids_data = ids_data!["blake2s_ptr_end"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
@@ -481,12 +450,9 @@ mod tests {
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 1;
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -502,47 +468,20 @@ mod tests {
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
         vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 4))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 6))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 7))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![
+            vm.memory,
+            ((2, 0), 0),
+            ((2, 1), 0),
+            ((2, 2), 0),
+            ((2, 3), 0),
+            ((2, 4), 0),
+            ((2, 5), 0),
+            ((2, 6), 0),
+            ((2, 7), 0)
+        ];
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 
@@ -557,47 +496,20 @@ mod tests {
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
         vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(20))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 4))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(25))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 6))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 7))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![
+            vm.memory,
+            ((2, 0), 20),
+            ((2, 1), 0),
+            ((2, 2), 0),
+            ((2, 3), 0),
+            ((2, 4), 25),
+            ((2, 5), 0),
+            ((2, 6), 0),
+            ((2, 7), 0)
+        ];
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 
@@ -610,49 +522,22 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         let ids_data = ids_data!["data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 4))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 6))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 7))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![
+            vm.memory,
+            ((2, 0), 0),
+            ((2, 1), 0),
+            ((2, 2), 0),
+            ((2, 3), 0),
+            ((2, 4), 0),
+            ((2, 5), 0),
+            ((2, 6), 0),
+            ((2, 7), 0)
+        ];
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 
@@ -667,47 +552,20 @@ mod tests {
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
         vm.segments.add(&mut vm.memory);
         let ids_data = ids_data!["data", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check data ptr
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(25))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 4))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 5))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 6))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 7))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(20))))
-        );
+        check_memory![
+            vm.memory,
+            ((2, 0), 0),
+            ((2, 1), 0),
+            ((2, 2), 0),
+            ((2, 3), 25),
+            ((2, 4), 0),
+            ((2, 5), 0),
+            ((2, 6), 0),
+            ((2, 7), 20)
+        ];
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
     }
 }

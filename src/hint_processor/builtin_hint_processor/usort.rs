@@ -165,23 +165,17 @@ mod tests {
 
     #[test]
     fn usort_out_of_range() {
-        let hint = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
+        let hint_code = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
         let mut vm = vm_with_range_check!();
-
         vm.run_context.fp = 2;
-
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         vm.memory = memory![((1, 0), (2, 1)), ((1, 1), 5)];
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];
-        let hint_data = HintProcessorData::new_default(hint.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("usort_max_size", any_box!(1_u64));
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

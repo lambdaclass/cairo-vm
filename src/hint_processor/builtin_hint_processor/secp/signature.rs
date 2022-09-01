@@ -77,6 +77,7 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::{
         bigint, bigint_str,
@@ -89,6 +90,7 @@ mod tests {
     };
     use num_bigint::BigInt;
     use num_bigint::Sign;
+    use std::any::Any;
 
     #[test]
     fn safe_div_ok() {
@@ -103,10 +105,7 @@ mod tests {
             ((1, 5), 1)
         ];
         vm.run_context.fp = 3;
-        let ids_data = HashMap::from([
-            ("a".to_string(), HintReference::new_simple(-3)),
-            ("b".to_string(), HintReference::new_simple(0)),
-        ]);
+        let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
@@ -124,11 +123,8 @@ mod tests {
 
     #[test]
     fn safe_div_fail() {
-        let mut exec_scopes = ExecutionScopes::new();
+        let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        exec_scopes_proxy.insert_value("a", bigint!(0_usize));
-        exec_scopes_proxy.insert_value("b", bigint!(1_usize));
-        exec_scopes_proxy.insert_value("res", bigint!(1_usize));
         assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
     }
 
@@ -142,10 +138,7 @@ mod tests {
             ((1, 3), 2147483647)
         ];
         vm.run_context.fp = 1;
-        let ids_data = HashMap::from([
-            ("v".to_string(), HintReference::new_simple(-1)),
-            ("x_cube".to_string(), HintReference::new_simple(0)),
-        ]);
+        let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
         let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert!(get_point_from_x(
             vm_proxy,
@@ -180,11 +173,14 @@ mod tests {
             ),
             Ok(())
         );
-        assert_eq!(
-            exec_scopes_proxy.get_int_ref("value"),
-            Ok(&bigint_str!(
-                b"94274691440067846579164151740284923997007081248613730142069408045642476712539"
-            ))
+        check_scope!(
+            exec_scopes_proxy,
+            [(
+                "value",
+                bigint_str!(
+            b"94274691440067846579164151740284923997007081248613730142069408045642476712539"
+        )
+            )]
         );
     }
 }

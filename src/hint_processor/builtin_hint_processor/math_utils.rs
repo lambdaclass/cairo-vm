@@ -432,59 +432,40 @@ mod tests {
     };
     use num_bigint::Sign;
     use std::any::Any;
+
+    from_bigint_str![39, 40, 77];
     #[test]
     fn run_is_nn_hint_false() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 9), (-1))];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
-        //Check that ap now contains false (0)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
+        //Check that ap now contains false (1)
+        check_memory![vm.memory, ((1, 0), 1)];
     }
 
     #[test]
     fn run_is_nn_hint_true() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 1)];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
-        //Check that ap now contains true (1)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
+        //Check that ap now contains true (0)
+        check_memory![vm.memory, ((1, 0), 0)];
     }
 
     #[test]
@@ -493,58 +474,37 @@ mod tests {
     fn run_is_nn_hint_true_border_case() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                //(-prime) + 1
-                &MaybeRelocatable::from(
-                    BigInt::new(Sign::Minus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]) + bigint!(1),
-                ),
+        vm.memory = memory![(
+            (1, 4),
+            (
+                b"-3618502788666131213697322783095070105623107215331596699973092056135872020480",
+                10
             )
-            .unwrap();
+        )];
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
-        //Check that ap now contains true (1)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
+        //Check that ap now contains true (0)
+        check_memory![vm.memory, ((1, 0), 0)];
     }
 
     #[test]
     fn run_is_nn_hint_no_range_check_builtin() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 1)];
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -553,19 +513,13 @@ mod tests {
     fn run_is_nn_hint_incorrect_ids() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Initialize ap
-        vm.run_context.ap = 0;
         //Create ids_data & hint_data
         let ids_data = ids_data!["b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -574,21 +528,15 @@ mod tests {
     fn run_is_nn_hint_cant_get_ids_from_memory() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        add_segments!(vm, 2);
+        //Initialize fp
         vm.run_context.fp = 5;
         //Dont insert ids into memory
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 4))
             ))
@@ -599,20 +547,15 @@ mod tests {
     fn run_is_nn_hint_ids_are_relocatable_values() {
         let hint_code = "memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), (2, 3))];
-        vm.segments.add(&mut vm.memory);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 4))
             ))
@@ -627,17 +570,10 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 3), 4)];
-        vm.segments.add(&mut vm.memory);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Hint would return an error if the assertion fails
     }
 
@@ -646,40 +582,29 @@ mod tests {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check result
-        assert_eq!(vm.memory.get_integer(&relocatable!(1, 0)), Ok(&bigint!(0)));
+        check_memory![vm.memory, ((1, 0), 0)];
     }
 
     #[test]
     fn run_is_le_felt_hint_inconsistent_memory() {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm_with_range_check!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 2;
         vm.memory = memory![((1, 0), 1), ((1, 1), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
@@ -694,16 +619,12 @@ mod tests {
     fn run_is_le_felt_hint_incorrect_ids() {
         let hint_code = "memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1";
         let mut vm = vm!();
-        vm.run_context.ap = 0;
         vm.run_context.fp = 10;
         vm.memory = memory![((1, 8), 1), ((1, 9), 2)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "c"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -718,14 +639,8 @@ mod tests {
         vm.memory = memory![((1, 0), 1)];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Hint would return an error if the assertion fails
     }
 
@@ -739,12 +654,9 @@ mod tests {
         vm.memory = memory![((1, 0), (-1))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -758,12 +670,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), (-1))];
         let ids_data = ids_data!["incorrect_id"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds),
         );
     }
@@ -777,12 +686,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), (10, 10))];
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -798,12 +704,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1)];
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -812,16 +715,13 @@ mod tests {
     fn run_assert_nn_reference_is_not_in_memory() {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'";
         let mut vm = vm_with_range_check!();
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //Initialize fp
         vm.run_context.fp = 4;
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -837,12 +737,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), 2), ((1, 1), 1), ((1, 3), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::NonLeFelt(bigint!(2), bigint!(1)))
         );
     }
@@ -856,12 +753,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1), ((1, 1), 2), ((1, 2), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 2)),
@@ -881,12 +775,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), (1, 0)), ((1, 1), 1), ((1, 3), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -902,12 +793,9 @@ mod tests {
         //Insert ids into memory
         vm.memory = memory![((1, 0), 1), ((1, 1), (1, 0)), ((1, 3), 4)];
         let ids_data = ids_data!["a", "b", "small_inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -919,25 +807,16 @@ mod tests {
         let hint_code =
             "memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 2)];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
+        check_memory![vm.memory, ((1, 0), 1)];
     }
 
     #[test]
@@ -945,42 +824,29 @@ mod tests {
         let hint_code =
             "memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1";
         let mut vm = vm_with_range_check!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), (-1))];
-        vm.segments.add(&mut vm.memory);
+        add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
+        check_memory![vm.memory, ((1, 0), 0)];
     }
     #[test]
     fn run_assert_not_equal_int_false() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), 1), ((1, 9), 1)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(1)),
                 MaybeRelocatable::from(bigint!(1))
@@ -992,56 +858,37 @@ mod tests {
     fn run_assert_not_equal_int_true() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), 1), ((1, 9), 3)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
     fn run_assert_not_equal_int_false_mod() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        add_segments!(vm, 2);
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 8)),
-                //-1 % prime = prime -1
-                &MaybeRelocatable::from(bigint!(-1)),
+        vm.memory = memory![
+            ((1, 8), (-1)),
+            (
+                (1, 9),
+                (
+                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480",
+                    10
+                )
             )
-            .unwrap();
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 9)),
-                //prime -1
-                &MaybeRelocatable::from(bigint_str!(
-                    b"3618502788666131213697322783095070105623107215331596699973092056135872020480"
-                )),
-            )
-            .unwrap();
+        ];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from(bigint!(-1)),
                 MaybeRelocatable::from(bigint_str!(
@@ -1055,18 +902,14 @@ mod tests {
     fn run_assert_not_equal_relocatable_false() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), (1, 0)), ((1, 9), (1, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertNotEqualFail(
                 MaybeRelocatable::from((1, 0)),
                 MaybeRelocatable::from((1, 0))
@@ -1078,38 +921,27 @@ mod tests {
     fn run_assert_not_equal_relocatable_true() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), (0, 1)), ((1, 9), (0, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
     fn run_assert_non_equal_relocatable_diff_index() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), (2, 0)), ((1, 9), (1, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::DiffIndexComp(
                 relocatable!(2, 0),
                 relocatable!(1, 0)
@@ -1121,18 +953,14 @@ mod tests {
     fn run_assert_not_equal_relocatable_and_integer() {
         let hint_code = "from starkware.cairo.lang.vm.relocatable import RelocatableValue\nboth_ints = isinstance(ids.a, int) and isinstance(ids.b, int)\nboth_relocatable = (\n    isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and\n    ids.a.segment_index == ids.b.segment_index)\nassert both_ints or both_relocatable, \\\n    f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'\nassert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 10;
         //Insert ids into memory
         vm.memory = memory![((1, 8), (1, 0)), ((1, 9), 1)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::DiffTypeComparison(
                 MaybeRelocatable::from((1, 0)),
                 MaybeRelocatable::from(bigint!(1))
@@ -1145,21 +973,14 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        // //Initialize ap, fp
-        vm.run_context.ap = 0;
+        // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 5)];
         //Create ids
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
 
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -1167,19 +988,14 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        // //Initialize ap, fp
-        vm.run_context.ap = 0;
+        // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 0)];
         //Create ids
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertNotZero(bigint!(0), vm.prime))
         );
     }
@@ -1189,27 +1005,21 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        add_segments!(vm, 2);
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(vm.prime.clone()),
+        vm.memory = memory![(
+            (1, 4),
+            (
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481",
+                10
             )
-            .unwrap();
+        )];
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertNotZero(
                 vm.prime.clone(),
                 vm.prime
@@ -1222,19 +1032,14 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        // //Initialize ap, fp
-        vm.run_context.ap = 0;
+        // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 0)];
         //Create invalid id key
         let ids_data = ids_data!["incorrect_id"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1244,18 +1049,14 @@ mod tests {
         let hint_code =
     "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
         let mut vm = vm!();
-        // //Initialize ap, fp
-        vm.run_context.ap = 0;
+        // //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), (1, 0))];
         //Create ids_data & hint_data
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 4))
             ))
@@ -1266,18 +1067,14 @@ mod tests {
     fn run_split_int_assertion_invalid() {
         let hint_code = "assert ids.value == 0, 'split_int(): value is out of range.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 1)];
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::SplitIntNotZero)
         );
     }
@@ -1286,55 +1083,35 @@ mod tests {
     fn run_split_int_assertion_valid() {
         let hint_code = "assert ids.value == 0, 'split_int(): value is out of range.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
         vm.memory = memory![((1, 4), 0)];
         let ids_data = ids_data!["value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
     fn run_split_int_valid() {
         let hint_code = "memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 2), ((1, 2), 10), ((1, 3), 100)];
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         let ids_data = ids_data!["output", "value", "base", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(2))))
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory![vm.memory, ((2, 0), 2)];
     }
 
     #[test]
     fn run_split_int_invalid() {
         let hint_code = "memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'";
         let mut vm = vm!();
-        //Initialize ap, fp
-        vm.run_context.ap = 0;
+        //Initialize fp
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![
@@ -1343,16 +1120,11 @@ mod tests {
             ((1, 2), 10000),
             ((1, 3), 10)
         ];
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         let ids_data = ids_data!["output", "value", "base", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::SplitIntLimbOutOfRange(bigint!(100)))
         );
     }
@@ -1369,18 +1141,10 @@ mod tests {
         //Dont insert ids.is_positive as we need to modify it inside the hint
         //Create ids
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that is_positive now contains 1 (true)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![vm.memory, ((1, 1), 1)];
     }
 
     #[test]
@@ -1394,18 +1158,10 @@ mod tests {
         vm.memory = memory![((1, 0), (-250))];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .expect("Error while executing hint");
+        run_hint!(vm, ids_data, hint_code).expect("Error while executing hint");
         //Check that is_positive now contains 0 (false)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![vm.memory, ((1, 1), 0)];
     }
 
     #[test]
@@ -1413,29 +1169,21 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 2;
         //Insert ids.value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(BigInt::new(
-                    Sign::Plus,
-                    vec![1, 0, 0, 0, 0, 0, 17, 134217727],
-                )),
+        vm.memory = memory![(
+            (1, 0),
+            (
+                b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                10
             )
-            .unwrap();
+        )];
         //Dont insert ids.is_positive as we need to modify it inside the hint
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ValueOutsideValidRange(as_int(
                 &BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
                 &vm.prime
@@ -1445,35 +1193,17 @@ mod tests {
 
     #[test]
     fn run_is_positive_hint_is_positive_not_empty() {
-        let hint_code ="from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0"
-        ;
+        let hint_code ="from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0";
         let mut vm = vm_with_range_check!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Initialize fp
         vm.run_context.fp = 2;
-        //Insert ids.value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //Insert ids.is_positive into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(4)),
-            )
-            .unwrap();
+        //Insert ids into memory
+        vm.memory = memory![((1, 0), 2), ((1, 1), 4)];
         let ids_data = ids_data!["value", "is_positive"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
@@ -1494,19 +1224,10 @@ mod tests {
         vm.memory = memory![((1, 0), 81)];
         //Create ids
         let ids_data = ids_data!["value", "root"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check that root (0,1) has the square root of 81
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(9))))
-        );
+        check_memory![vm.memory, ((1, 1), 9)];
     }
 
     #[test]
@@ -1519,12 +1240,9 @@ mod tests {
         vm.memory = memory![((1, 0), (-81))];
         //Create ids
         let ids_data = ids_data!["value", "root"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ValueOutside250BitRange(bigint_str!(
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020400"
             )))
@@ -1541,12 +1259,9 @@ mod tests {
         vm.memory = memory![((1, 0), 81), ((1, 1), 7)];
         //Create ids
         let ids_data = ids_data!["value", "root"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
@@ -1562,27 +1277,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_ok());
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(2))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        assert!(run_hint!(vm, ids_data, hint_code).is_ok());
+        check_memory![vm.memory, ((1, 0), 2), ((1, 1), 1)];
     }
 
     #[test]
@@ -1590,18 +1292,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![((1, 2), (-5)), ((1, 3), 7)];
         //Create ids
         let ids_data = ids_data!["r", "q", "div", "value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -1614,17 +1312,13 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
         //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -1634,18 +1328,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![((1, 0), 5), ((1, 2), 5), ((1, 3), 7)];
         //Create ids_data
         let ids_data = ids_data!["r", "q", "div", "value"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
@@ -1660,22 +1350,15 @@ mod tests {
     fn unsigned_div_rem_incorrect_ids() {
         let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\nids.q, ids.r = divmod(ids.value, ids.div)";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 4;
         //Insert ids into memory
         vm.memory = memory![((1, 2), 5), ((1, 3), 7)];
         //Create ids
         let ids_data = ids_data!["a", "b", "iv", "vlue"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         )
     }
@@ -1684,31 +1367,15 @@ mod tests {
     fn signed_div_rem_success() {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
-        for _ in 0..5 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 6;
         //Insert ids into memory
         vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_ok());
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(31))))
-        );
+        assert!(run_hint!(vm, ids_data, hint_code).is_ok());
+        check_memory![vm.memory, ((1, 0), 0), ((1, 1), 31)];
     }
 
     #[test]
@@ -1716,27 +1383,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 6;
         //Insert ids into memory
         vm.memory = memory![((1, 3), 7), ((1, 4), (-10)), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(hint_processor
-            .execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
-            .is_ok());
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(4))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(27))))
-        );
+        assert!(run_hint!(vm, ids_data, hint_code).is_ok());
+        check_memory![vm.memory, ((1, 0), 4), ((1, 1), 27)];
     }
 
     #[test]
@@ -1744,18 +1398,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 6;
         //Insert ids into memory
         vm.memory = memory![((1, 3), (-5)), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::OutOfValidRange(
                 bigint!(-5),
                 bigint_str!(b"10633823966279327296825105735305134080")
@@ -1768,17 +1418,13 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 6;
         //Insert ids into memory
         vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::NoRangeCheckBuiltin)
         );
     }
@@ -1788,18 +1434,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 6;
         //Insert ids into memory
         vm.memory = memory![((1, 1), 10), ((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
@@ -1815,18 +1457,14 @@ mod tests {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm_with_range_check!();
         //Initialize fp
-        vm.run_context.ap = 0;
         vm.run_context.fp = 6;
         //Insert ids into memory
         vm.memory = memory![((1, 3), 5), ((1, 4), 10), ((1, 5), 29)];
         //Create ids
         let ids_data = ids_data!["r", "b", "r", "d", "v", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         )
     }
@@ -1841,52 +1479,33 @@ mod tests {
         vm.memory = memory![((1, 0), 1)];
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 2))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
     fn run_assert_250_bit_invalid() {
-        let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)"
-             ;
+        let hint_code = "from starkware.cairo.common.math_utils import as_int\n\n# Correctness check.\nvalue = as_int(ids.value, PRIME) % PRIME\nassert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**250).'\n\n# Calculation for the assertion.\nids.high, ids.low = divmod(ids.value, ids.SHIFT)";
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
         //ids.value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(1).shl(251i32)),
+        vm.memory = memory![(
+            (1, 0),
+            (
+                b"3618502788666131106986593281521497120414687020801267626233049500247285301248",
+                10
             )
-            .unwrap();
+        )];
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ValueOutside250BitRange(
                 bigint!(1).shl(251i32)
             ))
@@ -1898,55 +1517,27 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        vm.memory = memory![
+            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
         //Initialize fp
         vm.run_context.fp = 7;
-
-        //Insert ids.value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint_str!(b"7335438970432432812899076431678123043273")),
-            )
-            .unwrap();
-
-        //Insert ids.low pointer into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
         //Create ids
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
             ("low".to_string(), HintReference::new(-3, 0, true, true)),
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
-
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check hint memory inserts
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint_str!(
-                b"189509265092725080168209675610990602697"
-            ))))
-        );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(21))))
-        );
+        check_memory![
+            vm.memory,
+            ((2, 0), (b"189509265092725080168209675610990602697", 10)),
+            ((2, 1), 21)
+        ];
     }
 
     #[test]
@@ -1954,38 +1545,18 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
+        vm.memory = memory![
+            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
         //Initialize fp
         vm.run_context.fp = 7;
-
-        //Insert ids.value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint_str!(b"7335438970432432812899076431678123043273")),
-            )
-            .unwrap();
-
-        //Insert ids.low pointer into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
         //Create incomplete ids
         //Create ids_data & hint_data
         let ids_data = ids_data!["low"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -1995,47 +1566,23 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
+        vm.memory = memory![
+            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0)),
+            ((2, 0), 99)
+        ];
         //Initialize fp
         vm.run_context.fp = 7;
-        //Insert ids.value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint_str!(b"7335438970432432812899076431678123043273")),
-            )
-            .unwrap();
-
-        //Insert ids.low pointer into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
             ("low".to_string(), HintReference::new(-3, 0, true, true)),
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        // Override MaybeRelocatable::from((2, 0)) memory address so, the hint vm.memory.insert fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(99)),
-            )
-            .unwrap();
 
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 0)),
@@ -2051,37 +1598,23 @@ mod tests {
         let hint_code =
         "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
         let mut vm = vm_with_range_check!();
-        vm.memory = memory![((1, 4), (2, 0))];
-        vm.segments.add(&mut vm.memory);
+        vm.memory = memory![
+            ((1, 4), (2, 0)),
+            ((1, 3), (b"7335438970432432812899076431678123043273", 10)),
+            ((2, 1), 99)
+        ];
+        add_segments!(vm, 1);
         //Initialize fp
         vm.run_context.fp = 7;
-        //Insert ids.value into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint_str!(b"7335438970432432812899076431678123043273")),
-            )
-            .unwrap();
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
             ("low".to_string(), HintReference::new(-3, 0, true, true)),
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        // Override MaybeRelocatable::from((2, 1)) memory address so, the hint vm.memory.insert fails
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(99)),
-            )
-            .unwrap();
-
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((2, 1)),
@@ -2106,12 +1639,9 @@ mod tests {
             ("low".to_string(), HintReference::new(-3, 0, true, true)),
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 3))
             ))
@@ -2121,43 +1651,16 @@ mod tests {
     #[test]
     fn run_assert_lt_felt_ok() {
         let hint_code =
-        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"
-        ;
+        "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.a)\nassert_integer(ids.b)\nassert (ids.a % PRIME) < (ids.b % PRIME), \\\n    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
         let mut vm = vm_with_range_check!();
-        //Initialize memory segements
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
-
         //Initialize fp
         vm.run_context.fp = 3;
-
-        //Insert ids.a into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-
-        //Insert ids.b into memory
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 2)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
+        //Insert ids into memory
+        vm.memory = memory![((1, 1), 1), ((1, 2), 2)];
         //Create ids
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -2169,12 +1672,9 @@ mod tests {
         vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), 3), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::AssertLtFelt(bigint!(3), bigint!(2)))
         );
     }
@@ -2189,12 +1689,9 @@ mod tests {
         vm.memory = memory![((1, 1), 1), ((1, 2), 2)];
         //Create Incorrects ids
         let ids_data = ids_data!["a"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::FailedToGetIds)
         );
     }
@@ -2208,12 +1705,9 @@ mod tests {
         vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), (1, 0)), ((1, 2), 2)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -2229,12 +1723,9 @@ mod tests {
         vm.run_context.fp = 3;
         vm.memory = memory![((1, 1), 1), ((1, 2), (1, 0))];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))
@@ -2251,12 +1742,9 @@ mod tests {
         //Insert ids.a into memory
         vm.memory = memory![((1, 1), 1)];
         let ids_data = ids_data!["a", "b"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))
