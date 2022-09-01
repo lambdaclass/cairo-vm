@@ -234,6 +234,19 @@ pub mod test_utils {
     }
     pub(crate) use ids_data;
 
+    macro_rules! non_continuous_ids_data {
+        ( $( ($name: expr, $offset:expr) ),* ) => {
+            {
+                let mut ids_data = HashMap::<String, HintReference>::new();
+                $(
+                    ids_data.insert(String::from($name), HintReference::new_simple($offset));
+                )*
+                ids_data
+            }
+        };
+    }
+    pub(crate) use non_continuous_ids_data;
+
     macro_rules! trace_check {
         ( $trace: expr, [ $( (($si_pc:expr, $off_pc:expr), ($si_ap:expr, $off_ap:expr), ($si_fp:expr, $off_fp:expr)) ),+ ] ) => {
             let mut index = -1;
@@ -275,18 +288,179 @@ pub mod test_utils {
     }
     pub(crate) use exec_scopes_proxy_ref;
 
-    macro_rules! add_dict_manager {
-        ($es_proxy:expr, $dict:expr) => {
-            $es_proxy.insert_value("dict_manager", Rc::new(RefCell::new($dict)))
+    macro_rules! run_hint {
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_proxy:expr) => {{
+            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let vm_proxy = &mut get_vm_proxy(&mut $vm);
+            let hint_processor = BuiltinHintProcessor::new_empty();
+            hint_processor.execute_hint(vm_proxy, $exec_proxy, &any_box!(hint_data))
+        }};
+        ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
+            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let vm_proxy = &mut get_vm_proxy(&mut $vm);
+            let hint_processor = BuiltinHintProcessor::new_empty();
+            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
+        }};
+    }
+    pub(crate) use run_hint;
+
+    macro_rules! add_segments {
+        ($vm:expr, $n:expr) => {
+            for _ in 0..$n {
+                $vm.segments.add(&mut $vm.memory);
+            }
         };
     }
-    pub(crate) use add_dict_manager;
+    pub(crate) use add_segments;
+
+    macro_rules! check_scope {
+        ( $exec_proxy: expr, [ $( ($name: expr, $val: expr)),* ] ) => {
+            $(
+                check_scope_value($exec_proxy, $name, $val);
+            )*
+        };
+    }
+    pub(crate) use check_scope;
+
+    macro_rules! scope {
+        (  $( ($name: expr, $val: expr)),*  ) => {
+            {
+                let mut exec_scopes = ExecutionScopes::new();
+                $(
+                    exec_scopes.assign_or_update_variable(
+                        $name,
+                        any_box!($val),
+                    );
+                )*
+                exec_scopes
+            }
+        };
+    }
+    pub(crate) use scope;
+
+    macro_rules! check_dictionary {
+        ( $exec_scopes_proxy: expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
+            $(
+                assert_eq!(
+                    $exec_scopes_proxy
+                        .get_dict_manager()
+                        .unwrap()
+                        .borrow_mut()
+                        .trackers
+                        .get_mut(&$tracker_num)
+                        .unwrap()
+                        .get_value(&bigint!($key)),
+                    Ok(&bigint!($val))
+                );
+            )*
+        };
+    }
+    pub(crate) use check_dictionary;
+
+    macro_rules! check_dict_ptr {
+        ($exec_scopes_proxy: expr, $tracker_num: expr, ($i:expr, $off:expr)) => {
+            assert_eq!(
+                $exec_scopes_proxy
+                    .get_dict_manager()
+                    .unwrap()
+                    .borrow()
+                    .trackers
+                    .get(&$tracker_num)
+                    .unwrap()
+                    .current_ptr,
+                relocatable!($i, $off)
+            );
+        };
+    }
+    pub(crate) use check_dict_ptr;
+
+    macro_rules! dict_manager {
+        ($exec_scopes_proxy:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
+            let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
+            $(
+            tracker.insert_value(&bigint!($key), &bigint!($val));
+            )*
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+        ($exec_scopes_proxy:expr, $tracker_num:expr) => {
+            let  tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+
+    }
+    pub(crate) use dict_manager;
+
+    macro_rules! dict_manager_default {
+        ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
+            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            $(
+            tracker.insert_value(&bigint!($key), &bigint!($val));
+            )*
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+        ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr) => {
+            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            let mut dict_manager = DictManager::new();
+            dict_manager.trackers.insert(2, tracker);
+            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+        };
+    }
+    pub(crate) use dict_manager_default;
+
+    macro_rules! vec_data {
+        ( $( ($val:tt) ),* ) => {
+            vec![$( vec_data_inner!($val) ),*]
+        };
+    }
+    pub(crate) use vec_data;
+
+    macro_rules! vec_data_inner {
+        (( $val1:expr, $val2:expr )) => {
+            mayberelocatable!($val1, $val2)
+        };
+        ( $val:expr ) => {
+            mayberelocatable!($val)
+        };
+    }
+    pub(crate) use vec_data_inner;
+
+    use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+
+    pub fn check_scope_value<T: std::fmt::Debug + std::cmp::PartialEq + 'static>(
+        proxy: &ExecutionScopesProxy,
+        name: &str,
+        value: T,
+    ) {
+        let scope_value = proxy.get_any_boxed_ref(name).unwrap();
+        assert_eq!(scope_value.downcast_ref::<T>(), Some(&value));
+    }
 }
 
 #[cfg(test)]
 mod test {
 
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
+    use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::exec_scope::ExecutionScopes;
+    use crate::utils::test_utils::*;
+    use std::any::Any;
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+    use std::rc::Rc;
+
     use super::*;
+    use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::trace::trace_entry::TraceEntry;
@@ -498,5 +672,182 @@ mod test {
                 ((4, 9), (5, 5), (3, 7))
             ]
         );
+    }
+
+    #[test]
+    fn test_non_continuous_ids_data() {
+        let ids_data_macro = non_continuous_ids_data![("a", -2), ("b", -6)];
+        let ids_data_verbose = HashMap::from([
+            ("a".to_string(), HintReference::new_simple(-2)),
+            ("b".to_string(), HintReference::new_simple(-6)),
+        ]);
+        assert_eq!(ids_data_macro, ids_data_verbose);
+    }
+
+    #[test]
+    fn run_hint_alloc() {
+        let hint_code = "memory[ap] = segments.add()";
+        let mut vm = vm!();
+        add_segments!(vm, 1);
+        assert_eq!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
+        //A segment is added
+        assert_eq!(vm.segments.num_segments, 2);
+    }
+
+    #[test]
+    fn check_scope_test_pass() {
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
+        exec_scopes.assign_or_update_variable(
+            "b",
+            any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
+        );
+        exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
+        let exec_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_scope!(
+            exec_proxy,
+            [
+                ("a", String::from("Hello")),
+                (
+                    "b",
+                    Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))
+                ),
+                ("c", vec![1, 2, 3, 4])
+            ]
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_scope_test_fail() {
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
+        exec_scopes.assign_or_update_variable(
+            "b",
+            any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
+        );
+        exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
+        let exec_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_scope!(
+            exec_proxy,
+            [
+                ("a", String::from("Hello")),
+                (
+                    "b",
+                    Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))
+                ),
+                ("c", vec![1, 2, 3, 5])
+            ]
+        );
+    }
+
+    #[test]
+    fn scope_macro_test() {
+        let scope_from_macro = scope![("a", bigint!(1))];
+        let mut scope_verbose = ExecutionScopes::new();
+        scope_verbose.assign_or_update_variable("a", any_box!(bigint!(1)));
+        assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
+        assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
+        assert_eq!(
+            scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
+            Some(&bigint!(1))
+        );
+    }
+
+    #[test]
+    fn check_dictionary_pass() {
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dictionary!(exec_scopes_proxy, 2, (5, 10));
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_dictionary_fail() {
+        let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        tracker.insert_value(&bigint!(5), &bigint!(10));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dictionary!(exec_scopes_proxy, 2, (5, 11));
+    }
+
+    #[test]
+    fn check_dict_ptr_pass() {
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dict_ptr!(exec_scopes_proxy, 2, (2, 0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_dict_ptr_fail() {
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable(
+            "dict_manager",
+            any_box!(Rc::new(RefCell::new(dict_manager))),
+        );
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        check_dict_ptr!(exec_scopes_proxy, 2, (3, 0));
+    }
+
+    #[test]
+    fn dict_manager_macro() {
+        let tracker = DictTracker::new_empty(&relocatable!(2, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        dict_manager!(exec_scopes_proxy, 2);
+        assert_eq!(
+            exec_scopes_proxy.get_dict_manager(),
+            Ok(Rc::new(RefCell::new(dict_manager)))
+        );
+    }
+
+    #[test]
+    fn dict_manager_default_macro() {
+        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), None);
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(2, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
+        dict_manager_default!(exec_scopes_proxy, 2, 17);
+        assert_eq!(
+            exec_scopes_proxy.get_dict_manager(),
+            Ok(Rc::new(RefCell::new(dict_manager)))
+        );
+    }
+
+    #[test]
+    fn data_vec_test() {
+        let data = vec_data!((1), ((2, 2)), ((b"49128305", 10)), ((b"3b6f00a9", 16)));
+        assert_eq!(data[0], mayberelocatable!(1));
+        assert_eq!(data[1], mayberelocatable!(2, 2));
+        assert_eq!(data[2], mayberelocatable!(49128305));
+        assert_eq!(data[3], mayberelocatable!(997130409));
     }
 }

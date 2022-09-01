@@ -253,6 +253,7 @@ mod tests {
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
@@ -265,51 +266,29 @@ mod tests {
     fn keccak_write_args_valid_test() {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
-
         vm.memory = memory![
             ((1, 0), 233),
             ((1, 1), 351),
             ((1, 2), (2, 0)),
             ((2, 4), 5_i32)
         ];
-
         //Initialize fp
         vm.run_context.fp = 3;
-
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
     fn keccak_write_args_write_error() {
         let hint_code = "segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])\nsegments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])";
         let mut vm = vm_with_range_check!();
-
-        for _ in 0..1 {
-            vm.segments.add(&mut vm.memory);
-        }
-
         vm.memory = memory![((1, 0), 233), ((1, 1), 351), ((1, 2), (2, 0))];
-
         //Initialize fp
         vm.run_context.fp = 3;
-
         //Create ids
         let ids_data = ids_data!["low", "high", "inputs"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let error =
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data));
-
+        let error = run_hint!(vm, ids_data, hint_code);
         assert!(matches!(error, Err(VirtualMachineError::MemoryError(_))));
     }
 
@@ -322,16 +301,9 @@ mod tests {
         vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), 24)];
 
-        vm.run_context.fp = 1;
-        vm.run_context.ap = 1;
+        run_context!(vm, 0, 1, 1);
         let ids_data = ids_data!["n_bytes"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -344,17 +316,10 @@ mod tests {
         vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), 24)];
 
-        vm.run_context.fp = 1;
-        vm.run_context.ap = 1;
+        run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 
     #[test]
@@ -366,16 +331,9 @@ mod tests {
         vm.segments.add(&mut vm.memory);
         vm.memory = memory![((1, 0), 24)];
 
-        vm.run_context.fp = 1;
-        vm.run_context.ap = 1;
+        run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
     }
 }
