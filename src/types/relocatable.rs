@@ -145,10 +145,9 @@ impl Relocatable {
             "Address offsets cant be negative"
         );
         big_offset = big_offset.mod_floor(prime);
-        let new_offset = match big_offset.to_usize() {
-            Some(usize) => usize,
-            None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-        };
+        let new_offset = big_offset
+            .to_usize()
+            .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
@@ -167,10 +166,9 @@ impl Relocatable {
             .map_err(|_| VirtualMachineError::RelocatableAdd)?;
 
         let big_offset: BigInt = (num_ref + self.offset).mod_floor(prime);
-        let new_offset = match big_offset.to_usize() {
-            Some(usize) => usize,
-            None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-        };
+        let new_offset = big_offset
+            .to_usize()
+            .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
         Ok(Relocatable {
             segment_index: self.segment_index,
             offset: new_offset,
@@ -210,10 +208,9 @@ impl MaybeRelocatable {
                     "Address offsets cant be negative"
                 );
                 big_offset = big_offset.mod_floor(prime);
-                let new_offset = match big_offset.to_usize() {
-                    Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-                };
+                let new_offset = big_offset
+                    .to_usize()
+                    .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -260,10 +257,9 @@ impl MaybeRelocatable {
             | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) =>
             {
                 let big_offset: BigInt = (num_ref + rel.offset).mod_floor(prime);
-                let new_offset = match big_offset.to_usize() {
-                    Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-                };
+                let new_offset = big_offset
+                    .to_usize()
+                    .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
