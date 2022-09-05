@@ -1,8 +1,5 @@
 import socket
 import os
-import sys
-from typing import Dict
-import utils
 import time
 import json
 
@@ -20,7 +17,7 @@ s.listen()
 
 while 1:
     conn, addr = s.accept()
-    xs = bytearray()
+    raw_memory = bytearray()
 
     memory = dict()
 
@@ -29,21 +26,13 @@ while 1:
         while 1:
             data = conn.recv(8192)
             if data:
-                xs.extend(data)
-                # final =+ data
-                # print("received ", data)
-
-                # x = utils.Memory
-                # x = json.loads(data)
-                # print("x ", x.data)
-                # print("type x", type(x))
-            # print(xs)
+                raw_memory.extend(data)
             else:
                 break
         t1 = time.time()
 
-        x = json.loads(xs)
-        for i, value in enumerate(x['data']):
+        memory_dict = json.loads(raw_memory)
+        for i, value in enumerate(memory_dict['data']):
             if value.__contains__('Int'):
                 memory[(0, i)] = value['Int']
             else:

@@ -1,8 +1,6 @@
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
-use std::str::FromStr;
 
-use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
@@ -41,17 +39,6 @@ impl Memory {
     }
 }
 
-// fn encode_memory(buff: &mut Vec<u8>, memory: &Memory) {
-//     for m in &memory.data {
-//         match m {
-//             MaybeRelocatable::Int(n) =>
-
-//         }
-//         let n = if let MaybeRelocatable::Int(n) = m { n } else { todo!() };
-//         buff.append(&mut n.to_signed_bytes_be());
-//     }
-// }
-
 fn main() {
     let mut stream = UnixStream::connect("ipc.sock").unwrap();
 
@@ -59,14 +46,10 @@ fn main() {
     println!("Memory created");
 
     let serialized = serde_json::to_string(&memory).unwrap();
-    // let mut m_bytes: Vec<u8> = Vec::new();
-
-    // encode_memory(&mut m_bytes, &memory);
-    // println!("Memory encoded");
 
     let now = Instant::now();
-    stream.write_all(&serialized.as_bytes()).unwrap();
-    // stream.write_all(b"Hola que tal").unwrap();
+    stream.write_all(serialized.as_bytes()).unwrap();
+
     let elapsed = now.elapsed();
 
     println!("Time taken: {}ms", elapsed.as_millis());
