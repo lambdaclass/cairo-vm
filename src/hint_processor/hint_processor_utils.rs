@@ -127,7 +127,7 @@ pub fn compute_addr_from_reference(
     }
 }
 
-fn apply_ap_tracking_correction(
+pub fn apply_ap_tracking_correction(
     ap: &Relocatable,
     ref_ap_tracking: &ApTracking,
     hint_ap_tracking: &ApTracking,
