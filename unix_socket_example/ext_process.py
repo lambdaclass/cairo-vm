@@ -1,6 +1,8 @@
 import socket
 import os
 import sys
+import utils
+import json
 
 socket_path = "ipc.sock"
 
@@ -16,10 +18,19 @@ s.listen()
 
 while 1:
     conn, addr = s.accept()
+
     try:
         while 1:
-            data = conn.recv(1024)
+            data = conn.recv(8192)
             if data:
+                print("type", type(data))
                 print("received ", data)
+
+                # x = utils.Memory
+                # x = json.loads(data)
+                # print("x ", x.data)
+                # print("type x", type(x))
+
+
     finally:
-        conn.close()
+        conn.__exit__
