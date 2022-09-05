@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{
     hint_processor_definition::HintReference,
     hint_processor_utils::{apply_ap_tracking_correction, bigint_to_usize},
@@ -13,6 +15,35 @@ use crate::{
         vm_core::VirtualMachine, vm_memory::memory::Memory,
     },
 };
+
+//Returns the VM's Memory, excluding the program segment in the format HashMap<Relocatable, MaybeRelocatable>
+pub fn get_python_compatible_memory(memory: &Memory) -> HashMap<Relocatable, MaybeRelocatable> {
+    let mut py_mem: HashMap<Relocatable, MaybeRelocatable> = HashMap::new();
+    for segment_index in 1..memory.data.len() {
+        for offset in 0..memory.data[segment_index].len() {
+            if let Some(elem) = &memory.data[segment_index][offset] {
+                py_mem.insert(Relocatable::from((segment_index, offset)), elem.clone());
+            }
+        }
+    }
+    py_mem
+}
+
+//Returns a HashMap of ids values, ready to be sent to a python process
+pub fn get_python_compatible_ids(
+    vm: &VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<HashMap<String, Option<MaybeRelocatable>>, VirtualMachineError> {
+    let mut ids = HashMap::new();
+    for (name, reference) in ids_data.iter() {
+        ids.insert(
+            name.clone(),
+            get_value_from_reference(vm, reference, ap_tracking)?,
+        );
+    }
+    Ok(ids)
+}
 
 ///Returns the Value given by a reference as an Option<MaybeRelocatable>
 pub fn get_value_from_reference(
