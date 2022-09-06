@@ -10,18 +10,18 @@ PRIME = 361850278866613121369732278309507010562310721533159669997309205613587202
 
 class Memory:
     data: dict
-    changes: dict
+    changes: list
 
     def __init__(self, data: dict):
         self.data = data
-        self.changes = {}
+        self.changes = []
 
     def __getitem__(self, addr: tuple):
         return self.data.get(addr)
     
     def __setitem__(self, addr: tuple, value: int):
         self.data[addr] = value
-        self.changes[addr] = value
+        self.changes += [((addr, value))]
 
 class Ids:  
     def __init__(self, ids_dict: dict):   
@@ -58,7 +58,7 @@ class MemorySegmentManager:
         for i, v in enumerate(data):
             self.memory[(ptr[0], ptr[1] + i)] = v
         return (ptr[0] + ptr[1] + len(data))
-
+    
 socket_path = "ipc.sock"
 
 #Link processes via socket
@@ -116,6 +116,7 @@ while 1:
         exec(data['code'], globals)
 
         #Comunicate back to cairo-rs
+        conn.send(bytes(json.dumps(memory.changes),encoding="utf-8"))
 
         conn.close()
 

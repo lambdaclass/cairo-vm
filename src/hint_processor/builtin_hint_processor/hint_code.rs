@@ -1,4 +1,4 @@
-pub(crate) const ADD_SEGMENT: &str = "memory[ap] = segments.add()";
+//pub(crate) const ADD_SEGMENT: &str = "memory[ap] = segments.add()";
 
 pub(crate) const VM_ENTER_SCOPE: &str = "vm_enter_scope()";
 pub(crate) const VM_EXIT_SCOPE: &str = "vm_exit_scope()";

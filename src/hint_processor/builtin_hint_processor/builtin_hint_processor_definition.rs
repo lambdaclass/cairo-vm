@@ -15,7 +15,7 @@ use crate::hint_processor::builtin_hint_processor::keccak_utils::{
 };
 use crate::hint_processor::builtin_hint_processor::math_utils::*;
 use crate::hint_processor::builtin_hint_processor::memcpy_hint_utils::{
-    add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
+    enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
 };
 use crate::hint_processor::builtin_hint_processor::memset_utils::{
     memset_continue_loop, memset_enter_scope,
@@ -129,7 +129,7 @@ impl HintProcessor for BuiltinHintProcessor {
         }
 
         match &*hint_data.code {
-            hint_code::ADD_SEGMENT => add_segment(vm_proxy),
+            //hint_code::ADD_SEGMENT => add_segment(vm_proxy),
             hint_code::IS_NN => is_nn(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_NN_OUT_OF_RANGE => {
                 is_nn_out_of_range(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)

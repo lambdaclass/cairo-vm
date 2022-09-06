@@ -1,4 +1,8 @@
-use std::{any::Any, io::Write, os::unix::net::UnixStream};
+use std::{
+    any::Any,
+    io::{Read, Write},
+    os::unix::net::UnixStream,
+};
 
 use serde::Serialize;
 
@@ -43,15 +47,15 @@ impl PythonExecutor {
         let mut stream = UnixStream::connect("ipc.sock").map_err(|_| {
             VirtualMachineError::PythonHint("Failed to establish connection".to_string())
         })?;
-        //let serialized_memory = serde_json::to_string(&memory).map_err(|_|VirtualMachineError::PythonHint("Failed to serielize memory".to_string()))?;
-        let serialized_memory = serde_json::to_string(&python_data).unwrap();
-        stream
-            .write_all(serialized_memory.as_bytes())
-            .map_err(|_| {
-                VirtualMachineError::PythonHint(
-                    "Failed to communicate with python process".to_string(),
-                )
-            })?;
+        let serialized_data = serde_json::to_string(&python_data).map_err(|_| {
+            VirtualMachineError::PythonHint("Failed to serielize memory".to_string())
+        })?;
+        stream.write_all(serialized_data.as_bytes()).map_err(|_| {
+            VirtualMachineError::PythonHint("Failed to communicate with python process".to_string())
+        })?;
+        let mut response = Vec::new();
+        stream.read(&mut response).unwrap();
+        println!("Response: {:?}", response);
         Ok(())
     }
 }
