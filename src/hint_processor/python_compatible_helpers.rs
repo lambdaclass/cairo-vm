@@ -17,12 +17,12 @@ use crate::{
 };
 
 //Returns the VM's Memory, excluding the program segment in the format HashMap<Relocatable, MaybeRelocatable>
-pub fn get_python_compatible_memory(memory: &Memory) -> HashMap<(usize, usize), MaybeRelocatable> {
-    let mut py_mem: HashMap<(usize, usize), MaybeRelocatable> = HashMap::new();
+pub fn get_python_compatible_memory(memory: &Memory) -> Vec<((usize, usize), MaybeRelocatable)> {
+    let mut py_mem: Vec<((usize, usize), MaybeRelocatable)> = Vec::new();
     for segment_index in 1..memory.data.len() {
         for offset in 0..memory.data[segment_index].len() {
             if let Some(elem) = &memory.data[segment_index][offset] {
-                py_mem.insert((segment_index, offset), elem.clone());
+                py_mem.push(((segment_index, offset), elem.clone()));
             }
         }
     }
