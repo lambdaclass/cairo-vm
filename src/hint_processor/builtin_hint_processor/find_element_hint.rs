@@ -234,39 +234,23 @@ mod tests {
     #[test]
     fn element_found_by_search() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT.to_string()),
             Ok(())
         );
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
-        )
+        check_memory![vm.memory, ((1, 3), 1)];
     }
 
     #[test]
     fn element_found_by_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("find_element_index", any_box!(bigint!(1)));
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("find_element_index", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
             Ok(())
         );
-
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
-        )
+        check_memory![vm.memory, ((1, 3), 1)];
     }
 
     #[test]
@@ -275,12 +259,8 @@ mod tests {
             "key".to_string(),
             MaybeRelocatable::from(bigint!(7)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::NoValueForKey(bigint!(7)))
         );
     }
@@ -288,15 +268,10 @@ mod tests {
     #[test]
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("find_element_index", any_box!(bigint!(2)));
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("find_element_index", bigint!(2))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
             Err(VirtualMachineError::KeyNotFound)
         );
     }
@@ -306,12 +281,8 @@ mod tests {
         let mut vm = vm!();
         vm.run_context.fp = 5;
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 4))
             ))
@@ -324,12 +295,8 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::from((7, 8)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -342,12 +309,8 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::Int(bigint!(0)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
         );
     }
@@ -358,12 +321,8 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -373,12 +332,8 @@ mod tests {
         let relocatable = MaybeRelocatable::from((1, 2));
         let (mut vm, ids_data) =
             init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable.clone())]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ExpectedInteger(relocatable))
         );
     }
@@ -389,12 +344,8 @@ mod tests {
             "n_elms".to_string(),
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -402,28 +353,16 @@ mod tests {
     #[test]
     fn find_elm_empty_scope() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code::FIND_ELEMENT), Ok(()));
     }
 
     #[test]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("find_element_max_size", any_box!(bigint!(1)));
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );
     }
@@ -433,12 +372,8 @@ mod tests {
         let relocatable = MaybeRelocatable::from((1, 4));
         let (mut vm, ids_data) =
             init_vm_ids_data(HashMap::from([("key".to_string(), relocatable.clone())]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::FIND_ELEMENT.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
             Err(VirtualMachineError::ExpectedInteger(relocatable))
         );
     }
@@ -446,19 +381,12 @@ mod tests {
     #[test]
     fn search_sorted_lower() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Ok(())
         );
 
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(1))))
-        )
+        check_memory![vm.memory, ((1, 3), 1)];
     }
 
     #[test]
@@ -467,19 +395,11 @@ mod tests {
             "key".to_string(),
             MaybeRelocatable::Int(bigint!(7)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Ok(())
         );
-
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(2))))
-        )
+        check_memory![vm.memory, ((1, 3), 2)];
     }
 
     #[test]
@@ -488,12 +408,8 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::from((7, 8)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 1))
             ))
@@ -506,12 +422,8 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::Int(bigint!(0)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(0)))
         );
     }
@@ -522,12 +434,8 @@ mod tests {
             "elm_size".to_string(),
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -538,12 +446,8 @@ mod tests {
             "n_elms".to_string(),
             MaybeRelocatable::from((2, 2)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 2))
             ))
@@ -556,12 +460,8 @@ mod tests {
             "n_elms".to_string(),
             MaybeRelocatable::Int(bigint!(-1)),
         )]));
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(VirtualMachineError::ValueOutOfRange(bigint!(-1)))
         );
     }
@@ -569,12 +469,8 @@ mod tests {
     #[test]
     fn search_sorted_lower_empty_scope() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Ok(())
         );
     }
@@ -582,15 +478,15 @@ mod tests {
     #[test]
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let hint_data =
-            HintProcessorData::new_default(hint_code::SEARCH_SORTED_LOWER.to_string(), ids_data);
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("find_element_max_size", any_box!(bigint!(1)));
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
+        let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::SEARCH_SORTED_LOWER,
+                exec_scopes_proxy
+            ),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );
     }

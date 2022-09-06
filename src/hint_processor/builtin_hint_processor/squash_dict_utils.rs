@@ -313,6 +313,8 @@ pub fn squash_dict(
 mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::vm_memory::memory::Memory;
     use std::any::Any;
 
     use super::*;
@@ -323,7 +325,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::{any_box, bigint};
+    use crate::{any_box, bigint, bigint_str};
     use num_bigint::Sign;
 
     //Hint code as consts
@@ -348,49 +350,34 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
-        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), (2, 0))];
+        add_segments!(vm, 1);
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check scope variables
-        //Prepare expected data
-        let current_access_indices_scope = exec_scopes_proxy
-            .get_list("current_access_indices")
-            .unwrap();
-        assert_eq!(
-            current_access_indices_scope,
-            vec![bigint!(10), bigint!(9), bigint!(7)]
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "current_access_indices",
+                    vec![bigint!(10), bigint!(9), bigint!(7)]
+                ),
+                ("current_access_index", bigint!(3))
+            ]
         );
-        let current_access_index = exec_scopes_proxy.get_int("current_access_index").unwrap();
-        assert_eq!(current_access_index, bigint!(3));
         //Check that current_access_index is now at range_check_ptr
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((2, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(3))))
-        );
+        check_memory![vm.memory, ((2, 0), 3)];
     }
 
     #[test]
@@ -403,31 +390,18 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
-        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), (2, 0))];
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -438,27 +412,15 @@ mod tests {
         //No scope variables
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Create ids
+        vm.memory = memory![((1, 0), (2, 0))];
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::VariableNotInScopeError(String::from(
                 "key"
             )))
@@ -468,152 +430,109 @@ mod tests {
     #[test]
     fn should_skip_loop_valid_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
+        let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![vm.memory, ((1, 0), 1)];
     }
 
     #[test]
     fn should_skip_loop_valid_non_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(4), bigint!(7)]);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
+        let mut exec_scopes = scope![("current_access_indices", vec![bigint!(4), bigint!(7)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check the value of ids.should_skip_loop
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![vm.memory, ((1, 0), 0)];
     }
 
     #[test]
     fn squash_dict_inner_check_access_index_valid() {
         let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> =
-            Box::new(vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)]);
-        let current_access_index: Box<dyn Any> = Box::new(bigint!(1));
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
-        exec_scopes.assign_or_update_variable("current_access_index", current_access_index);
+        let mut exec_scopes = scope![
+            (
+                "current_access_indices",
+                vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)]
+            ),
+            ("current_access_index", bigint!(1))
+        ];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check scope variables
-        let current_access_indices_scope = exec_scopes_proxy
-            .get_list("current_access_indices")
-            .unwrap();
-        let new_access_index = exec_scopes_proxy.get_int("new_access_index").unwrap();
-        let current_access_index = exec_scopes_proxy.get_int("current_access_index").unwrap();
-        assert_eq!(
-            current_access_indices_scope,
-            vec![bigint!(10), bigint!(9), bigint!(7)]
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "current_access_indices",
+                    vec![bigint!(10), bigint!(9), bigint!(7)]
+                ),
+                ("new_access_index", bigint!(5)),
+                ("current_access_index", bigint!(5))
+            ]
         );
-        assert_eq!(current_access_index, bigint!(5));
-        assert_eq!(new_access_index, bigint!(5));
         //Check the value of loop_temps.index_delta_minus_1
         //new_index - current_index -1
         //5 - 1 - 1 = 3
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(3))))
-        );
+        check_memory![vm.memory, ((1, 0), 3)];
     }
 
     #[test]
     fn squash_dict_inner_check_access_current_access_addr_empty() {
         let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
-        let current_access_index: Box<dyn Any> = Box::new(bigint!(1));
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
-        exec_scopes.assign_or_update_variable("current_access_index", current_access_index);
+        let mut exec_scopes = scope![
+            ("current_access_indices", Vec::<BigInt>::new()),
+            ("current_access_index", bigint!(1))
+        ];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (loop_temps)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), (2, 0))];
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -621,88 +540,59 @@ mod tests {
     #[test]
     fn should_continue_loop_valid_non_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(4), bigint!(7)]);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
+        let mut exec_scopes = scope![("current_access_indices", vec![bigint!(4), bigint!(7)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(1))))
-        );
+        check_memory![vm.memory, ((1, 3), 1)];
     }
 
     #[test]
     fn should_continue_loop_valid_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
+        let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 3))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
-        );
+        check_memory![vm.memory, ((1, 3), 0)];
     }
 
     #[test]
     fn assert_current_indices_len_is_empty() {
         let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
-        //Create hint_data
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
+        let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Ok(())
         );
     }
@@ -710,22 +600,15 @@ mod tests {
     #[test]
     fn assert_current_indices_len_is_empty_not() {
         let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
-        //Prepare scope variables
-        let current_access_indices: Box<dyn Any> = Box::new(vec![bigint!(29)]);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("current_access_indices", current_access_indices);
-        //Create hint_data
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
+        let mut exec_scopes = scope![("current_access_indices", vec![bigint!(29)])];
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }
@@ -739,32 +622,19 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
-        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(4)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), 4)];
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
         //Hint would fail is assertion fails
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
     }
@@ -778,31 +648,18 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
-        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(5)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), 5)];
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -820,31 +677,18 @@ mod tests {
         access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("access_indices", any_box!(access_indices));
-        exec_scopes.assign_or_update_variable("key", any_box!(bigint!(5)));
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((1, 2)),
-            )
-            .unwrap();
+        vm.memory = memory![((1, 0), (1, 2))];
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -854,21 +698,14 @@ mod tests {
     #[test]
     fn squash_dict_assert_len_keys_empty() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
-        //Prepare scope variables
-        let keys: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("keys", keys);
-        //Create hint_data
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
+        let mut exec_scopes = scope![("keys", Vec::<BigInt>::new())];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Ok(())
         );
     }
@@ -876,21 +713,14 @@ mod tests {
     #[test]
     fn squash_dict_assert_len_keys_not_empty() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
-        //Prepare scope variables
-        let keys: Box<dyn Any> = Box::new(vec![bigint!(3)]);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("keys", keys);
-        //Create hint_data
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
+        let mut exec_scopes = scope![("keys", vec![bigint!(3)])];
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::KeysNotEmpty)
         );
     }
@@ -900,13 +730,9 @@ mod tests {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
         let mut vm = vm!();
-        //Create hint_data
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), HashMap::new());
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, HashMap::new(), hint_code),
             Err(VirtualMachineError::VariableNotInScopeError(String::from(
                 "keys"
             )))
@@ -916,65 +742,45 @@ mod tests {
     #[test]
     fn squash_dict_inner_next_key_keys_non_empty() {
         let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
-        //Prepare scope variables
-        let keys: Box<dyn Any> = Box::new(vec![bigint!(1), bigint!(3)]);
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
+        add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("keys", keys);
+        let mut exec_scopes = scope![("keys", vec![bigint!(1), bigint!(3)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
         let ids_data = ids_data!["next_key"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check the value of ids.next_key
-        assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(3))))
-        );
+        check_memory![vm.memory, ((1, 0), 3)];
         //Check local variables
-        let keys = exec_scopes_proxy.get_list_ref("keys").unwrap();
-        let key = exec_scopes_proxy.get_int_ref("key").unwrap();
-        assert_eq!(key, &bigint!(3));
-        assert_eq!(keys, &vec![bigint!(1)]);
+        check_scope!(
+            exec_scopes_proxy,
+            [("keys", vec![bigint!(1)]), ("key", bigint!(3))]
+        );
     }
 
     #[test]
     fn squash_dict_inner_next_key_keys_empty() {
         let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
-        //Prepare scope variables
-        let keys: Box<dyn Any> = Box::new(Vec::<BigInt>::new());
         //Create vm
         let mut vm = vm!();
-        for _ in 0..2 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Store scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        exec_scopes.assign_or_update_variable("keys", keys);
+        let mut exec_scopes = scope![("keys", Vec::<BigInt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
         let ids_data = ids_data!["next_key"];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -985,77 +791,20 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 6),
+            ((1, 4), 2),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((2, 3), 1),
+            ((2, 4), 1),
+            ((2, 5), 2)
+        ];
         //Create hint_data
         let ids_data = ids_data![
             "dict_accesses",
@@ -1064,39 +813,27 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
-        assert_eq!(
-            access_indices,
-            &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "access_indices",
+                    HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+                ),
+                ("keys", Vec::<BigInt>::new()),
+                ("key", bigint!(1))
+            ]
         );
-        let keys = exec_scopes_proxy.get_list("keys").unwrap();
-        assert_eq!(keys, Vec::<BigInt>::new());
-        let key = exec_scopes_proxy.get_int("key").unwrap();
-        assert_eq!(key, bigint!(1));
         //Check ids variables
-        let big_keys = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 1)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
-        let first_key = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 2)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
+        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -1105,120 +842,26 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(4)),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //dict_accesses[2].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 6)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //dict_accesses[2].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 7)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //dict_accesses[2].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 8)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //dict_accesses[3].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 9)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //dict_accesses[3].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 10)),
-                &MaybeRelocatable::from(bigint!(10)),
-            )
-            .unwrap();
-        //dict_accesses[3].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 11)),
-                &MaybeRelocatable::from(bigint!(20)),
-            )
-            .unwrap();
-
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 6),
+            ((1, 4), 4),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((2, 3), 1),
+            ((2, 4), 1),
+            ((2, 5), 2),
+            ((2, 6), 2),
+            ((2, 7), 10),
+            ((2, 8), 10),
+            ((2, 9), 2),
+            ((2, 10), 10),
+            ((2, 11), 20)
+        ];
         //Create hint_data
         let ids_data = ids_data![
             "dict_accesses",
@@ -1227,42 +870,32 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
-        assert_eq!(
-            access_indices,
-            &HashMap::from([
-                (bigint!(1), vec![bigint!(0), bigint!(1)]),
-                (bigint!(2), vec![bigint!(2), bigint!(3)])
-            ])
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "access_indices",
+                    HashMap::from([
+                        (bigint!(1), vec![bigint!(0), bigint!(1)]),
+                        (bigint!(2), vec![bigint!(2), bigint!(3)])
+                    ])
+                ),
+                ("keys", vec![bigint!(2)]),
+                ("key", bigint!(1))
+            ]
         );
         let keys = exec_scopes_proxy.get_list("keys").unwrap();
         assert_eq!(keys, vec![bigint!(2)]);
-        let key = exec_scopes_proxy.get_int("key").unwrap();
-        assert_eq!(key, bigint!(1));
         //Check ids variables
-        let big_keys = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 1)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
-        let first_key = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 2)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
+        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -1271,83 +904,23 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Create scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        let max_size: Box<dyn Any> = Box::new(bigint!(12));
-        exec_scopes.assign_or_update_variable("__squash_dict_max_size", max_size);
+        let mut exec_scopes = scope![("__squash_dict_max_size", bigint!(12))];
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        //Create hint_data
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 6),
+            ((1, 4), 2),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((2, 3), 1),
+            ((2, 4), 1),
+            ((2, 5), 2)
+        ];
+        //Create ids_data
         let ids_data = ids_data![
             "dict_accesses",
             "big_keys",
@@ -1355,38 +928,26 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
-        assert_eq!(
-            access_indices,
-            &HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+        check_scope!(
+            exec_scopes_proxy,
+            [
+                (
+                    "access_indices",
+                    HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
+                ),
+                ("keys", Vec::<BigInt>::new()),
+                ("key", bigint!(1))
+            ]
         );
-        let keys = exec_scopes_proxy.get_list("keys").unwrap();
-        assert_eq!(keys, Vec::<BigInt>::new());
-        let key = exec_scopes_proxy.get_int("key").unwrap();
-        assert_eq!(key, bigint!(1));
         //Check ids variables
-        let big_keys = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 1)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(0)));
-        let first_key = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 2)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(first_key, &MaybeRelocatable::from(bigint!(1)));
+        check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
 
     #[test]
@@ -1395,83 +956,23 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Create scope variables
-        let mut exec_scopes = ExecutionScopes::new();
-        let max_size: Box<dyn Any> = Box::new(bigint!(1));
-        exec_scopes.assign_or_update_variable("__squash_dict_max_size", max_size);
+        let mut exec_scopes = scope![("__squash_dict_max_size", bigint!(1))];
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
-        //Create hint_data
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 6),
+            ((1, 4), 2),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((2, 3), 1),
+            ((2, 4), 1),
+            ((2, 5), 2)
+        ];
+        //Create ids_data
         let ids_data = ids_data![
             "dict_accesses",
             "big_keys",
@@ -1479,13 +980,10 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -1499,78 +997,20 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(7)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 7),
+            ((1, 4), 2),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((2, 3), 1),
+            ((2, 4), 1),
+            ((2, 5), 2)
+        ];
         //Create hint_data
         let ids_data = ids_data![
             "dict_accesses",
@@ -1579,12 +1019,9 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code),
             Err(VirtualMachineError::PtrDiffNotDivisibleByDictAccessSize)
         );
     }
@@ -1594,81 +1031,26 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(BigInt::new(
-                    Sign::Plus,
-                    vec![1, 0, 0, 0, 0, 0, 17, 134217728],
-                )),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 6),
+            (
+                (1, 4),
+                (
+                    b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                    10
+                )
+            ),
+            ((2, 0), 1),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            ((2, 3), 1),
+            ((2, 4), 1),
+            ((2, 5), 2)
+        ];
         //Create hint_data
         let ids_data = ids_data![
             "dict_accesses",
@@ -1677,16 +1059,12 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data)),
-            Err(VirtualMachineError::NAccessesTooBig(BigInt::new(
-                Sign::Plus,
-                vec![1, 0, 0, 0, 0, 0, 17, 134217728]
-            ),))
+            run_hint!(vm, ids_data, hint_code),
+            Err(VirtualMachineError::NAccessesTooBig(bigint_str!(
+                b"3618502761706184546546682988428055018603476541694452277432519575032261771265"
+            )))
         );
     }
 
@@ -1696,84 +1074,32 @@ mod tests {
         let hint_code = SQUASH_DICT;
         //Create vm
         let mut vm = vm_with_range_check!();
-        for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
-        }
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        //ids.n_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 4)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-        //ids.n_ptr_diff
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 3)),
-                &MaybeRelocatable::from(bigint!(6)),
-            )
-            .unwrap();
-        //Leave gaps for ids.big_keys (0,1) and ids.first_key (0,2)
-        //ids.dict_accesses
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from((2, 0)),
-            )
-            .unwrap();
-        //Points to the first dict_access
-        //dict_accesses[0].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 0)),
-                &MaybeRelocatable::from(BigInt::new(
-                    Sign::Plus,
-                    vec![1, 0, 0, 0, 0, 0, 17, 134217727],
-                )),
-            )
-            .unwrap();
-        //dict_accesses[0].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 1)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[0].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 2)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].key
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 3)),
-                &MaybeRelocatable::from(BigInt::new(
-                    Sign::Plus,
-                    vec![1, 0, 0, 0, 0, 0, 17, 134217727],
-                )),
-            )
-            .unwrap();
-        //dict_accesses[1].prev_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 4)),
-                &MaybeRelocatable::from(bigint!(1)),
-            )
-            .unwrap();
-        //dict_accesses[1].next_value
-        vm.memory
-            .insert(
-                &MaybeRelocatable::from((2, 5)),
-                &MaybeRelocatable::from(bigint!(2)),
-            )
-            .unwrap();
-
+        vm.memory = memory![
+            ((1, 0), (2, 0)),
+            ((1, 3), 6),
+            ((1, 4), 2),
+            (
+                (2, 0),
+                (
+                    b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                    10
+                )
+            ),
+            ((2, 1), 1),
+            ((2, 2), 1),
+            (
+                (2, 3),
+                (
+                    b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                    10
+                )
+            ),
+            ((2, 4), 1),
+            ((2, 5), 2)
+        ];
         //Create hint_data
         let ids_data = ids_data![
             "dict_accesses",
@@ -1782,50 +1108,29 @@ mod tests {
             "ptr_diff",
             "n_accesses"
         ];
-        let hint_data = HintProcessorData::new_default(hint_code.to_string(), ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy, &any_box!(hint_data)),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         //Check scope variables
-        let access_indices = get_access_indices(exec_scopes_proxy).unwrap();
-        assert_eq!(
-            access_indices,
-            &HashMap::from([(
-                BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727]),
-                vec![bigint!(0), bigint!(1)]
-            )])
-        );
-        let keys = exec_scopes_proxy.get_list("keys").unwrap();
-        assert_eq!(keys, Vec::<BigInt>::new());
-        let key = exec_scopes_proxy.get_int("key").unwrap();
-        assert_eq!(
-            key,
-            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217727])
-        );
+        check_scope!(exec_scopes_proxy, [("access_indices", HashMap::from([(
+           bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"),
+            vec![bigint!(0), bigint!(1)]
+        )])), ("keys", Vec::<BigInt>::new()), ("key", bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
         //Check ids variables
-        let big_keys = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 1)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(big_keys, &MaybeRelocatable::from(bigint!(1)));
-        let first_key = vm
-            .memory
-            .get(&MaybeRelocatable::from((1, 2)))
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            first_key,
-            &MaybeRelocatable::from(BigInt::new(
-                Sign::Plus,
-                vec![1, 0, 0, 0, 0, 0, 17, 134217727]
-            ))
-        );
+        check_memory![
+            vm.memory,
+            ((1, 1), 1),
+            (
+                (1, 2),
+                (
+                    b"3618502761706184546546682988428055018603476541694452277432519575032261771265",
+                    10
+                )
+            )
+        ];
     }
 }

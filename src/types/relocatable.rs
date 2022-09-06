@@ -133,6 +133,48 @@ impl Relocatable {
         Ok(relocatable!(self.segment_index, new_offset))
     }
 
+    ///Adds a bigint to self, then performs mod prime
+    pub fn add_int_mod(
+        &self,
+        other: &BigInt,
+        prime: &BigInt,
+    ) -> Result<Relocatable, VirtualMachineError> {
+        let mut big_offset = self.offset + other;
+        assert!(
+            !big_offset.is_negative(),
+            "Address offsets cant be negative"
+        );
+        big_offset = big_offset.mod_floor(prime);
+        let new_offset = big_offset
+            .to_usize()
+            .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
+        Ok(Relocatable {
+            segment_index: self.segment_index,
+            offset: new_offset,
+        })
+    }
+
+    ///Adds a MaybeRelocatable to self, then performs mod prime
+    /// Cant add two relocatable values
+    pub fn add_maybe_mod(
+        &self,
+        other: &MaybeRelocatable,
+        prime: &BigInt,
+    ) -> Result<Relocatable, VirtualMachineError> {
+        let num_ref = other
+            .get_int_ref()
+            .map_err(|_| VirtualMachineError::RelocatableAdd)?;
+
+        let big_offset: BigInt = (num_ref + self.offset).mod_floor(prime);
+        let new_offset = big_offset
+            .to_usize()
+            .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
+        Ok(Relocatable {
+            segment_index: self.segment_index,
+            offset: new_offset,
+        })
+    }
+
     pub fn sub_rel(&self, other: &Self) -> Result<usize, VirtualMachineError> {
         if self.segment_index != other.segment_index {
             return Err(VirtualMachineError::DiffIndexSub);
@@ -166,10 +208,9 @@ impl MaybeRelocatable {
                     "Address offsets cant be negative"
                 );
                 big_offset = big_offset.mod_floor(prime);
-                let new_offset = match big_offset.to_usize() {
-                    Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-                };
+                let new_offset = big_offset
+                    .to_usize()
+                    .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -216,10 +257,9 @@ impl MaybeRelocatable {
             | (&MaybeRelocatable::Int(ref num_ref), &MaybeRelocatable::RelocatableValue(ref rel)) =>
             {
                 let big_offset: BigInt = (num_ref + rel.offset).mod_floor(prime);
-                let new_offset = match big_offset.to_usize() {
-                    Some(usize) => usize,
-                    None => return Err(VirtualMachineError::OffsetExceeded(big_offset)),
-                };
+                let new_offset = big_offset
+                    .to_usize()
+                    .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
                     offset: new_offset,
@@ -342,8 +382,10 @@ mod tests {
     use crate::bigint;
     use crate::bigint_str;
     use crate::relocatable;
+    use crate::utils::test_utils::mayberelocatable;
     use num_bigint::BigInt;
     use num_bigint::Sign;
+    use num_traits::pow;
 
     #[test]
     fn add_bigint_to_int() {
@@ -622,6 +664,80 @@ mod tests {
         assert_eq!(
             relocate_value(value, &relocation_table),
             Err(MemoryError::Relocation)
+        );
+    }
+
+    #[test]
+    fn relocatable_add_int_mod_ok() {
+        assert_eq!(
+            Ok(relocatable!(1, 6)),
+            relocatable!(1, 2).add_int_mod(&bigint!(4), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(3, 2)),
+            relocatable!(3, 2).add_int_mod(&bigint!(0), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(9, 12)),
+            relocatable!(9, 48).add_int_mod(&bigint!(35), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn relocatable_add_int_mod_offset_exceeded_error() {
+        assert_eq!(
+            Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
+            relocatable!(0, 0).add_int_mod(&(bigint!(usize::MAX) + 1), &(bigint!(usize::MAX) + 2))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_ok() {
+        assert_eq!(
+            Ok(relocatable!(1, 2)),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(2), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(0, 58)),
+            relocatable!(0, 29).add_maybe_mod(&mayberelocatable!(100), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(2, 45)),
+            relocatable!(2, 12).add_maybe_mod(&mayberelocatable!(104), &bigint!(71))
+        );
+
+        assert_eq!(
+            Ok(relocatable!(1, 0)),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(0), &bigint!(71))
+        );
+        assert_eq!(
+            Ok(relocatable!(1, 2)),
+            relocatable!(1, 2).add_maybe_mod(&mayberelocatable!(71), &bigint!(71))
+        );
+
+        assert_eq!(
+            Ok(relocatable!(14, 0)),
+            relocatable!(14, (71 * 12))
+                .add_maybe_mod(&mayberelocatable!((pow(71, 3))), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_add_two_relocatable_error() {
+        assert_eq!(
+            Err(VirtualMachineError::RelocatableAdd),
+            relocatable!(1, 0).add_maybe_mod(&mayberelocatable!(1, 2), &bigint!(71))
+        );
+    }
+
+    #[test]
+    fn add_maybe_mod_offset_exceeded_error() {
+        assert_eq!(
+            Err(VirtualMachineError::OffsetExceeded(bigint!(usize::MAX) + 1)),
+            relocatable!(1, 0).add_maybe_mod(
+                &mayberelocatable!(bigint!(usize::MAX) + 1),
+                &(bigint!(usize::MAX) + 8)
+            )
         );
     }
 }

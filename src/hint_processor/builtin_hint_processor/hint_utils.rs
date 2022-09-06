@@ -29,13 +29,7 @@ pub fn insert_value_into_ap(
     run_context: &RunContext,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
-    memory.insert_value(
-        &(run_context
-            .get_ap()
-            .try_into()
-            .map_err(VirtualMachineError::MemoryError)?),
-        value,
-    )
+    memory.insert_value(&(run_context.get_ap()), value)
 }
 
 //Returns the Relocatable value stored in the given ids variable

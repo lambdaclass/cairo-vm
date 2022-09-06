@@ -13,7 +13,7 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
+        errors::vm_errors::VirtualMachineError,
         runners::builtin_runner::BuiltinRunner,
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
@@ -33,7 +33,7 @@ pub struct Operands {
 }
 
 #[derive(PartialEq, Debug)]
-struct OperandsAddresses(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable);
+struct OperandsAddresses(Relocatable, Relocatable, Relocatable);
 
 #[derive(Clone, Debug)]
 pub struct HintData {
@@ -50,7 +50,7 @@ pub struct VirtualMachine {
     pub segments: MemorySegmentManager,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
-    accessed_addresses: Option<Vec<MaybeRelocatable>>,
+    accessed_addresses: Option<Vec<Relocatable>>,
     pub trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
@@ -107,12 +107,12 @@ impl VirtualMachine {
     fn get_instruction_encoding(
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.get_pc()) {
+        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
             Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
-        let imm_addr = self.run_context.get_pc().add_usize_mod(1, None);
+        let imm_addr = &self.run_context.pc + 1;
 
         if let Ok(optional_imm) = self.memory.get(&imm_addr) {
             Ok((encoding_ref, optional_imm))
@@ -126,12 +126,12 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fp: MaybeRelocatable = match instruction.fp_update {
-            FpUpdate::APPlus2 => self.run_context.get_ap().add_usize_mod(2, None),
-            FpUpdate::Dst => operands.dst.clone(),
+        let new_fp: Relocatable = match instruction.fp_update {
+            FpUpdate::APPlus2 => self.run_context.get_ap() + 2,
+            FpUpdate::Dst => operands.dst.get_relocatable()?.clone(),
             FpUpdate::Regular => return Ok(()),
         };
-        self.run_context.fp = new_fp.get_relocatable()?.offset;
+        self.run_context.fp = new_fp.offset;
         Ok(())
     }
 
@@ -140,16 +140,16 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_ap: MaybeRelocatable = match instruction.ap_update {
+        let new_ap: Relocatable = match instruction.ap_update {
             ApUpdate::Add => match operands.res.clone() {
-                Some(res) => self.run_context.get_ap().add_mod(&res, &self.prime)?,
+                Some(res) => self.run_context.get_ap().add_maybe_mod(&res, &self.prime)?,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
             },
-            ApUpdate::Add1 => self.run_context.get_ap().add_usize_mod(1, None),
-            ApUpdate::Add2 => self.run_context.get_ap().add_usize_mod(2, None),
+            ApUpdate::Add1 => self.run_context.get_ap() + 1,
+            ApUpdate::Add2 => self.run_context.get_ap() + 2,
             ApUpdate::Regular => return Ok(()),
         };
-        self.run_context.ap = new_ap.get_relocatable()?.offset;
+        self.run_context.ap = new_ap.offset;
         Ok(())
     }
 
@@ -158,40 +158,33 @@ impl VirtualMachine {
         instruction: &Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_pc: MaybeRelocatable = match instruction.pc_update {
-            PcUpdate::Regular => self
-                .run_context
-                .get_pc()
-                .add_usize_mod(Instruction::size(instruction), Some(self.prime.clone())),
+        let new_pc: Relocatable = match instruction.pc_update {
+            PcUpdate::Regular => &self.run_context.pc + instruction.size(),
             PcUpdate::Jump => match operands.res.clone() {
-                Some(res) => res,
+                Some(res) => res.get_relocatable()?.clone(),
                 None => return Err(VirtualMachineError::UnconstrainedResJump),
             },
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => self
-                        .run_context
-                        .get_pc()
-                        .add_int_mod(&num_res, &self.prime)?,
+                    MaybeRelocatable::Int(num_res) => {
+                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
+                    }
 
                     _ => return Err(VirtualMachineError::PureValue),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(operands.dst.clone())? {
-                true => self
-                    .run_context
-                    .get_pc()
-                    .add_usize_mod(Instruction::size(instruction), None),
+                true => &self.run_context.pc + instruction.size(),
                 false => {
                     (self
                         .run_context
-                        .get_pc()
-                        .add_mod(&operands.op1, &self.prime))?
+                        .pc
+                        .add_maybe_mod(&operands.op1, &self.prime))?
                 }
             },
         };
-        self.run_context.pc = new_pc.get_relocatable()?.clone();
+        self.run_context.pc = new_pc;
         Ok(())
     }
 
@@ -227,11 +220,9 @@ impl VirtualMachine {
         match instruction.opcode {
             Opcode::Call => {
                 return Ok((
-                    Some(
-                        self.run_context
-                            .get_pc()
-                            .add_usize_mod(Instruction::size(instruction), None),
-                    ),
+                    Some(MaybeRelocatable::from(
+                        &self.run_context.pc + instruction.size(),
+                    )),
                     None,
                 ))
             }
@@ -320,23 +311,17 @@ impl VirtualMachine {
 
     fn deduce_memory_cell(
         &mut self,
-        address: &MaybeRelocatable,
+        address: &Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        if let MaybeRelocatable::RelocatableValue(addr) = address {
-            for (_, builtin) in self.builtin_runners.iter_mut() {
-                if builtin.base().segment_index == addr.segment_index {
-                    match builtin.deduce_memory_cell(address, &self.memory) {
-                        Ok(maybe_reloc) => return Ok(maybe_reloc),
-                        Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                    };
-                }
+        for (_, builtin) in self.builtin_runners.iter_mut() {
+            if builtin.base().segment_index == address.segment_index {
+                match builtin.deduce_memory_cell(address, &self.memory) {
+                    Ok(maybe_reloc) => return Ok(maybe_reloc),
+                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                };
             }
-            return Ok(None);
         }
-
-        Err(VirtualMachineError::RunnerError(
-            RunnerError::NonRelocatableAddress,
-        ))
+        Ok(None)
     }
 
     ///Computes the value of res if possible
@@ -373,7 +358,7 @@ impl VirtualMachine {
                     return Some(res_addr.clone());
                 }
             }
-            Opcode::Call => return Some(self.run_context.get_fp()),
+            Opcode::Call => return Some(MaybeRelocatable::from(self.run_context.get_fp())),
             _ => (),
         };
         None
@@ -412,10 +397,10 @@ impl VirtualMachine {
                     ));
                 };
 
-                if self.run_context.get_fp() != operands.dst {
+                if MaybeRelocatable::from(self.run_context.get_fp()) != operands.dst {
                     return Err(VirtualMachineError::CantWriteReturnFp(
                         operands.dst.clone(),
-                        self.run_context.get_fp(),
+                        MaybeRelocatable::from(self.run_context.get_fp()),
                     ));
                 };
                 Ok(())
@@ -429,21 +414,11 @@ impl VirtualMachine {
         self.opcode_assertions(&instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
-            if let (
-                MaybeRelocatable::RelocatableValue(ref pc),
-                MaybeRelocatable::RelocatableValue(ref ap),
-                MaybeRelocatable::RelocatableValue(ref fp),
-            ) = (
-                &self.run_context.get_pc(),
-                &self.run_context.get_ap(),
-                &self.run_context.get_fp(),
-            ) {
-                trace.push(TraceEntry {
-                    pc: pc.clone(),
-                    ap: ap.clone(),
-                    fp: fp.clone(),
-                });
-            }
+            trace.push(TraceEntry {
+                pc: self.run_context.pc.clone(),
+                ap: self.run_context.get_ap(),
+                fp: self.run_context.get_fp(),
+            });
         }
 
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
@@ -453,7 +428,7 @@ impl VirtualMachine {
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
-                self.run_context.get_pc(),
+                self.run_context.pc.clone(),
             ];
             accessed_addresses.extend_from_slice(addresses);
         }
@@ -501,7 +476,7 @@ impl VirtualMachine {
 
     fn compute_op0_deductions(
         &mut self,
-        op0_addr: &MaybeRelocatable,
+        op0_addr: &Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
         dst_op: &Option<MaybeRelocatable>,
@@ -524,7 +499,7 @@ impl VirtualMachine {
 
     fn compute_op1_deductions(
         &mut self,
-        op1_addr: &MaybeRelocatable,
+        op1_addr: &Relocatable,
         res: &mut Option<MaybeRelocatable>,
         instruction: &Instruction,
         dst_op: &Option<MaybeRelocatable>,
@@ -550,13 +525,13 @@ impl VirtualMachine {
 
     fn compute_dst_deductions(
         &mut self,
-        dst_addr: &MaybeRelocatable,
+        dst_addr: &Relocatable,
         instruction: &Instruction,
         res: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let dst_op = match instruction.opcode {
             Opcode::AssertEq if res.is_some() => res.clone(),
-            Opcode::Call => Some(self.run_context.get_fp()),
+            Opcode::Call => Some(MaybeRelocatable::from(self.run_context.get_fp())),
             _ => self.deduce_dst(instruction, res.as_ref()),
         };
         let dst = dst_op.ok_or(VirtualMachineError::NoDst)?;
@@ -636,7 +611,7 @@ impl VirtualMachine {
             let index = builtin.base().segment_index;
             for (offset, value) in self.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(&MaybeRelocatable::from((index, offset)), &self.memory)
+                    .deduce_memory_cell(&Relocatable::from((index, offset)), &self.memory)
                     .map_err(VirtualMachineError::RunnerError)?
                 {
                     if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
@@ -673,6 +648,7 @@ mod tests {
         },
     };
 
+    use crate::bigint;
     use num_bigint::Sign;
     use std::collections::HashSet;
 
@@ -1980,9 +1956,9 @@ mod tests {
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            dst_addr.clone(),
-            op0_addr.clone(),
-            op1_addr.clone(),
+            dst_addr.get_relocatable().unwrap().clone(),
+            op0_addr.get_relocatable().unwrap().clone(),
+            op1_addr.get_relocatable().unwrap().clone(),
         ));
 
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
@@ -2031,9 +2007,9 @@ mod tests {
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            dst_addr.clone(),
-            op0_addr.clone(),
-            op1_addr.clone(),
+            dst_addr.get_relocatable().unwrap().clone(),
+            op0_addr.get_relocatable().unwrap().clone(),
+            op1_addr.get_relocatable().unwrap().clone(),
         ));
 
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
@@ -2074,9 +2050,9 @@ mod tests {
         };
 
         let expected_addresses = Some(OperandsAddresses(
-            mayberelocatable!(1, 1),
-            mayberelocatable!(1, 1),
-            mayberelocatable!(0, 1),
+            relocatable!(1, 1),
+            relocatable!(1, 1),
+            relocatable!(0, 1),
         ));
 
         let (operands, addresses) = vm.compute_operands(&instruction).unwrap();
@@ -2294,9 +2270,9 @@ mod tests {
         assert_eq!(vm.run_context.fp, 0);
 
         let accessed_addresses = vm.accessed_addresses.as_ref().unwrap();
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 0))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
     }
 
     #[test]
@@ -2354,10 +2330,10 @@ mod tests {
             ((1, 1), (3, 0))
         ];
 
-        let final_pc = MaybeRelocatable::from((3, 0));
+        let final_pc = Relocatable::from((3, 0));
         let hint_processor = BuiltinHintProcessor::new_empty();
         //Run steps
-        while vm.run_context.get_pc() != final_pc {
+        while vm.run_context.pc != final_pc {
             assert_eq!(
                 vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
@@ -2390,23 +2366,23 @@ mod tests {
             .accessed_addresses
             .unwrap()
             .into_iter()
-            .collect::<HashSet<MaybeRelocatable>>();
+            .collect::<HashSet<Relocatable>>();
         assert_eq!(accessed_addresses.len(), 14);
         //Check each element individually
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 1))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 7))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 2))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 4))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 0))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 5))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 1))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 3))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 4))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 6))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 2))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((0, 5))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 0))));
-        assert!(accessed_addresses.contains(&MaybeRelocatable::from((1, 3))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 1))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 7))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 2))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 4))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 5))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 1))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 3))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 4))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 6))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 2))));
+        assert!(accessed_addresses.contains(&Relocatable::from((0, 5))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 0))));
+        assert!(accessed_addresses.contains(&Relocatable::from((1, 3))));
     }
 
     #[test]
@@ -2495,10 +2471,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_no_pedersen_builtin() {
         let mut vm = vm!();
-        assert_eq!(
-            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 0))),
-            Ok(None)
-        );
+        assert_eq!(vm.deduce_memory_cell(&Relocatable::from((0, 0))), Ok(None));
     }
 
     #[test]
@@ -2509,7 +2482,7 @@ mod tests {
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
-            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 5))),
+            vm.deduce_memory_cell(&Relocatable::from((0, 5))),
             Ok(Some(MaybeRelocatable::from(bigint_str!(
                 b"3270867057177188607814717243084834301278723532952411121381966378910183338911"
             ))))
@@ -2595,9 +2568,9 @@ mod tests {
             )),
         };
         let expected_operands_mem_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((1, 13)),
-            MaybeRelocatable::from((1, 7)),
-            MaybeRelocatable::from((3, 2)),
+            Relocatable::from((1, 13)),
+            Relocatable::from((1, 7)),
+            Relocatable::from((3, 2)),
         ));
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
@@ -2613,7 +2586,7 @@ mod tests {
             .push((String::from("bitwise"), Box::new(builtin)));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
-            vm.deduce_memory_cell(&MaybeRelocatable::from((0, 7))),
+            vm.deduce_memory_cell(&Relocatable::from((0, 7))),
             Ok(Some(MaybeRelocatable::from(bigint!(8))))
         );
     }
@@ -2677,9 +2650,9 @@ mod tests {
             op1: MaybeRelocatable::from(bigint!(8)),
         };
         let expected_operands_mem_addresses = Some(OperandsAddresses(
-            MaybeRelocatable::from((1, 9)),
-            MaybeRelocatable::from((1, 3)),
-            MaybeRelocatable::from((2, 2)),
+            Relocatable::from((1, 9)),
+            Relocatable::from((1, 3)),
+            Relocatable::from((2, 2)),
         ));
         assert_eq!(
             Ok((expected_operands, expected_operands_mem_addresses)),
@@ -2733,7 +2706,7 @@ mod tests {
             )
         ];
 
-        let result = vm.deduce_memory_cell(&MaybeRelocatable::from((0, 6)));
+        let result = vm.deduce_memory_cell(&Relocatable::from((0, 6)));
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
