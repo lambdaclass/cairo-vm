@@ -1,7 +1,7 @@
 use std::{
     any::Any,
     io::{Read, Write},
-    os::unix::net::UnixStream,
+    net::TcpStream,
 };
 
 use serde::Serialize;
@@ -44,7 +44,7 @@ impl PythonExecutor {
             fp: (1, vm.run_context.fp),
             pc: (vm.run_context.pc.segment_index, vm.run_context.pc.offset),
         };
-        let mut stream = UnixStream::connect("ipc.sock").map_err(|_| {
+        let mut stream = TcpStream::connect(("localhost", 50000)).map_err(|_| {
             VirtualMachineError::PythonHint("Failed to establish connection".to_string())
         })?;
         let serialized_data = serde_json::to_string(&python_data).map_err(|_| {

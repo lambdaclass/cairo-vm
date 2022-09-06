@@ -59,16 +59,10 @@ class MemorySegmentManager:
             self.memory[(ptr[0], ptr[1] + i)] = v
         return (ptr[0] + ptr[1] + len(data))
     
-socket_path = "ipc.sock"
 
-#Link processes via socket
-try:
-    os.unlink(socket_path)
-except OSError:
-    pass
 
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-s.bind(socket_path)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind(('localhost', 50000))
 
 s.listen()
 
@@ -113,10 +107,13 @@ while 1:
         #Execute the hint
         code = data['code']
         globals = {'memory': memory, 'segments': segments, 'ap': ap, 'fp': fp, pc: 'pc'}
+        print(memory.data)
         exec(data['code'], globals)
+        print(memory.data)
 
         #Comunicate back to cairo-rs
-        conn.send(bytes(json.dumps(memory.changes),encoding="utf-8"))
+        #conn.send(bytes(json.dumps(memory.changes),encoding="utf-8"))
+        conn.send(bytes(71))
 
         conn.close()
 
