@@ -55,12 +55,10 @@ pub fn get_value_from_reference(
         compute_addr_from_reference(hint_reference, &vm.run_context, &vm.memory, ap_tracking)?;
     let value = if hint_reference.dereference {
         vm.memory.get(&var_addr)?
+    } else if let (None, Some(num)) = (&hint_reference.register, &hint_reference.immediate) {
+        return Ok(Some(MaybeRelocatable::from(num)));
     } else {
-        if let (None, Some(num)) = (&hint_reference.register, &hint_reference.immediate) {
-            return Ok(Some(MaybeRelocatable::from(num)));
-        } else {
-            return Ok(Some(MaybeRelocatable::from(var_addr)));
-        }
+        return Ok(Some(MaybeRelocatable::from(var_addr)));
     };
     Ok(match &value {
         Some(&MaybeRelocatable::RelocatableValue(ref rel)) => {
@@ -86,14 +84,14 @@ pub fn compute_addr_from_reference(
 ) -> Result<Relocatable, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         //This should never fail
-        Some(Register::FP) => run_context.get_fp().get_relocatable()?.clone(),
+        Some(Register::FP) => run_context.get_fp(),
         Some(Register::AP) => {
             let var_ap_trackig = hint_reference
                 .ap_tracking_data
                 .as_ref()
                 .ok_or(VirtualMachineError::NoneApTrackingData)?;
 
-            let ap = run_context.get_ap().get_relocatable()?.clone();
+            let ap = run_context.get_ap();
 
             apply_ap_tracking_correction(&ap, var_ap_trackig, hint_ap_tracking)?
         }
