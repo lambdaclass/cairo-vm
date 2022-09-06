@@ -216,4 +216,6 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Python executor error: {0}")]
+    PythonHint(String),
 }

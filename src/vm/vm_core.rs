@@ -3,6 +3,7 @@ use crate::{
     hint_processor::{
         hint_processor_definition::HintProcessor,
         proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
+        python_executor::python_executor_definition::PythonExecutor,
     },
     serde::deserialize_program::ApTracking,
     types::{
@@ -461,11 +462,19 @@ impl VirtualMachine {
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
                 //We create a new proxy with every hint as the current scope can change
+                let mut vm_proxy = get_vm_proxy(self);
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
+                let result =
+                    hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data);
+                match result {
+                    Ok(()) => (),
+                    Err(VirtualMachineError::UnknownHint(_)) => {
+                        PythonExecutor::execute_hint(self, hint_data)?
+                    }
+                    Err(_) => return result,
+                }
             }
         }
         self.skip_instruction_execution = false;
