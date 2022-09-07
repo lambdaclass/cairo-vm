@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662566370136,
+  "lastUpdate": 1662577827415,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -33281,6 +33281,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 252177913,
             "range": "± 6557412",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "6ebaaa8b4b6ab29c3135ebc277ff4c1558d9dc71",
+          "message": "Create PythonExecutor to communicate via message passing",
+          "timestamp": "2022-09-02T23:25:22Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/418/commits/6ebaaa8b4b6ab29c3135ebc277ff4c1558d9dc71"
+        },
+        "date": 1662577823290,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1600903,
+            "range": "± 94261",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 694354257,
+            "range": "± 3167958",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 338636655,
+            "range": "± 1629619",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1697130796,
+            "range": "± 6946150",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 1169168,
+            "range": "± 15600",
             "unit": "ns/iter"
           }
         ]
