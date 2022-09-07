@@ -9,19 +9,17 @@ from typing import Iterable
 PRIME = 3618502788666131213697322783095070105623107215331596699973092056135872020481
 
 class Memory:
-    data: dict
-    changes: list
-
-    def __init__(self, data: dict):
-        self.data = data
-        self.changes = []
+    socket: socket
+    
+    def __init__(self, socket: socket):
+        self.socket = socket
 
     def __getitem__(self, addr: tuple):
-        return self.data.get(addr)
+        None
     
     def __setitem__(self, addr: tuple, value: int):
-        self.data[addr] = value
-        self.changes += [((addr, value))]
+        #socket.send(bytes('SETITEM', addr, value))
+        None
 
 class Ids:  
     def __init__(self, ids_dict: dict):   
@@ -29,17 +27,15 @@ class Ids:
             setattr(self, key, ids_dict[key])
 
 class MemorySegmentManager:
-    memory: Memory
-    num_segments: int
+    socket: socket
 
-    def __init__(self, memory: Memory, num_segments: int):
-        self.memory = memory
-        self.num_segments = num_segments
+    def __init__(self, socket: socket):
+        self.socket = socket
     
     def add(self) -> tuple:
-        base = (self.num_segments, 0)
-        self.num_segments = self.num_segments + 1
-        return base
+        self.socket.send(bytes('ADD_SEGMENT', encoding="utf-8"))
+        #addr = json.loads()
+        print(self.socket.recv(1024))
 
     def gen_arg(self, arg, apply_modulo_to_args=True):
         if isinstance(arg, Iterable):
@@ -61,65 +57,34 @@ class MemorySegmentManager:
     
 
 
+# Establish connection to cairo-rs process
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('localhost', 50000))
-
+s.bind(('localhost', 60000))
 s.listen()
+conn, addr = s.accept()
 
-#Receive data from cairo-rs
-while 1:
-    conn, addr = s.accept()
-    raw_data = bytearray()
+# Receive data from cairo-rs
+raw_data = bytearray()
+data = conn.recv(1024)
+if data:
+    raw_data.extend(data)
 
-    t0 = time.time()
-    try:
-        while 1:
-            data = conn.recv(8192)
-            if data:
-                raw_data.extend(data)
-            else:
-                break
-        t1 = time.time()
+# Organize & Create data
+data = json.loads(raw_data)
 
-# Parse & organize data from cairo-rs
-        data = json.loads(raw_data)
+ap = (data['ap'][0], data['ap'][1])
+fp = (data['fp'][0], data['fp'][1])
+code = data['code']
+code = 'segments.add()'
 
-        #Memory
-        memory_data = dict()
-        for addr, value in data['memory']:
-            if value.__contains__('Int'):
-                memory_data[(addr[0], addr[1])] = value['Int']
-            else:
-                memory_data[(addr[0], addr[1])] = (value['RelocatableValue']['segment_index'], value['RelocatableValue']['offset'])
-            
-        memory = Memory(memory_data)
+#Execute the hint       
+globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp,}
+exec(data['code'], globals)
 
-        #MemorySegmentManager
-        segments = MemorySegmentManager(memory, data['num_segments'])
+#Comunicate back to cairo-rs
+print("bytes sent", conn.send(bytes('Ok', encoding="utf-8")))
 
-        # RunContext pointers
-        ap = (data['ap'][0], data['ap'][1])
-        fp = (data['fp'][0], data['fp'][1])
-        pc = (data['pc'][0], data['pc'][1])
+conn.close()
+conn.__exit__
 
-        t2 = time.time()
 
-        #Execute the hint
-        code = data['code']
-        globals = {'memory': memory, 'segments': segments, 'ap': ap, 'fp': fp, pc: 'pc'}
-        print(memory.data)
-        exec(data['code'], globals)
-        print(memory.data)
-
-        #Comunicate back to cairo-rs
-        #conn.send(bytes(json.dumps(memory.changes),encoding="utf-8"))
-        conn.send(bytes(71))
-
-        conn.close()
-
-        print("load time", t1- t0)
-        print("execution time", t2- t1)
-        break
-
-    finally:
-        conn.__exit__

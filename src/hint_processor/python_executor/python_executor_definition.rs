@@ -7,22 +7,15 @@ use std::{
 use serde::Serialize;
 
 use crate::{
-    hint_processor::{
-        builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
-        python_compatible_helpers::get_python_compatible_memory,
-    },
-    types::relocatable::MaybeRelocatable,
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
 #[derive(Serialize)]
 pub struct PythonData {
     code: String,
-    memory: Vec<((usize, usize), MaybeRelocatable)>,
-    num_segments: usize,
     ap: (usize, usize),
     fp: (usize, usize),
-    pc: (usize, usize),
 }
 pub struct PythonExecutor {}
 
@@ -35,27 +28,38 @@ impl PythonExecutor {
             .downcast_ref::<HintProcessorData>()
             .ok_or(VirtualMachineError::WrongHintData)?;
 
-        let memory = get_python_compatible_memory(&vm.memory);
-        let python_data = PythonData {
-            code: hint_data.code.clone(),
-            memory,
-            num_segments: vm.segments.num_segments,
-            ap: (1, vm.run_context.ap),
-            fp: (1, vm.run_context.fp),
-            pc: (vm.run_context.pc.segment_index, vm.run_context.pc.offset),
-        };
-        let mut stream = TcpStream::connect(("localhost", 50000)).map_err(|_| {
+        let mut stream = TcpStream::connect(("localhost", 60000)).map_err(|_| {
             VirtualMachineError::PythonHint("Failed to establish connection".to_string())
         })?;
-        let serialized_data = serde_json::to_string(&python_data).map_err(|_| {
-            VirtualMachineError::PythonHint("Failed to serielize memory".to_string())
-        })?;
-        stream.write_all(serialized_data.as_bytes()).map_err(|_| {
-            VirtualMachineError::PythonHint("Failed to communicate with python process".to_string())
-        })?;
-        let mut response = Vec::new();
-        stream.read(&mut response).unwrap();
-        println!("Response: {:?}", response);
+        let python_data = PythonData {
+            code: hint_data.code.clone(),
+            ap: (1, vm.run_context.ap),
+            fp: (1, vm.run_context.fp),
+        };
+        let serialized_data = serde_json::to_string(&python_data)
+            .map_err(|_| VirtualMachineError::PythonHint("Failed to serielize data".to_string()))?;
+        stream.write(serialized_data.as_bytes()).unwrap();
+        let mut finished_hint = false;
+        let mut counter = 10000;
+        let mut response = vec![];
+        while !finished_hint && counter != 0 {
+            response.clear();
+            stream.read_to_end(&mut response).unwrap();
+            println!("Response: {:?}", std::str::from_utf8(&response));
+            match std::str::from_utf8(&response).unwrap() {
+                "Ok" => finished_hint = true,
+                "ADD_SEGMENT" => {
+                    println!("Adding a Segment");
+                    let base = vm.segments.add(&mut vm.memory);
+                    stream
+                        .write(serde_json::to_string(&base).unwrap().as_bytes())
+                        .unwrap();
+                    println!("Response sent back to python")
+                }
+                _ => (),
+            }
+            counter -= 1;
+        }
         Ok(())
     }
 }
