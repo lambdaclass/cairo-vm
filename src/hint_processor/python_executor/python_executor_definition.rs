@@ -40,20 +40,33 @@ impl PythonExecutor {
             .map_err(|_| VirtualMachineError::PythonHint("Failed to serielize data".to_string()))?;
         stream.write(serialized_data.as_bytes()).unwrap();
         let mut finished_hint = false;
-        let mut counter = 10000;
-        let mut response = vec![];
+        let mut counter = 3;
         while !finished_hint && counter != 0 {
-            response.clear();
-            stream.read_to_end(&mut response).unwrap();
-            println!("Response: {:?}", std::str::from_utf8(&response));
-            match std::str::from_utf8(&response).unwrap() {
+            let mut response = [0; 1024];
+            stream.read(&mut response).unwrap();
+            println!(
+                "Response: {:?}",
+                std::str::from_utf8(&response)
+                    .unwrap()
+                    .trim_end_matches('\0')
+            );
+            match std::str::from_utf8(&response)
+                .unwrap()
+                .trim_end_matches('\0')
+            {
                 "Ok" => finished_hint = true,
                 "ADD_SEGMENT" => {
                     println!("Adding a Segment");
                     let base = vm.segments.add(&mut vm.memory);
+                    println!("SENDING: {:?}", &(base.segment_index, base.offset));
                     stream
-                        .write(serde_json::to_string(&base).unwrap().as_bytes())
+                        .write(
+                            serde_json::to_string(&(base.segment_index, base.offset))
+                                .unwrap()
+                                .as_bytes(),
+                        )
                         .unwrap();
+                    //stream.shutdown(Shutdown::Both).unwrap();
                     println!("Response sent back to python")
                 }
                 _ => (),
