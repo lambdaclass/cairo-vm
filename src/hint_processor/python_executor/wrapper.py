@@ -35,9 +35,9 @@ class MemorySegmentManager:
     
     def add(self) -> tuple:
         self.socket.send(bytes('ADD_SEGMENT', encoding="utf-8"))
-        print("SENT OP")
-        #addr = json.loads()
         addr = self.socket.recv(10)
+        addr = json.loads(addr)
+        return (addr[0], addr[1])
 
     def gen_arg(self, arg, apply_modulo_to_args=True):
         if isinstance(arg, Iterable):
@@ -80,20 +80,11 @@ code = data['code']
 code = 'segments.add()'
 
 #Execute the hint
-#globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp,}
-#exec(data['code'], globals)
-
-conn.sendall(bytes('ADD_SEGMENT', encoding="utf-8"))
-#conn.shutdown(socket.SHUT_WR)
-print("SENT OP")
-#addr = json.loads()
-data = bytearray()
-data = conn.recv(1024)
-print("DATA",data)
-#print(json.loads(data))
+globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp,}
+exec(data['code'], globals)
 
 #Comunicate back to cairo-rs
-print("bytes sent", conn.send(bytes('Ok', encoding="utf-8")))
+conn.send(bytes('Ok', encoding="utf-8"))
 
 conn.close()
 conn.__exit__
