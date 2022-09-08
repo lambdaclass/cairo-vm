@@ -98,7 +98,8 @@ impl BuiltinRunner for HashBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{bigint_str, utils::test_utils::memory};
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::{bigint, bigint_str, utils::test_utils::*};
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {

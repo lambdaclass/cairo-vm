@@ -180,7 +180,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::memory;
+    use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::errors::runner_errors::RunnerError;
 
     #[test]
     fn point_is_on_curve_a() {

@@ -95,7 +95,8 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::memory;
+    use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
