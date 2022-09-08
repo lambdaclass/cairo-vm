@@ -90,32 +90,26 @@ pub fn process_python_operations(
         //Execute operations
         match python_operation.operation {
             "Ok" => finished_hint = true,
-            "ADD_SEGMENT" => {
-                process_add_segment(stream, &mut vm.memory, &mut vm.segments)?;
-            }
-            "MEMORY_INSERT" => {
-                process_memory_insert(
-                    stream,
-                    &python_operation
-                        .args
-                        .unwrap_or(Err(VirtualMachineError::PythonHint(
-                            "No args sent for MEMORY_INSERT operation".to_string(),
-                        ))?),
-                    &mut vm.memory,
-                )?;
-            }
-            "UPDATE_DATA" => {
-                process_update_data(
-                    stream,
-                    &python_operation
-                        .args
-                        .unwrap_or(Err(VirtualMachineError::PythonHint(
-                            "No args sent for UPDATE_DATA operation".to_string(),
-                        ))?),
-                    vm,
-                    hint_data,
-                )?;
-            }
+            "ADD_SEGMENT" => process_add_segment(stream, &mut vm.memory, &mut vm.segments)?,
+            "MEMORY_INSERT" => process_memory_insert(
+                stream,
+                &python_operation
+                    .args
+                    .unwrap_or(Err(VirtualMachineError::PythonHint(
+                        "No args sent for MEMORY_INSERT operation".to_string(),
+                    ))?),
+                &mut vm.memory,
+            )?,
+            "UPDATE_DATA" => process_update_data(
+                stream,
+                &python_operation
+                    .args
+                    .unwrap_or(Err(VirtualMachineError::PythonHint(
+                        "No args sent for UPDATE_DATA operation".to_string(),
+                    ))?),
+                vm,
+                hint_data,
+            )?,
             _ => (),
         }
         counter -= 1;
