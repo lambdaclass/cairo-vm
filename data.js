@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662659950403,
+  "lastUpdate": 1662660615851,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -33431,6 +33431,50 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 198081045,
             "range": "± 351726",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "c7ce0881d9cd07ebb9841939d7ac3c457a0c4f64",
+          "message": "Create PythonExecutor to communicate via message passing",
+          "timestamp": "2022-09-02T23:25:22Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/418/commits/c7ce0881d9cd07ebb9841939d7ac3c457a0c4f64"
+        },
+        "date": 1662660612480,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1257466,
+            "range": "± 74440",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 570015308,
+            "range": "± 30161600",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 273421975,
+            "range": "± 10925124",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1327210093,
+            "range": "± 48795477",
             "unit": "ns/iter"
           }
         ]
