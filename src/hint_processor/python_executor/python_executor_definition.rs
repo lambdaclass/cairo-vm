@@ -74,7 +74,7 @@ pub fn process_python_operations(
     hint_data: &HintProcessorData,
 ) -> Result<(), VirtualMachineError> {
     let mut finished_hint = false;
-    let mut counter = 3; //Counter is a temporary measure to prevent infinite looping
+    let mut counter = 10; //Counter is a temporary measure to prevent infinite looping
     while !finished_hint && counter != 0 {
         //Read requests from python process
         let mut response = [0; 1024];
@@ -97,8 +97,8 @@ pub fn process_python_operations(
                     .unwrap();
             }
             "MEMORY_INSERT" => {
-                //Yes this code is ugly
-                //Fix to accept BigInt too
+                //TODO: Improve parsing
+                //TODO Fix to accept BigInt too
                 //Parse arguments & carry out operation
                 let parse_result: Result<((usize, usize), usize), _> =
                     serde_json::from_str(&python_operation.args.clone().unwrap());
