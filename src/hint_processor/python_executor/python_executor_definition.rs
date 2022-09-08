@@ -44,7 +44,7 @@ pub struct PythonData {
     ids: HashMap<String, Option<MaybeRelocatable>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PythonOperation<'a> {
     operation: &'a str,
     args: Option<String>,
@@ -91,25 +91,31 @@ pub fn process_python_operations(
         match python_operation.operation {
             "Ok" => finished_hint = true,
             "ADD_SEGMENT" => process_add_segment(stream, &mut vm.memory, &mut vm.segments)?,
-            "MEMORY_INSERT" => process_memory_insert(
-                stream,
-                &python_operation
-                    .args
-                    .unwrap_or(Err(VirtualMachineError::PythonHint(
-                        "No args sent for MEMORY_INSERT operation".to_string(),
-                    ))?),
-                &mut vm.memory,
-            )?,
-            "UPDATE_DATA" => process_update_data(
-                stream,
-                &python_operation
-                    .args
-                    .unwrap_or(Err(VirtualMachineError::PythonHint(
-                        "No args sent for UPDATE_DATA operation".to_string(),
-                    ))?),
-                vm,
-                hint_data,
-            )?,
+            "MEMORY_INSERT" => {
+                if python_operation.args.is_none() {
+                    return Err(VirtualMachineError::PythonHint(
+                        "No args received for MEMORY_INSERT".to_string(),
+                    ));
+                };
+                process_memory_insert(stream, &python_operation.args.unwrap(), &mut vm.memory)?;
+            }
+            "MEMORY_GET" => {
+                if python_operation.args.is_none() {
+                    return Err(VirtualMachineError::PythonHint(
+                        "No args received for MEMORY_GET".to_string(),
+                    ));
+                };
+                let args = python_operation.args.unwrap();
+                process_memory_get(stream, &args, &mut vm.memory)?;
+            }
+            "UPDATE_DATA" => {
+                if python_operation.args.is_none() {
+                    return Err(VirtualMachineError::PythonHint(
+                        "No args received for UPDATE_DATA".to_string(),
+                    ));
+                };
+                process_update_data(stream, &python_operation.args.unwrap(), vm, hint_data)?;
+            }
             _ => (),
         }
         counter -= 1;
@@ -182,6 +188,28 @@ pub fn process_memory_insert(
     }
     //Inform that the operation was succesful
     stream.write_all(b"Ok").unwrap();
+    Ok(())
+}
+
+pub fn process_memory_get(
+    stream: &mut TcpStream,
+    args: &str,
+    memory: &mut Memory,
+) -> Result<(), VirtualMachineError> {
+    //Parse arguments & carry out operation
+    let parse_result: (usize, usize) = serde_json::from_str(args).map_err(|_| {
+        VirtualMachineError::PythonHint("Failed to parse arguments for MEMORY_GET".to_string())
+    })?;
+    let value =
+        memory
+            .get(&Relocatable::from(parse_result))?
+            .ok_or(VirtualMachineError::MemoryGet(MaybeRelocatable::from(
+                parse_result,
+            )))?;
+    //Send back the result of the operation
+    stream
+        .write_all(serde_json::to_string(&value).unwrap().as_bytes())
+        .unwrap();
     Ok(())
 }
 

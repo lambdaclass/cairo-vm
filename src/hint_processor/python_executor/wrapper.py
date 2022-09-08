@@ -17,7 +17,14 @@ class Memory:
         self.socket = socket
 
     def __getitem__(self, addr: tuple):
-        None
+        operation = {'operation': 'MEMORY_GET', 'args': json.dumps(addr)}
+        self.socket.send(bytes(json.dumps(operation), 'utf-8'))
+        value = self.socket.recv(1024)
+        value = json.loads(value)
+        if value.__contains__('Int'):
+            return value['Int'][1][0]
+        elif value.__contains__('RelocatableValue'):
+            return (value['RelocatableValue']['segment_index'], value['RelocatableValue']['offset'])
     
     def __setitem__(self, addr: tuple, value: int):
         operation = {'operation': 'MEMORY_INSERT', 'args': json.dumps((addr, value))}
