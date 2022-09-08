@@ -28,11 +28,14 @@ class Memory:
 class Ids:
     def __init__(self, ids_dict: dict):  
         for key in ids_dict.keys():
-            if ids_dict[key].__contains__('Int'):
-                setattr(self, key, ids_dict[key]['Int'][1][0])
-            elif ids_dict[key].__contains__('RelocatableValue'):
-                setattr(self, key, (ids_dict[key]['RelocatableValue']['segment_index'], ids_dict[key]['RelocatableValue']['offset']))
-            else:
+            if ids_dict[key]:
+                if ids_dict[key].__contains__('Int'):
+                    setattr(self, key, ids_dict[key]['Int'][1][0])
+                elif ids_dict[key].__contains__('RelocatableValue'):
+                    setattr(self, key, (ids_dict[key]['RelocatableValue']['segment_index'], ids_dict[key]['RelocatableValue']['offset']))
+                else:
+                    setattr(self, key, None)
+            else: 
                 setattr(self, key, None)
 
 
