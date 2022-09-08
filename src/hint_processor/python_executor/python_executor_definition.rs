@@ -10,8 +10,10 @@ use crate::{
     bigint,
     hint_processor::{
         builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
-        python_compatible_helpers::get_python_compatible_ids,
+        hint_processor_definition::HintReference,
+        python_compatible_helpers::{compute_addr_from_reference, get_python_compatible_ids},
     },
+    serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
@@ -124,7 +126,12 @@ impl PythonExecutor {
                     //Perform update
                     vm.run_context.ap = update_data.ap;
                     vm.run_context.fp = update_data.fp;
-                    println!("IDS: {:?}", update_data.ids);
+                    update_ids(
+                        vm,
+                        &hint_data.ids_data,
+                        &hint_data.ap_tracking,
+                        &update_data.ids,
+                    )?;
                     //Inform that the operation was succesful
                     stream.write_all(b"Ok").unwrap();
                 }
@@ -132,9 +139,26 @@ impl PythonExecutor {
             }
             counter -= 1;
         }
-        //TODO: Apply final changes : aka check run_context, ids, etc
         Ok(())
     }
+}
+
+pub fn update_ids(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    update_data: &HashMap<String, MaybeRelocatable>,
+) -> Result<(), VirtualMachineError> {
+    for (name, value) in update_data.iter() {
+        let addr = compute_addr_from_reference(
+            &ids_data.get(name).unwrap(),
+            &vm.run_context,
+            &vm.memory,
+            ap_tracking,
+        )?;
+        vm.memory.insert(&addr, value)?;
+    }
+    Ok(())
 }
 
 pub fn deserialize_py_ids<'de, D: Deserializer<'de>>(
