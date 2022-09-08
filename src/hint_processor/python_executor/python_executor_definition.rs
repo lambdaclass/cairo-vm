@@ -15,7 +15,11 @@ use crate::{
     },
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{
+        errors::vm_errors::VirtualMachineError,
+        vm_core::VirtualMachine,
+        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+    },
 };
 use num_bigint::BigInt;
 use serde::Deserializer;
@@ -87,60 +91,103 @@ pub fn process_python_operations(
         match python_operation.operation {
             "Ok" => finished_hint = true,
             "ADD_SEGMENT" => {
-                let base = vm.segments.add(&mut vm.memory);
-                stream
-                    .write_all(
-                        serde_json::to_string(&(base.segment_index, base.offset))
-                            .unwrap()
-                            .as_bytes(),
-                    )
-                    .unwrap();
+                process_add_segment(stream, &mut vm.memory, &mut vm.segments)?;
             }
             "MEMORY_INSERT" => {
-                //TODO: Improve parsing
-                //TODO Fix to accept BigInt too
-                //Parse arguments & carry out operation
-                let parse_result: Result<((usize, usize), usize), _> =
-                    serde_json::from_str(&python_operation.args.clone().unwrap());
-                match parse_result {
-                    Err(_) => {
-                        let parse_result: Result<((usize, usize), (usize, usize)), _> =
-                            serde_json::from_str(&python_operation.args.unwrap());
-                        let parse_result = parse_result.expect("Failed argument parse");
-                        vm.memory.insert(
-                            &(Relocatable::from(parse_result.0)),
-                            &(Relocatable::from(parse_result.1)),
-                        )?;
-                    }
-                    Ok(parse_result) => {
-                        vm.memory.insert(
-                            &(Relocatable::from(parse_result.0)),
-                            &bigint!(parse_result.1),
-                        )?;
-                    }
-                }
-                //Inform that the operation was succesful
-                stream.write_all(b"Ok").unwrap();
+                process_memory_insert(
+                    stream,
+                    &python_operation
+                        .args
+                        .unwrap_or(Err(VirtualMachineError::PythonHint(
+                            "No args sent for MEMORY_INSERT operation".to_string(),
+                        ))?),
+                    &mut vm.memory,
+                )?;
             }
             "UPDATE_DATA" => {
-                let update_data: PythonUpdate =
-                    serde_json::from_str(&python_operation.args.unwrap()).unwrap();
-                //Perform update
-                vm.run_context.ap = update_data.ap;
-                vm.run_context.fp = update_data.fp;
-                update_ids(
+                process_update_data(
+                    stream,
+                    &python_operation
+                        .args
+                        .unwrap_or(Err(VirtualMachineError::PythonHint(
+                            "No args sent for UPDATE_DATA operation".to_string(),
+                        ))?),
                     vm,
-                    &hint_data.ids_data,
-                    &hint_data.ap_tracking,
-                    &update_data.ids,
+                    hint_data,
                 )?;
-                //Inform that the operation was succesful
-                stream.write_all(b"Ok").unwrap();
             }
             _ => (),
         }
         counter -= 1;
     }
+    Ok(())
+}
+
+pub fn process_update_data(
+    stream: &mut TcpStream,
+    args: &String,
+    vm: &mut VirtualMachine,
+    hint_data: &HintProcessorData,
+) -> Result<(), VirtualMachineError> {
+    let update_data: PythonUpdate = serde_json::from_str(&args).unwrap();
+    //Perform update
+    vm.run_context.ap = update_data.ap;
+    vm.run_context.fp = update_data.fp;
+    update_ids(
+        vm,
+        &hint_data.ids_data,
+        &hint_data.ap_tracking,
+        &update_data.ids,
+    )?;
+    //Inform that the operation was succesful
+    stream.write_all(b"Ok").unwrap();
+    Ok(())
+}
+
+pub fn process_add_segment(
+    stream: &mut TcpStream,
+    memory: &mut Memory,
+    segments: &mut MemorySegmentManager,
+) -> Result<(), VirtualMachineError> {
+    let base = segments.add(memory);
+    stream
+        .write_all(
+            serde_json::to_string(&(base.segment_index, base.offset))
+                .unwrap()
+                .as_bytes(),
+        )
+        .unwrap();
+    Ok(())
+}
+
+pub fn process_memory_insert(
+    stream: &mut TcpStream,
+    args: &String,
+    memory: &mut Memory,
+) -> Result<(), VirtualMachineError> {
+    //TODO: Improve parsing
+    //TODO Fix to accept BigInt too
+    //Parse arguments & carry out operation
+    let parse_result: Result<((usize, usize), usize), _> = serde_json::from_str(args);
+    match parse_result {
+        Err(_) => {
+            let parse_result: Result<((usize, usize), (usize, usize)), _> =
+                serde_json::from_str(args);
+            let parse_result = parse_result.expect("Failed argument parse");
+            memory.insert(
+                &(Relocatable::from(parse_result.0)),
+                &(Relocatable::from(parse_result.1)),
+            )?;
+        }
+        Ok(parse_result) => {
+            memory.insert(
+                &(Relocatable::from(parse_result.0)),
+                &bigint!(parse_result.1),
+            )?;
+        }
+    }
+    //Inform that the operation was succesful
+    stream.write_all(b"Ok").unwrap();
     Ok(())
 }
 
