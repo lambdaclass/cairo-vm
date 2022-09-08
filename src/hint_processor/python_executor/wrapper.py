@@ -4,6 +4,7 @@ import os
 import time
 import json
 from typing import Iterable
+from urllib import response
 
 # VM structures definition
 
@@ -19,9 +20,11 @@ class Memory:
         None
     
     def __setitem__(self, addr: tuple, value: int):
-        #socket.send(bytes('SETITEM', addr, value))
-        None
-
+        operation = {'operation': 'MEMORY_INSERT', 'args': json.dumps((addr, value))}
+        self.socket.send(bytes(json.dumps(operation), 'utf-8'))
+        response = self.socket.recv(2)
+        assert(response == b'Ok')
+        
 class Ids:  
     def __init__(self, ids_dict: dict):   
         for key in ids_dict.keys():
@@ -34,7 +37,8 @@ class MemorySegmentManager:
         self.socket = socket
     
     def add(self) -> tuple:
-        self.socket.send(bytes('ADD_SEGMENT', encoding="utf-8"))
+        operation = {'operation': 'ADD_SEGMENT'}
+        self.socket.send(bytes(json.dumps(operation), 'utf-8'))
         addr = self.socket.recv(10)
         addr = json.loads(addr)
         return (addr[0], addr[1])
@@ -77,14 +81,14 @@ data = json.loads(raw_data)
 ap = (data['ap'][0], data['ap'][1])
 fp = (data['fp'][0], data['fp'][1])
 code = data['code']
-code = 'segments.add()'
 
 #Execute the hint
 globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp,}
-exec(data['code'], globals)
+exec(code, globals)
 
 #Comunicate back to cairo-rs
-conn.send(bytes('Ok', encoding="utf-8"))
+operation = {'operation': 'Ok'}
+conn.send(bytes(json.dumps(operation), encoding="utf-8"))
 
 conn.close()
 conn.__exit__
