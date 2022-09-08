@@ -86,8 +86,6 @@ data = json.loads(raw_data)
 ap = (data['ap'][0], data['ap'][1])
 fp = (data['fp'][0], data['fp'][1])
 ids = Ids(data['ids'])
-print(data['ids'])
-print("Python ids.a", ids.a)
 code = data['code']
 #Execute the hint
 globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp, 'ids': ids}
@@ -97,7 +95,7 @@ exec(code, globals)
 operation = {'operation': 'UPDATE_DATA', 'args': json.dumps({'ids': ids.__dict__,'ap': ap[1], 'fp': fp[1]})}
 conn.send(bytes(json.dumps(operation), encoding="utf-8"))
 response = conn.recv(2)
-#assert(response == b'Ok')
+assert(response == b'Ok')
 #End Hint
 operation = {'operation': 'Ok'}
 conn.send(bytes(json.dumps(operation), encoding="utf-8"))

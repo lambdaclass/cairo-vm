@@ -1,6 +1,7 @@
 use std::{
     any::Any,
     collections::HashMap,
+    fmt,
     io::{Read, Write},
     net::TcpStream,
 };
@@ -15,10 +16,15 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
-use serde::{Deserialize, Serialize};
+use serde::Deserializer;
+use serde::{
+    de::{self, MapAccess},
+    Deserialize, Serialize,
+};
 
 #[derive(Deserialize, Debug)]
 pub struct PythonUpdate {
+    #[serde(deserialize_with = "deserialize_py_ids")]
     ids: HashMap<String, MaybeRelocatable>,
     ap: usize,
     fp: usize,
@@ -59,7 +65,6 @@ impl PythonExecutor {
             fp: (1, vm.run_context.fp),
             ids,
         };
-        println! {"Python data: {:?}", python_data};
         let serialized_data = serde_json::to_string(&python_data)
             .map_err(|_| VirtualMachineError::PythonHint("Failed to serielize data".to_string()))?;
         stream.write_all(serialized_data.as_bytes()).unwrap();
@@ -114,10 +119,8 @@ impl PythonExecutor {
                     stream.write_all(b"Ok").unwrap();
                 }
                 "UPDATE_DATA" => {
-                    println!("ARGS: {:?}", python_operation.args);
                     let update_data: PythonUpdate =
                         serde_json::from_str(&python_operation.args.unwrap()).unwrap();
-                    println!("Update data: {:?}", update_data);
                     //Perform update
                     vm.run_context.ap = update_data.ap;
                     vm.run_context.fp = update_data.fp;
@@ -131,5 +134,40 @@ impl PythonExecutor {
         }
         //TODO: Apply final changes : aka check run_context, ids, etc
         Ok(())
+    }
+}
+
+pub fn deserialize_py_ids<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<HashMap<String, MaybeRelocatable>, D::Error> {
+    d.deserialize_map(MaybeRelocatableVisitor)
+}
+struct MaybeRelocatableVisitor;
+
+impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
+    type Value = HashMap<String, MaybeRelocatable>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("Could not deserialize ids")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut data: HashMap<String, MaybeRelocatable> = HashMap::new();
+        let mut reading = true;
+        while reading == true {
+            reading = false;
+            while let Some((name, val)) = map.next_entry::<String, usize>()? {
+                data.insert(name, MaybeRelocatable::from(bigint!(val)));
+                reading = true;
+            }
+            while let Some((name, val)) = map.next_entry::<String, (usize, usize)>()? {
+                data.insert(name, MaybeRelocatable::from(val));
+                reading = true;
+            }
+        }
+        Ok(data)
     }
 }
