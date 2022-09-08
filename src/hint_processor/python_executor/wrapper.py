@@ -25,10 +25,17 @@ class Memory:
         response = self.socket.recv(2)
         assert(response == b'Ok')
         
-class Ids:  
-    def __init__(self, ids_dict: dict):   
+class Ids:
+    def __init__(self, ids_dict: dict):  
         for key in ids_dict.keys():
-            setattr(self, key, ids_dict[key])
+            if ids_dict[key].__contains__('Int'):
+                setattr(self, key, ids_dict[key]['Int'][1][0])
+            elif ids_dict[key].__contains__('RelocatableValue'):
+                setattr(self, key, (ids_dict[key]['RelocatableValue']['segment_index'], ids_dict[key]['RelocatableValue']['offset']))
+            else:
+                setattr(self, key, None)
+
+
 
 class MemorySegmentManager:
     socket: socket
@@ -61,8 +68,6 @@ class MemorySegmentManager:
             self.memory[(ptr[0], ptr[1] + i)] = v
         return (ptr[0] + ptr[1] + len(data))
     
-
-
 # Establish connection to cairo-rs process
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('localhost', 60000))
@@ -80,13 +85,20 @@ data = json.loads(raw_data)
 
 ap = (data['ap'][0], data['ap'][1])
 fp = (data['fp'][0], data['fp'][1])
+ids = Ids(data['ids'])
+print(data['ids'])
+print("Python ids.a", ids.a)
 code = data['code']
-
 #Execute the hint
-globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp,}
+globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp, 'ids': ids}
 exec(code, globals)
-
 #Comunicate back to cairo-rs
+#Update Data
+operation = {'operation': 'UPDATE_DATA', 'args': json.dumps({'ids': ids.__dict__,'ap': ap[1], 'fp': fp[1]})}
+conn.send(bytes(json.dumps(operation), encoding="utf-8"))
+response = conn.recv(2)
+#assert(response == b'Ok')
+#End Hint
 operation = {'operation': 'Ok'}
 conn.send(bytes(json.dumps(operation), encoding="utf-8"))
 

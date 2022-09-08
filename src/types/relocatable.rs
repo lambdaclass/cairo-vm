@@ -5,16 +5,16 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::ops::Add;
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 pub struct Relocatable {
     pub segment_index: usize,
     pub offset: usize,
 }
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(BigInt),

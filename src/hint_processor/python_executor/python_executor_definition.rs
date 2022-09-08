@@ -1,29 +1,41 @@
 use std::{
     any::Any,
+    collections::HashMap,
     io::{Read, Write},
     net::TcpStream,
 };
 
 use crate::{
     bigint,
-    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
-    types::relocatable::Relocatable,
+    hint_processor::{
+        builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
+        python_compatible_helpers::get_python_compatible_ids,
+    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
+#[derive(Deserialize, Debug)]
+pub struct PythonUpdate {
+    ids: HashMap<String, MaybeRelocatable>,
+    ap: usize,
+    fp: usize,
+}
+
+#[derive(Serialize, Debug)]
 pub struct PythonData {
     code: String,
     ap: (usize, usize),
     fp: (usize, usize),
+    ids: HashMap<String, Option<MaybeRelocatable>>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct PythonOperation<'a> {
     operation: &'a str,
-    args: Option<&'a str>,
+    args: Option<String>,
 }
 pub struct PythonExecutor {}
 
@@ -40,11 +52,14 @@ impl PythonExecutor {
             VirtualMachineError::PythonHint("Failed to establish connection".to_string())
         })?;
         //Send initial python data
+        let ids = get_python_compatible_ids(vm, &hint_data.ids_data, &hint_data.ap_tracking)?;
         let python_data = PythonData {
             code: hint_data.code.clone(),
             ap: (1, vm.run_context.ap),
             fp: (1, vm.run_context.fp),
+            ids,
         };
+        println! {"Python data: {:?}", python_data};
         let serialized_data = serde_json::to_string(&python_data)
             .map_err(|_| VirtualMachineError::PythonHint("Failed to serielize data".to_string()))?;
         stream.write_all(serialized_data.as_bytes()).unwrap();
@@ -77,11 +92,11 @@ impl PythonExecutor {
                     //Fix to accept BigInt too
                     //Parse arguments & carry out operation
                     let parse_result: Result<((usize, usize), usize), _> =
-                        serde_json::from_str(python_operation.args.unwrap());
+                        serde_json::from_str(&python_operation.args.clone().unwrap());
                     match parse_result {
                         Err(_) => {
                             let parse_result: Result<((usize, usize), (usize, usize)), _> =
-                                serde_json::from_str(python_operation.args.unwrap());
+                                serde_json::from_str(&python_operation.args.unwrap());
                             let parse_result = parse_result.expect("Failed argument parse");
                             vm.memory.insert(
                                 &(Relocatable::from(parse_result.0)),
@@ -95,6 +110,18 @@ impl PythonExecutor {
                             )?;
                         }
                     }
+                    //Inform that the operation was succesful
+                    stream.write_all(b"Ok").unwrap();
+                }
+                "UPDATE_DATA" => {
+                    println!("ARGS: {:?}", python_operation.args);
+                    let update_data: PythonUpdate =
+                        serde_json::from_str(&python_operation.args.unwrap()).unwrap();
+                    println!("Update data: {:?}", update_data);
+                    //Perform update
+                    vm.run_context.ap = update_data.ap;
+                    vm.run_context.fp = update_data.fp;
+                    println!("IDS: {:?}", update_data.ids);
                     //Inform that the operation was succesful
                     stream.write_all(b"Ok").unwrap();
                 }
