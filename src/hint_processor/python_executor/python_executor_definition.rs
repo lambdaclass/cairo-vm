@@ -125,11 +125,11 @@ pub fn process_python_operations(
 
 pub fn process_update_data(
     stream: &mut TcpStream,
-    args: &String,
+    args: &str,
     vm: &mut VirtualMachine,
     hint_data: &HintProcessorData,
 ) -> Result<(), VirtualMachineError> {
-    let update_data: PythonUpdate = serde_json::from_str(&args).unwrap();
+    let update_data: PythonUpdate = serde_json::from_str(args).unwrap();
     //Perform update
     vm.run_context.ap = update_data.ap;
     vm.run_context.fp = update_data.fp;
@@ -162,7 +162,7 @@ pub fn process_add_segment(
 
 pub fn process_memory_insert(
     stream: &mut TcpStream,
-    args: &String,
+    args: &str,
     memory: &mut Memory,
 ) -> Result<(), VirtualMachineError> {
     //TODO: Improve parsing
@@ -202,8 +202,8 @@ pub fn get_serialized_python_data(
         fp: (1, vm.run_context.fp),
         ids,
     };
-    Ok(serde_json::to_string(&python_data)
-        .map_err(|_| VirtualMachineError::PythonHint("Failed to serialize data".to_string()))?)
+    serde_json::to_string(&python_data)
+        .map_err(|_| VirtualMachineError::PythonHint("Failed to serialize data".to_string()))
 }
 
 pub fn update_ids(
@@ -214,7 +214,7 @@ pub fn update_ids(
 ) -> Result<(), VirtualMachineError> {
     for (name, value) in update_data.iter() {
         let addr = compute_addr_from_reference(
-            &ids_data.get(name).unwrap(),
+            ids_data.get(name).unwrap(),
             &vm.run_context,
             &vm.memory,
             ap_tracking,
@@ -244,7 +244,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     {
         let mut data: HashMap<String, MaybeRelocatable> = HashMap::new();
         let mut reading = true;
-        while reading == true {
+        while reading {
             reading = false;
             while let Some((name, val)) = map.next_entry::<String, usize>()? {
                 data.insert(name, MaybeRelocatable::from(bigint!(val)));
