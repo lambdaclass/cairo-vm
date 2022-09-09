@@ -235,13 +235,17 @@ pub fn update_ids(
     update_data: &HashMap<String, MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
     for (name, value) in update_data.iter() {
-        let addr = compute_addr_from_reference(
+        match compute_addr_from_reference(
             ids_data.get(name).unwrap(),
             &vm.run_context,
             &vm.memory,
             ap_tracking,
-        )?;
-        vm.memory.insert(&addr, value)?;
+        ) {
+            Err(_) => (), //We dont handle this error as we already handled it previously when serializing ids
+            //This error case would only be reached when the ids value is given by an immediate, in which case the
+            //variable already has a value and a different value cant be inserted into it
+            Ok(addr) => vm.memory.insert(&addr, value)?,
+        };
     }
     Ok(())
 }
