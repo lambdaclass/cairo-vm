@@ -133,7 +133,7 @@ class MemorySegmentManager:
     def load_data(self, ptr: RelocatableValue, data):
         for i, v in enumerate(data):
             self.memory[ptr + i] = v
-        return ptr + ptr + len(data)
+        return ptr + len(data)
 
 def execute_hints(s: socket):
     while True:
