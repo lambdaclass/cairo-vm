@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662732593054,
+  "lastUpdate": 1662732666918,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -33873,6 +33873,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 199627840,
             "range": "± 761903",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "b2c1630d759882414fe00ddb005923d57fbf51a6",
+          "message": "Create PythonExecutor to communicate via message passing (WIP)",
+          "timestamp": "2022-09-09T13:09:08Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/418/commits/b2c1630d759882414fe00ddb005923d57fbf51a6"
+        },
+        "date": 1662732662416,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1921821159,
+            "range": "± 52466725",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 720078679,
+            "range": "± 22163873",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 347029322,
+            "range": "± 12684838",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1747831441,
+            "range": "± 55532852",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 254047137,
+            "range": "± 9088164",
             "unit": "ns/iter"
           }
         ]
