@@ -1,6 +1,11 @@
+from logging import shutdown
+import multiprocessing
 import select
 import socket
 import os
+import subprocess
+import sys
+import threading
 import time
 import json
 from typing import Iterable, Union
@@ -98,12 +103,8 @@ class Ids:
                     setattr(self, key, ids_dict[key]['Int'][1][0])
                 elif ids_dict[key].__contains__('RelocatableValue'):
                     setattr(self, key, (RelocatableValue((ids_dict[key]['RelocatableValue']['segment_index'], ids_dict[key]['RelocatableValue']['offset']))))
-                else:
-                    setattr(self, key, None)
             else: 
                 setattr(self, key, None)
-
-
 
 class MemorySegmentManager:
     socket: socket
@@ -135,40 +136,54 @@ class MemorySegmentManager:
         for i, v in enumerate(data):
             self.memory[(ptr[0], ptr[1] + i)] = v
         return (ptr[0] + ptr[1] + len(data))
-    
+
+def execute_hints(s: socket):
+    while True:
+        s.listen()
+        conn, addr = s.accept()   
+        raw_data = bytearray()
+        data = conn.recv(1024)
+        if data:
+            raw_data.extend(data)
+        # Organize & Create data
+        if raw_data == b'Terminate':
+            conn.close()
+            conn.__exit__
+            break
+        data = json.loads(raw_data)
+        # Receive data from cairo-rs
+        ap = RelocatableValue((1, data['ap']))
+        fp = RelocatableValue((1, data['fp']))
+        ids = Ids(data['ids'])
+        code = data['code']
+        #Execute the hint
+        globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp, 'ids': ids}
+        exec(code, globals)
+        #Comunicate back to cairo-rs
+        #Update Data
+        operation = {'operation': 'UPDATE_DATA', 'args': json.dumps({'ids': ids.__dict__,'ap': ap.offset, 'fp': fp.offset})}
+        conn.send(bytes(json.dumps(operation), encoding="utf-8"))
+        response = conn.recv(2)
+        assert(response == b'Ok')
+        #End Hint
+        operation = {'operation': 'Ok'}
+        conn.send(bytes(json.dumps(operation), encoding="utf-8"))
+
+        conn.close()
+        conn.__exit__
+
+
 # Establish connection to cairo-rs process
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('localhost', 60000))
-s.listen()
-conn, addr = s.accept()
-
-# Receive data from cairo-rs
-raw_data = bytearray()
-data = conn.recv(1024)
-if data:
-    raw_data.extend(data)
-
-# Organize & Create data
-data = json.loads(raw_data)
-
-ap = RelocatableValue((1, data['ap']))
-fp = RelocatableValue((1, data['fp']))
-ids = Ids(data['ids'])
-code = data['code']
-#Execute the hint
-globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp, 'ids': ids}
-exec(code, globals)
-#Comunicate back to cairo-rs
-#Update Data
-operation = {'operation': 'UPDATE_DATA', 'args': json.dumps({'ids': ids.__dict__,'ap': ap.offset, 'fp': fp.offset})}
-conn.send(bytes(json.dumps(operation), encoding="utf-8"))
-response = conn.recv(2)
-assert(response == b'Ok')
-#End Hint
-operation = {'operation': 'Ok'}
-conn.send(bytes(json.dumps(operation), encoding="utf-8"))
-
-conn.close()
-conn.__exit__
-
-
+process_hints = threading.Thread(target=execute_hints, args=(s,))
+# Launch cairo-rs as a subprocess
+cairo_rs = subprocess.Popen(["target/release/cairo-rs-run", sys.argv[1]])
+# Start hint processing thread
+process_hints.start()
+cairo_rs.wait()
+# Stop processing of hints via message
+new_s = socket.create_connection(('localhost', 60000))
+new_s.send(bytes("Terminate", 'utf-8'))
+process_hints.join()
+new_s.__exit__()
