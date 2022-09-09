@@ -1,8 +1,4 @@
-from logging import shutdown
-import multiprocessing
-import select
 import socket
-import os
 import subprocess
 import sys
 import threading
@@ -30,7 +26,7 @@ class RelocatableValue:
 
     def __add__(self, other: "MaybeRelocatable") -> "RelocatableValue":
         if isinstance(other, int):
-            return RelocatableValue(self.segment_index, self.offset + other)
+            return RelocatableValue((self.segment_index, self.offset + other))
         assert not isinstance(
             other, RelocatableValue
         ), f"Cannot add two relocatable values: {self} + {other}."
@@ -41,7 +37,7 @@ class RelocatableValue:
 
     def __sub__(self, other: "MaybeRelocatable") -> "MaybeRelocatable":
         if isinstance(other, int):
-            return RelocatableValue(self.segment_index, self.offset - other)
+            return RelocatableValue((self.segment_index, self.offset - other))
         assert self.segment_index == other.segment_index, (
             "Can only subtract two relocatable values of the same segment "
             f"({self.segment_index} != {other.segment_index})."
@@ -49,7 +45,7 @@ class RelocatableValue:
         return self.offset - other.offset
 
     def __mod__(self, other: int):
-        return RelocatableValue(self.segment_index, self.offset % other)
+        return RelocatableValue((self.segment_index, self.offset % other))
 
     def __lt__(self, other: "MaybeRelocatable"):
         if isinstance(other, int):
@@ -108,9 +104,11 @@ class Ids:
 
 class MemorySegmentManager:
     socket: socket
+    memory: Memory
 
-    def __init__(self, socket: socket):
+    def __init__(self, socket: socket, memory: Memory):
         self.socket = socket
+        self.memory = memory
     
     def add(self) -> tuple:
         operation = {'operation': 'ADD_SEGMENT'}
@@ -127,15 +125,15 @@ class MemorySegmentManager:
             return arg % PRIME
         return arg
 
-    def write_arg(self, ptr: tuple, arg, apply_modulo_to_args=True):
+    def write_arg(self, ptr: RelocatableValue, arg, apply_modulo_to_args=True):
         assert isinstance(arg, Iterable)
         data = [self.gen_arg(arg=x, apply_modulo_to_args=apply_modulo_to_args) for x in arg]
         return self.load_data(ptr, data)
     
-    def load_data(self, ptr, data):
+    def load_data(self, ptr: RelocatableValue, data):
         for i, v in enumerate(data):
-            self.memory[(ptr[0], ptr[1] + i)] = v
-        return (ptr[0] + ptr[1] + len(data))
+            self.memory[(ptr, ptr + i)] = v
+        return (ptr + ptr + len(data))
 
 def execute_hints(s: socket):
     while True:
@@ -155,9 +153,10 @@ def execute_hints(s: socket):
         ap = RelocatableValue((1, data['ap']))
         fp = RelocatableValue((1, data['fp']))
         ids = Ids(data['ids'])
+        memory = Memory(conn)
         code = data['code']
         #Execute the hint
-        globals = {'memory': Memory(conn), 'segments': MemorySegmentManager(conn), 'ap': ap, 'fp': fp, 'ids': ids}
+        globals = {'memory': memory, 'segments': MemorySegmentManager(conn, memory), 'ap': ap, 'fp': fp, 'ids': ids}
         exec(code, globals)
         #Comunicate back to cairo-rs
         #Update Data
