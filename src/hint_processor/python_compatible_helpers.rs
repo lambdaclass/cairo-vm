@@ -38,12 +38,18 @@ pub fn get_value_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
+    //First handle case on only immediate
+    if let (None, Some(num)) = (
+        hint_reference.register.as_ref(),
+        hint_reference.immediate.as_ref(),
+    ) {
+        return Ok(Some(MaybeRelocatable::from(num)));
+    }
+    //Then calculate address
     let var_addr =
         compute_addr_from_reference(hint_reference, &vm.run_context, &vm.memory, ap_tracking)?;
     let value = if hint_reference.dereference {
         vm.memory.get(&var_addr)?
-    } else if let (None, Some(num)) = (&hint_reference.register, &hint_reference.immediate) {
-        return Ok(Some(MaybeRelocatable::from(num)));
     } else {
         return Ok(Some(MaybeRelocatable::from(var_addr)));
     };
