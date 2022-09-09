@@ -39,8 +39,8 @@ pub struct PythonUpdate {
 #[derive(Serialize, Debug)]
 pub struct PythonData {
     code: String,
-    ap: (usize, usize),
-    fp: (usize, usize),
+    ap: usize,
+    fp: usize,
     ids: HashMap<String, Option<MaybeRelocatable>>,
 }
 
@@ -220,8 +220,8 @@ pub fn get_serialized_python_data(
     let ids = get_python_compatible_ids(vm, &hint_data.ids_data, &hint_data.ap_tracking)?;
     let python_data = PythonData {
         code: hint_data.code.clone(),
-        ap: (1, vm.run_context.ap),
-        fp: (1, vm.run_context.fp),
+        ap: vm.run_context.ap,
+        fp: vm.run_context.fp,
         ids,
     };
     serde_json::to_string(&python_data)

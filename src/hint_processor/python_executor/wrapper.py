@@ -151,8 +151,8 @@ if data:
 # Organize & Create data
 data = json.loads(raw_data)
 
-ap = RelocatableValue((data['ap'][0], data['ap'][1]))
-fp = RelocatableValue((data['fp'][0], data['fp'][1]))
+ap = RelocatableValue((1, data['ap']))
+fp = RelocatableValue((1, data['fp']))
 ids = Ids(data['ids'])
 code = data['code']
 #Execute the hint
