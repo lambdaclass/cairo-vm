@@ -78,8 +78,7 @@ pub fn process_python_operations(
     hint_data: &HintProcessorData,
 ) -> Result<(), VirtualMachineError> {
     let mut finished_hint = false;
-    let mut counter = 10; //Counter is a temporary measure to prevent infinite looping
-    while !finished_hint && counter != 0 {
+    while !finished_hint {
         //Read requests from python process
         let mut response = [0; 1024];
         stream.read(&mut response).unwrap();
@@ -118,7 +117,6 @@ pub fn process_python_operations(
             }
             _ => (),
         }
-        counter -= 1;
     }
     Ok(())
 }
