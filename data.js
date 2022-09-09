@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1662752555899,
+  "lastUpdate": 1662752853472,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -34123,6 +34123,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 226185080,
             "range": "± 4455374",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "ec64dd1cd02b4ab838cd77019c02c8d696fa92de",
+          "message": "Create PythonExecutor to communicate via message passing (WIP)",
+          "timestamp": "2022-09-09T17:55:27Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/418/commits/ec64dd1cd02b4ab838cd77019c02c8d696fa92de"
+        },
+        "date": 1662752851498,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1475568442,
+            "range": "± 3870303",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 552074272,
+            "range": "± 1031883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 268367711,
+            "range": "± 363204",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1470331896,
+            "range": "± 3408601",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 198213234,
+            "range": "± 1095237",
             "unit": "ns/iter"
           }
         ]
