@@ -1,27 +1,27 @@
 from starkware.cairo.common.dict import DictAccess
 
-struct VotingState:
-    member n_yes_votes : felt
-    member n_no_votes : felt
-    member public_key_tree_start : DictAccess*
-    member public_key_tree_end : DictAccess*
-end
+struct VotingState {
+    n_yes_votes: felt,
+    n_no_votes: felt,
+    public_key_tree_start: DictAccess*,
+    public_key_tree_end: DictAccess*,
+}
 
-struct VoteInfo:
-    member voter_id : felt
-    member pub_key : felt
-    member vote : felt
-    member r : felt
-    member s : felt
-end
+struct VoteInfo {
+    voter_id: felt,
+    pub_key: felt,
+    vote: felt,
+    r: felt,
+    s: felt,
+}
 
-struct BatchOutput:
-    member n_yes_votes : felt
-    member n_no_votes : felt
-    member public_keys_root_before : felt
-    member public_keys_root_after : felt
-end
+struct BatchOutput {
+    n_yes_votes: felt,
+    n_no_votes: felt,
+    public_keys_root_before: felt,
+    public_keys_root_after: felt,
+}
 
-func main{}():
-    ret
-end
+func main{}() {
+    ret;
+}
