@@ -10,12 +10,6 @@ use cairo_rs::{
 use num_bigint::BigInt;
 use pyo3::{prelude::*, py_run};
 
-#[pyclass]
-pub struct PyMemory {
-    operation_sender: Sender<MemoryOperation>,
-    result_receiver: Receiver<MemoryResult>,
-}
-
 #[derive(FromPyObject, Debug)]
 pub enum PyMaybeRelocatable {
     Int(BigInt),
@@ -31,8 +25,29 @@ impl ToPyObject for PyMaybeRelocatable {
     }
 }
 
+#[derive(Debug)]
+pub enum MemoryOperation {
+    AddSegment,
+    WriteMemory((usize, usize), PyMaybeRelocatable),
+    ReadMemory((usize, usize)),
+    End,
+}
+
+#[derive(Debug)]
+pub enum MemoryResult {
+    Reading(PyMaybeRelocatable),
+    Segment((usize, usize)),
+    Success,
+}
+
+#[pyclass]
+pub struct PySegmentManager {
+    operation_sender: Sender<MemoryOperation>,
+    result_receiver: Receiver<MemoryResult>,
+}
+
 #[pymethods]
-impl PyMemory {
+impl PySegmentManager {
     pub fn add_segment(&self) -> PyResult<(usize, usize)> {
         self.operation_sender
             .send(MemoryOperation::AddSegment)
@@ -42,7 +57,28 @@ impl PyMemory {
         }
         todo!()
     }
+}
 
+impl PySegmentManager {
+    pub fn new(
+        operation_sender: Sender<MemoryOperation>,
+        result_receiver: Receiver<MemoryResult>,
+    ) -> PySegmentManager {
+        PySegmentManager {
+            operation_sender,
+            result_receiver,
+        }
+    }
+}
+
+#[pyclass]
+pub struct PyMemory {
+    operation_sender: Sender<MemoryOperation>,
+    result_receiver: Receiver<MemoryResult>,
+}
+
+#[pymethods]
+impl PyMemory {
     pub fn __getitem__(&self, key: (usize, usize), py: Python) -> PyResult<PyObject> {
         self.operation_sender
             .send(MemoryOperation::ReadMemory(key))
@@ -74,24 +110,10 @@ impl PyMemory {
     }
 }
 
-#[derive(Debug)]
-pub enum MemoryOperation {
-    AddSegment,
-    WriteMemory((usize, usize), PyMaybeRelocatable),
-    ReadMemory((usize, usize)),
-    End,
-}
-
-#[derive(Debug)]
-pub enum MemoryResult {
-    Reading(PyMaybeRelocatable),
-    Segment((usize, usize)),
-    Success,
-}
-
 fn handle_memory_messages(
     operation_receiver: Receiver<MemoryOperation>,
     result_sender: Sender<MemoryResult>,
+    segment_result_sender: Sender<MemoryResult>,
     memory: &mut Memory,
     segments: &mut MemorySegmentManager,
 ) {
@@ -129,7 +151,7 @@ fn handle_memory_messages(
             }
             MemoryOperation::AddSegment => {
                 let result = segments.add(memory);
-                result_sender
+                segment_result_sender
                     .send(MemoryResult::Segment((result.segment_index, result.offset)))
                     .unwrap()
             }
@@ -144,6 +166,7 @@ fn run_cairo(py: Python) -> PyResult<()> {
     let mut segments = MemorySegmentManager::new();
     let (operation_sender, operation_receiver) = mpsc::channel();
     let (result_sender, result_receiver) = mpsc::channel::<MemoryResult>();
+    let (segment_result_sender, segment_result_receiver) = mpsc::channel::<MemoryResult>();
     py.allow_threads(move || {
         thread::spawn(move || {
             println!(" -- Starting python hint execution -- ");
@@ -151,11 +174,16 @@ fn run_cairo(py: Python) -> PyResult<()> {
             let py = gil.python();
             let memory =
                 PyCell::new(py, PyMemory::new(operation_sender.clone(), result_receiver)).unwrap();
+            let segments = PyCell::new(
+                py,
+                PySegmentManager::new(operation_sender.clone(), segment_result_receiver),
+            )
+            .unwrap();
             py_run!(
                 py,
-                memory,
+                memory segments,
                 r#"
-            result = memory.add_segment()
+            result = segments.add_segment()
             print(result)
             memory[(0,0)] = 16
             print('Memory address (0,0) has been written')
@@ -168,6 +196,7 @@ fn run_cairo(py: Python) -> PyResult<()> {
         handle_memory_messages(
             operation_receiver,
             result_sender,
+            segment_result_sender,
             &mut memory,
             &mut segments,
         );
