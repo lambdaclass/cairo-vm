@@ -285,7 +285,7 @@ fn run_python_hint(
 #[pyfunction]
 fn run_cairo(py: Python) -> PyResult<()> {
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_vm = match cairo_run(
+    let mut cairo_runner = match cairo_run(
         &Path::new("../cairo_programs/manually_compiled/valid_program_a.json"),
         "main".as_ref(),
         true,
@@ -298,10 +298,10 @@ fn run_cairo(py: Python) -> PyResult<()> {
         }
     };
     run_python_hint(
-        &mut cairo_vm.vm.memory,
-        &mut cairo_vm.vm.segments,
-        cairo_vm.vm.run_context.ap,
-        cairo_vm.vm.run_context.fp,
+        &mut cairo_runner.vm.memory,
+        &mut cairo_runner.vm.segments,
+        cairo_runner.vm.run_context.ap,
+        cairo_runner.vm.run_context.fp,
         &py,
     );
     Ok(())
