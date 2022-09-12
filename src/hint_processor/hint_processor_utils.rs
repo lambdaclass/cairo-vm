@@ -155,7 +155,7 @@ pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
 
 ///Returns a reference to the RangeCheckBuiltinRunner struct if range_check builtin is present
 pub fn get_range_check_builtin(
-    builtin_runners: &Vec<(String, Box<dyn BuiltinRunner>)>,
+    builtin_runners: &Vec<(String, Box<dyn BuiltinRunner + Send>)>,
 ) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
     for (name, builtin) in builtin_runners {
         if name == &String::from("range_check") {

@@ -12,7 +12,7 @@ pub struct VMProxy<'a> {
     pub memory: MemoryProxy<'a>,
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
-    pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner + Send>)>,
     pub prime: &'a BigInt,
 }
 

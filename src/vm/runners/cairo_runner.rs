@@ -59,7 +59,7 @@ impl<'a> CairoRunner<'a> {
         if !is_subsequence(&program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let mut builtin_runners = Vec::<(String, Box<dyn BuiltinRunner>)>::new();
+        let mut builtin_runners = Vec::<(String, Box<dyn BuiltinRunner + Send>)>::new();
         for builtin_name in program.builtins.iter() {
             if builtin_name == "output" {
                 builtin_runners.push((builtin_name.clone(), Box::new(OutputBuiltinRunner::new())));

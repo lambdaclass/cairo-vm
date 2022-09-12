@@ -1,6 +1,7 @@
 use crate::{
     bigint,
     hint_processor::{
+        builtin_hint_processor::python_executor::PythonExecutor,
         hint_processor_definition::HintProcessor,
         proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
     },
@@ -46,7 +47,7 @@ pub struct HintData {
 pub struct VirtualMachine {
     pub run_context: RunContext,
     pub prime: BigInt,
-    pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner + Send>)>,
     pub segments: MemorySegmentManager,
     pub _program_base: Option<MaybeRelocatable>,
     pub memory: Memory,
@@ -73,7 +74,7 @@ impl HintData {
 impl VirtualMachine {
     pub fn new(
         prime: BigInt,
-        builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+        builtin_runners: Vec<(String, Box<dyn BuiltinRunner + Send>)>,
         trace_enabled: bool,
     ) -> VirtualMachine {
         let run_context = RunContext {
@@ -461,11 +462,19 @@ impl VirtualMachine {
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
                 //We create a new proxy with every hint as the current scope can change
+                let mut vm_proxy = get_vm_proxy(self);
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
+                let result =
+                    hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data);
+                match result {
+                    Ok(()) => (),
+                    Err(VirtualMachineError::UnknownHint(_)) => {
+                        PythonExecutor::execute_hint(self, hint_data)?
+                    }
+                    Err(_) => return result,
+                }
             }
         }
         self.skip_instruction_execution = false;
