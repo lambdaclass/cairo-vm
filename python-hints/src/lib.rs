@@ -1,9 +1,16 @@
 use std::{
+    path::Path,
     sync::mpsc::{self, Receiver, Sender},
     thread,
 };
 
 use cairo_rs::{
+    bigint,
+    cairo_run::cairo_run,
+    hint_processor::{
+        builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        hint_processor_utils::bigint_to_usize,
+    },
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
 };
@@ -13,13 +20,72 @@ use pyo3::{prelude::*, py_run};
 #[derive(FromPyObject, Debug)]
 pub enum PyMaybeRelocatable {
     Int(BigInt),
-    RelocatableValue((usize, usize)),
+    RelocatableValue(PyRelocatable),
+}
+
+#[pyclass(name = "Relocatable")]
+#[derive(Clone, Debug)]
+pub struct PyRelocatable {
+    index: usize,
+    offset: usize,
+}
+
+#[pymethods]
+impl PyRelocatable {
+    #[new]
+    pub fn new(tuple: (usize, usize)) -> PyRelocatable {
+        PyRelocatable {
+            index: tuple.0,
+            offset: tuple.1,
+        }
+    }
+
+    pub fn __add__(&self, value: usize) -> PyRelocatable {
+        PyRelocatable {
+            index: self.index,
+            offset: self.offset + value,
+        }
+    }
+
+    pub fn __sub__(&self, value: PyMaybeRelocatable, py: Python) -> PyResult<PyObject> {
+        match value {
+            PyMaybeRelocatable::Int(value) => {
+                return Ok(PyMaybeRelocatable::RelocatableValue(PyRelocatable {
+                    index: self.index,
+                    offset: self.offset - bigint_to_usize(&value).unwrap(),
+                })
+                .to_object(py));
+            }
+            PyMaybeRelocatable::RelocatableValue(address) => {
+                if self.index == address.index && self.offset >= address.offset {
+                    return Ok(
+                        PyMaybeRelocatable::Int(bigint!(self.offset - address.offset))
+                            .to_object(py),
+                    );
+                }
+                todo!()
+            }
+        }
+    }
+
+    pub fn __repr__(&self) -> String {
+        format!("({}, {})", self.index, self.offset)
+    }
+}
+
+impl PyRelocatable {
+    pub fn to_relocatable(&self) -> Relocatable {
+        Relocatable {
+            segment_index: self.index,
+            offset: self.offset,
+        }
+    }
 }
 
 impl ToPyObject for PyMaybeRelocatable {
     fn to_object(&self, py: Python<'_>) -> PyObject {
         match self {
-            PyMaybeRelocatable::RelocatableValue(address) => address.into_py(py),
+            PyMaybeRelocatable::RelocatableValue(address) => address.clone().into_py(py),
             PyMaybeRelocatable::Int(value) => value.clone().into_py(py),
         }
     }
@@ -28,15 +94,15 @@ impl ToPyObject for PyMaybeRelocatable {
 #[derive(Debug)]
 pub enum MemoryOperation {
     AddSegment,
-    WriteMemory((usize, usize), PyMaybeRelocatable),
-    ReadMemory((usize, usize)),
+    WriteMemory(PyRelocatable, PyMaybeRelocatable),
+    ReadMemory(PyRelocatable),
     End,
 }
 
 #[derive(Debug)]
 pub enum MemoryResult {
     Reading(PyMaybeRelocatable),
-    Segment((usize, usize)),
+    Segment(PyRelocatable),
     Success,
 }
 
@@ -48,7 +114,7 @@ pub struct PySegmentManager {
 
 #[pymethods]
 impl PySegmentManager {
-    pub fn add_segment(&self) -> PyResult<(usize, usize)> {
+    pub fn add_segment(&self) -> PyResult<PyRelocatable> {
         self.operation_sender
             .send(MemoryOperation::AddSegment)
             .unwrap();
@@ -79,9 +145,11 @@ pub struct PyMemory {
 
 #[pymethods]
 impl PyMemory {
-    pub fn __getitem__(&self, key: (usize, usize), py: Python) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, key: &PyRelocatable, py: Python) -> PyResult<PyObject> {
         self.operation_sender
-            .send(MemoryOperation::ReadMemory(key))
+            .send(MemoryOperation::ReadMemory(PyRelocatable::new((
+                key.index, key.offset,
+            ))))
             .unwrap();
         if let MemoryResult::Reading(result) = self.result_receiver.recv().unwrap() {
             return Ok(result.to_object(py));
@@ -89,9 +157,12 @@ impl PyMemory {
         todo!()
     }
 
-    pub fn __setitem__(&self, key: (usize, usize), value: PyMaybeRelocatable) -> PyResult<()> {
+    pub fn __setitem__(&self, key: &PyRelocatable, value: PyMaybeRelocatable) -> PyResult<()> {
         self.operation_sender
-            .send(MemoryOperation::WriteMemory(key, value))
+            .send(MemoryOperation::WriteMemory(
+                PyRelocatable::new((key.index, key.offset)),
+                value,
+            ))
             .unwrap();
         self.result_receiver.recv().unwrap();
         Ok(())
@@ -121,7 +192,7 @@ fn handle_memory_messages(
         match operation_receiver.recv().unwrap() {
             MemoryOperation::End => break,
             MemoryOperation::ReadMemory(address) => {
-                if let Some(value) = memory.get(&Relocatable::from(address)).unwrap() {
+                if let Some(value) = memory.get(&address.to_relocatable()).unwrap() {
                     match value {
                         MaybeRelocatable::Int(value) => result_sender
                             .send(MemoryResult::Reading(PyMaybeRelocatable::Int(
@@ -130,7 +201,7 @@ fn handle_memory_messages(
                             .unwrap(),
                         MaybeRelocatable::RelocatableValue(value) => result_sender
                             .send(MemoryResult::Reading(PyMaybeRelocatable::RelocatableValue(
-                                (value.segment_index, value.offset),
+                                PyRelocatable::new((value.segment_index, value.offset)),
                             )))
                             .unwrap(),
                     }
@@ -139,11 +210,11 @@ fn handle_memory_messages(
             MemoryOperation::WriteMemory(key, value) => {
                 match value {
                     PyMaybeRelocatable::Int(value) => {
-                        memory.insert(&Relocatable::from(key), &value).unwrap();
+                        memory.insert(&key.to_relocatable(), &value).unwrap();
                     }
                     PyMaybeRelocatable::RelocatableValue(address) => {
                         memory
-                            .insert(&Relocatable::from(key), &Relocatable::from(address))
+                            .insert(&key.to_relocatable(), &address.to_relocatable())
                             .unwrap();
                     }
                 }
@@ -152,7 +223,10 @@ fn handle_memory_messages(
             MemoryOperation::AddSegment => {
                 let result = segments.add(memory);
                 segment_result_sender
-                    .send(MemoryResult::Segment((result.segment_index, result.offset)))
+                    .send(MemoryResult::Segment(PyRelocatable::new((
+                        result.segment_index,
+                        result.offset,
+                    ))))
                     .unwrap()
             }
         }
@@ -162,8 +236,19 @@ fn handle_memory_messages(
 /// Formats the sum of two numbers as string.
 #[pyfunction]
 fn run_cairo(py: Python) -> PyResult<()> {
-    let mut memory = Memory::new();
-    let mut segments = MemorySegmentManager::new();
+    let hint_processor = BuiltinHintProcessor::new_empty();
+    let mut cairo_vm = match cairo_run(
+        &Path::new("../cairo_programs/manually_compiled/valid_program_a.json"),
+        "main".as_ref(),
+        true,
+        &hint_processor,
+    ) {
+        Ok(runner) => runner,
+        Err(err) => {
+            println!("{:?}", err);
+            todo!()
+        }
+    };
     let (operation_sender, operation_receiver) = mpsc::channel();
     let (result_sender, result_receiver) = mpsc::channel::<MemoryResult>();
     let (segment_result_sender, segment_result_receiver) = mpsc::channel::<MemoryResult>();
@@ -179,15 +264,18 @@ fn run_cairo(py: Python) -> PyResult<()> {
                 PySegmentManager::new(operation_sender.clone(), segment_result_receiver),
             )
             .unwrap();
+            let ap = PyCell::new(py, PyRelocatable::new((1, cairo_vm.vm.run_context.ap))).unwrap();
+            let fp = PyCell::new(py, PyRelocatable::new((1, cairo_vm.vm.run_context.fp))).unwrap();
+            cairo_vm.vm.run_context.ap;
             py_run!(
                 py,
-                memory segments,
+                memory segments ap fp,
                 r#"
             result = segments.add_segment()
             print(result)
-            memory[(0,0)] = 16
-            print('Memory address (0,0) has been written')
-            print('Reading from (0,0): ', memory[(0,0)])
+            memory[ap] = 16
+            print(f'Memory address {ap} has been written')
+            print('Reading from ap: ', memory[ap])
             "#
             );
             println!(" -- Ending python hint -- ");
@@ -197,8 +285,8 @@ fn run_cairo(py: Python) -> PyResult<()> {
             operation_receiver,
             result_sender,
             segment_result_sender,
-            &mut memory,
-            &mut segments,
+            &mut cairo_vm.vm.memory,
+            &mut cairo_vm.vm.segments,
         );
     });
     Ok(())
@@ -208,6 +296,7 @@ fn run_cairo(py: Python) -> PyResult<()> {
 #[pymodule]
 fn python_hints(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyMemory>()?;
+    m.add_class::<PyRelocatable>()?;
     m.add_function(wrap_pyfunction!(run_cairo, m)?)?;
     Ok(())
 }
