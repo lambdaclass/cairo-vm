@@ -233,22 +233,13 @@ fn handle_memory_messages(
     }
 }
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn run_cairo(py: Python) -> PyResult<()> {
-    let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_vm = match cairo_run(
-        &Path::new("../cairo_programs/manually_compiled/valid_program_a.json"),
-        "main".as_ref(),
-        true,
-        &hint_processor,
-    ) {
-        Ok(runner) => runner,
-        Err(err) => {
-            println!("{:?}", err);
-            todo!()
-        }
-    };
+fn run_python_hint(
+    mut memory: &mut Memory,
+    mut segments: &mut MemorySegmentManager,
+    ap: usize,
+    fp: usize,
+    py: &Python,
+) {
     let (operation_sender, operation_receiver) = mpsc::channel();
     let (result_sender, result_receiver) = mpsc::channel::<MemoryResult>();
     let (segment_result_sender, segment_result_receiver) = mpsc::channel::<MemoryResult>();
@@ -264,9 +255,8 @@ fn run_cairo(py: Python) -> PyResult<()> {
                 PySegmentManager::new(operation_sender.clone(), segment_result_receiver),
             )
             .unwrap();
-            let ap = PyCell::new(py, PyRelocatable::new((1, cairo_vm.vm.run_context.ap))).unwrap();
-            let fp = PyCell::new(py, PyRelocatable::new((1, cairo_vm.vm.run_context.fp))).unwrap();
-            cairo_vm.vm.run_context.ap;
+            let ap = PyCell::new(py, PyRelocatable::new((1, ap))).unwrap();
+            let fp = PyCell::new(py, PyRelocatable::new((1, fp))).unwrap();
             py_run!(
                 py,
                 memory segments ap fp,
@@ -285,10 +275,35 @@ fn run_cairo(py: Python) -> PyResult<()> {
             operation_receiver,
             result_sender,
             segment_result_sender,
-            &mut cairo_vm.vm.memory,
-            &mut cairo_vm.vm.segments,
+            &mut memory,
+            &mut segments,
         );
     });
+}
+
+/// Formats the sum of two numbers as string.
+#[pyfunction]
+fn run_cairo(py: Python) -> PyResult<()> {
+    let hint_processor = BuiltinHintProcessor::new_empty();
+    let mut cairo_vm = match cairo_run(
+        &Path::new("../cairo_programs/manually_compiled/valid_program_a.json"),
+        "main".as_ref(),
+        true,
+        &hint_processor,
+    ) {
+        Ok(runner) => runner,
+        Err(err) => {
+            println!("{:?}", err);
+            todo!()
+        }
+    };
+    run_python_hint(
+        &mut cairo_vm.vm.memory,
+        &mut cairo_vm.vm.segments,
+        cairo_vm.vm.run_context.ap,
+        cairo_vm.vm.run_context.fp,
+        &py,
+    );
     Ok(())
 }
 
