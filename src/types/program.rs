@@ -26,6 +26,7 @@ impl Program {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint;
     use num_traits::FromPrimitive;
 
     #[test]
@@ -46,6 +47,49 @@ mod tests {
             MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.Args"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.ImplicitArgs"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.Return"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint!(0)),
+            },
+        );
+
         assert_eq!(
             program.prime,
             BigInt::parse_bytes(
@@ -57,5 +101,6 @@ mod tests {
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
+        assert_eq!(program.identifiers, identifiers);
     }
 }
