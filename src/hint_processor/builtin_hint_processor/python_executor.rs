@@ -183,9 +183,7 @@ pub struct PySegmentManager {
 #[pymethods]
 impl PySegmentManager {
     pub fn add(&self) -> PyResult<PyRelocatable> {
-        self.operation_sender
-            .send(Operation::AddSegment)
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
+        send_operation(&self.operation_sender, Operation::AddSegment)?;
         if let OperationResult::Segment(result) = self
             .result_receiver
             .recv()
@@ -195,11 +193,8 @@ impl PySegmentManager {
         }
         Err(PyTypeError::new_err("segments.add() failure"))
     }
-
     pub fn write_arg(&self, ptr: PyRelocatable, arg: Vec<PyMaybeRelocatable>) -> PyResult<()> {
-        self.operation_sender
-            .send(Operation::WriteVecArg(ptr, arg))
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
+        send_operation(&self.operation_sender, Operation::WriteVecArg(ptr, arg))?;
         if let OperationResult::Success = self
             .result_receiver
             .recv()
@@ -232,11 +227,10 @@ pub struct PyMemory {
 #[pymethods]
 impl PyMemory {
     pub fn __getitem__(&self, key: &PyRelocatable, py: Python) -> PyResult<PyObject> {
-        self.operation_sender
-            .send(Operation::ReadMemory(PyRelocatable::new((
-                key.index, key.offset,
-            ))))
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
+        send_operation(
+            &self.operation_sender,
+            Operation::ReadMemory(PyRelocatable::new((key.index, key.offset))),
+        )?;
         if let OperationResult::Reading(result) = self
             .result_receiver
             .recv()
@@ -248,12 +242,10 @@ impl PyMemory {
     }
 
     pub fn __setitem__(&self, key: &PyRelocatable, value: PyMaybeRelocatable) -> PyResult<()> {
-        self.operation_sender
-            .send(Operation::WriteMemory(
-                PyRelocatable::new((key.index, key.offset)),
-                value,
-            ))
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
+        send_operation(
+            &self.operation_sender,
+            Operation::WriteMemory(PyRelocatable::new((key.index, key.offset)), value),
+        )?;
         if let OperationResult::Success = self
             .result_receiver
             .recv()
@@ -286,9 +278,7 @@ pub struct PyIds {
 #[pymethods]
 impl PyIds {
     pub fn __getattr__(&self, name: &str, py: Python) -> PyResult<PyObject> {
-        self.operation_sender
-            .send(Operation::ReadIds(name.to_string()))
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
+        send_operation(&self.operation_sender, Operation::ReadIds(name.to_string()))?;
         if let OperationResult::Reading(result) = self
             .result_receiver
             .recv()
@@ -300,9 +290,10 @@ impl PyIds {
     }
 
     pub fn __setattr__(&self, name: &str, value: PyMaybeRelocatable) -> PyResult<()> {
-        self.operation_sender
-            .send(Operation::WriteIds(name.to_string(), value))
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
+        send_operation(
+            &self.operation_sender,
+            Operation::WriteIds(name.to_string(), value),
+        )?;
         if let OperationResult::Success = self
             .result_receiver
             .recv()
@@ -441,9 +432,15 @@ impl PythonExecutor {
 
 fn send_result(
     sender: &Sender<OperationResult>,
-    message: OperationResult,
+    result: OperationResult,
 ) -> Result<(), VirtualMachineError> {
     sender
-        .send(message)
+        .send(result)
         .map_err(|_| VirtualMachineError::PythonExecutorChannel)
+}
+
+fn send_operation(sender: &Sender<Operation>, operation: Operation) -> Result<(), PyErr> {
+    sender
+        .send(operation)
+        .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))
 }
