@@ -20,6 +20,8 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use num_bigint::BigInt;
 use pyo3::{exceptions::PyTypeError, prelude::*, py_run};
 
+const CHANNEL_ERROR_MSG: &str = "Failed to communicate between channels";
+
 #[derive(FromPyObject, Debug)]
 pub enum PyMaybeRelocatable {
     Int(BigInt),
@@ -183,11 +185,11 @@ impl PySegmentManager {
     pub fn add(&self) -> PyResult<PyRelocatable> {
         self.operation_sender
             .send(Operation::AddSegment)
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
         if let OperationResult::Segment(result) = self
             .result_receiver
             .recv()
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
         {
             return Ok(result);
         }
@@ -197,11 +199,11 @@ impl PySegmentManager {
     pub fn write_arg(&self, ptr: PyRelocatable, arg: Vec<PyMaybeRelocatable>) -> PyResult<()> {
         self.operation_sender
             .send(Operation::WriteVecArg(ptr, arg))
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
         if let OperationResult::Success = self
             .result_receiver
             .recv()
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
         {
             return Ok(());
         }
@@ -234,11 +236,11 @@ impl PyMemory {
             .send(Operation::ReadMemory(PyRelocatable::new((
                 key.index, key.offset,
             ))))
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
         if let OperationResult::Reading(result) = self
             .result_receiver
             .recv()
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
         {
             return Ok(result.to_object(py));
         }
@@ -251,11 +253,11 @@ impl PyMemory {
                 PyRelocatable::new((key.index, key.offset)),
                 value,
             ))
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
         if let OperationResult::Success = self
             .result_receiver
             .recv()
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
         {
             return Ok(());
         }
@@ -286,11 +288,11 @@ impl PyIds {
     pub fn __getattr__(&self, name: &str, py: Python) -> PyResult<PyObject> {
         self.operation_sender
             .send(Operation::ReadIds(name.to_string()))
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
         if let OperationResult::Reading(result) = self
             .result_receiver
             .recv()
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
         {
             return Ok(result.to_object(py));
         }
@@ -300,11 +302,11 @@ impl PyIds {
     pub fn __setattr__(&self, name: &str, value: PyMaybeRelocatable) -> PyResult<()> {
         self.operation_sender
             .send(Operation::WriteIds(name.to_string(), value))
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?;
         if let OperationResult::Success = self
             .result_receiver
             .recv()
-            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
         {
             return Ok(());
         }
