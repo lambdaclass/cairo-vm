@@ -414,6 +414,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let cairo_runner = CairoRunner::new(&program, false, &hint_processor);
@@ -432,6 +433,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         //We only check that the creation doesnt panic
@@ -450,6 +452,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -494,6 +497,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -533,6 +537,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -561,6 +566,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -589,6 +595,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -614,6 +621,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -644,6 +652,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -670,6 +679,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -700,6 +710,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -736,6 +747,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -759,6 +771,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -777,6 +790,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -798,6 +812,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -827,6 +842,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -869,6 +885,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -924,6 +941,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -1001,6 +1019,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -1091,6 +1110,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
 
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -1179,6 +1199,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
@@ -1261,6 +1282,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
@@ -1380,6 +1402,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
@@ -1520,6 +1543,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
@@ -1639,6 +1663,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
@@ -1796,6 +1821,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -1935,6 +1961,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, true, &hint_processor).unwrap();
@@ -2063,6 +2090,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -2123,6 +2151,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -2149,6 +2178,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
@@ -2195,6 +2225,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
         let cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
