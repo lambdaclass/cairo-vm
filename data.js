@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663084936266,
+  "lastUpdate": 1663096466918,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -34473,6 +34473,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 202560131,
             "range": "± 706531",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "3797906dd7996ca760f0e0385c604838a1fadaa9",
+          "message": "Add integrated implementation of python executor using Pyo3 and channels",
+          "timestamp": "2022-09-13T15:44:04Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/421/commits/3797906dd7996ca760f0e0385c604838a1fadaa9"
+        },
+        "date": 1663096464185,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1816608582,
+            "range": "± 4883160",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 665038379,
+            "range": "± 1261147",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 322693789,
+            "range": "± 396473",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1653067713,
+            "range": "± 1768206",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 238744469,
+            "range": "± 727002",
             "unit": "ns/iter"
           }
         ]
