@@ -37,6 +37,13 @@ macro_rules! any_box {
     };
 }
 
+#[macro_export]
+macro_rules! pycell {
+    ($py:expr, $val:expr) => {
+        PyCell::new($py, $val).map_err(Into::<VirtualMachineError>::into)?
+    };
+}
+
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
     for search in subsequence {
         if let Some(index) = sequence.iter().position(|element| search == element) {

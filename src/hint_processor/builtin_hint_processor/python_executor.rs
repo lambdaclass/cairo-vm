@@ -6,6 +6,7 @@ use crate::{
         builtin_hint_processor::python_executor_helpers::get_value_from_reference,
         hint_processor_definition::HintReference, hint_processor_utils::bigint_to_usize,
     },
+    pycell,
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
@@ -367,22 +368,17 @@ impl PythonExecutor {
                 println!(" -- Starting python hint execution -- ");
                 let gil = Python::acquire_gil();
                 let py = gil.python();
-                let memory = PyCell::new(
+                let memory = pycell!(
                     py,
-                    PyMemory::new(operation_sender.clone(), result_receiver.clone()),
-                )
-                .unwrap();
-                let segments = PyCell::new(
+                    PyMemory::new(operation_sender.clone(), result_receiver.clone())
+                );
+                let segments = pycell!(
                     py,
-                    PySegmentManager::new(operation_sender.clone(), result_receiver.clone()),
-                )
-                .unwrap();
-                let ids =
-                    PyCell::new(py, PyIds::new(operation_sender.clone(), result_receiver)).unwrap();
-                let ap = PyCell::new(py, PyRelocatable::new((1, ap)))
-                    .map_err(Into::<VirtualMachineError>::into)?;
-                let fp = PyCell::new(py, PyRelocatable::new((1, fp)))
-                    .map_err(Into::<VirtualMachineError>::into)?;
+                    PySegmentManager::new(operation_sender.clone(), result_receiver.clone())
+                );
+                let ids = pycell!(py, PyIds::new(operation_sender.clone(), result_receiver));
+                let ap = pycell!(py, PyRelocatable::new((1, ap)));
+                let fp = pycell!(py, PyRelocatable::new((1, fp)));
                 py_run!(py, memory segments ap fp ids, &code);
                 println!(" -- Ending python hint -- ");
                 operation_sender.send(Operation::End).unwrap();
