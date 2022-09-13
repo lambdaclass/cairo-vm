@@ -1,21 +1,25 @@
 use std::{
     any::Any,
+    collections::HashMap,
     sync::mpsc::{self, Receiver, Sender},
     thread,
 };
 
 use crate::{
     bigint,
-    hint_processor::hint_processor_utils::bigint_to_usize,
-    types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        vm_core::VirtualMachine,
-        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+    hint_processor::{
+        builtin_hint_processor::python_executor_helpers::get_value_from_reference,
+        hint_processor_definition::HintReference, hint_processor_utils::bigint_to_usize,
     },
+    serde::deserialize_program::ApTracking,
+    types::relocatable::{MaybeRelocatable, Relocatable},
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::builtin_hint_processor_definition::HintProcessorData;
+use super::{
+    builtin_hint_processor_definition::HintProcessorData,
+    python_executor_helpers::compute_addr_from_reference,
+};
 use num_bigint::BigInt;
 use pyo3::{prelude::*, py_run};
 
@@ -23,6 +27,39 @@ use pyo3::{prelude::*, py_run};
 pub enum PyMaybeRelocatable {
     Int(BigInt),
     RelocatableValue(PyRelocatable),
+}
+
+impl From<MaybeRelocatable> for PyMaybeRelocatable {
+    fn from(val: MaybeRelocatable) -> Self {
+        match val {
+            MaybeRelocatable::RelocatableValue(rel) => PyMaybeRelocatable::RelocatableValue(
+                PyRelocatable::new((rel.segment_index, rel.offset)),
+            ),
+            MaybeRelocatable::Int(num) => PyMaybeRelocatable::Int(num),
+        }
+    }
+}
+
+impl From<&MaybeRelocatable> for PyMaybeRelocatable {
+    fn from(val: &MaybeRelocatable) -> Self {
+        match val {
+            MaybeRelocatable::RelocatableValue(rel) => PyMaybeRelocatable::RelocatableValue(
+                PyRelocatable::new((rel.segment_index, rel.offset)),
+            ),
+            MaybeRelocatable::Int(num) => PyMaybeRelocatable::Int(num.clone()),
+        }
+    }
+}
+
+impl From<PyMaybeRelocatable> for MaybeRelocatable {
+    fn from(val: PyMaybeRelocatable) -> Self {
+        match val {
+            PyMaybeRelocatable::RelocatableValue(rel) => {
+                MaybeRelocatable::RelocatableValue(Relocatable::from((rel.index, rel.offset)))
+            }
+            PyMaybeRelocatable::Int(num) => MaybeRelocatable::Int(num),
+        }
+    }
 }
 
 #[pyclass(name = "Relocatable")]
@@ -94,15 +131,17 @@ impl ToPyObject for PyMaybeRelocatable {
 }
 
 #[derive(Debug)]
-pub enum MemoryOperation {
+pub enum Operation {
     AddSegment,
     WriteMemory(PyRelocatable, PyMaybeRelocatable),
     ReadMemory(PyRelocatable),
+    ReadIds(String),
+    WriteIds(String, PyMaybeRelocatable),
     End,
 }
 
 #[derive(Debug)]
-pub enum MemoryResult {
+pub enum OperationResult {
     Reading(PyMaybeRelocatable),
     Segment(PyRelocatable),
     Success,
@@ -110,17 +149,15 @@ pub enum MemoryResult {
 
 #[pyclass]
 pub struct PySegmentManager {
-    operation_sender: Sender<MemoryOperation>,
-    result_receiver: Receiver<MemoryResult>,
+    operation_sender: Sender<Operation>,
+    result_receiver: Receiver<OperationResult>,
 }
 
 #[pymethods]
 impl PySegmentManager {
     pub fn add(&self) -> PyResult<PyRelocatable> {
-        self.operation_sender
-            .send(MemoryOperation::AddSegment)
-            .unwrap();
-        if let MemoryResult::Segment(result) = self.result_receiver.recv().unwrap() {
+        self.operation_sender.send(Operation::AddSegment).unwrap();
+        if let OperationResult::Segment(result) = self.result_receiver.recv().unwrap() {
             return Ok(result);
         }
         todo!()
@@ -129,8 +166,8 @@ impl PySegmentManager {
 
 impl PySegmentManager {
     pub fn new(
-        operation_sender: Sender<MemoryOperation>,
-        result_receiver: Receiver<MemoryResult>,
+        operation_sender: Sender<Operation>,
+        result_receiver: Receiver<OperationResult>,
     ) -> PySegmentManager {
         PySegmentManager {
             operation_sender,
@@ -141,19 +178,19 @@ impl PySegmentManager {
 
 #[pyclass]
 pub struct PyMemory {
-    operation_sender: Sender<MemoryOperation>,
-    result_receiver: Receiver<MemoryResult>,
+    operation_sender: Sender<Operation>,
+    result_receiver: Receiver<OperationResult>,
 }
 
 #[pymethods]
 impl PyMemory {
     pub fn __getitem__(&self, key: &PyRelocatable, py: Python) -> PyResult<PyObject> {
         self.operation_sender
-            .send(MemoryOperation::ReadMemory(PyRelocatable::new((
+            .send(Operation::ReadMemory(PyRelocatable::new((
                 key.index, key.offset,
             ))))
             .unwrap();
-        if let MemoryResult::Reading(result) = self.result_receiver.recv().unwrap() {
+        if let OperationResult::Reading(result) = self.result_receiver.recv().unwrap() {
             return Ok(result.to_object(py));
         }
         todo!()
@@ -161,7 +198,7 @@ impl PyMemory {
 
     pub fn __setitem__(&self, key: &PyRelocatable, value: PyMaybeRelocatable) -> PyResult<()> {
         self.operation_sender
-            .send(MemoryOperation::WriteMemory(
+            .send(Operation::WriteMemory(
                 PyRelocatable::new((key.index, key.offset)),
                 value,
             ))
@@ -173,8 +210,8 @@ impl PyMemory {
 
 impl PyMemory {
     pub fn new(
-        operation_sender: Sender<MemoryOperation>,
-        result_receiver: Receiver<MemoryResult>,
+        operation_sender: Sender<Operation>,
+        result_receiver: Receiver<OperationResult>,
     ) -> PyMemory {
         PyMemory {
             operation_sender,
@@ -182,53 +219,85 @@ impl PyMemory {
         }
     }
 }
+
+#[pyclass]
+pub struct PyIds {
+    operation_sender: Sender<Operation>,
+    result_receiver: Receiver<OperationResult>,
+}
+impl PyIds {
+    pub fn new(
+        operation_sender: Sender<Operation>,
+        result_receiver: Receiver<OperationResult>,
+    ) -> PyIds {
+        PyIds {
+            operation_sender,
+            result_receiver,
+        }
+    }
+}
+
 fn handle_memory_messages(
-    operation_receiver: Receiver<MemoryOperation>,
-    result_sender: Sender<MemoryResult>,
-    segment_result_sender: Sender<MemoryResult>,
-    memory: &mut Memory,
-    segments: &mut MemorySegmentManager,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    operation_receiver: Receiver<Operation>,
+    result_sender: Sender<OperationResult>,
+    segment_result_sender: Sender<OperationResult>,
+    ids_result_sender: Sender<OperationResult>,
+    vm: &mut VirtualMachine,
 ) {
     loop {
         match operation_receiver.recv().unwrap() {
-            MemoryOperation::End => break,
-            MemoryOperation::ReadMemory(address) => {
-                if let Some(value) = memory.get(&address.to_relocatable()).unwrap() {
-                    match value {
-                        MaybeRelocatable::Int(value) => result_sender
-                            .send(MemoryResult::Reading(PyMaybeRelocatable::Int(
-                                value.clone(),
-                            )))
-                            .unwrap(),
-                        MaybeRelocatable::RelocatableValue(value) => result_sender
-                            .send(MemoryResult::Reading(PyMaybeRelocatable::RelocatableValue(
-                                PyRelocatable::new((value.segment_index, value.offset)),
-                            )))
-                            .unwrap(),
-                    }
+            Operation::End => break,
+            Operation::ReadMemory(address) => {
+                if let Some(value) = vm.memory.get(&address.to_relocatable()).unwrap() {
+                    result_sender
+                        .send(OperationResult::Reading(Into::<PyMaybeRelocatable>::into(
+                            value,
+                        )))
+                        .unwrap();
                 };
             }
-            MemoryOperation::WriteMemory(key, value) => {
-                match value {
-                    PyMaybeRelocatable::Int(value) => {
-                        memory.insert(&key.to_relocatable(), &value).unwrap();
-                    }
-                    PyMaybeRelocatable::RelocatableValue(address) => {
-                        memory
-                            .insert(&key.to_relocatable(), &address.to_relocatable())
-                            .unwrap();
-                    }
-                }
-                result_sender.send(MemoryResult::Success).unwrap();
+            Operation::WriteMemory(key, value) => {
+                vm.memory
+                    .insert(
+                        &key.to_relocatable(),
+                        &(Into::<MaybeRelocatable>::into(value)),
+                    )
+                    .unwrap();
+                result_sender.send(OperationResult::Success).unwrap();
             }
-            MemoryOperation::AddSegment => {
-                let result = segments.add(memory);
+            Operation::AddSegment => {
+                let result = vm.segments.add(&mut vm.memory);
                 segment_result_sender
-                    .send(MemoryResult::Segment(PyRelocatable::new((
+                    .send(OperationResult::Segment(PyRelocatable::new((
                         result.segment_index,
                         result.offset,
                     ))))
                     .unwrap()
+            }
+            Operation::ReadIds(name) => {
+                let hint_ref = ids_data.get(&name).unwrap();
+                let value = get_value_from_reference(vm, hint_ref, ap_tracking)
+                    .unwrap()
+                    .unwrap();
+                ids_result_sender
+                    .send(OperationResult::Reading(value.into()))
+                    .unwrap();
+            }
+            Operation::WriteIds(name, value) => {
+                let hint_ref = ids_data.get(&name).unwrap();
+                let addr = compute_addr_from_reference(
+                    hint_ref,
+                    &vm.run_context,
+                    &vm.memory,
+                    &ap_tracking,
+                )
+                .unwrap();
+                vm.memory
+                    .insert(&addr, &(Into::<MaybeRelocatable>::into(value)))
+                    .unwrap();
+                ids_result_sender.send(OperationResult::Success).unwrap()
             }
         }
     }
@@ -238,7 +307,7 @@ pub struct PythonExecutor {}
 
 impl PythonExecutor {
     pub fn execute_hint(
-        vm: &mut VirtualMachine,
+        mut vm: &mut VirtualMachine,
         hint_data: &Box<dyn Any>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
@@ -247,8 +316,9 @@ impl PythonExecutor {
         let code = hint_data.code.clone();
 
         let (operation_sender, operation_receiver) = mpsc::channel();
-        let (result_sender, result_receiver) = mpsc::channel::<MemoryResult>();
-        let (segment_result_sender, segment_result_receiver) = mpsc::channel::<MemoryResult>();
+        let (result_sender, result_receiver) = mpsc::channel::<OperationResult>();
+        let (segment_result_sender, segment_result_receiver) = mpsc::channel::<OperationResult>();
+        let (ids_result_sender, ids_result_receiver) = mpsc::channel::<OperationResult>();
         let ap = vm.run_context.ap;
         let fp = vm.run_context.fp;
         let gil = Python::acquire_gil();
@@ -266,18 +336,25 @@ impl PythonExecutor {
                     PySegmentManager::new(operation_sender.clone(), segment_result_receiver),
                 )
                 .unwrap();
+                let ids = PyCell::new(
+                    py,
+                    PyIds::new(operation_sender.clone(), ids_result_receiver),
+                )
+                .unwrap();
                 let ap = PyCell::new(py, PyRelocatable::new((1, ap))).unwrap();
                 let fp = PyCell::new(py, PyRelocatable::new((1, fp))).unwrap();
-                py_run!(py, memory segments ap fp, &code);
+                py_run!(py, memory segments ap fp ids, &code);
                 println!(" -- Ending python hint -- ");
-                operation_sender.send(MemoryOperation::End).unwrap();
+                operation_sender.send(Operation::End).unwrap();
             });
             handle_memory_messages(
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
                 operation_receiver,
                 result_sender,
                 segment_result_sender,
-                &mut vm.memory,
-                &mut vm.segments,
+                ids_result_sender,
+                &mut vm,
             );
         });
         Ok(())

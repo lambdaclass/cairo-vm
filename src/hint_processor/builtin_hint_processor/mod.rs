@@ -13,6 +13,7 @@ pub mod memcpy_hint_utils;
 pub mod memset_utils;
 pub mod pow_utils;
 pub mod python_executor;
+pub mod python_executor_helpers;
 pub mod secp;
 pub mod set;
 pub mod sha256_utils;
