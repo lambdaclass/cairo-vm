@@ -218,17 +218,41 @@ impl PyMemory {
 
 #[pyclass]
 pub struct PyIds {
-    _operation_sender: Sender<Operation>,
-    _result_receiver: Receiver<OperationResult>,
+    operation_sender: Sender<Operation>,
+    result_receiver: Receiver<OperationResult>,
 }
+
+#[pymethods]
+impl PyIds {
+    pub fn __getattr__(&self, name: &str, py: Python) -> PyResult<PyObject> {
+        self.operation_sender
+            .send(Operation::ReadIds(name.to_string()))
+            .unwrap();
+        if let OperationResult::Reading(result) = self.result_receiver.recv().unwrap() {
+            return Ok(result.to_object(py));
+        }
+        todo!()
+    }
+
+    pub fn __setattr__(&self, name: &str, value: PyMaybeRelocatable) -> PyResult<()> {
+        self.operation_sender
+            .send(Operation::WriteIds(name.to_string(), value))
+            .unwrap();
+        if let OperationResult::Success = self.result_receiver.recv().unwrap() {
+            return Ok(());
+        }
+        todo!()
+    }
+}
+
 impl PyIds {
     pub fn new(
-        _operation_sender: Sender<Operation>,
-        _result_receiver: Receiver<OperationResult>,
+        operation_sender: Sender<Operation>,
+        result_receiver: Receiver<OperationResult>,
     ) -> PyIds {
         PyIds {
-            _operation_sender,
-            _result_receiver,
+            operation_sender,
+            result_receiver,
         }
     }
 }
