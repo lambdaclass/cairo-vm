@@ -359,6 +359,7 @@ impl PythonExecutor {
         let (result_sender, result_receiver) = unbounded();
         let ap = vm.run_context.ap;
         let fp = vm.run_context.fp;
+        pyo3::prepare_freethreaded_python();
         let gil = Python::acquire_gil();
         let py = gil.python();
         py.allow_threads(move || {
