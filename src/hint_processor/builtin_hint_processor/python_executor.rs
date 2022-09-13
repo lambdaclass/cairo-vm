@@ -195,14 +195,7 @@ impl PySegmentManager {
     }
     pub fn write_arg(&self, ptr: PyRelocatable, arg: Vec<PyMaybeRelocatable>) -> PyResult<()> {
         send_operation(&self.operation_sender, Operation::WriteVecArg(ptr, arg))?;
-        if let OperationResult::Success = self
-            .result_receiver
-            .recv()
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
-        {
-            return Ok(());
-        }
-        Err(PyTypeError::new_err("segments.write_arg() failure"))
+        check_operation_success(&self.result_receiver, "segments.write_arg()")
     }
 }
 
@@ -246,14 +239,7 @@ impl PyMemory {
             &self.operation_sender,
             Operation::WriteMemory(PyRelocatable::new((key.index, key.offset)), value),
         )?;
-        if let OperationResult::Success = self
-            .result_receiver
-            .recv()
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
-        {
-            return Ok(());
-        }
-        Err(PyTypeError::new_err("memory.__setitem__() failure"))
+        check_operation_success(&self.result_receiver, "memory.__setitem__()")
     }
 }
 
@@ -294,14 +280,7 @@ impl PyIds {
             &self.operation_sender,
             Operation::WriteIds(name.to_string(), value),
         )?;
-        if let OperationResult::Success = self
-            .result_receiver
-            .recv()
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
-        {
-            return Ok(());
-        }
-        Err(PyTypeError::new_err("ids.__setattr__() failure"))
+        check_operation_success(&self.result_receiver, "ids.__setattr__()")
     }
 }
 
@@ -443,4 +422,18 @@ fn send_operation(sender: &Sender<Operation>, operation: Operation) -> Result<()
     sender
         .send(operation)
         .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))
+}
+
+fn check_operation_success(
+    receiver: &Receiver<OperationResult>,
+    method_name: &str,
+) -> Result<(), PyErr> {
+    if let OperationResult::Success = receiver
+        .recv()
+        .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
+    {
+        return Ok(());
+    }
+    let string = format!("{} failure", method_name);
+    Err(PyTypeError::new_err(string))
 }
