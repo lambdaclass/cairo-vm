@@ -56,7 +56,7 @@ impl Default for ApTracking {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
     #[serde(rename(deserialize = "type"))]
@@ -278,6 +278,7 @@ pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, Pro
         main: entrypoint_pc,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
+        identifiers: program_json.identifiers,
     })
 }
 
