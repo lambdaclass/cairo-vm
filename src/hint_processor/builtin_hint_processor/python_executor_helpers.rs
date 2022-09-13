@@ -1,3 +1,5 @@
+use num_bigint::BigInt;
+
 use crate::{
     hint_processor::{
         hint_processor_definition::HintReference,
@@ -13,6 +15,8 @@ use crate::{
         vm_core::VirtualMachine, vm_memory::memory::Memory,
     },
 };
+
+use super::python_executor::{PyMaybeRelocatable, PyRelocatable};
 
 ///Returns the Value given by a reference as an Option<MaybeRelocatable>
 pub fn get_value_from_reference(
@@ -90,4 +94,20 @@ pub fn compute_addr_from_reference(
             Ok(dereferenced_addr + hint_reference.offset2)
         }
     }
+}
+
+pub fn write_py_vec_args(
+    memory: &mut Memory,
+    ptr: &PyRelocatable,
+    py_args: &[PyMaybeRelocatable],
+    prime: &BigInt,
+) -> Result<(), VirtualMachineError> {
+    let ptr = ptr.to_relocatable();
+    for (num, value) in py_args.iter().enumerate() {
+        memory.insert(
+            &(&ptr + num),
+            &Into::<MaybeRelocatable>::into(value).mod_floor(prime)?,
+        )?;
+    }
+    Ok(())
 }

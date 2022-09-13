@@ -13,7 +13,7 @@ use crate::{
 
 use super::{
     builtin_hint_processor_definition::HintProcessorData,
-    python_executor_helpers::compute_addr_from_reference,
+    python_executor_helpers::{compute_addr_from_reference, write_py_vec_args},
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use num_bigint::BigInt;
@@ -54,6 +54,17 @@ impl From<PyMaybeRelocatable> for MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(Relocatable::from((rel.index, rel.offset)))
             }
             PyMaybeRelocatable::Int(num) => MaybeRelocatable::Int(num),
+        }
+    }
+}
+
+impl From<&PyMaybeRelocatable> for MaybeRelocatable {
+    fn from(val: &PyMaybeRelocatable) -> Self {
+        match val {
+            PyMaybeRelocatable::RelocatableValue(rel) => {
+                MaybeRelocatable::RelocatableValue(Relocatable::from((rel.index, rel.offset)))
+            }
+            PyMaybeRelocatable::Int(num) => MaybeRelocatable::Int(num.clone()),
         }
     }
 }
@@ -133,6 +144,7 @@ pub enum Operation {
     ReadMemory(PyRelocatable),
     ReadIds(String),
     WriteIds(String, PyMaybeRelocatable),
+    WriteVecArg(PyRelocatable, Vec<PyMaybeRelocatable>),
     End,
 }
 
@@ -155,6 +167,16 @@ impl PySegmentManager {
         self.operation_sender.send(Operation::AddSegment).unwrap();
         if let OperationResult::Segment(result) = self.result_receiver.recv().unwrap() {
             return Ok(result);
+        }
+        todo!()
+    }
+
+    pub fn write_arg(&self, ptr: PyRelocatable, arg: Vec<PyMaybeRelocatable>) -> PyResult<()> {
+        self.operation_sender
+            .send(Operation::WriteVecArg(ptr, arg))
+            .unwrap();
+        if let OperationResult::Success = self.result_receiver.recv().unwrap() {
+            return Ok(());
         }
         todo!()
     }
@@ -305,16 +327,16 @@ fn handle_memory_messages(
             }
             Operation::WriteIds(name, value) => {
                 let hint_ref = ids_data.get(&name).unwrap();
-                let addr = compute_addr_from_reference(
-                    hint_ref,
-                    &vm.run_context,
-                    &vm.memory,
-                    &ap_tracking,
-                )
-                .unwrap();
+                let addr =
+                    compute_addr_from_reference(hint_ref, &vm.run_context, &vm.memory, ap_tracking)
+                        .unwrap();
                 vm.memory
                     .insert(&addr, &(Into::<MaybeRelocatable>::into(value)))
                     .unwrap();
+                result_sender.send(OperationResult::Success).unwrap()
+            }
+            Operation::WriteVecArg(ptr, arg) => {
+                write_py_vec_args(&mut vm.memory, &ptr, &arg, &vm.prime).unwrap();
                 result_sender.send(OperationResult::Success).unwrap()
             }
         }
@@ -325,7 +347,7 @@ pub struct PythonExecutor {}
 
 impl PythonExecutor {
     pub fn execute_hint(
-        mut vm: &mut VirtualMachine,
+        vm: &mut VirtualMachine,
         hint_data: &Box<dyn Any>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
@@ -367,7 +389,7 @@ impl PythonExecutor {
                 &hint_data.ap_tracking,
                 operation_receiver,
                 result_sender,
-                &mut vm,
+                vm,
             );
         });
         Ok(())
