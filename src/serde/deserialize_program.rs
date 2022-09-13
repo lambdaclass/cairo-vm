@@ -1,11 +1,12 @@
-use crate::bigint;
 use crate::serde::deserialize_utils;
 use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
+use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
+use serde_json::Number;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -55,9 +56,22 @@ impl Default for ApTracking {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct Identifier {
     pub pc: Option<usize>,
+    #[serde(rename(deserialize = "type"))]
+    pub type_: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "bigint_from_number")]
+    pub value: Option<BigInt>,
+}
+
+fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let n = Number::deserialize(deserializer)?;
+    return Ok(Some(bigint_str!(n.to_string().as_bytes())));
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]
