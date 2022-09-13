@@ -18,7 +18,7 @@ use super::{
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use num_bigint::BigInt;
-use pyo3::{prelude::*, py_run};
+use pyo3::{exceptions::PyTypeError, prelude::*, py_run};
 
 #[derive(FromPyObject, Debug)]
 pub enum PyMaybeRelocatable {
@@ -97,11 +97,19 @@ impl PyRelocatable {
     pub fn __sub__(&self, value: PyMaybeRelocatable, py: Python) -> PyResult<PyObject> {
         match value {
             PyMaybeRelocatable::Int(value) => {
-                Ok(PyMaybeRelocatable::RelocatableValue(PyRelocatable {
-                    index: self.index,
-                    offset: self.offset - bigint_to_usize(&value).unwrap(),
-                })
-                .to_object(py))
+                let result = bigint_to_usize(&value);
+                if let Ok(value) = result {
+                    if value <= self.offset {
+                        return Ok(PyMaybeRelocatable::RelocatableValue(PyRelocatable {
+                            index: self.index,
+                            offset: self.offset - value,
+                        })
+                        .to_object(py));
+                    };
+                }
+                Err(PyTypeError::new_err(
+                    "MaybeRelocatable substraction failure: Offset exceeded",
+                ))
             }
             PyMaybeRelocatable::RelocatableValue(address) => {
                 if self.index == address.index && self.offset >= address.offset {
@@ -110,7 +118,9 @@ impl PyRelocatable {
                             .to_object(py),
                     );
                 }
-                todo!()
+                return Err(PyTypeError::new_err(
+                    "Cant sub two Relocatables of different segments",
+                ));
             }
         }
     }
@@ -165,21 +175,31 @@ pub struct PySegmentManager {
 #[pymethods]
 impl PySegmentManager {
     pub fn add(&self) -> PyResult<PyRelocatable> {
-        self.operation_sender.send(Operation::AddSegment).unwrap();
-        if let OperationResult::Segment(result) = self.result_receiver.recv().unwrap() {
+        self.operation_sender
+            .send(Operation::AddSegment)
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+        if let OperationResult::Segment(result) = self
+            .result_receiver
+            .recv()
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+        {
             return Ok(result);
         }
-        todo!()
+        return Err(PyTypeError::new_err("segments.add() failure"));
     }
 
     pub fn write_arg(&self, ptr: PyRelocatable, arg: Vec<PyMaybeRelocatable>) -> PyResult<()> {
         self.operation_sender
             .send(Operation::WriteVecArg(ptr, arg))
-            .unwrap();
-        if let OperationResult::Success = self.result_receiver.recv().unwrap() {
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+        if let OperationResult::Success = self
+            .result_receiver
+            .recv()
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+        {
             return Ok(());
         }
-        todo!()
+        return Err(PyTypeError::new_err("segments.write_arg() failure"));
     }
 }
 
@@ -208,11 +228,15 @@ impl PyMemory {
             .send(Operation::ReadMemory(PyRelocatable::new((
                 key.index, key.offset,
             ))))
-            .unwrap();
-        if let OperationResult::Reading(result) = self.result_receiver.recv().unwrap() {
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+        if let OperationResult::Reading(result) = self
+            .result_receiver
+            .recv()
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+        {
             return Ok(result.to_object(py));
         }
-        todo!()
+        return Err(PyTypeError::new_err("memory.__getitem__ failure"));
     }
 
     pub fn __setitem__(&self, key: &PyRelocatable, value: PyMaybeRelocatable) -> PyResult<()> {
@@ -221,9 +245,15 @@ impl PyMemory {
                 PyRelocatable::new((key.index, key.offset)),
                 value,
             ))
-            .unwrap();
-        self.result_receiver.recv().unwrap();
-        Ok(())
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+        if let OperationResult::Success = self
+            .result_receiver
+            .recv()
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+        {
+            return Ok(());
+        }
+        return Err(PyTypeError::new_err("memory.__setitem__() failure"));
     }
 }
 
@@ -250,21 +280,29 @@ impl PyIds {
     pub fn __getattr__(&self, name: &str, py: Python) -> PyResult<PyObject> {
         self.operation_sender
             .send(Operation::ReadIds(name.to_string()))
-            .unwrap();
-        if let OperationResult::Reading(result) = self.result_receiver.recv().unwrap() {
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+        if let OperationResult::Reading(result) = self
+            .result_receiver
+            .recv()
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+        {
             return Ok(result.to_object(py));
         }
-        todo!()
+        return Err(PyTypeError::new_err("ids.__getattr__() failure"));
     }
 
     pub fn __setattr__(&self, name: &str, value: PyMaybeRelocatable) -> PyResult<()> {
         self.operation_sender
             .send(Operation::WriteIds(name.to_string(), value))
-            .unwrap();
-        if let OperationResult::Success = self.result_receiver.recv().unwrap() {
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?;
+        if let OperationResult::Success = self
+            .result_receiver
+            .recv()
+            .map_err(|_| PyTypeError::new_err("Failed to communicate between channels"))?
+        {
             return Ok(());
         }
-        todo!()
+        return Err(PyTypeError::new_err("ids.__setattr__() failure"));
     }
 }
 
@@ -288,10 +326,13 @@ fn handle_messages(
     vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     loop {
-        match operation_receiver.recv().unwrap() {
+        match operation_receiver
+            .recv()
+            .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
+        {
             Operation::End => break,
             Operation::ReadMemory(address) => {
-                if let Some(value) = vm.memory.get(&address.to_relocatable()).unwrap() {
+                if let Some(value) = vm.memory.get(&address.to_relocatable())? {
                     result_sender
                         .send(OperationResult::Reading(Into::<PyMaybeRelocatable>::into(
                             value,
@@ -318,7 +359,9 @@ fn handle_messages(
                     .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
             }
             Operation::ReadIds(name) => {
-                let hint_ref = ids_data.get(&name).unwrap();
+                let hint_ref = ids_data
+                    .get(&name)
+                    .ok_or(VirtualMachineError::FailedToGetIds)?;
                 let value = get_value_from_reference(vm, hint_ref, ap_tracking)?;
                 result_sender
                     .send(OperationResult::Reading(value.into()))
