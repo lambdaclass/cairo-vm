@@ -363,7 +363,7 @@ impl PythonExecutor {
         let gil = Python::acquire_gil();
         let py = gil.python();
         py.allow_threads(move || {
-            thread::spawn(move || {
+            thread::spawn(move || -> Result<(), VirtualMachineError> {
                 println!(" -- Starting python hint execution -- ");
                 let gil = Python::acquire_gil();
                 let py = gil.python();
@@ -379,11 +379,14 @@ impl PythonExecutor {
                 .unwrap();
                 let ids =
                     PyCell::new(py, PyIds::new(operation_sender.clone(), result_receiver)).unwrap();
-                let ap = PyCell::new(py, PyRelocatable::new((1, ap))).unwrap();
-                let fp = PyCell::new(py, PyRelocatable::new((1, fp))).unwrap();
+                let ap = PyCell::new(py, PyRelocatable::new((1, ap)))
+                    .map_err(Into::<VirtualMachineError>::into)?;
+                let fp = PyCell::new(py, PyRelocatable::new((1, fp)))
+                    .map_err(Into::<VirtualMachineError>::into)?;
                 py_run!(py, memory segments ap fp ids, &code);
                 println!(" -- Ending python hint -- ");
                 operation_sender.send(Operation::End).unwrap();
+                Ok(())
             });
             handle_memory_messages(
                 &hint_data.ids_data,

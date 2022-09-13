@@ -2,6 +2,7 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use num_bigint::BigInt;
+use pyo3::PyErr;
 use thiserror::Error;
 
 use super::exec_scope_errors::ExecScopeError;
@@ -216,4 +217,12 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Error while executing python hint: {0}")]
+    PythonHint(String),
+}
+
+impl From<PyErr> for VirtualMachineError {
+    fn from(err: PyErr) -> VirtualMachineError {
+        VirtualMachineError::PythonHint(format!("{}", err))
+    }
 }
