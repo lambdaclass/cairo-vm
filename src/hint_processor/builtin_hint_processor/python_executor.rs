@@ -78,6 +78,12 @@ impl From<Relocatable> for PyRelocatable {
     }
 }
 
+impl From<Relocatable> for PyMaybeRelocatable {
+    fn from(val: Relocatable) -> Self {
+        PyMaybeRelocatable::RelocatableValue(val.into())
+    }
+}
+
 #[pyclass(name = "Relocatable")]
 #[derive(Clone, Debug)]
 pub struct PyRelocatable {
@@ -169,7 +175,7 @@ pub enum Operation {
 
 #[derive(Debug)]
 pub enum OperationResult {
-    Reading(PyMaybeRelocatable),
+    ReadValue(PyMaybeRelocatable),
     Segment(PyRelocatable),
     Success,
 }
@@ -224,14 +230,7 @@ impl PyMemory {
             &self.operation_sender,
             Operation::ReadMemory(PyRelocatable::new((key.index, key.offset))),
         )?;
-        if let OperationResult::Reading(result) = self
-            .result_receiver
-            .recv()
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
-        {
-            return Ok(result.to_object(py));
-        }
-        Err(PyTypeError::new_err("memory.__getitem__ failure"))
+        get_read_value_result(&self.result_receiver, "memory.__getitem__()", &py)
     }
 
     pub fn __setitem__(&self, key: &PyRelocatable, value: PyMaybeRelocatable) -> PyResult<()> {
@@ -265,14 +264,7 @@ pub struct PyIds {
 impl PyIds {
     pub fn __getattr__(&self, name: &str, py: Python) -> PyResult<PyObject> {
         send_operation(&self.operation_sender, Operation::ReadIds(name.to_string()))?;
-        if let OperationResult::Reading(result) = self
-            .result_receiver
-            .recv()
-            .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
-        {
-            return Ok(result.to_object(py));
-        }
-        Err(PyTypeError::new_err("ids.__getattr__() failure"))
+        get_read_value_result(&self.result_receiver, "ids.__getattr__()", &py)
     }
 
     pub fn __setattr__(&self, name: &str, value: PyMaybeRelocatable) -> PyResult<()> {
@@ -311,7 +303,7 @@ fn handle_messages(
             Operation::End => break,
             Operation::ReadMemory(address) => {
                 if let Some(value) = vm.memory.get(&address.to_relocatable())? {
-                    send_result(&result_sender, OperationResult::Reading(value.into()))?;
+                    send_result(&result_sender, OperationResult::ReadValue(value.into()))?;
                 };
             }
             Operation::WriteMemory(key, value) => {
@@ -330,7 +322,7 @@ fn handle_messages(
                     .get(&name)
                     .ok_or(VirtualMachineError::FailedToGetIds)?;
                 let value = get_value_from_reference(vm, hint_ref, ap_tracking)?;
-                send_result(&result_sender, OperationResult::Reading(value.into()))?;
+                send_result(&result_sender, OperationResult::ReadValue(value.into()))?;
             }
             Operation::WriteIds(name, value) => {
                 let hint_ref = ids_data
@@ -433,6 +425,21 @@ fn check_operation_success(
         .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
     {
         return Ok(());
+    }
+    let string = format!("{} failure", method_name);
+    Err(PyTypeError::new_err(string))
+}
+
+fn get_read_value_result(
+    receiver: &Receiver<OperationResult>,
+    method_name: &str,
+    py: &Python,
+) -> PyResult<PyObject> {
+    if let OperationResult::ReadValue(result) = receiver
+        .recv()
+        .map_err(|_| PyTypeError::new_err(CHANNEL_ERROR_MSG))?
+    {
+        return Ok(result.to_object(*py));
     }
     let string = format!("{} failure", method_name);
     Err(PyTypeError::new_err(string))
