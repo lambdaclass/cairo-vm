@@ -222,17 +222,17 @@ impl PyMemory {
 
 #[pyclass]
 pub struct PyIds {
-    operation_sender: Sender<Operation>,
-    result_receiver: Receiver<OperationResult>,
+    _operation_sender: Sender<Operation>,
+    _result_receiver: Receiver<OperationResult>,
 }
 impl PyIds {
     pub fn new(
-        operation_sender: Sender<Operation>,
-        result_receiver: Receiver<OperationResult>,
+        _operation_sender: Sender<Operation>,
+        _result_receiver: Receiver<OperationResult>,
     ) -> PyIds {
         PyIds {
-            operation_sender,
-            result_receiver,
+            _operation_sender,
+            _result_receiver,
         }
     }
 }
