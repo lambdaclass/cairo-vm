@@ -70,6 +70,12 @@ impl From<&PyMaybeRelocatable> for MaybeRelocatable {
     }
 }
 
+impl From<Relocatable> for PyRelocatable {
+    fn from(val: Relocatable) -> Self {
+        PyRelocatable::new((val.segment_index, val.offset))
+    }
+}
+
 #[pyclass(name = "Relocatable")]
 #[derive(Clone, Debug)]
 pub struct PyRelocatable {
@@ -333,11 +339,7 @@ fn handle_messages(
             Operation::End => break,
             Operation::ReadMemory(address) => {
                 if let Some(value) = vm.memory.get(&address.to_relocatable())? {
-                    result_sender
-                        .send(OperationResult::Reading(Into::<PyMaybeRelocatable>::into(
-                            value,
-                        )))
-                        .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
+                    send_message(&result_sender, OperationResult::Reading(value.into()))?;
                 };
             }
             Operation::WriteMemory(key, value) => {
@@ -345,27 +347,18 @@ fn handle_messages(
                     &key.to_relocatable(),
                     &(Into::<MaybeRelocatable>::into(value)),
                 )?;
-                result_sender
-                    .send(OperationResult::Success)
-                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
+                send_message(&result_sender, OperationResult::Success)?;
             }
             Operation::AddSegment => {
                 let result = vm.segments.add(&mut vm.memory);
-                result_sender
-                    .send(OperationResult::Segment(PyRelocatable::new((
-                        result.segment_index,
-                        result.offset,
-                    ))))
-                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
+                send_message(&result_sender, OperationResult::Segment(result.into()))?;
             }
             Operation::ReadIds(name) => {
                 let hint_ref = ids_data
                     .get(&name)
                     .ok_or(VirtualMachineError::FailedToGetIds)?;
                 let value = get_value_from_reference(vm, hint_ref, ap_tracking)?;
-                result_sender
-                    .send(OperationResult::Reading(value.into()))
-                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
+                send_message(&result_sender, OperationResult::Reading(value.into()))?;
             }
             Operation::WriteIds(name, value) => {
                 let hint_ref = ids_data
@@ -379,15 +372,11 @@ fn handle_messages(
                 )?;
                 vm.memory
                     .insert(&addr, &(Into::<MaybeRelocatable>::into(value)))?;
-                result_sender
-                    .send(OperationResult::Success)
-                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
+                send_message(&result_sender, OperationResult::Success)?;
             }
             Operation::WriteVecArg(ptr, arg) => {
                 write_py_vec_args(&mut vm.memory, &ptr, &arg, &vm.prime)?;
-                result_sender
-                    .send(OperationResult::Success)
-                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
+                send_message(&result_sender, OperationResult::Success)?;
             }
         }
     }
@@ -446,4 +435,13 @@ impl PythonExecutor {
         })?;
         Ok(())
     }
+}
+
+fn send_message(
+    sender: &Sender<OperationResult>,
+    message: OperationResult,
+) -> Result<(), VirtualMachineError> {
+    sender
+        .send(message)
+        .map_err(|_| VirtualMachineError::PythonExecutorChannel)
 }
