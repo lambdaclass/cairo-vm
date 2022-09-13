@@ -137,6 +137,7 @@ dependencies = [
  "bincode",
  "clap 3.2.15",
  "criterion",
+ "crossbeam-channel",
  "generic-array",
  "hex",
  "keccak",

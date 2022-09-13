@@ -1,9 +1,4 @@
-use std::{
-    any::Any,
-    collections::HashMap,
-    sync::mpsc::{self, Receiver, Sender},
-    thread,
-};
+use std::{any::Any, collections::HashMap, thread};
 
 use crate::{
     bigint,
@@ -20,6 +15,7 @@ use super::{
     builtin_hint_processor_definition::HintProcessorData,
     python_executor_helpers::compute_addr_from_reference,
 };
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use num_bigint::BigInt;
 use pyo3::{prelude::*, py_run};
 
@@ -242,8 +238,6 @@ fn handle_memory_messages(
     ap_tracking: &ApTracking,
     operation_receiver: Receiver<Operation>,
     result_sender: Sender<OperationResult>,
-    segment_result_sender: Sender<OperationResult>,
-    ids_result_sender: Sender<OperationResult>,
     vm: &mut VirtualMachine,
 ) {
     loop {
@@ -269,7 +263,7 @@ fn handle_memory_messages(
             }
             Operation::AddSegment => {
                 let result = vm.segments.add(&mut vm.memory);
-                segment_result_sender
+                result_sender
                     .send(OperationResult::Segment(PyRelocatable::new((
                         result.segment_index,
                         result.offset,
@@ -281,7 +275,7 @@ fn handle_memory_messages(
                 let value = get_value_from_reference(vm, hint_ref, ap_tracking)
                     .unwrap()
                     .unwrap();
-                ids_result_sender
+                result_sender
                     .send(OperationResult::Reading(value.into()))
                     .unwrap();
             }
@@ -297,7 +291,7 @@ fn handle_memory_messages(
                 vm.memory
                     .insert(&addr, &(Into::<MaybeRelocatable>::into(value)))
                     .unwrap();
-                ids_result_sender.send(OperationResult::Success).unwrap()
+                result_sender.send(OperationResult::Success).unwrap()
             }
         }
     }
@@ -315,10 +309,8 @@ impl PythonExecutor {
             .ok_or(VirtualMachineError::WrongHintData)?;
         let code = hint_data.code.clone();
 
-        let (operation_sender, operation_receiver) = mpsc::channel();
-        let (result_sender, result_receiver) = mpsc::channel::<OperationResult>();
-        let (segment_result_sender, segment_result_receiver) = mpsc::channel::<OperationResult>();
-        let (ids_result_sender, ids_result_receiver) = mpsc::channel::<OperationResult>();
+        let (operation_sender, operation_receiver) = unbounded();
+        let (result_sender, result_receiver) = unbounded();
         let ap = vm.run_context.ap;
         let fp = vm.run_context.fp;
         let gil = Python::acquire_gil();
@@ -328,19 +320,18 @@ impl PythonExecutor {
                 println!(" -- Starting python hint execution -- ");
                 let gil = Python::acquire_gil();
                 let py = gil.python();
-                let memory =
-                    PyCell::new(py, PyMemory::new(operation_sender.clone(), result_receiver))
-                        .unwrap();
+                let memory = PyCell::new(
+                    py,
+                    PyMemory::new(operation_sender.clone(), result_receiver.clone()),
+                )
+                .unwrap();
                 let segments = PyCell::new(
                     py,
-                    PySegmentManager::new(operation_sender.clone(), segment_result_receiver),
+                    PySegmentManager::new(operation_sender.clone(), result_receiver.clone()),
                 )
                 .unwrap();
-                let ids = PyCell::new(
-                    py,
-                    PyIds::new(operation_sender.clone(), ids_result_receiver),
-                )
-                .unwrap();
+                let ids =
+                    PyCell::new(py, PyIds::new(operation_sender.clone(), result_receiver)).unwrap();
                 let ap = PyCell::new(py, PyRelocatable::new((1, ap))).unwrap();
                 let fp = PyCell::new(py, PyRelocatable::new((1, fp))).unwrap();
                 py_run!(py, memory segments ap fp ids, &code);
@@ -352,8 +343,6 @@ impl PythonExecutor {
                 &hint_data.ap_tracking,
                 operation_receiver,
                 result_sender,
-                segment_result_sender,
-                ids_result_sender,
                 &mut vm,
             );
         });
