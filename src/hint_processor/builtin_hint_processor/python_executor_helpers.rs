@@ -23,13 +23,13 @@ pub fn get_value_from_reference(
     vm: &VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
+) -> Result<MaybeRelocatable, VirtualMachineError> {
     //First handle case on only immediate
     if let (None, Some(num)) = (
         hint_reference.register.as_ref(),
         hint_reference.immediate.as_ref(),
     ) {
-        return Ok(Some(MaybeRelocatable::from(num)));
+        return Ok(MaybeRelocatable::from(num));
     }
     //Then calculate address
     let var_addr =
@@ -37,19 +37,20 @@ pub fn get_value_from_reference(
     let value = if hint_reference.dereference {
         vm.memory.get(&var_addr)?
     } else {
-        return Ok(Some(MaybeRelocatable::from(var_addr)));
+        return Ok(MaybeRelocatable::from(var_addr));
     };
-    Ok(match &value {
+    match &value {
         Some(&MaybeRelocatable::RelocatableValue(ref rel)) => {
             if let Some(immediate) = &hint_reference.immediate {
                 let modified_value = rel + bigint_to_usize(immediate)?;
-                Some(MaybeRelocatable::from(modified_value))
+                Ok(MaybeRelocatable::from(modified_value))
             } else {
-                value.cloned()
+                Ok(MaybeRelocatable::from(rel))
             }
         }
-        None | Some(&MaybeRelocatable::Int(_)) => value.cloned(),
-    })
+        Some(&MaybeRelocatable::Int(ref num)) => Ok(MaybeRelocatable::Int(num.clone())),
+        None => Err(VirtualMachineError::FailedToGetIds),
+    }
 }
 
 ///Computes the memory address of the ids variable indicated by the HintReference as a Relocatable

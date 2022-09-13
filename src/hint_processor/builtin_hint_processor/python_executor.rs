@@ -280,13 +280,13 @@ impl PyIds {
     }
 }
 
-fn handle_memory_messages(
+fn handle_messages(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     operation_receiver: Receiver<Operation>,
     result_sender: Sender<OperationResult>,
     vm: &mut VirtualMachine,
-) {
+) -> Result<(), VirtualMachineError> {
     loop {
         match operation_receiver.recv().unwrap() {
             Operation::End => break,
@@ -296,17 +296,17 @@ fn handle_memory_messages(
                         .send(OperationResult::Reading(Into::<PyMaybeRelocatable>::into(
                             value,
                         )))
-                        .unwrap();
+                        .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
                 };
             }
             Operation::WriteMemory(key, value) => {
-                vm.memory
-                    .insert(
-                        &key.to_relocatable(),
-                        &(Into::<MaybeRelocatable>::into(value)),
-                    )
-                    .unwrap();
-                result_sender.send(OperationResult::Success).unwrap();
+                vm.memory.insert(
+                    &key.to_relocatable(),
+                    &(Into::<MaybeRelocatable>::into(value)),
+                )?;
+                result_sender
+                    .send(OperationResult::Success)
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
             }
             Operation::AddSegment => {
                 let result = vm.segments.add(&mut vm.memory);
@@ -315,33 +315,40 @@ fn handle_memory_messages(
                         result.segment_index,
                         result.offset,
                     ))))
-                    .unwrap()
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
             }
             Operation::ReadIds(name) => {
                 let hint_ref = ids_data.get(&name).unwrap();
-                let value = get_value_from_reference(vm, hint_ref, ap_tracking)
-                    .unwrap()
-                    .unwrap();
+                let value = get_value_from_reference(vm, hint_ref, ap_tracking)?;
                 result_sender
                     .send(OperationResult::Reading(value.into()))
-                    .unwrap();
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
             }
             Operation::WriteIds(name, value) => {
-                let hint_ref = ids_data.get(&name).unwrap();
-                let addr =
-                    compute_addr_from_reference(hint_ref, &vm.run_context, &vm.memory, ap_tracking)
-                        .unwrap();
+                let hint_ref = ids_data
+                    .get(&name)
+                    .ok_or(VirtualMachineError::FailedToGetIds)?;
+                let addr = compute_addr_from_reference(
+                    hint_ref,
+                    &vm.run_context,
+                    &vm.memory,
+                    ap_tracking,
+                )?;
                 vm.memory
-                    .insert(&addr, &(Into::<MaybeRelocatable>::into(value)))
-                    .unwrap();
-                result_sender.send(OperationResult::Success).unwrap()
+                    .insert(&addr, &(Into::<MaybeRelocatable>::into(value)))?;
+                result_sender
+                    .send(OperationResult::Success)
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
             }
             Operation::WriteVecArg(ptr, arg) => {
-                write_py_vec_args(&mut vm.memory, &ptr, &arg, &vm.prime).unwrap();
-                result_sender.send(OperationResult::Success).unwrap()
+                write_py_vec_args(&mut vm.memory, &ptr, &arg, &vm.prime)?;
+                result_sender
+                    .send(OperationResult::Success)
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?
             }
         }
     }
+    Ok(())
 }
 
 pub struct PythonExecutor {}
@@ -363,7 +370,7 @@ impl PythonExecutor {
         pyo3::prepare_freethreaded_python();
         let gil = Python::acquire_gil();
         let py = gil.python();
-        py.allow_threads(move || {
+        py.allow_threads(move || -> Result<(), VirtualMachineError> {
             thread::spawn(move || -> Result<(), VirtualMachineError> {
                 println!(" -- Starting python hint execution -- ");
                 let gil = Python::acquire_gil();
@@ -381,17 +388,19 @@ impl PythonExecutor {
                 let fp = pycell!(py, PyRelocatable::new((1, fp)));
                 py_run!(py, memory segments ap fp ids, &code);
                 println!(" -- Ending python hint -- ");
-                operation_sender.send(Operation::End).unwrap();
+                operation_sender
+                    .send(Operation::End)
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
                 Ok(())
             });
-            handle_memory_messages(
+            handle_messages(
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 operation_receiver,
                 result_sender,
                 vm,
-            );
-        });
+            )
+        })?;
         Ok(())
     }
 }

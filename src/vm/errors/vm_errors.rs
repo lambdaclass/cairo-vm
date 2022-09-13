@@ -219,6 +219,8 @@ pub enum VirtualMachineError {
     CustomHint(String),
     #[error("Error while executing python hint: {0}")]
     PythonHint(String),
+    #[error("Error while executing python hint: Failed to communicate between channels")]
+    PythonExecutorChannel,
 }
 
 impl From<PyErr> for VirtualMachineError {
