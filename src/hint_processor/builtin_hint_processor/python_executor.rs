@@ -118,9 +118,9 @@ impl PyRelocatable {
                             .to_object(py),
                     );
                 }
-                return Err(PyTypeError::new_err(
+                Err(PyTypeError::new_err(
                     "Cant sub two Relocatables of different segments",
-                ));
+                ))
             }
         }
     }
@@ -185,7 +185,7 @@ impl PySegmentManager {
         {
             return Ok(result);
         }
-        return Err(PyTypeError::new_err("segments.add() failure"));
+        Err(PyTypeError::new_err("segments.add() failure"))
     }
 
     pub fn write_arg(&self, ptr: PyRelocatable, arg: Vec<PyMaybeRelocatable>) -> PyResult<()> {
@@ -199,7 +199,7 @@ impl PySegmentManager {
         {
             return Ok(());
         }
-        return Err(PyTypeError::new_err("segments.write_arg() failure"));
+        Err(PyTypeError::new_err("segments.write_arg() failure"))
     }
 }
 
@@ -236,7 +236,7 @@ impl PyMemory {
         {
             return Ok(result.to_object(py));
         }
-        return Err(PyTypeError::new_err("memory.__getitem__ failure"));
+        Err(PyTypeError::new_err("memory.__getitem__ failure"))
     }
 
     pub fn __setitem__(&self, key: &PyRelocatable, value: PyMaybeRelocatable) -> PyResult<()> {
@@ -253,7 +253,7 @@ impl PyMemory {
         {
             return Ok(());
         }
-        return Err(PyTypeError::new_err("memory.__setitem__() failure"));
+        Err(PyTypeError::new_err("memory.__setitem__() failure"))
     }
 }
 
@@ -288,7 +288,7 @@ impl PyIds {
         {
             return Ok(result.to_object(py));
         }
-        return Err(PyTypeError::new_err("ids.__getattr__() failure"));
+        Err(PyTypeError::new_err("ids.__getattr__() failure"))
     }
 
     pub fn __setattr__(&self, name: &str, value: PyMaybeRelocatable) -> PyResult<()> {
@@ -302,7 +302,7 @@ impl PyIds {
         {
             return Ok(());
         }
-        return Err(PyTypeError::new_err("ids.__setattr__() failure"));
+        Err(PyTypeError::new_err("ids.__setattr__() failure"))
     }
 }
 
