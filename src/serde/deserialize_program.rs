@@ -6,6 +6,7 @@ use crate::types::{
 };
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
+use serde_json::Number;
 use std::{collections::HashMap, fmt, fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug)]
@@ -55,9 +56,22 @@ impl Default for ApTracking {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
+    #[serde(rename(deserialize = "type"))]
+    pub type_: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "bigint_from_number")]
+    pub value: Option<BigInt>,
+}
+
+fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let n = Number::deserialize(deserializer)?;
+    Ok(BigInt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]
@@ -264,13 +278,14 @@ pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, Pro
         main: entrypoint_pc,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,
+        identifiers: program_json.identifiers,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
+    use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
 
     #[test]
@@ -655,5 +670,76 @@ mod tests {
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
         assert_eq!(program.hints, hints);
+    }
+
+    #[test]
+    fn deserialize_constant() {
+        let file =
+            File::open("cairo_programs/manually_compiled/deserialize_constant_test.json").unwrap();
+        let mut reader = BufReader::new(file);
+
+        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.compare_abs_arrays.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint_str!(b"-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+            },
+        );
+        identifiers.insert(
+            String::from("starkware.cairo.common.cairo_keccak.keccak.unsigned_div_rem"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("alias")),
+                value: None,
+            },
+        );
+        identifiers.insert(
+            String::from("starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint_str!(
+                    b"-106710729501573572985208420194530329073740042555888586719234"
+                )),
+            },
+        );
+        identifiers.insert(
+            String::from("starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint!(3)),
+            },
+        );
+        identifiers.insert(
+            String::from("starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint!(0)),
+            },
+        );
+        identifiers.insert(
+            String::from("starkware.cairo.common.uint256.SHIFT"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
+            },
+        );
+
+        assert_eq!(program_json.identifiers, identifiers);
     }
 }
