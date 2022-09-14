@@ -106,3 +106,6 @@ StarkWare's STARK Math blog series:
 * [Arithmetization II](https://medium.com/starkware/arithmetization-ii-403c3b3f4355)
 * [Low Degree Testing](https://medium.com/starkware/low-degree-testing-f7614f5172db)
 * [A Framework for Efficient STARKs](https://medium.com/starkware/a-framework-for-efficient-starks-19608ba06fbe)
+
+### Possible changes for the future
+* Make the alloc functionality an internal feature of the VM rather than a hint.
