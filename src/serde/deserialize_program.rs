@@ -1,9 +1,9 @@
+use crate::bigint;
 use crate::serde::deserialize_utils;
 use crate::types::instruction::Register;
 use crate::types::{
     errors::program_errors::ProgramError, program::Program, relocatable::MaybeRelocatable,
 };
-use crate::{bigint, bigint_str};
 use num_bigint::{BigInt, Sign};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer};
 use serde_json::Number;
@@ -71,7 +71,7 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    return Ok(Some(bigint_str!(n.to_string().as_bytes())));
+    Ok(BigInt::parse_bytes(n.to_string().as_bytes(), 10))
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]
