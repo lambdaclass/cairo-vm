@@ -18,7 +18,7 @@ use super::{
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use num_bigint::BigInt;
-use pyo3::{exceptions::PyTypeError, prelude::*, py_run};
+use pyo3::{exceptions::PyTypeError, prelude::*, types::PyDict};
 
 const CHANNEL_ERROR_MSG: &str = "Failed to communicate between channels";
 
@@ -382,7 +382,13 @@ impl PythonExecutor {
                 let ids = pycell!(py, PyIds::new(operation_sender.clone(), result_receiver));
                 let ap = pycell!(py, PyRelocatable::new((1, ap)));
                 let fp = pycell!(py, PyRelocatable::new((1, fp)));
-                py_run!(py, memory segments ap fp ids, &code);
+                let locals = PyDict::new(py);
+                locals.set_item("memory", memory)?;
+                locals.set_item("segments", segments)?;
+                locals.set_item("ap", ap)?;
+                locals.set_item("fp", fp)?;
+                locals.set_item("ids", ids)?;
+                py.run(&code, None, Some(locals))?;
                 println!(" -- Ending python hint -- ");
                 operation_sender
                     .send(Operation::End)
