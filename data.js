@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1663180812361,
+  "lastUpdate": 1663183044561,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -35423,6 +35423,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 204585965,
             "range": "± 512393",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a0f080c12fdcb3804125214f6b388afe35d844d9",
+          "message": "Deserialize constants (#422)\n\n* add serde_json::arbitrary_precision feature\r\n\r\n* Add Identifier.value && Identifier.type_ field and deserialization\r\n\r\n* add unit test deserialize_constant\r\n\r\n* add JSON manually_compiled/deserialize_constant_test.json\r\n\r\n* add Program.identifiers field\r\n\r\n* Add identifiers to unit_test deserialize_program_test\r\n\r\n* Fix cairo_runner.rs unit tests\r\n\r\n* typo\r\n\r\n* remove bigint_str",
+          "timestamp": "2022-09-14T16:03:54-03:00",
+          "tree_id": "8243ea39832f98ca9bdfcd1a02a8536bc5c276e7",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/a0f080c12fdcb3804125214f6b388afe35d844d9"
+        },
+        "date": 1663183040259,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1829111125,
+            "range": "± 14279692",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 665503635,
+            "range": "± 6999170",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 327352223,
+            "range": "± 4026379",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1677632880,
+            "range": "± 13478484",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 240464858,
+            "range": "± 1810419",
             "unit": "ns/iter"
           }
         ]
