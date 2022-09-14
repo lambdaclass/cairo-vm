@@ -363,38 +363,39 @@ impl PythonExecutor {
         let (result_sender, result_receiver) = unbounded();
         let ap = vm.run_context.ap;
         let fp = vm.run_context.fp;
-        Python::with_gil(|py| -> Result<(), VirtualMachineError> {
-            py.allow_threads(move || -> Result<(), VirtualMachineError> {
-                thread::spawn(move || -> Result<(), VirtualMachineError> {
-                    println!(" -- Starting python hint execution -- ");
-                    let gil = Python::acquire_gil();
-                    let py = gil.python();
-                    let memory = pycell!(
-                        py,
-                        PyMemory::new(operation_sender.clone(), result_receiver.clone())
-                    );
-                    let segments = pycell!(
-                        py,
-                        PySegmentManager::new(operation_sender.clone(), result_receiver.clone())
-                    );
-                    let ids = pycell!(py, PyIds::new(operation_sender.clone(), result_receiver));
-                    let ap = pycell!(py, PyRelocatable::new((1, ap)));
-                    let fp = pycell!(py, PyRelocatable::new((1, fp)));
-                    py_run!(py, memory segments ap fp ids, &code);
-                    println!(" -- Ending python hint -- ");
-                    operation_sender
-                        .send(Operation::End)
-                        .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
-                    Ok(())
-                });
-                handle_messages(
-                    &hint_data.ids_data,
-                    &hint_data.ap_tracking,
-                    operation_receiver,
-                    result_sender,
-                    vm,
-                )
-            })
+        pyo3::prepare_freethreaded_python();
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        py.allow_threads(move || -> Result<(), VirtualMachineError> {
+            thread::spawn(move || -> Result<(), VirtualMachineError> {
+                println!(" -- Starting python hint execution -- ");
+                let gil = Python::acquire_gil();
+                let py = gil.python();
+                let memory = pycell!(
+                    py,
+                    PyMemory::new(operation_sender.clone(), result_receiver.clone())
+                );
+                let segments = pycell!(
+                    py,
+                    PySegmentManager::new(operation_sender.clone(), result_receiver.clone())
+                );
+                let ids = pycell!(py, PyIds::new(operation_sender.clone(), result_receiver));
+                let ap = pycell!(py, PyRelocatable::new((1, ap)));
+                let fp = pycell!(py, PyRelocatable::new((1, fp)));
+                py_run!(py, memory segments ap fp ids, &code);
+                println!(" -- Ending python hint -- ");
+                operation_sender
+                    .send(Operation::End)
+                    .map_err(|_| VirtualMachineError::PythonExecutorChannel)?;
+                Ok(())
+            });
+            handle_messages(
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                operation_receiver,
+                result_sender,
+                vm,
+            )
         })?;
         Ok(())
     }
