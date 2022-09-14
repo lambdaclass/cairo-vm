@@ -137,8 +137,18 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::IS_LE_FELT => {
                 is_le_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::ASSERT_LE_FELT => {
-                assert_le_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+            hint_code::ASSERT_LE_FELT => assert_le_felt(
+                vm_proxy,
+                exec_scopes_proxy,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+            ),
+            hint_code::ASSERT_LE_FELT_EXCLUDED_2 => assert_le_felt_excluded_2(exec_scopes_proxy),
+            hint_code::ASSERT_LE_FELT_EXCLUDED_1 => {
+                assert_le_felt_excluded_1(vm_proxy, exec_scopes_proxy)
+            }
+            hint_code::ASSERT_LE_FELT_EXCLUDED_0 => {
+                assert_le_felt_excluded_0(vm_proxy, exec_scopes_proxy)
             }
             hint_code::ASSERT_250_BITS => {
                 assert_250_bit(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
