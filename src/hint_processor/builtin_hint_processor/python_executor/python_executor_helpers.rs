@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-use super::python_executor::{PyMaybeRelocatable, PyRelocatable};
+use super::pyrelocatable::*;
 
 ///Returns the Value given by a reference as an Option<MaybeRelocatable>
 pub fn get_value_from_reference(
