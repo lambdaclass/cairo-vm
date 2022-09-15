@@ -1,8 +1,8 @@
-func a{}() -> (b : felt):
-    return (5)
-end
+func a{}() -> (b: felt) {
+    return (5,);
+}
 
-func main{}():
-    a()
-    ret
-end
+func main{}() {
+    a();
+    ret;
+}

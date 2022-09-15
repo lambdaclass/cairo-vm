@@ -2,16 +2,15 @@
 
 from starkware.cairo.common.serialize import serialize_word
 
-func return_10() -> (res : felt):
-    let res = 10
-    return (res)
-end
+func return_10() -> (res: felt) {
+    let res = 10;
+    return (res,);
+}
 
-func main{output_ptr : felt*}():
-    
-    let (value) = return_10()
+func main{output_ptr: felt*}() {
+    let (value) = return_10();
 
-    serialize_word(value)
+    serialize_word(value);
 
-    return ()
-end
+    return ();
+}
