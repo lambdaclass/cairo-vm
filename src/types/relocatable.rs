@@ -540,14 +540,14 @@ mod tests {
     fn add_bigint_to_int() {
         let addr = MaybeRelocatable::from(bigint!(7));
         let added_addr = addr.add_int_mod(&bigint!(2), &bigint!(17));
-        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(9))), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(9))), added_addr);
     }
 
     #[test]
     fn add_usize_to_int() {
         let addr = MaybeRelocatable::from(bigint!(7));
         let added_addr = addr.add_usize_mod(2, Some(bigint!(17)));
-        assert_eq!(MaybeRelocatable::Int(bigint!(9)), added_addr);
+        assert_eq!(MaybeRelocatable::from(bigint!(9)), added_addr);
     }
 
     #[test]
@@ -602,7 +602,7 @@ mod tests {
                 ],
             ),
         );
-        assert_eq!(Ok(MaybeRelocatable::Int(bigint!(4))), added_addr);
+        assert_eq!(Ok(MaybeRelocatable::from(bigint!(4))), added_addr);
     }
 
     #[test]
@@ -628,7 +628,7 @@ mod tests {
 
     #[test]
     fn add_int_to_int_prime() {
-        let addr_a = &MaybeRelocatable::Int(BigInt::new(
+        let addr_a = &MaybeRelocatable::from(BigInt::new(
             Sign::Plus,
             vec![1, 0, 0, 0, 0, 0, 17, 134217728],
         ));
@@ -677,7 +677,7 @@ mod tests {
     #[test]
     fn add_int_to_relocatable_prime() {
         let addr_a = &MaybeRelocatable::from((7, 14));
-        let addr_b = &MaybeRelocatable::Int(BigInt::new(
+        let addr_b = &MaybeRelocatable::from(BigInt::new(
             Sign::Plus,
             vec![1, 0, 0, 0, 0, 0, 17, 134217728],
         ));
@@ -708,7 +708,7 @@ mod tests {
 
     #[test]
     fn add_int_int_rel_offset_exceeded() {
-        let addr = MaybeRelocatable::Int(bigint_str!(b"18446744073709551616"));
+        let addr = MaybeRelocatable::from(bigint_str!(b"18446744073709551616"));
         let relocatable = Relocatable {
             offset: 0,
             segment_index: 0,
@@ -779,16 +779,16 @@ mod tests {
 
     #[test]
     fn mod_floor_int() {
-        let num = MaybeRelocatable::Int(bigint!(7));
+        let num = MaybeRelocatable::from(bigint!(7));
         let div = bigint!(5);
-        let expected_rem = MaybeRelocatable::Int(bigint!(2));
+        let expected_rem = MaybeRelocatable::from(bigint!(2));
         assert_eq!(num.mod_floor(&div), Ok(expected_rem));
     }
 
     #[test]
     fn mod_floor_bad_type() {
         let value = &MaybeRelocatable::from((2, 7));
-        let div = MaybeRelocatable::Int(bigint!(5));
+        let div = MaybeRelocatable::from(bigint!(5));
         assert_eq!(value.divmod(&div), Err(VirtualMachineError::NotImplemented));
     }
 

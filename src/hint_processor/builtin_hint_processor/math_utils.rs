@@ -608,8 +608,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(bigint!(1)),
-                    MaybeRelocatable::Int(bigint!(0))
+                    MaybeRelocatable::from(bigint!(1)),
+                    MaybeRelocatable::from(bigint!(0))
                 )
             ))
         );
@@ -1339,8 +1339,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
-                    MaybeRelocatable::Int(bigint!(5)),
-                    MaybeRelocatable::Int(bigint!(2))
+                    MaybeRelocatable::from(bigint!(5)),
+                    MaybeRelocatable::from(bigint!(2))
                 )
             ))
         );
@@ -1445,8 +1445,8 @@ mod tests {
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
-                    MaybeRelocatable::Int(bigint!(10)),
-                    MaybeRelocatable::Int(bigint!(31))
+                    MaybeRelocatable::from(bigint!(10)),
+                    MaybeRelocatable::from(bigint!(31))
                 )
             ))
         );

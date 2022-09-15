@@ -670,7 +670,7 @@ mod tests {
             .get_instruction_encoding()
             .expect("Unexpected error on get_instruction_encoding");
         assert_eq!(num, &bigint!(5));
-        assert_eq!(imm, Some(&MaybeRelocatable::Int(bigint!(6))));
+        assert_eq!(imm, Some(&MaybeRelocatable::from(bigint!(6))));
     }
 
     #[test]
@@ -700,10 +700,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -761,10 +761,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -791,10 +791,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -824,10 +824,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::from(bigint!(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -859,10 +859,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -892,10 +892,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -925,10 +925,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -958,10 +958,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -988,10 +988,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1020,8 +1020,8 @@ mod tests {
         let operands = Operands {
             dst: mayberelocatable!(1, 11),
             res: Some(mayberelocatable!(0, 8)),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1048,10 +1048,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::from(bigint!(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -1083,10 +1083,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1114,10 +1114,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::from(bigint!(11)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1146,10 +1146,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
+            dst: MaybeRelocatable::from(bigint!(11)),
             res: Some(MaybeRelocatable::from((1, 4))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1178,10 +1178,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(0)),
-            res: Some(MaybeRelocatable::Int(bigint!(0))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(0)),
+            res: Some(MaybeRelocatable::from(bigint!(0))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1208,10 +1208,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1238,10 +1238,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(11)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
@@ -1274,9 +1274,9 @@ mod tests {
 
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 11)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let mut vm = vm!();
@@ -1290,7 +1290,7 @@ mod tests {
 
     #[test]
     fn is_zero_int_value() {
-        let value = MaybeRelocatable::Int(bigint!(1));
+        let value = MaybeRelocatable::from(bigint!(1));
         assert_eq!(Ok(false), VirtualMachine::is_zero(value));
     }
 
@@ -1356,12 +1356,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(3));
-        let op1 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::from(bigint!(3));
+        let op1 = MaybeRelocatable::from(bigint!(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(1))),
-                Some(MaybeRelocatable::Int(bigint!(3)))
+                Some(MaybeRelocatable::from(bigint!(1))),
+                Some(MaybeRelocatable::from(bigint!(3)))
             )),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
         );
@@ -1408,12 +1408,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::from(bigint!(4));
+        let op1 = MaybeRelocatable::from(bigint!(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(2))),
-                Some(MaybeRelocatable::Int(bigint!(4)))
+                Some(MaybeRelocatable::from(bigint!(2))),
+                Some(MaybeRelocatable::from(bigint!(4)))
             )),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
         );
@@ -1438,8 +1438,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::from(bigint!(4));
+        let op1 = MaybeRelocatable::from(bigint!(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1465,8 +1465,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::from(bigint!(4));
+        let op1 = MaybeRelocatable::from(bigint!(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1492,8 +1492,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op1 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::from(bigint!(4));
+        let op1 = MaybeRelocatable::from(bigint!(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1))
@@ -1541,12 +1541,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(3));
-        let op0 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::from(bigint!(3));
+        let op0 = MaybeRelocatable::from(bigint!(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(1))),
-                Some(MaybeRelocatable::Int(bigint!(3)))
+                Some(MaybeRelocatable::from(bigint!(1))),
+                Some(MaybeRelocatable::from(bigint!(3)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
         );
@@ -1593,12 +1593,12 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op0 = MaybeRelocatable::Int(bigint!(2));
+        let dst = MaybeRelocatable::from(bigint!(4));
+        let op0 = MaybeRelocatable::from(bigint!(2));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(2))),
-                Some(MaybeRelocatable::Int(bigint!(4)))
+                Some(MaybeRelocatable::from(bigint!(2))),
+                Some(MaybeRelocatable::from(bigint!(4)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
         );
@@ -1623,8 +1623,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(4));
-        let op0 = MaybeRelocatable::Int(bigint!(0));
+        let dst = MaybeRelocatable::from(bigint!(4));
+        let op0 = MaybeRelocatable::from(bigint!(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op1(&instruction, Some(&dst), Some(op0))
@@ -1650,7 +1650,7 @@ mod tests {
 
         let vm = vm!();
 
-        let op0 = MaybeRelocatable::Int(bigint!(0));
+        let op0 = MaybeRelocatable::from(bigint!(0));
         assert_eq!(
             Ok((None, None)),
             vm.deduce_op1(&instruction, None, Some(op0))
@@ -1676,11 +1676,11 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(bigint!(7));
+        let dst = MaybeRelocatable::from(bigint!(7));
         assert_eq!(
             Ok((
-                Some(MaybeRelocatable::Int(bigint!(7))),
-                Some(MaybeRelocatable::Int(bigint!(7)))
+                Some(MaybeRelocatable::from(bigint!(7))),
+                Some(MaybeRelocatable::from(bigint!(7)))
             )),
             vm.deduce_op1(&instruction, Some(&dst), None)
         );
@@ -1705,10 +1705,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::from(bigint!(7));
+        let op0 = MaybeRelocatable::from(bigint!(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(7)))),
+            Ok(Some(MaybeRelocatable::from(bigint!(7)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -1732,10 +1732,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::from(bigint!(7));
+        let op0 = MaybeRelocatable::from(bigint!(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(16)))),
+            Ok(Some(MaybeRelocatable::from(bigint!(16)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -1759,10 +1759,10 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::from(bigint!(7));
+        let op0 = MaybeRelocatable::from(bigint!(9));
         assert_eq!(
-            Ok(Some(MaybeRelocatable::Int(bigint!(63)))),
+            Ok(Some(MaybeRelocatable::from(bigint!(63)))),
             vm.compute_res(&instruction, &op0, &op1)
         );
     }
@@ -1813,8 +1813,8 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(bigint!(7));
-        let op0 = MaybeRelocatable::Int(bigint!(9));
+        let op1 = MaybeRelocatable::from(bigint!(7));
+        let op0 = MaybeRelocatable::from(bigint!(9));
         assert_eq!(Ok(None), vm.compute_res(&instruction, &op0, &op1));
     }
 
@@ -1837,9 +1837,9 @@ mod tests {
 
         let vm = vm!();
 
-        let res = MaybeRelocatable::Int(bigint!(7));
+        let res = MaybeRelocatable::from(bigint!(7));
         assert_eq!(
-            Some(MaybeRelocatable::Int(bigint!(7))),
+            Some(MaybeRelocatable::from(bigint!(7))),
             vm.deduce_dst(&instruction, Some(&res))
         );
     }
@@ -1938,11 +1938,11 @@ mod tests {
 
         vm.memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
-        let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
+        let dst_addr_value = MaybeRelocatable::from(bigint!(5));
         let op0_addr = MaybeRelocatable::from((1, 1));
-        let op0_addr_value = MaybeRelocatable::Int(bigint!(2));
+        let op0_addr_value = MaybeRelocatable::from(bigint!(2));
         let op1_addr = MaybeRelocatable::from((1, 2));
-        let op1_addr_value = MaybeRelocatable::Int(bigint!(3));
+        let op1_addr_value = MaybeRelocatable::from(bigint!(3));
         vm.memory.insert(&dst_addr, &dst_addr_value).unwrap();
         vm.memory.insert(&op0_addr, &op0_addr_value).unwrap();
         vm.memory.insert(&op1_addr, &op1_addr_value).unwrap();
@@ -2108,10 +2108,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(8)),
+            dst: MaybeRelocatable::from(bigint!(8)),
             res: None,
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let vm = vm!();
@@ -2138,10 +2138,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(bigint!(9)),
-            res: Some(MaybeRelocatable::Int(bigint!(8))),
-            op0: MaybeRelocatable::Int(bigint!(9)),
-            op1: MaybeRelocatable::Int(bigint!(10)),
+            dst: MaybeRelocatable::from(bigint!(9)),
+            res: Some(MaybeRelocatable::from(bigint!(8))),
+            op0: MaybeRelocatable::from(bigint!(9)),
+            op1: MaybeRelocatable::from(bigint!(10)),
         };
 
         let vm = vm!();
@@ -2438,7 +2438,7 @@ mod tests {
 
         assert_eq!(
             vm.memory.get(&vm.run_context.get_ap()),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0x4)))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0x4)))),
         );
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
@@ -2450,7 +2450,7 @@ mod tests {
 
         assert_eq!(
             vm.memory.get(&vm.run_context.get_ap()),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0x5))))
+            Ok(Some(&MaybeRelocatable::from(bigint!(0x5))))
         );
 
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -2463,7 +2463,7 @@ mod tests {
 
         assert_eq!(
             vm.memory.get(&vm.run_context.get_ap()),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0x14)))),
+            Ok(Some(&MaybeRelocatable::from(bigint!(0x14)))),
         );
     }
 
@@ -2828,15 +2828,15 @@ mod tests {
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(
                 String::from("ec_op"),
-                MaybeRelocatable::Int(bigint_str!(
+                MaybeRelocatable::from(bigint_str!(
                     b"2739017437753868763038285897969098325279422804143820990343394856167768859289"
                 )),
-                Some(MaybeRelocatable::Int(bigint_str!(
+                Some(MaybeRelocatable::from(bigint_str!(
                     b"2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 )))
             ))
         );
-        assert_eq!(error.unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected Int(2739017437753868763038285897969098325279422804143820990343394856167768859289), got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
+        assert_eq!(error.unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op, expected Int(FieldElement { num: 2739017437753868763038285897969098325279422804143820990343394856167768859289 }), got Some(Int(FieldElement { num: 2778063437308421278851140253538604815869848682781135193774472480292420096757 }))");
     }
 
     #[test]

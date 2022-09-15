@@ -412,12 +412,12 @@ mod tests {
         let builtins: Vec<String> = Vec::new();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -617,12 +617,12 @@ mod tests {
 
         let builtins: Vec<String> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(1000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5189976364521848832).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2000).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(5201798304953696256).unwrap()),
-            MaybeRelocatable::Int(BigInt::from_i64(2345108766317314046).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(1000).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(5189976364521848832).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(2000).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(5201798304953696256).unwrap()),
+            MaybeRelocatable::from(BigInt::from_i64(2345108766317314046).unwrap()),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();

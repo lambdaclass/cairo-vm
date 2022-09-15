@@ -273,7 +273,7 @@ mod memory_tests {
             error,
             Err(MemoryError::InconsistentMemory(key, val_a, val_b))
         );
-        assert_eq!(error.unwrap_err().to_string(), "Inconsistent memory assignment at address RelocatableValue(Relocatable { segment_index: 0, offset: 0 }). Int(5) != Int(6)");
+        assert_eq!(error.unwrap_err().to_string(), "Inconsistent memory assignment at address RelocatableValue(Relocatable { segment_index: 0, offset: 0 }). Int(FieldElement { num: 5 }) != Int(FieldElement { num: 6 })");
     }
 
     #[test]

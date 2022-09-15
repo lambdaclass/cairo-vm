@@ -307,7 +307,7 @@ mod tests {
     fn find_elm_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(0)),
+            MaybeRelocatable::from(bigint!(0)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
@@ -319,7 +319,7 @@ mod tests {
     fn find_elm_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::from(bigint!(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
@@ -342,7 +342,7 @@ mod tests {
     fn find_elm_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::from(bigint!(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
@@ -393,7 +393,7 @@ mod tests {
     fn search_sorted_lower_no_matches() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
-            MaybeRelocatable::Int(bigint!(7)),
+            MaybeRelocatable::from(bigint!(7)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
@@ -420,7 +420,7 @@ mod tests {
     fn search_sorted_lower_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(0)),
+            MaybeRelocatable::from(bigint!(0)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
@@ -432,7 +432,7 @@ mod tests {
     fn search_sorted_lower_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::from(bigint!(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
@@ -458,7 +458,7 @@ mod tests {
     fn search_sorted_lower_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::Int(bigint!(-1)),
+            MaybeRelocatable::from(bigint!(-1)),
         )]));
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),

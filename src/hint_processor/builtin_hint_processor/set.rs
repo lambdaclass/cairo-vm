@@ -135,7 +135,7 @@ mod tests {
         assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
             vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
+            Ok(Some(&MaybeRelocatable::from(bigint!(0))))
         )
     }
 

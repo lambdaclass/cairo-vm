@@ -2,6 +2,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::types::relocatable::FieldElement;
 use crate::{
     bigint, hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking, types::relocatable::MaybeRelocatable,
@@ -225,7 +226,7 @@ fn maybe_reloc_vec_to_u64_array(
     let array: [u64; KECCAK_STATE_SIZE_FELTS] = vec
         .iter()
         .map(|n| {
-            if let Some(MaybeRelocatable::Int(num)) = n {
+            if let Some(MaybeRelocatable::Int(FieldElement { num })) = n {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
             } else {
                 Err(VirtualMachineError::ExpectedIntAtRange(n.cloned()))

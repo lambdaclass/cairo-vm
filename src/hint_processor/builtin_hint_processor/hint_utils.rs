@@ -92,7 +92,7 @@ pub fn get_relocatable_from_var_name(
 }
 
 //Gets the value of a variable name.
-//If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
+//If the value is an MaybeRelocatable::Int(FieldElement{Bigint}) return &Bigint
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
