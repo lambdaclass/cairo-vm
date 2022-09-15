@@ -2,9 +2,9 @@ use std::any::Any;
 
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
-use starknet_crypto::{pedersen_hash, FieldElement};
+use starknet_crypto::{pedersen_hash, FieldElement as StarknetFieldElement};
 
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{FieldElement, MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::Memory;
@@ -58,7 +58,10 @@ impl BuiltinRunner for HashBuiltinRunner {
         {
             return Ok(None);
         };
-        if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
+        if let (
+            Ok(Some(MaybeRelocatable::Int(FieldElement { num: num_a }))),
+            Ok(Some(MaybeRelocatable::Int(FieldElement { num: num_b }))),
+        ) = (
             memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
                 segment_index: address.segment_index,
                 offset: address.offset - 1,
@@ -70,19 +73,19 @@ impl BuiltinRunner for HashBuiltinRunner {
         ) {
             self.verified_addresses.push(address.clone());
 
-            //Convert MaybeRelocatable to FieldElement
+            //Convert MaybeRelocatable to StarknetFieldElement
             let a_string = num_a.to_str_radix(10);
             let b_string = num_b.to_str_radix(10);
             let (y, x) = match (
-                FieldElement::from_dec_str(&a_string),
-                FieldElement::from_dec_str(&b_string),
+                StarknetFieldElement::from_dec_str(&a_string),
+                StarknetFieldElement::from_dec_str(&b_string),
             ) {
                 (Ok(field_element_a), Ok(field_element_b)) => (field_element_a, field_element_b),
                 _ => return Err(RunnerError::FailedStringConversion),
             };
             //Compute pedersen Hash
             let fe_result = pedersen_hash(&x, &y);
-            //Convert result from FieldElement to MaybeRelocatable
+            //Convert result from StarknetFieldElement to MaybeRelocatable
             let r_byte_slice = fe_result.to_bytes_be();
             let result = BigInt::from_bytes_be(Sign::Plus, &r_byte_slice);
             return Ok(Some(MaybeRelocatable::from(result)));

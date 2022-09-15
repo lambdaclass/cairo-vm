@@ -123,7 +123,7 @@ pub fn assert_not_equal(
     match (vm_proxy.memory.get(&a_addr), vm_proxy.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b).is_multiple_of(vm_proxy.prime) {
+                if (&a.num - &b.num).is_multiple_of(vm_proxy.prime) {
                     return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),

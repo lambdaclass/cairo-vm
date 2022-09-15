@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::types::relocatable::Relocatable;
+use crate::types::relocatable::{FieldElement, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_indexes};
@@ -84,10 +84,10 @@ impl Memory {
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
     pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        if let Some(MaybeRelocatable::Int(int)) =
+        if let Some(MaybeRelocatable::Int(FieldElement { num })) =
             self.get(key).map_err(VirtualMachineError::MemoryError)?
         {
-            Ok(int)
+            Ok(num)
         } else {
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from(key),

@@ -20,8 +20,7 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
@@ -108,7 +107,7 @@ impl VirtualMachine {
         &self,
     ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
         let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
-            Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
+            Ok(Some(MaybeRelocatable::Int(ref encoding))) => &encoding.num,
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
@@ -167,7 +166,7 @@ impl VirtualMachine {
             PcUpdate::JumpRel => match operands.res.clone() {
                 Some(res) => match res {
                     MaybeRelocatable::Int(num_res) => {
-                        self.run_context.pc.add_int_mod(&num_res, &self.prime)?
+                        self.run_context.pc.add_int_mod(&num_res.num, &self.prime)?
                     }
 
                     _ => return Err(VirtualMachineError::PureValue),
@@ -203,7 +202,7 @@ impl VirtualMachine {
     /// Used for JNZ instructions
     fn is_zero(addr: MaybeRelocatable) -> Result<bool, VirtualMachineError> {
         match addr {
-            MaybeRelocatable::Int(num) => Ok(num.is_zero()),
+            MaybeRelocatable::Int(felt) => Ok(felt.is_zero()),
             MaybeRelocatable::RelocatableValue(_rel_value) => Err(VirtualMachineError::PureValue),
         }
     }
@@ -244,10 +243,10 @@ impl VirtualMachine {
                             ) = (dst_addr, op1_addr)
                             {
                                 let num_op1 = Clone::clone(num_op1_ref);
-                                if num_op1 != bigint!(0) {
+                                if !num_op1.is_zero() {
                                     return Ok((
                                         Some(MaybeRelocatable::Int(
-                                            (num_dst / num_op1).mod_floor(&self.prime),
+                                            (num_dst / num_op1) % &self.prime,
                                         )),
                                         Some(dst_addr.clone()),
                                     ));
@@ -292,10 +291,10 @@ impl VirtualMachine {
                         if let (MaybeRelocatable::Int(num_dst), MaybeRelocatable::Int(num_op0)) =
                             (dst_addr, op0_addr)
                         {
-                            if num_op0 != bigint!(0) {
+                            if num_op0.num != bigint!(0) {
                                 return Ok((
                                     Some(MaybeRelocatable::Int(
-                                        (num_dst / num_op0).mod_floor(&self.prime),
+                                        (num_dst.clone() / &num_op0) % &self.prime,
                                     )),
                                     Some(dst_addr.clone()),
                                 ));
@@ -337,8 +336,8 @@ impl VirtualMachine {
             Res::Mul => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
-                    return Ok(Some(MaybeRelocatable::Int(
-                        (num_op0 * num_op1).mod_floor(&self.prime),
+                    return Ok(Some(MaybeRelocatable::from(
+                        (num_op0.clone() * num_op1) % (&self.prime),
                     )));
                 }
                 Err(VirtualMachineError::PureValue)
@@ -379,8 +378,8 @@ impl VirtualMachine {
                         {
                             if res_num != dst_num {
                                 return Err(VirtualMachineError::DiffAssertValues(
-                                    res_num.clone(),
-                                    dst_num.clone(),
+                                    res_num.num.clone(),
+                                    dst_num.num.clone(),
                                 ));
                             };
                         };
@@ -444,7 +443,7 @@ impl VirtualMachine {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
                     let decoded_instruction =
-                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                        decode_instruction(instruction, Some(imm_ref.num.clone()))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;

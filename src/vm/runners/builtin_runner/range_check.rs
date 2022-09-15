@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use num_traits::{One, Zero};
 
 use crate::bigint;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{FieldElement, MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
@@ -56,7 +56,9 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
             |memory: &Memory,
              address: &MaybeRelocatable|
              -> Result<MaybeRelocatable, MemoryError> {
-                if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
+                if let Some(MaybeRelocatable::Int(FieldElement { ref num })) =
+                    memory.get(address)?
+                {
                     if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
                         Ok(address.to_owned())
                     } else {

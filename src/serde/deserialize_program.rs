@@ -170,7 +170,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                     hex::decode(&no_prefix_hex);
 
                 match decoded_result {
-                    Ok(decoded_hex) => data.push(MaybeRelocatable::Int(BigInt::from_bytes_be(
+                    Ok(decoded_hex) => data.push(MaybeRelocatable::from(BigInt::from_bytes_be(
                         Sign::Plus,
                         &decoded_hex,
                     ))),
