@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use num_bigint::BigInt;
 
 use crate::vm::{
@@ -9,8 +11,8 @@ use super::memory_proxy::{get_memory_proxy, MemoryProxy};
 
 ///Structure representing a limited access to the VM's internal values
 pub struct VMProxy<'a> {
-    pub memory: MemoryProxy<'a>,
-    pub segments: &'a mut MemorySegmentManager,
+    pub memory: Rc<RefCell<MemoryProxy>>,
+    pub segments: Rc<RefCell<MemorySegmentManager>>,
     pub run_context: &'a mut RunContext,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     pub prime: &'a BigInt,
