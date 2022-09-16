@@ -64,6 +64,7 @@ pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
 pub mod test_utils {
     use lazy_static::lazy_static;
     use num_bigint::BigInt;
+    use std::{cell::RefCell, rc::Rc};
 
     lazy_static! {
         pub static ref VM_PRIME: BigInt = BigInt::parse_bytes(
@@ -78,7 +79,7 @@ pub mod test_utils {
             {
                 let mut memory = Memory::new();
                 memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
-                memory
+                Rc::new(RefCell::new(memory))
             }
         };
     }
@@ -121,7 +122,7 @@ pub mod test_utils {
     macro_rules! check_memory {
         ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* ) => {
             $(
-                check_memory_address!($mem, ($si, $off), $val);
+                check_memory_address!($mem.get_mut(), ($si, $off), $val);
             )*
         };
     }
@@ -307,7 +308,7 @@ pub mod test_utils {
     macro_rules! add_segments {
         ($vm:expr, $n:expr) => {
             for _ in 0..$n {
-                $vm.segments.add(&mut $vm.memory);
+                $vm.segments.get_mut().add($vm.memory.get_mut());
             }
         };
     }
