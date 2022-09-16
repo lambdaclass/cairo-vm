@@ -102,7 +102,11 @@ pub fn is_zero_nondet(
     let x = exec_scopes_proxy.get_int("x")?;
 
     let value = bigint!(x.is_zero() as usize);
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(
+        &mut vm_proxy.memory.borrow_mut(),
+        vm_proxy.run_context,
+        value,
+    )
 }
 
 /*

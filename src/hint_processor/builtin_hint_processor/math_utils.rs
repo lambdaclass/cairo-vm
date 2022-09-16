@@ -37,7 +37,11 @@ pub fn is_nn(
     } else {
         bigint!(1)
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(
+        &mut vm_proxy.memory.borrow_mut(),
+        vm_proxy.run_context,
+        value,
+    )
 }
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
@@ -54,7 +58,11 @@ pub fn is_nn_out_of_range(
     } else {
         bigint!(1)
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(
+        &mut vm_proxy.memory.borrow_mut(),
+        vm_proxy.run_context,
+        value,
+    )
 }
 //Implements hint:from starkware.cairo.common.math_utils import assert_integer
 //        assert_integer(ids.a)
@@ -101,7 +109,11 @@ pub fn is_le_felt(
     } else {
         bigint!(0)
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(
+        &mut vm_proxy.memory.borrow_mut(),
+        vm_proxy.run_context,
+        value,
+    )
 }
 
 //Implements hint: from starkware.cairo.lang.vm.relocatable import RelocatableValue
@@ -120,7 +132,10 @@ pub fn assert_not_equal(
     let a_addr = get_address_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let b_addr = get_address_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
     //Check that the ids are in memory
-    match (vm_proxy.memory.get(&a_addr), vm_proxy.memory.get(&b_addr)) {
+    match (
+        vm_proxy.memory.borrow().get(&a_addr),
+        vm_proxy.memory.borrow().get(&b_addr),
+    ) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
                 if (a - b).is_multiple_of(vm_proxy.prime) {
@@ -224,7 +239,7 @@ pub fn split_int(
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
-    vm_proxy.memory.insert_value(&output, res)
+    vm_proxy.memory.borrow_mut().insert_value(&output, res)
 }
 
 //from starkware.cairo.common.math_utils import is_positive

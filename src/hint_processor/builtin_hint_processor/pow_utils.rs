@@ -21,7 +21,10 @@ pub fn pow(
 ) -> Result<(), VirtualMachineError> {
     let prev_locs_addr =
         get_relocatable_from_var_name("prev_locs", vm_proxy, ids_data, ap_tracking)?;
-    let prev_locs_exp = vm_proxy.memory.get_integer(&(&prev_locs_addr + 4))?;
+    let prev_locs_exp = vm_proxy
+        .memory
+        .borrow()
+        .get_integer(&(&prev_locs_addr + 4))?;
     let locs_bit = prev_locs_exp.mod_floor(vm_proxy.prime) & bigint!(1);
     insert_value_from_var_name("locs", locs_bit, vm_proxy, ids_data, ap_tracking)?;
     Ok(())

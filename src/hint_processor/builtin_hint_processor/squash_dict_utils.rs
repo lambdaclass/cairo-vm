@@ -64,7 +64,10 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes_proxy.insert_value("current_access_indices", current_access_indices);
     exec_scopes_proxy.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
-    vm_proxy.memory.insert_value(&range_check_ptr, first_val)
+    vm_proxy
+        .memory
+        .borrow_mut()
+        .insert_value(&range_check_ptr, first_val)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
@@ -148,6 +151,7 @@ pub fn squash_dict_inner_continue_loop(
     let should_continue_addr = loop_temps_addr + 3;
     vm_proxy
         .memory
+        .borrow_mut()
         .insert_value(&should_continue_addr, should_continue)
 }
 
@@ -278,16 +282,18 @@ pub fn squash_dict(
         .ok_or_else(|| VirtualMachineError::NAccessesTooBig(n_accesses.clone()))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
-    for i in 0..n_accesses_usize {
-        let key_addr = &address + DICT_ACCESS_SIZE * i;
-        let key = vm_proxy
-            .memory
-            .get_integer(&key_addr)
-            .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
-        access_indices
-            .entry(key.clone())
-            .or_insert(Vec::<BigInt>::new())
-            .push(bigint!(i));
+    {
+        let memory = vm_proxy.memory.borrow();
+        for i in 0..n_accesses_usize {
+            let key_addr = &address + DICT_ACCESS_SIZE * i;
+            let key = memory.get_integer(&key_addr).map_err(|_| {
+                VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr))
+            })?;
+            access_indices
+                .entry(key.clone())
+                .or_insert(Vec::<BigInt>::new())
+                .push(bigint!(i));
+        }
     }
     //Descending list of keys.
     let mut keys: Vec<BigInt> = access_indices.keys().cloned().collect();

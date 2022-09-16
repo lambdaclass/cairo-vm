@@ -52,7 +52,8 @@ pub fn sha256_main(
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        let input_element = vm_proxy.memory.get_integer(&(&input_ptr + i))?;
+        let memory = vm_proxy.memory.borrow();
+        let input_element = memory.get_integer(&(&input_ptr + i))?;
         let bytes = bigint_to_u32(input_element)?.to_be_bytes();
         message.extend(bytes);
     }
@@ -71,8 +72,9 @@ pub fn sha256_main(
 
     vm_proxy
         .memory
+        .borrow_mut()
         .write_arg(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &output_base,
             &output,
             Some(vm_proxy.prime),
@@ -114,8 +116,9 @@ pub fn sha256_finalize(
 
     vm_proxy
         .memory
+        .borrow_mut()
         .write_arg(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &sha256_ptr_end,
             &padding,
             Some(vm_proxy.prime),

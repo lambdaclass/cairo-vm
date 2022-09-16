@@ -20,7 +20,10 @@ pub fn insert_value_from_var_name(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let var_address = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    vm_proxy.memory.insert_value(&var_address, value)
+    vm_proxy
+        .memory
+        .borrow_mut()
+        .insert_value(&var_address, value)
 }
 
 //Inserts value into ap
@@ -45,7 +48,7 @@ pub fn get_ptr_from_var_name(
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
-        let value = vm_proxy.memory.get_relocatable(&var_addr)?;
+        let value = vm_proxy.memory.borrow().get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)
@@ -69,7 +72,7 @@ pub fn get_address_from_var_name(
             .get(var_name)
             .ok_or(VirtualMachineError::FailedToGetIds)?,
         vm_proxy.run_context,
-        &vm_proxy.memory,
+        &vm_proxy.memory.borrow(),
         ap_tracking,
     )?))
 }
@@ -86,7 +89,7 @@ pub fn get_relocatable_from_var_name(
             .get(var_name)
             .ok_or(VirtualMachineError::FailedToGetIds)?,
         vm_proxy.run_context,
-        &vm_proxy.memory,
+        &vm_proxy.memory.borrow(),
         ap_tracking,
     )
 }
@@ -101,7 +104,7 @@ pub fn get_integer_from_var_name<'a>(
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
     // let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    // vm_proxy.memory.get_integer(&relocatable)
+    // vm_proxy.memory.borrow().get_integer(&relocatable)
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm_proxy, reference, ap_tracking)
 }

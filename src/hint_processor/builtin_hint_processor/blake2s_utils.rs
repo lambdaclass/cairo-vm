@@ -79,7 +79,11 @@ pub fn compute_blake2s(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let output = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
-    compute_blake2s_func(vm_proxy.segments, &mut vm_proxy.memory, output)
+    compute_blake2s_func(
+        &mut vm_proxy.segments.borrow_mut(),
+        &mut vm_proxy.memory.borrow_mut(),
+        output,
+    )
 }
 
 /* Implements Hint:
@@ -128,8 +132,9 @@ pub fn finalize_blake2s(
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm_proxy
         .memory
+        .borrow_mut()
         .load_data(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &MaybeRelocatable::RelocatableValue(blake2s_ptr_end),
             data,
         )
@@ -152,8 +157,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm_proxy, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
-    let low = vm_proxy.memory.get_integer(&low_addr)?.clone();
-    let high = vm_proxy.memory.get_integer(&high_addr)?.clone();
+    let low = vm_proxy.memory.borrow().get_integer(&low_addr)?.clone();
+    let high = vm_proxy.memory.borrow().get_integer(&high_addr)?.clone();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -169,8 +174,9 @@ pub fn blake2s_add_uint256(
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
         .memory
+        .borrow_mut()
         .load_data(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
             data,
         )
@@ -184,8 +190,9 @@ pub fn blake2s_add_uint256(
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
         .memory
+        .borrow_mut()
         .load_data(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
@@ -208,8 +215,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm_proxy, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
-    let low = vm_proxy.memory.get_integer(&low_addr)?.clone();
-    let high = vm_proxy.memory.get_integer(&high_addr)?.clone();
+    let low = vm_proxy.memory.borrow().get_integer(&low_addr)?.clone();
+    let high = vm_proxy.memory.borrow().get_integer(&high_addr)?.clone();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
@@ -225,8 +232,9 @@ pub fn blake2s_add_uint256_bigend(
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
         .memory
+        .borrow_mut()
         .load_data(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
             data,
         )
@@ -240,8 +248,9 @@ pub fn blake2s_add_uint256_bigend(
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
         .memory
+        .borrow_mut()
         .load_data(
-            vm_proxy.segments,
+            &mut vm_proxy.segments.borrow_mut(),
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )

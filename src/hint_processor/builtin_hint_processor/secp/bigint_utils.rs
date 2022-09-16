@@ -32,7 +32,13 @@ pub fn nondet_bigint3(
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm_proxy
         .memory
-        .write_arg(vm_proxy.segments, &res_reloc, &arg, Some(vm_proxy.prime))
+        .borrow_mut()
+        .write_arg(
+            &mut vm_proxy.segments.borrow_mut(),
+            &res_reloc,
+            &arg,
+            Some(vm_proxy.prime),
+        )
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -45,8 +51,8 @@ pub fn bigint_to_uint256(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
-    let d0 = vm_proxy.memory.get_integer(&x_struct)?;
-    let d1 = vm_proxy.memory.get_integer(&(&x_struct + 1))?;
+    let d0 = vm_proxy.memory.borrow().get_integer(&x_struct)?;
+    let d1 = vm_proxy.memory.borrow().get_integer(&(&x_struct + 1))?;
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
     insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
 }
