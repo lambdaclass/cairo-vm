@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 
 use crate::math_utils::{ec_add, ec_double};
-use crate::types::relocatable::{FieldElement, MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::Memory;
@@ -128,8 +128,8 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             {
                 None => return Ok(None),
                 Some(addr) => {
-                    if let &MaybeRelocatable::Int(FieldElement { ref num }) = addr {
-                        input_cells.push(num);
+                    if let &MaybeRelocatable::Int(ref felt) = addr {
+                        input_cells.push(&felt.num);
                     } else {
                         return Err(RunnerError::ExpectedInteger(
                             instance.add_usize_mod(i, None),

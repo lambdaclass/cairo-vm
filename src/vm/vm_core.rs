@@ -246,7 +246,7 @@ impl VirtualMachine {
                                 if !num_op1.is_zero() {
                                     return Ok((
                                         Some(MaybeRelocatable::Int(
-                                            (num_dst / num_op1) % &self.prime,
+                                            &(num_dst / &num_op1) % &self.prime,
                                         )),
                                         Some(dst_addr.clone()),
                                     ));
@@ -294,7 +294,7 @@ impl VirtualMachine {
                             if num_op0.num != bigint!(0) {
                                 return Ok((
                                     Some(MaybeRelocatable::Int(
-                                        (num_dst.clone() / &num_op0) % &self.prime,
+                                        &(num_dst / &num_op0) % &self.prime,
                                     )),
                                     Some(dst_addr.clone()),
                                 ));
@@ -337,7 +337,7 @@ impl VirtualMachine {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
                     return Ok(Some(MaybeRelocatable::from(
-                        (num_op0.clone() * num_op1) % (&self.prime),
+                        &(num_op0 * num_op1) % (&self.prime),
                     )));
                 }
                 Err(VirtualMachineError::PureValue)

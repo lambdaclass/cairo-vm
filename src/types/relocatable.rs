@@ -124,11 +124,12 @@ impl Add<FieldElement> for FieldElement {
         }
     }
 }
-impl Add<&FieldElement> for FieldElement {
-    type Output = Self;
-    fn add(self, other: &Self) -> Self {
-        Self {
-            num: self.num + other.num.clone(),
+
+impl Add<&FieldElement> for &FieldElement {
+    type Output = FieldElement;
+    fn add(self, other: &FieldElement) -> FieldElement {
+        FieldElement {
+            num: &self.num + &other.num,
         }
     }
 }
@@ -150,64 +151,39 @@ impl Add<usize> for FieldElement {
     }
 }
 
-impl Sub<FieldElement> for FieldElement {
-    type Output = Self;
-    fn sub(self, other: Self) -> Self {
-        Self {
-            num: self.num - other.num,
-        }
-    }
-}
-impl Sub<&FieldElement> for FieldElement {
-    type Output = Self;
-    fn sub(self, other: &Self) -> Self {
-        Self {
-            num: self.num - other.num.clone(),
+impl Add<&BigInt> for &FieldElement {
+    type Output = FieldElement;
+
+    fn add(self, other: &BigInt) -> FieldElement {
+        FieldElement {
+            num: &self.num + other,
         }
     }
 }
 
-impl Mul<&FieldElement> for FieldElement {
-    type Output = Self;
+impl Sub<&FieldElement> for &FieldElement {
+    type Output = FieldElement;
+    fn sub(self, other: &FieldElement) -> FieldElement {
+        FieldElement {
+            num: &self.num - &other.num,
+        }
+    }
+}
+
+impl Mul<&FieldElement> for &FieldElement {
+    type Output = FieldElement;
     fn mul(self, rhs: &FieldElement) -> FieldElement {
         FieldElement {
-            num: self.num * rhs.num.clone(),
+            num: &self.num * &rhs.num,
         }
     }
 }
 
-impl Div<FieldElement> for &FieldElement {
+impl Div<&FieldElement> for &FieldElement {
     type Output = FieldElement;
-    fn div(self, rhs: FieldElement) -> FieldElement {
-        FieldElement {
-            num: self.num.clone() / rhs.num,
-        }
-    }
-}
-
-impl Div<&FieldElement> for FieldElement {
-    type Output = Self;
     fn div(self, rhs: &FieldElement) -> FieldElement {
         FieldElement {
-            num: self.num / rhs.num.clone(),
-        }
-    }
-}
-
-impl Rem<BigInt> for FieldElement {
-    type Output = Self;
-    fn rem(self, modulus: BigInt) -> Self {
-        Self {
-            num: self.num.mod_floor(&modulus),
-        }
-    }
-}
-
-impl Rem<&BigInt> for FieldElement {
-    type Output = Self;
-    fn rem(self, modulus: &BigInt) -> Self {
-        Self {
-            num: self.num.mod_floor(modulus),
+            num: &self.num / &rhs.num,
         }
     }
 }
@@ -341,9 +317,7 @@ impl MaybeRelocatable {
         prime: &BigInt,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match *self {
-            MaybeRelocatable::Int(FieldElement { ref num }) => {
-                Ok(MaybeRelocatable::from((num + other).mod_floor(prime)))
-            }
+            MaybeRelocatable::Int(ref felt) => Ok(MaybeRelocatable::from(&(felt + other) % prime)),
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let mut big_offset = rel.offset + other;
                 assert!(
@@ -389,22 +363,16 @@ impl MaybeRelocatable {
         prime: &BigInt,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref num_a_ref), MaybeRelocatable::Int(num_b)) => {
-                let num_a = Clone::clone(num_a_ref);
-                Ok(MaybeRelocatable::from((num_a + num_b) % prime))
+            (&MaybeRelocatable::Int(ref felt_a_ref), MaybeRelocatable::Int(felt_b)) => {
+                let felt_a = Clone::clone(felt_a_ref);
+                Ok(MaybeRelocatable::from(&(&felt_a + felt_b) % prime))
             }
             (&MaybeRelocatable::RelocatableValue(_), &MaybeRelocatable::RelocatableValue(_)) => {
                 Err(VirtualMachineError::RelocatableAdd)
             }
-            (
-                &MaybeRelocatable::RelocatableValue(ref rel),
-                &MaybeRelocatable::Int(FieldElement { ref num }),
-            )
-            | (
-                &MaybeRelocatable::Int(FieldElement { ref num }),
-                &MaybeRelocatable::RelocatableValue(ref rel),
-            ) => {
-                let big_offset: BigInt = (num + rel.offset).mod_floor(prime);
+            (&MaybeRelocatable::RelocatableValue(ref rel), &MaybeRelocatable::Int(ref felt))
+            | (&MaybeRelocatable::Int(ref felt), &MaybeRelocatable::RelocatableValue(ref rel)) => {
+                let big_offset: BigInt = (&felt.num + rel.offset).mod_floor(prime);
                 let new_offset = big_offset
                     .to_usize()
                     .ok_or(VirtualMachineError::OffsetExceeded(big_offset))?;
@@ -424,8 +392,8 @@ impl MaybeRelocatable {
         prime: &BigInt,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         match (self, other) {
-            (&MaybeRelocatable::Int(ref num_a), &MaybeRelocatable::Int(ref num_b)) => {
-                Ok(MaybeRelocatable::from((num_a.clone() - num_b) % prime))
+            (&MaybeRelocatable::Int(ref felt_a), &MaybeRelocatable::Int(ref felt_b)) => {
+                Ok(MaybeRelocatable::from(&(felt_a - felt_b) % prime))
             }
             (
                 MaybeRelocatable::RelocatableValue(rel_a),
@@ -465,7 +433,7 @@ impl MaybeRelocatable {
     ) -> Result<(MaybeRelocatable, MaybeRelocatable), VirtualMachineError> {
         match (self, other) {
             (&MaybeRelocatable::Int(ref val), &MaybeRelocatable::Int(ref div)) => Ok((
-                MaybeRelocatable::from(val.clone() / div),
+                MaybeRelocatable::from(val / div),
                 MaybeRelocatable::from(val % div),
             )),
             _ => Err(VirtualMachineError::NotImplemented),
