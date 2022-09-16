@@ -16,11 +16,10 @@ pub struct MemoryProxy {
 }
 
 ///Returns a MemoryProxy from a Memory
-pub fn get_memory_proxy(memory: &mut Memory) -> MemoryProxy {
+pub fn get_memory_proxy(memory: &Rc<RefCell<Memory>>) -> MemoryProxy {
     MemoryProxy {
-        memory: Rc::new(RefCell::new(Memory::new())),
+        memory: Rc::clone(memory),
     }
-    //TODO: Change this to Rc::clone(memory)
 }
 
 impl MemoryProxy {
