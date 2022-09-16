@@ -29,10 +29,10 @@ pub fn insert_value_from_reference(
     let var_addr = compute_addr_from_reference(
         hint_reference,
         vm_proxy.run_context,
-        &vm_proxy.memory,
+        &vm_proxy.memory.borrow(),
         ap_tracking,
     )?;
-    vm_proxy.memory.insert_value(&var_addr, value)
+    vm_proxy.memory.borrow_mut().insert_value(&var_addr, value)
 }
 
 ///Returns the Integer value stored in the given ids variable
@@ -51,10 +51,10 @@ pub fn get_integer_from_reference<'a>(
     let var_addr = compute_addr_from_reference(
         hint_reference,
         vm_proxy.run_context,
-        &vm_proxy.memory,
+        &vm_proxy.memory.borrow(),
         ap_tracking,
     )?;
-    vm_proxy.memory.get_integer(&var_addr)
+    vm_proxy.memory.borrow().get_integer(&var_addr)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -66,12 +66,12 @@ pub fn get_ptr_from_reference(
     let var_addr = compute_addr_from_reference(
         hint_reference,
         vm_proxy.run_context,
-        &vm_proxy.memory,
+        &vm_proxy.memory.borrow(),
         ap_tracking,
     )?;
     //Add immediate if present in reference
     if hint_reference.dereference {
-        let value = vm_proxy.memory.get_relocatable(&var_addr)?;
+        let value = vm_proxy.memory.borrow().get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)
