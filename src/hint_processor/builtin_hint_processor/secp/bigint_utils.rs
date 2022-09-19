@@ -52,9 +52,8 @@ pub fn bigint_to_uint256(
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
     let low = {
-        let memory = vm_proxy.memory.borrow();
-        let d0 = memory.get_integer(&x_struct)?;
-        let d1 = memory.get_integer(&(&x_struct + 1))?;
+        let d0 = vm_proxy.memory.borrow().get_integer(&x_struct)?;
+        let d1 = vm_proxy.memory.borrow().get_integer(&(&x_struct + 1))?;
 
         (d0 + d1 * &*BASE_86) & bigint!(u128::MAX)
     };

@@ -47,9 +47,8 @@ pub fn get_ptr_from_var_name(
     let hint_reference = ids_data
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
-    let memory = vm_proxy.memory.borrow();
     if hint_reference.dereference {
-        let value = memory.get_relocatable(&var_addr)?;
+        let value = vm_proxy.memory.borrow().get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)

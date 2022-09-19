@@ -141,8 +141,9 @@ pub fn block_permutation(
     }
 
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let memory = (*vm_proxy.memory).borrow();
-    let values: Vec<Option<MaybeRelocatable>> = memory
+    let values: Vec<Option<MaybeRelocatable>> = vm_proxy
+        .memory
+        .borrow()
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
             KECCAK_STATE_SIZE_FELTS,

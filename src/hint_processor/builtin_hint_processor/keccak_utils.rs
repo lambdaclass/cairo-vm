@@ -70,8 +70,7 @@ pub fn unsafe_keccak(
             segment_index: data.segment_index,
             offset: data.offset + word_i,
         };
-        let memory = vm_proxy.memory.borrow();
-        let word = memory.get_integer(&word_addr)?;
+        let word = vm_proxy.memory.borrow().get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word >= bigint!(1).shl(8 * (n_bytes as u32)) {
@@ -137,15 +136,12 @@ pub fn unsafe_keccak_finalize(
     // this is why to get the pointer stored in the field `start_ptr` it is enough to pass the variable name as
     // `keccak_state`, which is the one that appears in the reference manager of the compiled JSON.
     let start_ptr = get_ptr_from_var_name("keccak_state", vm_proxy, ids_data, ap_tracking)?;
-
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let memory = vm_proxy.memory.borrow();
-    let end_ptr = memory.get_relocatable(&Relocatable {
+    let end_ptr = vm_proxy.memory.borrow().get_relocatable(&Relocatable {
         segment_index: keccak_state_ptr.segment_index,
         offset: keccak_state_ptr.offset + 1,
     })?;
-
     // this is not very nice code, we should consider adding the sub() method for Relocatable's
     let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr);
@@ -157,8 +153,9 @@ pub fn unsafe_keccak_finalize(
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
     let mut keccak_input = Vec::new();
-    let memory = vm_proxy.memory.borrow();
-    let range = memory
+    let range = vm_proxy
+        .memory
+        .borrow()
         .get_range(&maybe_rel_start_ptr, n_elems)
         .map_err(VirtualMachineError::MemoryError)?;
 

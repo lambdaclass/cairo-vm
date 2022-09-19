@@ -51,9 +51,11 @@ pub fn usort_body(
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     {
-        let memory = vm_proxy.memory.borrow();
         for i in 0..input_len_u64 {
-            let val = memory.get_integer(&(&input_ptr + i as usize))?;
+            let val = vm_proxy
+                .memory
+                .borrow()
+                .get_integer(&(&input_ptr + i as usize))?;
             if let Err(output_index) = output.binary_search(&val) {
                 output.insert(output_index, val.clone());
             }

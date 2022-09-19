@@ -61,15 +61,13 @@ pub fn compute_doubling_slope(
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
 
-    let memory = vm_proxy.memory.borrow();
-
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        memory.get_integer(&point_reloc)?,
-        memory.get_integer(&(&point_reloc + 1))?,
-        memory.get_integer(&(&point_reloc + 2))?,
-        memory.get_integer(&(&point_reloc + 3))?,
-        memory.get_integer(&(&point_reloc + 4))?,
-        memory.get_integer(&(&point_reloc + 5))?,
+        vm_proxy.memory.borrow().get_integer(&point_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 3))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 4))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 5))?,
     );
 
     let value = ec_double_slope(
@@ -108,27 +106,25 @@ pub fn compute_slope(
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
 
-    let memory = vm_proxy.memory.borrow();
-
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        memory.get_integer(&point0_reloc)?,
-        memory.get_integer(&(&point0_reloc + 1))?,
-        memory.get_integer(&(&point0_reloc + 2))?,
-        memory.get_integer(&(&point0_reloc + 3))?,
-        memory.get_integer(&(&point0_reloc + 4))?,
-        memory.get_integer(&(&point0_reloc + 5))?,
+        vm_proxy.memory.borrow().get_integer(&point0_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 3))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 4))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1
     let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        memory.get_integer(&point1_reloc)?,
-        memory.get_integer(&(&point1_reloc + 1))?,
-        memory.get_integer(&(&point1_reloc + 2))?,
-        memory.get_integer(&(&point1_reloc + 3))?,
-        memory.get_integer(&(&point1_reloc + 4))?,
-        memory.get_integer(&(&point1_reloc + 5))?,
+        vm_proxy.memory.borrow().get_integer(&point1_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 3))?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 4))?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 5))?,
     );
 
     let value = line_slope(
@@ -168,24 +164,22 @@ pub fn ec_double_assign_new_x(
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
 
-    let memory = vm_proxy.memory.borrow();
-
     let (slope_d0, slope_d1, slope_d2) = (
-        memory.get_integer(&slope_reloc)?,
-        memory.get_integer(&(&slope_reloc + 1))?,
-        memory.get_integer(&(&slope_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&slope_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&slope_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        memory.get_integer(&point_reloc)?,
-        memory.get_integer(&(&point_reloc + 1))?,
-        memory.get_integer(&(&point_reloc + 2))?,
-        memory.get_integer(&(&point_reloc + 3))?,
-        memory.get_integer(&(&point_reloc + 4))?,
-        memory.get_integer(&(&point_reloc + 5))?,
+        vm_proxy.memory.borrow().get_integer(&point_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 3))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 4))?,
+        vm_proxy.memory.borrow().get_integer(&(&point_reloc + 5))?,
     );
 
     let slope = pack(&slope_d0, &slope_d1, &slope_d2, vm_proxy.prime);
@@ -243,35 +237,34 @@ pub fn fast_ec_add_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let memory = vm_proxy.memory.borrow();
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        memory.get_integer(&slope_reloc)?,
-        memory.get_integer(&(&slope_reloc + 1))?,
-        memory.get_integer(&(&slope_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&slope_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&slope_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        memory.get_integer(&point0_reloc)?,
-        memory.get_integer(&(&point0_reloc + 1))?,
-        memory.get_integer(&(&point0_reloc + 2))?,
-        memory.get_integer(&(&point0_reloc + 3))?,
-        memory.get_integer(&(&point0_reloc + 4))?,
-        memory.get_integer(&(&point0_reloc + 5))?,
+        vm_proxy.memory.borrow().get_integer(&point0_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 3))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 4))?,
+        vm_proxy.memory.borrow().get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1.x
     let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        memory.get_integer(&point1_reloc)?,
-        memory.get_integer(&(&point1_reloc + 1))?,
-        memory.get_integer(&(&point1_reloc + 2))?,
+        vm_proxy.memory.borrow().get_integer(&point1_reloc)?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 1))?,
+        vm_proxy.memory.borrow().get_integer(&(&point1_reloc + 2))?,
     );
 
     let slope = pack(&slope_d0, &slope_d1, &slope_d2, vm_proxy.prime);
