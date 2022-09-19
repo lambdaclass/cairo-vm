@@ -120,6 +120,7 @@ mod tests {
     use crate::{bigint, relocatable, utils::test_utils::*};
     use num_bigint::BigInt;
     use std::vec;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn add_segment_no_size() {
@@ -202,7 +203,7 @@ mod tests {
     fn compute_effective_sizes_for_one_segment_memory() {
         let mut segments = MemorySegmentManager::new();
         let memory = memory![((0, 0), 1), ((0, 1), 1), ((0, 2), 1)];
-        segments.compute_effective_sizes(&memory);
+        segments.compute_effective_sizes(&memory.borrow());
         assert_eq!(Some(vec![3]), segments.segment_used_sizes);
     }
 
@@ -225,7 +226,7 @@ mod tests {
     fn compute_effective_sizes_for_one_segment_memory_with_gaps() {
         let mut segments = MemorySegmentManager::new();
         let memory = memory![((0, 3), 1), ((0, 4), 1), ((0, 7), 1), ((0, 9), 1)];
-        segments.compute_effective_sizes(&memory);
+        segments.compute_effective_sizes(&memory.borrow());
         assert_eq!(Some(vec![10]), segments.segment_used_sizes);
     }
 
@@ -243,7 +244,7 @@ mod tests {
             ((2, 1), 1),
             ((2, 2), 1)
         ];
-        segments.compute_effective_sizes(&memory);
+        segments.compute_effective_sizes(&memory.borrow());
         assert_eq!(Some(vec![3, 3, 3]), segments.segment_used_sizes);
     }
 
@@ -259,7 +260,7 @@ mod tests {
             ((2, 4), 1),
             ((2, 7), 1)
         ];
-        segments.compute_effective_sizes(&memory);
+        segments.compute_effective_sizes(&memory.borrow());
         assert_eq!(Some(vec![8, 2, 8]), segments.segment_used_sizes);
     }
 

@@ -351,6 +351,7 @@ mod tests {
     use crate::{any_box, bigint_str};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn run_ec_negate_ok() {

@@ -23,7 +23,7 @@ use crate::{
 use num_bigint::BigInt;
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<&BigInt>,
+    h_range: &Vec<BigInt>,
 ) -> Result<[u32; T], VirtualMachineError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for num in h_range {
@@ -274,6 +274,7 @@ mod tests {
     use crate::{bigint, vm::errors::memory_errors::MemoryError};
     use num_bigint::Sign;
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     use crate::hint_processor::hint_processor_definition::HintProcessor;
 
@@ -422,6 +423,7 @@ mod tests {
         //Get data from memory
         let data = get_fixed_size_u32_array::<204>(
             &vm.memory
+                .borrow()
                 .get_integer_range(&relocatable!(2, 0), 204)
                 .unwrap(),
         )
@@ -475,7 +477,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 0), ((1, 2), 0)];
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -491,7 +493,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.memory.borrow().get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -503,7 +508,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -519,7 +524,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.memory.borrow().get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -547,7 +555,10 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 0)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.memory.borrow().get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 
     #[test]
@@ -559,7 +570,7 @@ mod tests {
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.memory = memory![((1, 0), (2, 0)), ((1, 1), 25), ((1, 2), 20)];
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         let ids_data = ids_data!["data", "high", "low"];
         //Execute the hint
         assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
@@ -575,6 +586,9 @@ mod tests {
             ((2, 6), 0),
             ((2, 7), 20)
         ];
-        assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 8))), Ok(None));
+        assert_eq!(
+            vm.memory.borrow().get(&MaybeRelocatable::from((2, 8))),
+            Ok(None)
+        );
     }
 }

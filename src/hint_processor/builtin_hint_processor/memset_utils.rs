@@ -75,6 +75,7 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use num_bigint::Sign;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn memset_enter_scope_valid() {

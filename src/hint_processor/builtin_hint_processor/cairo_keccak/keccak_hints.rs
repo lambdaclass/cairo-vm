@@ -142,7 +142,7 @@ pub fn block_permutation(
 
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?.clone();
     let memory = (*vm_proxy.memory).borrow();
-    let values: Vec<Option<&MaybeRelocatable>> = memory
+    let values: Vec<Option<MaybeRelocatable>> = memory
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
             KECCAK_STATE_SIZE_FELTS,
@@ -230,7 +230,7 @@ pub fn cairo_keccak_finalize(
 // Helper function to transform a vector of MaybeRelocatables into a vector
 // of u64. Raises error if there are None's or if MaybeRelocatables are not Bigints.
 fn maybe_reloc_vec_to_u64_array(
-    vec: &[Option<&MaybeRelocatable>],
+    vec: &[Option<MaybeRelocatable>],
 ) -> Result<[u64; KECCAK_STATE_SIZE_FELTS], VirtualMachineError> {
     let array: [u64; KECCAK_STATE_SIZE_FELTS] = vec
         .iter()
@@ -238,7 +238,7 @@ fn maybe_reloc_vec_to_u64_array(
             if let Some(MaybeRelocatable::Int(num)) = n {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
             } else {
-                Err(VirtualMachineError::ExpectedIntAtRange(n.cloned()))
+                Err(VirtualMachineError::ExpectedIntAtRange(n.clone()))
             }
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?
@@ -271,6 +271,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn keccak_write_args_valid_test() {
@@ -308,7 +309,7 @@ mod tests {
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         vm.memory = memory![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
@@ -323,7 +324,7 @@ mod tests {
 
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         vm.memory = memory![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);
@@ -338,7 +339,7 @@ mod tests {
             "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)";
         let mut vm = vm_with_range_check!();
 
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         vm.memory = memory![((1, 0), 24)];
 
         run_context!(vm, 0, 1, 1);

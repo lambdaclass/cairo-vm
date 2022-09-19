@@ -1,8 +1,4 @@
-use std::{
-    any::Any,
-    cell::{Ref, RefCell},
-    rc::Rc,
-};
+use std::{any::Any, cell::RefCell, rc::Rc};
 
 use num_bigint::BigInt;
 
@@ -51,11 +47,8 @@ impl MemoryProxy {
         &self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
-        unsafe {
-            let mem = <*const Memory>::as_ref((*self.memory).as_ptr()).unwrap();
-            mem.get_range(addr, size)
-        }
+    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+        self.memory.borrow().get_range(addr, size)
     }
 
     ///Gets n integer values from memory starting from addr (n being size),
@@ -63,16 +56,16 @@ impl MemoryProxy {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+    ) -> Result<Vec<BigInt>, VirtualMachineError> {
         self.memory.borrow_mut().get_integer_range(addr, size)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<MaybeRelocatable>, MemoryError>
     where
         Relocatable: TryFrom<&'a K>,
     {
-        self.memory.borrow_mut().get(key)
+        Ok(self.memory.borrow_mut().get(key)?.cloned())
     }
 
     //// Writes args into the memory at address ptr and returns the first address after the data.

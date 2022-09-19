@@ -136,33 +136,35 @@ pub fn assert_not_equal(
         vm_proxy.memory.borrow().get(&a_addr),
         vm_proxy.memory.borrow().get(&b_addr),
     ) {
-        (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
-            (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b).is_multiple_of(vm_proxy.prime) {
-                    return Err(VirtualMachineError::AssertNotEqualFail(
-                        maybe_rel_a.clone(),
-                        maybe_rel_b.clone(),
-                    ));
-                };
-                Ok(())
+        (Ok(Some(ref maybe_rel_a)), Ok(Some(ref maybe_rel_b))) => {
+            match (maybe_rel_a, maybe_rel_b) {
+                (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
+                    if (a - b).is_multiple_of(vm_proxy.prime) {
+                        return Err(VirtualMachineError::AssertNotEqualFail(
+                            maybe_rel_a.clone(),
+                            maybe_rel_b.clone(),
+                        ));
+                    };
+                    Ok(())
+                }
+                (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
+                    if a.segment_index != b.segment_index {
+                        return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
+                    };
+                    if a.offset == b.offset {
+                        return Err(VirtualMachineError::AssertNotEqualFail(
+                            maybe_rel_a.clone(),
+                            maybe_rel_b.clone(),
+                        ));
+                    };
+                    Ok(())
+                }
+                _ => Err(VirtualMachineError::DiffTypeComparison(
+                    maybe_rel_a.clone(),
+                    maybe_rel_b.clone(),
+                )),
             }
-            (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
-                if a.segment_index != b.segment_index {
-                    return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
-                };
-                if a.offset == b.offset {
-                    return Err(VirtualMachineError::AssertNotEqualFail(
-                        maybe_rel_a.clone(),
-                        maybe_rel_b.clone(),
-                    ));
-                };
-                Ok(())
-            }
-            _ => Err(VirtualMachineError::DiffTypeComparison(
-                maybe_rel_a.clone(),
-                maybe_rel_b.clone(),
-            )),
-        },
+        }
         _ => Err(VirtualMachineError::FailedToGetIds),
     }
 }
@@ -284,7 +286,7 @@ pub fn split_felt(
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
+    let low: BigInt = &value & ((bigint!(1).shl(128_u8)) - bigint!(1));
     let high: BigInt = value.shr(128_u8);
     insert_value_from_var_name("high", high, vm_proxy, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
@@ -335,7 +337,7 @@ pub fn signed_div_rem(
 
     let int_value = &as_int(&value, vm_proxy.prime);
     let (q, r) = int_value.div_mod_floor(&div);
-    if bound.neg() > q || q >= bound {
+    if bound.clone().neg() > q || q >= bound {
         return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
     }
     let biased_q = q + bound;
@@ -447,6 +449,7 @@ mod tests {
     };
     use num_bigint::Sign;
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     from_bigint_str![39, 40, 77];
     #[test]

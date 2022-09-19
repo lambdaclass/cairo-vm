@@ -50,18 +50,18 @@ pub fn usort_body(
     }
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
-    for i in 0..input_len_u64 {
-        let val = vm_proxy
-            .memory
-            .borrow()
-            .get_integer(&(&input_ptr + i as usize))?;
-        if let Err(output_index) = output.binary_search(&val) {
-            output.insert(output_index, val.clone());
+    {
+        let memory = vm_proxy.memory.borrow();
+        for i in 0..input_len_u64 {
+            let val = memory.get_integer(&(&input_ptr + i as usize))?;
+            if let Err(output_index) = output.binary_search(&val) {
+                output.insert(output_index, val.clone());
+            }
+            positions_dict
+                .entry(val.clone())
+                .or_insert(Vec::new())
+                .push(i);
         }
-        positions_dict
-            .entry(val.clone())
-            .or_insert(Vec::new())
-            .push(i);
     }
 
     let mut multiplicities: Vec<usize> = Vec::new();
@@ -173,6 +173,7 @@ mod tests {
         vm::{runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine},
     };
     use num_bigint::Sign;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn usort_out_of_range() {

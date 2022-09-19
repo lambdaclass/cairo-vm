@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::types::relocatable::MaybeRelocatable;
 
-#[derive(Debug, PartialEq, Error)]
+#[derive(Debug, PartialEq, Error, Clone)]
 pub enum MemoryError {
     #[error("Can't insert into segment #{0}; memory only has {1} segment")]
     UnallocatedSegment(usize, usize),

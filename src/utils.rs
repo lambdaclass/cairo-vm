@@ -78,7 +78,7 @@ pub mod test_utils {
             {
                 let mut memory = Memory::new();
                 memory_from_memory!(memory, ( $( (($si, $off), $val) ),* ));
-                memory
+                Rc::new(RefCell::new(memory))
             }
         };
     }
@@ -130,13 +130,13 @@ pub mod test_utils {
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
+                $mem.borrow_mut().get(&mayberelocatable!($si, $off)),
                 Ok(Some(&mayberelocatable!($sival, $offval)))
             )
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
+                $mem.borrow().get(&mayberelocatable!($si, $off)),
                 Ok(Some(&mayberelocatable!($val)))
             )
         };
@@ -307,7 +307,9 @@ pub mod test_utils {
     macro_rules! add_segments {
         ($vm:expr, $n:expr) => {
             for _ in 0..$n {
-                $vm.segments.add(&mut $vm.memory);
+                (*$vm.segments)
+                    .borrow_mut()
+                    .add(&mut (*$vm.memory).borrow_mut());
             }
         };
     }
@@ -551,7 +553,7 @@ mod test {
             )
             .unwrap();
         let mem = memory![((1, 2), 1), ((1, 1), (1, 0))];
-        assert_eq!(memory.data, mem.data);
+        assert_eq!(memory.data, mem.borrow().data);
     }
 
     #[test]
@@ -574,7 +576,9 @@ mod test {
             )
             .unwrap();
 
-        check_memory![memory, ((1, 1), (1, 0)), ((1, 2), 1)];
+        let memory_cell = Rc::new(RefCell::new(memory));
+
+        check_memory![memory_cell, ((1, 1), (1, 0)), ((1, 2), 1)];
     }
 
     #[test]
@@ -597,8 +601,10 @@ mod test {
             )
             .unwrap();
 
-        check_memory_address!(memory, (1, 1), (1, 0));
-        check_memory_address!(memory, (1, 2), 1);
+        let memory_cell = Rc::new(RefCell::new(memory));
+
+        check_memory_address!(memory_cell, (1, 1), (1, 0));
+        check_memory_address!(memory_cell, (1, 2), 1);
     }
 
     #[test]
@@ -691,7 +697,7 @@ mod test {
         add_segments!(vm, 1);
         assert_eq!(run_hint!(vm, HashMap::new(), hint_code), Ok(()));
         //A segment is added
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.borrow().num_segments, 2);
     }
 
     #[test]

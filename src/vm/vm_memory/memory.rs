@@ -97,7 +97,7 @@ impl Memory {
 
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
         match self.get(key) {
-            Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
+            Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(&rel),
             Ok(_) => Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from(key),
             )),
@@ -148,11 +148,11 @@ impl Memory {
         &'a self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
-        let mut values = Vec::new();
+    ) -> Result<Vec<Option<MaybeRelocatable>>, MemoryError> {
+        let mut values: Vec<Option<MaybeRelocatable>> = Vec::new();
 
         for i in 0..size {
-            values.push(self.get(&addr.add_usize_mod(i, None))?);
+            values.push(self.get(&addr.add_usize_mod(i, None))?.cloned());
         }
 
         Ok(values)
@@ -162,11 +162,11 @@ impl Memory {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+    ) -> Result<Vec<BigInt>, VirtualMachineError> {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get_integer(&(addr + i))?);
+            values.push(self.get_integer(&(addr + i))?.clone());
         }
 
         Ok(values)

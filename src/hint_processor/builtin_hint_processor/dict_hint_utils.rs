@@ -321,7 +321,7 @@ mod tests {
         run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy)
             .expect("Error while executing hint");
         //first new segment is added for the dictionary
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.borrow().num_segments, 2);
         //new segment base (1,0) is inserted into ap (1,0)
         check_memory![vm.memory, ((1, 0), (1, 0))];
         //Check the dict manager has a tracker for segment 0,
@@ -388,7 +388,7 @@ mod tests {
         );
         //Check that value variable (at address (1,1)) contains the proper value
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
+            vm.memory.borrow().get(&MaybeRelocatable::from((1, 1))),
             Ok(Some(&MaybeRelocatable::from(bigint!(12))))
         );
         //Check that the tracker's current_ptr has moved accordingly
@@ -446,7 +446,7 @@ mod tests {
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).expect("Error while executing hint");
         //third new segment is added for the dictionary
-        assert_eq!(vm.memory.data.len(), 3);
+        assert_eq!(vm.memory.borrow().data.len(), 3);
         //new segment base (0,0) is inserted into ap (0,0)
         check_memory![vm.memory, ((1, 1), (0, 0))];
         //Check the dict manager has a tracker for segment 0,

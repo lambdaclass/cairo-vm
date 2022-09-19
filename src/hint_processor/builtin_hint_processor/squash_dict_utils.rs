@@ -333,6 +333,7 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
     use crate::{any_box, bigint, bigint_str};
     use num_bigint::Sign;
+    use std::{cell::RefCell, rc::Rc};
 
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";
