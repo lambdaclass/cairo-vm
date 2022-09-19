@@ -85,7 +85,7 @@ pub fn assert_le_felt(
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
     }
     //Calculate value of small_inputs
-    let value = if *a < range_check_builtin._bound && (a - b) < range_check_builtin._bound {
+    let value = if a < range_check_builtin._bound && (a - b) < range_check_builtin._bound {
         bigint!(1)
     } else {
         bigint!(0)
@@ -235,8 +235,8 @@ pub fn split_int(
     let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
     let output = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
     //Main Logic
-    let res = (value.mod_floor(vm_proxy.prime)).mod_floor(base);
-    if res > *bound {
+    let res = (value.mod_floor(vm_proxy.prime)).mod_floor(&base);
+    if res > bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
     vm_proxy.memory.borrow_mut().insert_value(&output, res)
@@ -253,7 +253,7 @@ pub fn is_positive(
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Main logic (assert a is positive)
-    let int_value = as_int(value, vm_proxy.prime);
+    let int_value = as_int(&value, vm_proxy.prime);
     if int_value.abs() > range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
     }
@@ -319,23 +319,23 @@ pub fn signed_div_rem(
     let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
     let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     // Main logic
-    if !div.is_positive() || div > &(vm_proxy.prime / &builtin._bound) {
+    if !div.is_positive() || div > (vm_proxy.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
             div.clone(),
             vm_proxy.prime / &builtin._bound,
         ));
     }
     // Divide by 2
-    if bound > &(&builtin._bound).shr(1_i32) {
+    if bound > (&builtin._bound).shr(1_i32) {
         return Err(VirtualMachineError::OutOfValidRange(
             bound.clone(),
             (&builtin._bound).shr(1_i32),
         ));
     }
 
-    let int_value = &as_int(value, vm_proxy.prime);
-    let (q, r) = int_value.div_mod_floor(div);
-    if bound.neg() > q || &q >= bound {
+    let int_value = &as_int(&value, vm_proxy.prime);
+    let (q, r) = int_value.div_mod_floor(&div);
+    if bound.neg() > q || q >= bound {
         return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
     }
     let biased_q = q + bound;
@@ -361,13 +361,13 @@ pub fn unsigned_div_rem(
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     // Main logic
-    if !div.is_positive() || div > &(vm_proxy.prime / &builtin._bound) {
+    if !div.is_positive() || div > (vm_proxy.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
             div.clone(),
             vm_proxy.prime / &builtin._bound,
         ));
     }
-    let (q, r) = value.div_mod_floor(div);
+    let (q, r) = value.div_mod_floor(&div);
     insert_value_from_var_name("r", r, vm_proxy, ids_data, ap_tracking)?;
     insert_value_from_var_name("q", q, vm_proxy, ids_data, ap_tracking)
 }
@@ -388,7 +388,7 @@ pub fn assert_250_bit(
     let shift = bigint!(1).shl(128_i32);
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     //Main logic
-    let int_value = as_int(value, vm_proxy.prime).mod_floor(vm_proxy.prime);
+    let int_value = as_int(&value, vm_proxy.prime).mod_floor(vm_proxy.prime);
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }

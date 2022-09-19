@@ -1,10 +1,12 @@
 use crate::bigint;
+use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
+use std::cell::Ref;
 use std::collections::HashMap;
 
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
@@ -12,8 +14,8 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 };
 use crate::hint_processor::hint_processor_definition::HintReference;
 
-pub fn set_add(
-    vm_proxy: &mut VMProxy,
+pub fn set_add<'a>(
+    vm_proxy: &'a mut VMProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -27,9 +29,9 @@ pub fn set_add(
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
-    let elm = vm_proxy
-        .memory
-        .borrow()
+
+    let memory: Ref<MemoryProxy> = vm_proxy.memory.borrow();
+    let elm = memory
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
         .map_err(VirtualMachineError::MemoryError)?;
 
@@ -42,9 +44,7 @@ pub fn set_add(
 
     let range_limit = set_end_ptr.sub_rel(&set_ptr)?;
     for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = vm_proxy
-            .memory
-            .borrow()
+        let set_iter = memory
             .get_range(
                 &MaybeRelocatable::from(set_ptr.clone() + i as usize),
                 elm_size,

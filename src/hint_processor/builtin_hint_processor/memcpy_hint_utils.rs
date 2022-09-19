@@ -130,7 +130,7 @@ mod tests {
         let vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(var_name, &vm_proxy, &ids_data, &ApTracking::default()),
-            Ok(&bigint!(10))
+            Ok(bigint!(10))
         );
     }
 

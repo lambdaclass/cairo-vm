@@ -40,12 +40,12 @@ pub fn get_integer_from_reference<'a>(
     vm_proxy: &'a VMProxy,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<&'a BigInt, VirtualMachineError> {
+) -> Result<BigInt, VirtualMachineError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
     if hint_reference.register.is_none() && hint_reference.immediate.is_some() {
         // safe tu unwrap here because it has been checked that immediate is not None.
-        return Ok(hint_reference.immediate.as_ref().unwrap());
+        return Ok(hint_reference.immediate.as_ref().unwrap().clone());
     }
 
     let var_addr = compute_addr_from_reference(
@@ -70,8 +70,9 @@ pub fn get_ptr_from_reference(
         ap_tracking,
     )?;
     //Add immediate if present in reference
+    let memory = vm_proxy.memory.borrow();
     if hint_reference.dereference {
-        let value = vm_proxy.memory.borrow().get_relocatable(&var_addr)?;
+        let value = memory.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)

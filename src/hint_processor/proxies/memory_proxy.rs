@@ -1,4 +1,8 @@
-use std::{any::Any, cell::RefCell, rc::Rc};
+use std::{
+    any::Any,
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 
 use num_bigint::BigInt;
 
@@ -33,13 +37,13 @@ impl MemoryProxy {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        self.memory.borrow_mut().get_integer(key)
+    pub fn get_integer(&self, key: &Relocatable) -> Result<BigInt, VirtualMachineError> {
+        self.memory.borrow().get_integer(key).cloned()
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
-        self.memory.borrow_mut().get_relocatable(key)
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<Relocatable, VirtualMachineError> {
+        self.memory.borrow().get_relocatable(key).cloned()
     }
 
     ///Gets n elements from memory starting from addr (n being size)
@@ -48,7 +52,10 @@ impl MemoryProxy {
         addr: &MaybeRelocatable,
         size: usize,
     ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
-        self.memory.borrow_mut().get_range(addr, size)
+        unsafe {
+            let mem = <*const Memory>::as_ref((*self.memory).as_ptr()).unwrap();
+            mem.get_range(addr, size)
+        }
     }
 
     ///Gets n integer values from memory starting from addr (n being size),

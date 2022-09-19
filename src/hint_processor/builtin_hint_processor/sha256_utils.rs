@@ -31,7 +31,7 @@ pub fn sha256_input(
 
     insert_value_from_var_name(
         "full_word",
-        if n_bytes >= &bigint!(4) {
+        if n_bytes >= bigint!(4) {
             BigInt::one()
         } else {
             BigInt::zero()
@@ -54,7 +54,7 @@ pub fn sha256_main(
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
         let memory = vm_proxy.memory.borrow();
         let input_element = memory.get_integer(&(&input_ptr + i))?;
-        let bytes = bigint_to_u32(input_element)?.to_be_bytes();
+        let bytes = bigint_to_u32(&input_element)?.to_be_bytes();
         message.extend(bytes);
     }
 

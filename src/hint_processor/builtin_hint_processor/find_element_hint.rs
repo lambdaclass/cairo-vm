@@ -40,7 +40,8 @@ pub fn find_element(
             .memory
             .borrow()
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
-            .map_err(|_| VirtualMachineError::KeyNotFound)?;
+            .map_err(|_| VirtualMachineError::KeyNotFound)?
+            .clone();
 
         if found_key != key {
             return Err(VirtualMachineError::InvalidIndex(
@@ -64,7 +65,7 @@ pub fn find_element(
         }
 
         if let Ok(find_element_max_size) = exec_scopes_proxy.get_int_ref("find_element_max_size") {
-            if n_elms > find_element_max_size {
+            if &n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
                     find_element_max_size.clone(),
                     n_elms.clone(),
@@ -80,7 +81,8 @@ pub fn find_element(
                 .memory
                 .borrow()
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
-                .map_err(|_| VirtualMachineError::KeyNotFound)?;
+                .map_err(|_| VirtualMachineError::KeyNotFound)?
+                .clone();
 
             if iter_key == key {
                 return insert_value_from_var_name(
@@ -119,7 +121,7 @@ pub fn search_sorted_lower(
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
-        if n_elms > &find_element_max_size {
+        if n_elms > find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
                 find_element_max_size,
                 n_elms.clone(),
@@ -138,7 +140,7 @@ pub fn search_sorted_lower(
         .ok_or(VirtualMachineError::KeyNotFound)?;
 
     for i in 0..n_elms_usize {
-        let value = vm_proxy.memory.borrow().get_integer(&array_iter)?;
+        let value = vm_proxy.memory.borrow().get_integer(&array_iter)?.clone();
         if value >= key {
             return insert_value_from_var_name(
                 "index",

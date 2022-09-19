@@ -144,8 +144,8 @@ impl Memory {
         Ok(())
     }
 
-    pub fn get_range(
-        &self,
+    pub fn get_range<'a>(
+        &'a self,
         addr: &MaybeRelocatable,
         size: usize,
     ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {

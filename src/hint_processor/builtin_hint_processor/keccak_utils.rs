@@ -48,7 +48,7 @@ pub fn unsafe_keccak(
     let length = get_integer_from_var_name("length", vm_proxy, ids_data, ap_tracking)?;
 
     if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
-        if length > &keccak_max_size {
+        if length > keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.clone(),
                 keccak_max_size,
@@ -73,11 +73,11 @@ pub fn unsafe_keccak(
             segment_index: data.segment_index,
             offset: data.offset + word_i,
         };
-
-        let word = vm_proxy.memory.borrow().get_integer(&word_addr)?;
+        let memory = vm_proxy.memory.borrow();
+        let word = memory.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {
+        if word.is_negative() || word >= bigint!(1).shl(8 * (n_bytes as u32)) {
             return Err(VirtualMachineError::InvalidWordSize(word.clone()));
         }
 
@@ -143,7 +143,8 @@ pub fn unsafe_keccak_finalize(
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let end_ptr = vm_proxy.memory.borrow().get_relocatable(&Relocatable {
+    let memory = vm_proxy.memory.borrow();
+    let end_ptr = memory.get_relocatable(&Relocatable {
         segment_index: keccak_state_ptr.segment_index,
         offset: keccak_state_ptr.offset + 1,
     })?;
@@ -159,9 +160,8 @@ pub fn unsafe_keccak_finalize(
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
 
     let mut keccak_input = Vec::new();
-    let range = vm_proxy
-        .memory
-        .borrow()
+    let memory = vm_proxy.memory.borrow();
+    let range = memory
         .get_range(&maybe_rel_start_ptr, n_elems)
         .map_err(VirtualMachineError::MemoryError)?;
 

@@ -10,7 +10,6 @@ use crate::{
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
-use std::borrow::Borrow;
 use std::collections::HashMap;
 
 lazy_static! {
@@ -37,8 +36,8 @@ pub fn keccak_write_args(
     let low = get_integer_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
 
-    let low_args = [low & bigint!(u64::MAX), low >> 64];
-    let high_args = [high & bigint!(u64::MAX), high >> 64];
+    let low_args = [&low & bigint!(u64::MAX), low >> 64];
+    let high_args = [&high & bigint!(u64::MAX), high >> 64];
 
     vm_proxy
         .memory
@@ -85,7 +84,7 @@ pub fn compare_bytes_in_word_nondet(
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
-    let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
+    let value = bigint!((&n_bytes < &BYTES_IN_WORD) as usize);
     insert_value_into_ap(
         &mut vm_proxy.memory.borrow_mut(),
         vm_proxy.run_context,
@@ -108,7 +107,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
 
-    let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
+    let value = bigint!((&n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
     insert_value_into_ap(
         &mut vm_proxy.memory.borrow_mut(),
         vm_proxy.run_context,
@@ -141,10 +140,9 @@ pub fn block_permutation(
         ));
     }
 
-    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let values = vm_proxy
-        .memory
-        .borrow()
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?.clone();
+    let memory = (*vm_proxy.memory).borrow();
+    let values: Vec<Option<&MaybeRelocatable>> = memory
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
             KECCAK_STATE_SIZE_FELTS,

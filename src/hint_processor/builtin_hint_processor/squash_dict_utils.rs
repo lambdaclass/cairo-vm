@@ -183,7 +183,7 @@ pub fn squash_dict_inner_used_accesses_assert(
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    if n_used_accesses != &bigint!(access_indices_at_key.len()) {
+    if n_used_accesses != bigint!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
             n_used_accesses.clone(),
             access_indices_at_key.len(),
@@ -270,7 +270,7 @@ pub fn squash_dict(
     }
     let squash_dict_max_size = exec_scopes_proxy.get_int("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
-        if n_accesses > &max_size {
+        if n_accesses > max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 max_size,
                 n_accesses.clone(),

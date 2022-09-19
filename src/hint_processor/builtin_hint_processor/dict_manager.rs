@@ -248,7 +248,7 @@ mod tests {
     fn dict_manager_new_dict_empty() {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Rc::new(RefCell::new(Memory::new()));
+        let memory = Rc::new(RefCell::new(Memory::new()));
         let mem_proxy = &mut get_memory_proxy(&memory);
         let base = dict_manager.new_dict(&mut segments, mem_proxy, HashMap::new());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
@@ -264,7 +264,7 @@ mod tests {
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Rc::new(RefCell::new(Memory::new()));
+        let memory = Rc::new(RefCell::new(Memory::new()));
         let mem_proxy = &mut get_memory_proxy(&memory);
         let base = dict_manager.new_default_dict(&mut segments, mem_proxy, &bigint!(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
@@ -284,7 +284,7 @@ mod tests {
     fn dict_manager_new_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Rc::new(RefCell::new(Memory::new()));
+        let memory = Rc::new(RefCell::new(Memory::new()));
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
         let mem_proxy = &mut get_memory_proxy(&memory);
@@ -305,7 +305,7 @@ mod tests {
     fn dict_manager_new_default_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Rc::new(RefCell::new(Memory::new()));
+        let memory = Rc::new(RefCell::new(Memory::new()));
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
         let mem_proxy = &mut get_memory_proxy(&memory);
@@ -335,7 +335,7 @@ mod tests {
             .trackers
             .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Rc::new(RefCell::new(Memory::new()));
+        let memory = Rc::new(RefCell::new(Memory::new()));
         let mem_proxy = &mut get_memory_proxy(&memory);
         assert_eq!(
             dict_manager.new_dict(&mut segments, mem_proxy, HashMap::new()),
@@ -351,7 +351,7 @@ mod tests {
             DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6), None),
         );
         let mut segments = MemorySegmentManager::new();
-        let mut memory = Rc::new(RefCell::new(Memory::new()));
+        let memory = Rc::new(RefCell::new(Memory::new()));
         let mem_proxy = &mut get_memory_proxy(&memory);
         assert_eq!(
             dict_manager.new_dict(&mut segments, mem_proxy, HashMap::new()),

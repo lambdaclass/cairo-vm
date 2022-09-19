@@ -55,7 +55,7 @@ pub fn usort_body(
             .memory
             .borrow()
             .get_integer(&(&input_ptr + i as usize))?;
-        if let Err(output_index) = output.binary_search(val) {
+        if let Err(output_index) = output.binary_search(&val) {
             output.insert(output_index, val.clone());
         }
         positions_dict

@@ -144,7 +144,7 @@ pub fn dict_read(
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(key)?;
+    let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), vm_proxy, ids_data, ap_tracking)
 }
 
@@ -173,9 +173,9 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(key)?.clone();
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm_proxy
@@ -212,8 +212,8 @@ pub fn dict_update(
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key)?;
-    if current_value != prev_value {
+    let current_value = tracker.get_value(&key)?;
+    if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value.clone(),
             current_value.clone(),
@@ -221,7 +221,7 @@ pub fn dict_update(
         ));
     }
     //Update Value
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }

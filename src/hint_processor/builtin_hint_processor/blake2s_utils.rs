@@ -58,8 +58,8 @@ fn compute_blake2s_func(
     let h = get_fixed_size_u32_array::<8>(&memory.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
     let message =
         get_fixed_size_u32_array::<16>(&memory.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
-    let t = bigint_to_u32(memory.get_integer(&output_rel.sub(2)?)?)?;
-    let f = bigint_to_u32(memory.get_integer(&output_rel.sub(1)?)?)?;
+    let t = bigint_to_u32(&memory.get_integer(&output_rel.sub(2)?)?)?;
+    let f = bigint_to_u32(&memory.get_integer(&output_rel.sub(1)?)?)?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
