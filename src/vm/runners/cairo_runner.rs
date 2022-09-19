@@ -355,7 +355,7 @@ impl<'a> CairoRunner<'a> {
         self.vm
             .segments
             .borrow_mut()
-            .compute_effective_sizes(&mut self.vm.memory.borrow_mut());
+            .compute_effective_sizes(&self.vm.memory.borrow());
         // relocate_segments can fail if compute_effective_sizes is not called before.
         // The expect should be unreachable.
         let relocation_table = self
@@ -389,7 +389,7 @@ impl<'a> CairoRunner<'a> {
             self.vm
                 .segments
                 .borrow_mut()
-                .compute_effective_sizes(&mut self.vm.memory.borrow_mut());
+                .compute_effective_sizes(&self.vm.memory.borrow());
 
             let base = builtin.base();
 
@@ -399,7 +399,7 @@ impl<'a> CairoRunner<'a> {
                 self.vm
                     .segments
                     .borrow_mut()
-                    .compute_effective_sizes(&mut self.vm.memory.borrow_mut());
+                    .compute_effective_sizes(&self.vm.memory.borrow());
             }
             // See previous comment, the unwrap below is safe.
             for i in 0..self

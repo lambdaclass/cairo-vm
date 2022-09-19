@@ -167,9 +167,7 @@ pub fn unsafe_keccak_finalize(
     for maybe_reloc_word in range.iter() {
         let word = maybe_reloc_word
             .as_ref()
-            .ok_or(VirtualMachineError::ExpectedIntAtRange(
-                maybe_reloc_word.clone(),
-            ))?
+            .ok_or_else(|| VirtualMachineError::ExpectedIntAtRange(maybe_reloc_word.clone()))?
             .get_int_ref()?;
 
         let (_, mut bytes) = word.to_bytes_be();
