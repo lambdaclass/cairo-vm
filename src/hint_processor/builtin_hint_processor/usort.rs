@@ -162,6 +162,7 @@ mod tests {
         vm::{runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine},
     };
     use num_bigint::Sign;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn usort_out_of_range() {

@@ -174,7 +174,7 @@ mod tests {
         vm.run_context.fp = FP_OFFSET_START;
 
         for _ in 0..3 {
-            vm.segments.add(&mut vm.memory);
+            vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         }
 
         let addresses = vec![
@@ -214,6 +214,7 @@ mod tests {
                 .get(default_values[i].0)
                 .unwrap_or(&default_values[i].1);
             vm.memory
+                .borrow_mut()
                 .insert(memory_cell, value_to_insert)
                 .expect("Unexpected memory insert fail");
         }

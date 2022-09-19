@@ -136,6 +136,7 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn sha256_input_one() {

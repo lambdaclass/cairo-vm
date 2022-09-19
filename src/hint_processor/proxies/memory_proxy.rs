@@ -31,8 +31,9 @@ impl MemoryProxy<'_> {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        self.memory.get_integer(key)
+    pub fn get_integer(&self, _key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        todo!()
+        // self.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address

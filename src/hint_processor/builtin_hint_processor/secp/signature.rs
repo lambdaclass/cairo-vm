@@ -91,6 +91,7 @@ mod tests {
     use num_bigint::BigInt;
     use num_bigint::Sign;
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn safe_div_ok() {

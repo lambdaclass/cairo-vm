@@ -102,12 +102,13 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::BigInt;
     use num_bigint::Sign;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         // initialize memory segments
-        vm.segments.add(&mut vm.memory);
+        vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
 
         // initialize fp
         vm.run_context.fp = 1;

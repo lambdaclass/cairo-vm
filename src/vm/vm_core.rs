@@ -106,18 +106,16 @@ impl VirtualMachine {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt = match self.memory.borrow_mut().get(&self.run_context.pc) {
-            Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
+    ) -> Result<(BigInt, Option<MaybeRelocatable>), VirtualMachineError> {
+        let encoding_ref: BigInt = match self.memory.borrow().get(&self.run_context.pc) {
+            Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding.clone(),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
         let imm_addr = &self.run_context.pc + 1;
 
-        let mut memory = self.memory.borrow_mut();
-
-        if let Ok(optional_imm) = memory.get(&imm_addr) {
-            Ok((encoding_ref, optional_imm))
+        if let Ok(optional_imm) = self.memory.borrow().get(&imm_addr) {
+            Ok((encoding_ref, optional_imm.cloned()))
         } else {
             Err(VirtualMachineError::InvalidInstructionEncoding)
         }
@@ -317,7 +315,7 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter_mut() {
             if builtin.base().segment_index == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.memory.get_mut()) {
+                match builtin.deduce_memory_cell(address, &self.memory.borrow()) {
                     Ok(maybe_reloc) => return Ok(maybe_reloc),
                     Err(error) => return Err(VirtualMachineError::RunnerError(error)),
                 };
@@ -494,7 +492,7 @@ impl VirtualMachine {
         };
         let op0 = op0_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
         self.memory
-            .get_mut()
+            .borrow_mut()
             .insert(op0_addr, &op0)
             .map_err(VirtualMachineError::MemoryError)?;
         Ok(op0)
@@ -521,7 +519,7 @@ impl VirtualMachine {
         };
         let op1 = op1_op.ok_or(VirtualMachineError::FailedToComputeOperands)?;
         self.memory
-            .get_mut()
+            .borrow_mut()
             .insert(op1_addr, &op1)
             .map_err(VirtualMachineError::MemoryError)?;
         Ok(op1)
@@ -540,7 +538,7 @@ impl VirtualMachine {
         };
         let dst = dst_op.ok_or(VirtualMachineError::NoDst)?;
         self.memory
-            .get_mut()
+            .borrow_mut()
             .insert(dst_addr, &dst)
             .map_err(VirtualMachineError::MemoryError)?;
         Ok(dst)
@@ -556,7 +554,7 @@ impl VirtualMachine {
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
         let dst_op = self
             .memory
-            .get_mut()
+            .borrow_mut()
             .get(&dst_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
@@ -564,7 +562,7 @@ impl VirtualMachine {
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
         let op0_op = self
             .memory
-            .get_mut()
+            .borrow_mut()
             .get(&op0_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
@@ -574,7 +572,7 @@ impl VirtualMachine {
             .compute_op1_addr(instruction, op0_op.as_ref())?;
         let op1_op = self
             .memory
-            .get_mut()
+            .borrow_mut()
             .get(&op1_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
@@ -617,9 +615,9 @@ impl VirtualMachine {
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter_mut() {
             let index = builtin.base().segment_index;
-            for (offset, value) in self.memory.get_mut().data[index].iter().enumerate() {
+            for (offset, value) in self.memory.borrow_mut().data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(&Relocatable::from((index, offset)), &self.memory.get_mut())
+                    .deduce_memory_cell(&Relocatable::from((index, offset)), &self.memory.borrow())
                     .map_err(VirtualMachineError::RunnerError)?
                 {
                     if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
@@ -666,7 +664,7 @@ mod tests {
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 5)];
-        assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
+        assert_eq!(Ok((bigint!(5), None)), vm.get_instruction_encoding());
     }
 
     #[test]
@@ -678,8 +676,8 @@ mod tests {
         let (num, imm) = vm
             .get_instruction_encoding()
             .expect("Unexpected error on get_instruction_encoding");
-        assert_eq!(num, &bigint!(5));
-        assert_eq!(imm, Some(&MaybeRelocatable::Int(bigint!(6))));
+        assert_eq!(num, bigint!(5));
+        assert_eq!(imm, Some(MaybeRelocatable::Int(bigint!(6))));
     }
 
     #[test]
@@ -1942,9 +1940,9 @@ mod tests {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
         for _ in 0..2 {
-            vm.segments.get_mut().add(vm.memory.get_mut());
+            vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         }
-        let memory: &mut Memory = vm.memory.get_mut();
+        let mut memory = vm.memory.borrow_mut();
         memory.data.push(Vec::new());
         let dst_addr = MaybeRelocatable::from((1, 0));
         let dst_addr_value = MaybeRelocatable::Int(bigint!(5));
@@ -1968,7 +1966,7 @@ mod tests {
             op0_addr.get_relocatable().unwrap().clone(),
             op1_addr.get_relocatable().unwrap().clone(),
         ));
-
+        drop(memory);
         let (operands, addresses) = vm.compute_operands(&inst).unwrap();
         assert!(operands == expected_operands);
         assert!(addresses == expected_addresses);
@@ -1993,20 +1991,28 @@ mod tests {
         let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.get_mut().add(vm.memory.get_mut());
+            vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         }
         vm.accessed_addresses = Some(Vec::new());
-        let memory: &mut Memory = vm.memory.get_mut();
-        memory.data.push(Vec::new());
+        vm.memory.borrow_mut().data.push(Vec::new());
         let dst_addr = mayberelocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
         let op0_addr = mayberelocatable!(1, 1);
         let op0_addr_value = mayberelocatable!(2);
         let op1_addr = mayberelocatable!(1, 2);
         let op1_addr_value = mayberelocatable!(3);
-        memory.insert(&dst_addr, &dst_addr_value).unwrap();
-        memory.insert(&op0_addr, &op0_addr_value).unwrap();
-        memory.insert(&op1_addr, &op1_addr_value).unwrap();
+        vm.memory
+            .borrow_mut()
+            .insert(&dst_addr, &dst_addr_value)
+            .unwrap();
+        vm.memory
+            .borrow_mut()
+            .insert(&op0_addr, &op0_addr_value)
+            .unwrap();
+        vm.memory
+            .borrow_mut()
+            .insert(&op1_addr, &op1_addr_value)
+            .unwrap();
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
@@ -2447,7 +2453,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
-            vm.memory.get_mut().get(&vm.run_context.get_ap()),
+            vm.memory.borrow_mut().get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x4)))),
         );
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -2459,7 +2465,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
-            vm.memory.get_mut().get(&vm.run_context.get_ap()),
+            vm.memory.borrow_mut().get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x5))))
         );
 
@@ -2472,7 +2478,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
-            vm.memory.get_mut().get(&vm.run_context.get_ap()),
+            vm.memory.borrow_mut().get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x14)))),
         );
     }
@@ -2943,7 +2949,7 @@ mod tests {
 
         //Create program and execution segments
         for _ in 0..2 {
-            vm.segments.get_mut().add(vm.memory.get_mut());
+            vm.segments.borrow_mut().add(&mut vm.memory.borrow_mut());
         }
         //Initialize memory
 
@@ -2998,7 +3004,7 @@ mod tests {
         //Check that the array created through alloc contains the element we inserted
         //As there are no builtins present, the next segment crated will have the index 2
         assert_eq!(
-            vm.memory.get_mut().data[2],
+            vm.memory.borrow_mut().data[2],
             vec![Some(MaybeRelocatable::from(bigint!(1)))]
         );
     }

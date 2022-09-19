@@ -87,6 +87,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     const HINT_CODE: &str = "assert ids.elm_size > 0\nassert ids.set_ptr <= ids.set_end_ptr\nelm_list = memory.get_range(ids.elm_ptr, ids.elm_size)\nfor i in range(0, ids.set_end_ptr - ids.set_ptr, ids.elm_size):\n    if memory.get_range(ids.set_ptr + i, ids.elm_size) == elm_list:\n        ids.index = i // ids.elm_size\n        ids.is_elm_in_set = 1\n        break\nelse:\n    ids.is_elm_in_set = 0";
 
@@ -134,9 +135,9 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
         assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
+            vm.memory.borrow().get(&MaybeRelocatable::from((1, 0))),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
-        )
+        );
     }
 
     #[test]

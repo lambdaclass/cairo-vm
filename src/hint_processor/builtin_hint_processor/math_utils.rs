@@ -432,6 +432,7 @@ mod tests {
     };
     use num_bigint::Sign;
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     from_bigint_str![39, 40, 77];
     #[test]

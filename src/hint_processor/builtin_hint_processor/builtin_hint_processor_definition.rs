@@ -505,6 +505,8 @@ fn get_ids_data(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
@@ -516,9 +518,7 @@ mod tests {
     use crate::{any_box, bigint};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
-
-    use super::*;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn run_alloc_hint_empty_memory() {
@@ -528,7 +528,7 @@ mod tests {
         //ids and references are not needed for this test
         run_hint!(vm, HashMap::new(), hint_code).expect("Error while executing hint");
         //first new segment is added
-        assert_eq!(vm.segments.num_segments, 2);
+        assert_eq!(vm.segments.borrow().num_segments, 2);
         //new segment base (1,0) is inserted into ap (1,0)
         check_memory![vm.memory, ((1, 0), (1, 0))];
     }
@@ -543,7 +543,7 @@ mod tests {
         //ids and references are not needed for this test
         run_hint!(vm, HashMap::new(), hint_code).expect("Error while executing hint");
         //Segment N°4 is added
-        assert_eq!(vm.segments.num_segments, 4);
+        assert_eq!(vm.segments.borrow().num_segments, 4);
         //new segment base (3,0) is inserted into ap (1,6)
         check_memory![vm.memory, ((1, 6), (3, 0))];
     }

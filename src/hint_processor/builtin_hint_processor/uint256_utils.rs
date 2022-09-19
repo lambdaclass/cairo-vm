@@ -235,6 +235,7 @@ mod tests {
     use crate::{bigint, vm::runners::builtin_runner::RangeCheckBuiltinRunner};
     use num_bigint::{BigInt, Sign};
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     from_bigint_str![33];
 

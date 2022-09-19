@@ -100,13 +100,14 @@ mod tests {
     use super::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::{bigint, bigint_str, utils::test_utils::*};
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory.borrow());
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
@@ -120,7 +121,7 @@ mod tests {
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 
@@ -128,7 +129,7 @@ mod tests {
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 
@@ -137,7 +138,7 @@ mod tests {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(8);
         builtin.verified_addresses = vec![Relocatable::from((0, 5))];
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 }

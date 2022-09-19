@@ -147,6 +147,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use num_bigint::Sign;
     use std::any::Any;
+    use std::{cell::RefCell, rc::Rc};
 
     from_bigint_str![42];
 

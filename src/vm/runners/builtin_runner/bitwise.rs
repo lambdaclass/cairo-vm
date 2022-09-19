@@ -97,12 +97,13 @@ mod tests {
     use super::*;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 7)), &memory.borrow());
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(8)))));
     }
 
@@ -110,7 +111,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 8)), &memory.borrow());
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(6)))));
     }
 
@@ -118,7 +119,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 9)), &memory.borrow());
         assert_eq!(result, Ok(Some(MaybeRelocatable::from(bigint!(14)))));
     }
 
@@ -126,7 +127,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 
@@ -134,7 +135,7 @@ mod tests {
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
         let mut builtin = BitwiseBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 }

@@ -122,13 +122,13 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         //If an input cell is not filled, return None
         let mut input_cells = Vec::<&BigInt>::with_capacity(self.n_input_cells);
         for i in 0..self.n_input_cells {
-            match memory
+            let value = memory
                 .get(&instance.add_usize_mod(i, None))
-                .map_err(RunnerError::FailedMemoryGet)?
-            {
+                .map_err(RunnerError::FailedMemoryGet)?;
+            match value {
                 None => return Ok(None),
-                Some(addr) => {
-                    if let &MaybeRelocatable::Int(ref num) = addr {
+                Some(ref addr) => {
+                    if let MaybeRelocatable::Int(ref num) = addr {
                         input_cells.push(num);
                     } else {
                         return Err(RunnerError::ExpectedInteger(
@@ -183,6 +183,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::errors::runner_errors::RunnerError;
+    use std::{cell::RefCell, rc::Rc};
 
     #[test]
     fn point_is_on_curve_a() {
@@ -400,7 +401,7 @@ mod tests {
         ];
         let mut builtin = EcOpBuiltinRunner::new(256);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory.borrow());
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(bigint_str!(
@@ -444,7 +445,7 @@ mod tests {
         ];
 
         let mut builtin = EcOpBuiltinRunner::new(256);
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 
@@ -490,7 +491,7 @@ mod tests {
         ];
         let mut builtin = EcOpBuiltinRunner::new(256);
 
-        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
+        let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory.borrow());
         assert_eq!(result, Ok(None));
     }
 
@@ -531,7 +532,7 @@ mod tests {
         let mut builtin = EcOpBuiltinRunner::new(256);
 
         assert_eq!(
-            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
+            builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory.borrow()),
             Err(RunnerError::ExpectedInteger(MaybeRelocatable::from((3, 3))))
         );
     }
@@ -585,7 +586,7 @@ mod tests {
         ];
         let mut builtin = EcOpBuiltinRunner::new(256);
 
-        let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
+        let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory.borrow());
         assert_eq!(
             error,
             Err(RunnerError::EcOpBuiltinScalarLimit(
