@@ -414,7 +414,7 @@ mod tests {
         //Get data from memory
         let data = get_fixed_size_u32_array::<204>(
             &vm.memory
-                .borrow_mut()
+                .borrow()
                 .get_integer_range(&relocatable!(2, 0), 204)
                 .unwrap(),
         )

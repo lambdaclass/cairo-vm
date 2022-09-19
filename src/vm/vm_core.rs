@@ -554,7 +554,7 @@ impl VirtualMachine {
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
         let dst_op = self
             .memory
-            .borrow_mut()
+            .borrow()
             .get(&dst_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
@@ -562,7 +562,7 @@ impl VirtualMachine {
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
         let op0_op = self
             .memory
-            .borrow_mut()
+            .borrow()
             .get(&op0_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
@@ -572,7 +572,7 @@ impl VirtualMachine {
             .compute_op1_addr(instruction, op0_op.as_ref())?;
         let op1_op = self
             .memory
-            .borrow_mut()
+            .borrow()
             .get(&op1_addr)
             .map_err(VirtualMachineError::MemoryError)?
             .cloned();
@@ -615,7 +615,7 @@ impl VirtualMachine {
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter_mut() {
             let index = builtin.base().segment_index;
-            for (offset, value) in self.memory.borrow_mut().data[index].iter().enumerate() {
+            for (offset, value) in self.memory.borrow().data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
                     .deduce_memory_cell(&Relocatable::from((index, offset)), &self.memory.borrow())
                     .map_err(VirtualMachineError::RunnerError)?
@@ -2453,7 +2453,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
-            vm.memory.borrow_mut().get(&vm.run_context.get_ap()),
+            vm.memory.borrow().get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x4)))),
         );
         let hint_processor = BuiltinHintProcessor::new_empty();
@@ -2465,7 +2465,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
-            vm.memory.borrow_mut().get(&vm.run_context.get_ap()),
+            vm.memory.borrow().get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x5))))
         );
 
@@ -2478,7 +2478,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
-            vm.memory.borrow_mut().get(&vm.run_context.get_ap()),
+            vm.memory.borrow().get(&vm.run_context.get_ap()),
             Ok(Some(&MaybeRelocatable::Int(bigint!(0x14)))),
         );
     }

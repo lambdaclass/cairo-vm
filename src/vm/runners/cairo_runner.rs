@@ -361,7 +361,7 @@ impl<'a> CairoRunner<'a> {
         let relocation_table = self
             .vm
             .segments
-            .borrow_mut()
+            .borrow()
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
         if let Err(memory_error) = self.relocate_memory(&relocation_table) {
@@ -405,7 +405,7 @@ impl<'a> CairoRunner<'a> {
             for i in 0..self
                 .vm
                 .segments
-                .borrow_mut()
+                .borrow()
                 .segment_used_sizes
                 .as_ref()
                 .unwrap()[base.segment_index]
@@ -521,7 +521,7 @@ mod tests {
             Relocatable::from((7, 0))
         );
 
-        assert_eq!(cairo_runner.vm.segments.borrow_mut().num_segments, 8);
+        assert_eq!(cairo_runner.vm.segments.borrow().num_segments, 8);
     }
 
     #[test]
@@ -926,24 +926,16 @@ mod tests {
         assert!(cairo_runner
             .vm
             .memory
-            .borrow_mut()
+            .borrow()
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 0))));
         assert!(cairo_runner
             .vm
             .memory
-            .borrow_mut()
+            .borrow()
             .validated_addresses
             .contains(&MaybeRelocatable::from((2, 1))));
-        assert_eq!(
-            cairo_runner
-                .vm
-                .memory
-                .borrow_mut()
-                .validated_addresses
-                .len(),
-            2
-        );
+        assert_eq!(cairo_runner.vm.memory.borrow().validated_addresses.len(), 2);
     }
 
     #[test]
@@ -1409,7 +1401,7 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
-                .borrow_mut()
+                .borrow()
                 .get(&MaybeRelocatable::from((2, 2))),
             Ok(None)
         );
@@ -1686,7 +1678,7 @@ mod tests {
             cairo_runner
                 .vm
                 .memory
-                .borrow_mut()
+                .borrow()
                 .get(&MaybeRelocatable::from((2, 2)))
                 .unwrap(),
             None
@@ -1803,7 +1795,7 @@ mod tests {
         let rel_table = cairo_runner
             .vm
             .segments
-            .borrow_mut()
+            .borrow()
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
         drop(memory);
@@ -1916,7 +1908,7 @@ mod tests {
         let rel_table = cairo_runner
             .vm
             .segments
-            .borrow_mut()
+            .borrow()
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
         assert_eq!(cairo_runner.relocate_memory(&rel_table), Ok(()));
@@ -2058,7 +2050,7 @@ mod tests {
         let rel_table = cairo_runner
             .vm
             .segments
-            .borrow_mut()
+            .borrow()
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
         cairo_runner.relocate_trace(&rel_table).unwrap();
