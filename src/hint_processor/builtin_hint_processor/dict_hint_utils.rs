@@ -98,7 +98,7 @@ pub fn default_dict_new(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?.clone();
+        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?;
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -215,7 +215,7 @@ pub fn dict_update(
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
+            prev_value,
             current_value.clone(),
             key.clone(),
         ));

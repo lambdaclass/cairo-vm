@@ -54,7 +54,7 @@ pub fn get_ptr_from_var_name(
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)
         } else {
-            Ok(value.clone())
+            Ok(value)
         }
     } else {
         Ok(var_addr)

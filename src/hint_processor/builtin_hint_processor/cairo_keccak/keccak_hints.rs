@@ -140,7 +140,7 @@ pub fn block_permutation(
         ));
     }
 
-    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?.clone();
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
     let memory = (*vm_proxy.memory).borrow();
     let values: Vec<Option<MaybeRelocatable>> = memory
         .get_range(

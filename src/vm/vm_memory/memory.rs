@@ -97,7 +97,7 @@ impl Memory {
 
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
         match self.get(key) {
-            Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(&rel),
+            Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
             Ok(_) => Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from(key),
             )),

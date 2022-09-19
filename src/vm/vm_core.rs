@@ -443,8 +443,7 @@ impl VirtualMachine {
         match instruction_ref.to_i64() {
             Some(instruction) => {
                 if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
-                    let decoded_instruction =
-                        decode_instruction(instruction, Some(imm_ref.clone()))?;
+                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
                     return Ok(decoded_instruction);
                 }
                 let decoded_instruction = decode_instruction(instruction, None)?;
@@ -1956,9 +1955,9 @@ mod tests {
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
-            res: Some(dst_addr_value.clone()),
-            op0: op0_addr_value.clone(),
-            op1: op1_addr_value.clone(),
+            res: Some(dst_addr_value),
+            op0: op0_addr_value,
+            op1: op1_addr_value,
         };
 
         let expected_addresses = Some(OperandsAddresses(
@@ -2016,9 +2015,9 @@ mod tests {
 
         let expected_operands = Operands {
             dst: dst_addr_value.clone(),
-            res: Some(dst_addr_value.clone()),
-            op0: op0_addr_value.clone(),
-            op1: op1_addr_value.clone(),
+            res: Some(dst_addr_value),
+            op0: op0_addr_value,
+            op1: op1_addr_value,
         };
 
         let expected_addresses = Some(OperandsAddresses(

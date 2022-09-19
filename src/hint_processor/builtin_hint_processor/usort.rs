@@ -44,7 +44,7 @@ pub fn usort_body(
         if input_len_u64 > usort_max_size {
             return Err(VirtualMachineError::UsortOutOfRange(
                 usort_max_size,
-                input_len.clone(),
+                input_len,
             ));
         }
     }
@@ -116,7 +116,7 @@ pub fn verify_usort(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?.clone();
+    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     let mut positions = exec_scopes_proxy
         .get_mut_dict_int_list_u64_ref("positions_dict")?
         .remove(&value)

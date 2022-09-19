@@ -29,9 +29,7 @@ pub fn find_element(
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
     if elm_size == 0 {
-        return Err(VirtualMachineError::ValueOutOfRange(
-            elm_size_bigint.clone(),
-        ));
+        return Err(VirtualMachineError::ValueOutOfRange(elm_size_bigint));
     }
 
     if let Some(find_element_index_value) = find_element_index {
@@ -40,14 +38,13 @@ pub fn find_element(
             .memory
             .borrow()
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
-            .map_err(|_| VirtualMachineError::KeyNotFound)?
-            .clone();
+            .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
         if found_key != key {
             return Err(VirtualMachineError::InvalidIndex(
                 find_element_index_value,
-                key.clone(),
-                found_key.clone(),
+                key,
+                found_key,
             ));
         }
         insert_value_from_var_name(
@@ -61,14 +58,14 @@ pub fn find_element(
         Ok(())
     } else {
         if n_elms.is_negative() {
-            return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+            return Err(VirtualMachineError::ValueOutOfRange(n_elms));
         }
 
         if let Ok(find_element_max_size) = exec_scopes_proxy.get_int_ref("find_element_max_size") {
             if &n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
                     find_element_max_size.clone(),
-                    n_elms.clone(),
+                    n_elms,
                 ));
             }
         }
@@ -95,7 +92,7 @@ pub fn find_element(
             }
         }
 
-        Err(VirtualMachineError::NoValueForKey(key.clone()))
+        Err(VirtualMachineError::NoValueForKey(key))
     }
 }
 
@@ -113,27 +110,23 @@ pub fn search_sorted_lower(
     let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
-        return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(elm_size));
     }
 
     if n_elms.is_negative() {
-        return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(n_elms));
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms > find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
                 find_element_max_size,
-                n_elms.clone(),
+                n_elms,
             ));
         }
     }
 
-    let mut array_iter = vm_proxy
-        .memory
-        .borrow()
-        .get_relocatable(&rel_array_ptr)?
-        .clone();
+    let mut array_iter = vm_proxy.memory.borrow().get_relocatable(&rel_array_ptr)?;
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
@@ -152,7 +145,7 @@ pub fn search_sorted_lower(
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_value_from_var_name("index", n_elms.clone(), vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("index", n_elms, vm_proxy, ids_data, ap_tracking)
 }
 
 #[cfg(test)]

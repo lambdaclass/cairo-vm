@@ -82,7 +82,7 @@ pub fn assert_le_felt(
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Assert a <= b
     if a.mod_floor(vm_proxy.prime) > b.mod_floor(vm_proxy.prime) {
-        return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
+        return Err(VirtualMachineError::NonLeFelt(a, b));
     }
     //Calculate value of small_inputs
     let value = if a < range_check_builtin._bound && (a - b) < range_check_builtin._bound {
@@ -185,7 +185,7 @@ pub fn assert_nn(
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
     if a.mod_floor(vm_proxy.prime) >= range_check_builtin._bound {
-        return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(a));
     };
     Ok(())
 }
@@ -204,7 +204,7 @@ pub fn assert_not_zero(
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     if value.is_multiple_of(vm_proxy.prime) {
         return Err(VirtualMachineError::AssertNotZero(
-            value.clone(),
+            value,
             vm_proxy.prime.clone(),
         ));
     };
@@ -323,14 +323,14 @@ pub fn signed_div_rem(
     // Main logic
     if !div.is_positive() || div > (vm_proxy.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
-            div.clone(),
+            div,
             vm_proxy.prime / &builtin._bound,
         ));
     }
     // Divide by 2
     if bound > (&builtin._bound).shr(1_i32) {
         return Err(VirtualMachineError::OutOfValidRange(
-            bound.clone(),
+            bound,
             (&builtin._bound).shr(1_i32),
         ));
     }
@@ -338,7 +338,7 @@ pub fn signed_div_rem(
     let int_value = &as_int(&value, vm_proxy.prime);
     let (q, r) = int_value.div_mod_floor(&div);
     if bound.clone().neg() > q || q >= bound {
-        return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
+        return Err(VirtualMachineError::OutOfValidRange(q, bound));
     }
     let biased_q = q + bound;
     insert_value_from_var_name("r", r, vm_proxy, ids_data, ap_tracking)?;
@@ -365,7 +365,7 @@ pub fn unsigned_div_rem(
     // Main logic
     if !div.is_positive() || div > (vm_proxy.prime / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
-            div.clone(),
+            div,
             vm_proxy.prime / &builtin._bound,
         ));
     }
@@ -422,7 +422,7 @@ pub fn assert_lt_felt(
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     if a.mod_floor(vm_proxy.prime) >= b.mod_floor(vm_proxy.prime) {
-        return Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()));
+        return Err(VirtualMachineError::AssertLtFelt(a, b));
     };
     Ok(())
 }

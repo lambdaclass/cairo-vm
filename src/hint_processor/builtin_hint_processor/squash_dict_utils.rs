@@ -185,7 +185,7 @@ pub fn squash_dict_inner_used_accesses_assert(
 
     if n_used_accesses != bigint!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
-            n_used_accesses.clone(),
+            n_used_accesses,
             access_indices_at_key.len(),
             key,
         ));
@@ -272,8 +272,7 @@ pub fn squash_dict(
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses > max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
-                max_size,
-                n_accesses.clone(),
+                max_size, n_accesses,
             ));
         };
     };

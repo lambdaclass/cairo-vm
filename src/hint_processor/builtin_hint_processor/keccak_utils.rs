@@ -49,10 +49,7 @@ pub fn unsafe_keccak(
 
     if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
         if length > keccak_max_size {
-            return Err(VirtualMachineError::KeccakMaxSize(
-                length.clone(),
-                keccak_max_size,
-            ));
+            return Err(VirtualMachineError::KeccakMaxSize(length, keccak_max_size));
         }
     }
 
@@ -78,7 +75,7 @@ pub fn unsafe_keccak(
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word >= bigint!(1).shl(8 * (n_bytes as u32)) {
-            return Err(VirtualMachineError::InvalidWordSize(word.clone()));
+            return Err(VirtualMachineError::InvalidWordSize(word));
         }
 
         let (_, mut bytes) = word.to_bytes_be();
@@ -151,7 +148,7 @@ pub fn unsafe_keccak_finalize(
 
     // this is not very nice code, we should consider adding the sub() method for Relocatable's
     let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
-    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
+    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr);
 
     let n_elems = maybe_rel_end_ptr
         .sub(&maybe_rel_start_ptr, vm_proxy.prime)?

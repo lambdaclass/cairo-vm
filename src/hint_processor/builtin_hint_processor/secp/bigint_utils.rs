@@ -55,8 +55,8 @@ pub fn bigint_to_uint256(
         let memory = vm_proxy.memory.borrow();
         let d0 = memory.get_integer(&x_struct)?;
         let d1 = memory.get_integer(&(&x_struct + 1))?;
-        let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
-        low
+
+        (d0 + d1 * &*BASE_86) & bigint!(u128::MAX)
     };
     insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
 }
