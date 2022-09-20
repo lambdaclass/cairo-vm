@@ -21,7 +21,7 @@ const BENCH_NAMES: &'static [&'static str] = &[
     "math_cmp_and_pow_integration_benchmark",
     "operations_with_data_structures_benchmarks",
     "uint256_integration_benchmark",
-    "set_integration_benchmark.cairo",
+    "set_integration_benchmark",
 ];
 const BENCH_PATH: &'static str = "cairo_programs/benchmarks/";
 
