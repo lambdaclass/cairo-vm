@@ -2,7 +2,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_ptr_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
 };
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
+use crate::hint_processor::hint_processor_utils::felt_to_usize;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
@@ -11,7 +11,6 @@ use crate::{
     bigint, hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
 };
 use num_bigint::BigInt;
-use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 pub fn find_element(
@@ -27,15 +26,15 @@ pub fn find_element(
     let find_element_index = exec_scopes_proxy.get_int("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
-        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
+        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.num.clone()))?;
     if elm_size == 0 {
         return Err(VirtualMachineError::ValueOutOfRange(
-            elm_size_bigint.clone(),
+            elm_size_bigint.num.clone(),
         ));
     }
 
     if let Some(find_element_index_value) = find_element_index {
-        let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
+        let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
         let found_key = vm_proxy
             .memory
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
@@ -43,9 +42,9 @@ pub fn find_element(
 
         if found_key != key {
             return Err(VirtualMachineError::InvalidIndex(
-                find_element_index_value,
-                key.clone(),
-                found_key.clone(),
+                find_element_index_value.num,
+                key.num.clone(),
+                found_key.num.clone(),
             ));
         }
         insert_value_from_var_name(
@@ -59,20 +58,20 @@ pub fn find_element(
         Ok(())
     } else {
         if n_elms.is_negative() {
-            return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+            return Err(VirtualMachineError::ValueOutOfRange(n_elms.num.clone()));
         }
 
         if let Ok(find_element_max_size) = exec_scopes_proxy.get_int_ref("find_element_max_size") {
             if n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
-                    find_element_max_size.clone(),
-                    n_elms.clone(),
+                    find_element_max_size.num.clone(),
+                    n_elms.num.clone(),
                 ));
             }
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
+            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.num.clone()))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm_proxy
@@ -91,7 +90,7 @@ pub fn find_element(
             }
         }
 
-        Err(VirtualMachineError::NoValueForKey(key.clone()))
+        Err(VirtualMachineError::NoValueForKey(key.num.clone()))
     }
 }
 
@@ -109,18 +108,18 @@ pub fn search_sorted_lower(
     let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
-        return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(elm_size.num.clone()));
     }
 
     if n_elms.is_negative() {
-        return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(n_elms.num.clone()));
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms > &find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
-                find_element_max_size,
-                n_elms.clone(),
+                find_element_max_size.num,
+                n_elms.num.clone(),
             ));
         }
     }

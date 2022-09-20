@@ -381,6 +381,10 @@ impl FieldElement {
         self.num.is_negative()
     }
 
+    pub fn is_multiple_of(&self, other: &BigInt) -> bool {
+        self.num.is_multiple_of(other)
+    }
+
     pub fn to_bigint(&self) -> BigInt {
         self.num.clone()
     }

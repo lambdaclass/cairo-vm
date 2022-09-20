@@ -120,7 +120,7 @@ pub fn is_zero_assign_scope_variables(
     //Get `x` variable from vm scope
     let x = exec_scopes_proxy.get_int("x")?;
 
-    let value = div_mod(&bigint!(1), &x, &SECP_P);
+    let value = div_mod(&bigint!(1), &x.num, &SECP_P);
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("x_inv", value);
     Ok(())
@@ -132,6 +132,7 @@ mod tests {
     use crate::any_box;
     use crate::bigint;
     use crate::bigint_str;
+    use crate::felt_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
@@ -239,7 +240,7 @@ mod tests {
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
+            Ok(felt_str!(
                 b"59863107065205964761754162760883789350782881856141750"
             ))
         );
@@ -453,7 +454,7 @@ mod tests {
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
+            Ok(felt_str!(
                 b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );
@@ -461,7 +462,7 @@ mod tests {
         //Check 'x_inv' is defined in the vm scope
         assert_eq!(
             exec_scopes_proxy.get_int("x_inv"),
-            Ok(bigint_str!(
+            Ok(felt_str!(
                 b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
         );
