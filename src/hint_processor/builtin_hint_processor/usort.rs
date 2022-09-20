@@ -1,16 +1,19 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
-    bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
+    bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+        proxies::{exec_scopes_proxy::ExecutionScopesProxy, vm_proxy::VMProxy},
+    },
+    serde::deserialize_program::ApTracking,
+    vm::errors::vm_errors::VirtualMachineError,
 };
+
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
-
-use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn usort_enter_scope(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
@@ -146,26 +149,34 @@ pub fn verify_multiplicity_body(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
-        BuiltinHintProcessor, HintProcessorData,
-    };
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
-    use crate::types::exec_scope::ExecutionScopes;
-    use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        types::relocatable::MaybeRelocatable,
-        vm::{runners::builtin_runner::RangeCheckBuiltinRunner, vm_core::VirtualMachine},
+        any_box,
+        hint_processor::{
+            builtin_hint_processor::{
+                builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+                hint_code::USORT_BODY,
+            },
+            hint_processor_definition::HintProcessor,
+            proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
+        },
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner,
+            vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
     };
     use num_bigint::Sign;
 
     #[test]
+    fn usort_with_max_size() {
+        let exec_scopes = &mut scope![("usort_max_size", 1_u64)];
+        let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
+        assert_eq!(usort_enter_scope(&mut exec_scopes_proxy), Ok(()));
+    }
+
+    #[test]
     fn usort_out_of_range() {
-        let hint_code = "from collections import defaultdict\n\ninput_ptr = ids.input\ninput_len = int(ids.input_len)\nif __usort_max_size is not None:\n    assert input_len <= __usort_max_size, (\n        f\"usort() can only be used with input_len<={__usort_max_size}. \"\n        f\"Got: input_len={input_len}.\"\n    )\n\npositions_dict = defaultdict(list)\nfor i in range(input_len):\n    val = memory[input_ptr + i]\n    positions_dict[val].append(i)\n\noutput = sorted(positions_dict.keys())\nids.output_len = len(output)\nids.output = segments.gen_arg(output)\nids.multiplicities = segments.gen_arg([len(positions_dict[k]) for k in output])";
         let mut vm = vm_with_range_check!();
         vm.run_context.fp = 2;
         add_segments!(vm, 1);
@@ -175,7 +186,7 @@ mod tests {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, USORT_BODY, exec_scopes_proxy),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }
