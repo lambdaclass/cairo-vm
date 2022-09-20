@@ -91,7 +91,7 @@ pub struct HintFunc(
 );
 
 pub trait ExternalHintExecutor {
-    //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
+    //Executes the hint which's data is provided by a HintProcessorData structure
     fn execute_hint(
         &self,
         //Proxy to VM, contains refrences to necessary data
