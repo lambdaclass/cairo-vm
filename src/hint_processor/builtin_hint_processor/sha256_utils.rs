@@ -1,7 +1,8 @@
+use crate::felt;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
-use crate::hint_processor::hint_processor_utils::bigint_to_u32;
+use crate::hint_processor::hint_processor_utils::felt_to_u32;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
@@ -14,6 +15,7 @@ use sha2::compress256;
 use std::collections::HashMap;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::types::relocatable::FieldElement;
 
 const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
 const SHA256_STATE_SIZE_FELTS: usize = 8;
@@ -31,7 +33,7 @@ pub fn sha256_input(
 
     insert_value_from_var_name(
         "full_word",
-        if n_bytes >= &bigint!(4) {
+        if n_bytes >= &felt!(4) {
             BigInt::one()
         } else {
             BigInt::zero()
@@ -53,7 +55,7 @@ pub fn sha256_main(
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
         let input_element = vm_proxy.memory.get_integer(&(&input_ptr + i))?;
-        let bytes = bigint_to_u32(input_element)?.to_be_bytes();
+        let bytes = felt_to_u32(input_element)?.to_be_bytes();
         message.extend(bytes);
     }
 

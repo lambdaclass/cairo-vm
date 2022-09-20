@@ -4,7 +4,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::Zero;
 use std::collections::HashMap;
 
 use crate::hint_processor::builtin_hint_processor::hint_utils::{

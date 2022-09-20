@@ -1,13 +1,14 @@
+use crate::felt;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::types::relocatable::FieldElement;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::BigInt;
-use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -44,12 +45,12 @@ pub fn usort_body(
         if input_len_u64 > usort_max_size {
             return Err(VirtualMachineError::UsortOutOfRange(
                 usort_max_size,
-                input_len.clone(),
+                input_len.num.clone(),
             ));
         }
     }
-    let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
-    let mut output: Vec<BigInt> = Vec::new();
+    let mut positions_dict: HashMap<FieldElement, Vec<u64>> = HashMap::new();
+    let mut output: Vec<FieldElement> = Vec::new();
     for i in 0..input_len_u64 {
         let val = vm_proxy.memory.get_integer(&(&input_ptr + i as usize))?;
         if let Err(output_index) = output.binary_search(val) {
@@ -137,7 +138,7 @@ pub fn verify_multiplicity_body(
         .get_mut_listu64_ref("positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
+    let pos_diff = felt!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm_proxy, ids_data, ap_tracking)?;
     exec_scopes_proxy.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())

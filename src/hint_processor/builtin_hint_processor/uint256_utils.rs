@@ -1,14 +1,13 @@
-use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name,
 };
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::FieldElement;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::{bigint, felt};
 use num_bigint::BigInt;
-use num_integer::{div_rem, Integer};
-use num_traits::Signed;
 use std::collections::HashMap;
 use std::ops::{Shl, Shr};
 
@@ -31,7 +30,7 @@ pub fn uint256_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let shift: BigInt = bigint!(2).pow(128);
+    let shift: FieldElement = felt!(2).pow(128);
 
     let a_relocatable = get_relocatable_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
@@ -47,15 +46,15 @@ pub fn uint256_add(
     //ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
 
     let carry_low = if a_low + b_low >= shift {
-        bigint!(1)
+        felt!(1)
     } else {
-        bigint!(0)
+        felt!(0)
     };
 
-    let carry_high = if a_high + b_high + &carry_low >= shift {
-        bigint!(1)
+    let carry_high = if &(a_high + b_high) + &carry_low >= shift {
+        felt!(1)
     } else {
-        bigint!(0)
+        felt!(0)
     };
     insert_value_from_var_name("carry_high", carry_high, vm_proxy, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_low", carry_low, vm_proxy, ids_data, ap_tracking)
@@ -75,14 +74,14 @@ pub fn split_64(
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
-    let low = bigint!(digits.next().unwrap_or(0u64));
+    let low = felt!(digits.next().unwrap_or(0u64));
     let high = if digits.len() <= 1 {
-        bigint!(digits.next().unwrap_or(0u64))
+        felt!(digits.next().unwrap_or(0u64))
     } else {
-        a.shr(64_usize)
+        a.shr(64)
     };
-    insert_value_from_var_name("high", bigint!(high), vm_proxy, ids_data, ap_tracking)?;
-    insert_value_from_var_name("low", bigint!(low), vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("high", high, vm_proxy, ids_data, ap_tracking)?;
+    insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
 }
 
 /*
@@ -114,16 +113,16 @@ pub fn uint256_sqrt(
     //ids.root.low = root
     //ids.root.high = 0
 
-    let root = isqrt(&(n_high.shl(128_usize) + n_low))?;
+    let root = isqrt(&(n_high.shl(128) + n_low))?;
 
-    if root.is_negative() || root >= bigint!(1).shl(128) {
+    if root.is_negative() || root >= felt!(1).shl(128) {
         return Err(VirtualMachineError::AssertionFailed(format!(
             "assert 0 <= {} < 2 ** 128",
-            &root
+            &root.num
         )));
     }
     vm_proxy.memory.insert_value(&root_addr, root)?;
-    vm_proxy.memory.insert_value(&(root_addr + 1), bigint!(0))
+    vm_proxy.memory.insert_value(&(root_addr + 1), felt!(0))
 }
 
 /*
@@ -139,11 +138,11 @@ pub fn uint256_signed_nn(
     let a_high = vm_proxy.memory.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: BigInt =
-        if !a_high.is_negative() && (a_high.mod_floor(vm_proxy.prime)) <= bigint!(i128::MAX) {
-            bigint!(1)
+    let result: FieldElement =
+        if !a_high.is_negative() && (a_high % vm_proxy.prime) <= felt!(i128::MAX) {
+            felt!(1)
         } else {
-            bigint!(0)
+            felt!(0)
         };
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, result)
 }
@@ -187,17 +186,17 @@ pub fn uint256_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = a_high.shl(128_usize) + a_low;
-    let div = div_high.shl(128_usize) + div_low;
+    let a = a_high.shl(128) + a_low;
+    let div = div_high.shl(128) + div_low;
     //a and div will always be positive numbers
-    //Then, Rust div_rem equals Python divmod
-    let (quotient, remainder) = div_rem(a, div);
+    //Then, div_mod_floor equals Python divmod
+    let (quotient, remainder) = a.div_mod_floor(&div);
 
-    let quotient_low = &quotient & bigint!(u128::MAX);
-    let quotient_high = quotient.shr(128_usize);
+    let quotient_low = &quotient & &felt!(u128::MAX);
+    let quotient_high = quotient.shr(128);
 
-    let remainder_low = &remainder & bigint!(u128::MAX);
-    let remainder_high = remainder.shr(128_usize);
+    let remainder_low = &remainder & &felt!(u128::MAX);
+    let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low
     vm_proxy.memory.insert_value(&quotient_addr, quotient_low)?;
