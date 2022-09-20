@@ -168,3 +168,123 @@ pub fn get_range_check_builtin(
     }
     Err(VirtualMachineError::NoRangeCheckBuiltin)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        bigint,
+        hint_processor::proxies::{memory_proxy::get_memory_proxy, vm_proxy::get_vm_proxy},
+        relocatable,
+        utils::test_utils::*,
+        vm::{
+            errors::memory_errors::MemoryError, vm_core::VirtualMachine, vm_memory::memory::Memory,
+        },
+    };
+    use num_bigint::Sign;
+
+    #[test]
+    fn get_integer_from_reference_with_immediate_value() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 0)];
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.immediate = Some(bigint!(2));
+
+        assert_eq!(
+            get_integer_from_reference(&get_vm_proxy(&mut vm), &hint_ref, &ApTracking::new()),
+            Ok(&bigint!(0))
+        );
+    }
+
+    #[test]
+    fn get_ptr_from_reference_short_path() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (2, 0))];
+
+        assert_eq!(
+            get_ptr_from_reference(
+                &get_vm_proxy(&mut vm),
+                &HintReference::new(0, 0, false, false),
+                &ApTracking::new()
+            ),
+            Ok(relocatable!(1, 0))
+        );
+    }
+
+    #[test]
+    fn get_ptr_from_reference_with_dereference() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (3, 0))];
+
+        assert_eq!(
+            get_ptr_from_reference(
+                &get_vm_proxy(&mut vm),
+                &HintReference::new(0, 0, false, true),
+                &ApTracking::new()
+            ),
+            Ok(relocatable!(3, 0))
+        );
+    }
+
+    #[test]
+    fn get_ptr_from_reference_with_dereference_and_imm() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (4, 0))];
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.immediate = Some(bigint!(2));
+
+        assert_eq!(
+            get_ptr_from_reference(&get_vm_proxy(&mut vm), &hint_ref, &ApTracking::new()),
+            Ok(relocatable!(4, 2))
+        );
+    }
+
+    #[test]
+    fn compute_addr_from_reference_no_regiter_in_reference() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), (4, 0))];
+        let mut hint_reference = HintReference::new(0, 0, false, false);
+        hint_reference.register = None;
+
+        assert_eq!(
+            compute_addr_from_reference(
+                &hint_reference,
+                &vm.run_context,
+                &get_memory_proxy(&mut vm.memory),
+                &ApTracking::new()
+            ),
+            Err(VirtualMachineError::NoRegisterInReference)
+        );
+    }
+
+    #[test]
+    fn compute_addr_from_reference_failed_to_get_ids() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 4)];
+        let mut hint_reference = HintReference::new(0, 0, false, false);
+        hint_reference.offset1 = -1;
+
+        assert_eq!(
+            compute_addr_from_reference(
+                &hint_reference,
+                &vm.run_context,
+                &get_memory_proxy(&mut vm.memory),
+                &ApTracking::new()
+            ),
+            Err(VirtualMachineError::FailedToGetIds)
+        );
+    }
+
+    #[test]
+    fn tracking_correction_invalid_group() {
+        let mut ref_ap_tracking = ApTracking::new();
+        ref_ap_tracking.group = 1;
+        let mut hint_ap_tracking = ApTracking::new();
+        hint_ap_tracking.group = 2;
+
+        assert_eq!(
+            apply_ap_tracking_correction(&relocatable!(1, 0), &ref_ap_tracking, &hint_ap_tracking),
+            Err(VirtualMachineError::InvalidTrackingGroup(1, 2))
+        );
+    }
+}
