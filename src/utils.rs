@@ -21,6 +21,19 @@ macro_rules! bigint_str {
 }
 
 #[macro_export]
+macro_rules! felt {
+    ($val : expr) => {
+        FieldElement::from(bigint!($val))
+    };
+}
+#[macro_export]
+macro_rules! felt_str {
+    ($val : expr) => {
+        FieldElement::from(bigint_str!($val))
+    };
+}
+
+#[macro_export]
 macro_rules! relocatable {
     ($val1 : expr, $val2 : expr) => {
         Relocatable {
