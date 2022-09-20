@@ -1,7 +1,8 @@
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::{
+    hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy,
+    types::relocatable::FieldElement,
+};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
-
-use num_bigint::BigInt;
 
 use crate::{
     any_box,
@@ -24,14 +25,14 @@ pub const DICT_ACCESS_SIZE: usize = 3;
 
 fn copy_initial_dict(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-) -> Option<HashMap<BigInt, BigInt>> {
-    let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
+) -> Option<HashMap<FieldElement, FieldElement>> {
+    let mut initial_dict: Option<HashMap<FieldElement, FieldElement>> = None;
     if let Some(variable) = exec_scopes_proxy
         .get_local_variables()
         .ok()?
         .get("initial_dict")
     {
-        if let Some(dict) = variable.downcast_ref::<HashMap<BigInt, BigInt>>() {
+        if let Some(dict) = variable.downcast_ref::<HashMap<FieldElement, FieldElement>>() {
             initial_dict = Some(dict.clone());
         }
     }
@@ -200,9 +201,9 @@ pub fn dict_update(
     let current_value = tracker.get_value(key)?;
     if current_value != prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
-            current_value.clone(),
-            key.clone(),
+            prev_value.num.clone(),
+            current_value.num.clone(),
+            key.num.clone(),
         ));
     }
     //Update Value
@@ -272,6 +273,7 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use crate::any_box;
+    use crate::felt;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
@@ -445,7 +447,7 @@ mod tests {
                 .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(17),
+                &felt!(17),
                 None
             ))
         );

@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
-use num_bigint::BigInt;
-
 use crate::{
     hint_processor::proxies::memory_proxy::MemoryProxy,
-    types::relocatable::{MaybeRelocatable, Relocatable},
+    types::relocatable::{FieldElement, MaybeRelocatable, Relocatable},
     vm::{
         errors::vm_errors::VirtualMachineError, vm_memory::memory_segments::MemorySegmentManager,
     },
@@ -28,15 +26,15 @@ pub struct DictTracker {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Dictionary {
-    SimpleDictionary(HashMap<BigInt, BigInt>),
+    SimpleDictionary(HashMap<FieldElement, FieldElement>),
     DefaultDictionary {
-        dict: HashMap<BigInt, BigInt>,
-        default_value: BigInt,
+        dict: HashMap<FieldElement, FieldElement>,
+        default_value: FieldElement,
     },
 }
 
 impl Dictionary {
-    fn get(&mut self, key: &BigInt) -> Option<&BigInt> {
+    fn get(&mut self, key: &FieldElement) -> Option<&FieldElement> {
         match self {
             Self::SimpleDictionary(dict) => dict.get(key),
             Self::DefaultDictionary {
@@ -49,7 +47,7 @@ impl Dictionary {
         }
     }
 
-    fn insert(&mut self, key: &BigInt, value: &BigInt) {
+    fn insert(&mut self, key: &FieldElement, value: &FieldElement) {
         let dict = match self {
             Self::SimpleDictionary(dict) => dict,
             Self::DefaultDictionary {
@@ -74,7 +72,7 @@ impl DictManager {
         &mut self,
         segments: &mut MemorySegmentManager,
         memory: &mut MemoryProxy,
-        initial_dict: HashMap<BigInt, BigInt>,
+        initial_dict: HashMap<FieldElement, FieldElement>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base = memory.add_segment(segments);
         if self.trackers.contains_key(&base.segment_index) {
@@ -94,8 +92,8 @@ impl DictManager {
         &mut self,
         segments: &mut MemorySegmentManager,
         memory: &mut MemoryProxy,
-        default_value: &BigInt,
-        initial_dict: Option<HashMap<BigInt, BigInt>>,
+        default_value: &FieldElement,
+        initial_dict: Option<HashMap<FieldElement, FieldElement>>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base = memory.add_segment(segments);
         if self.trackers.contains_key(&base.segment_index) {
@@ -160,8 +158,8 @@ impl DictTracker {
 
     pub fn new_default_dict(
         base: &Relocatable,
-        default_value: &BigInt,
-        initial_dict: Option<HashMap<BigInt, BigInt>>,
+        default_value: &FieldElement,
+        initial_dict: Option<HashMap<FieldElement, FieldElement>>,
     ) -> Self {
         DictTracker {
             data: Dictionary::DefaultDictionary {
@@ -176,7 +174,10 @@ impl DictTracker {
         }
     }
 
-    pub fn new_with_initial(base: &Relocatable, initial_dict: HashMap<BigInt, BigInt>) -> Self {
+    pub fn new_with_initial(
+        base: &Relocatable,
+        initial_dict: HashMap<FieldElement, FieldElement>,
+    ) -> Self {
         DictTracker {
             data: Dictionary::SimpleDictionary(initial_dict),
             current_ptr: base.clone(),
@@ -184,7 +185,7 @@ impl DictTracker {
     }
 
     //Returns a copy of the contained dictionary, losing the dictionary type in the process
-    pub fn get_dictionary_copy(&self) -> HashMap<BigInt, BigInt> {
+    pub fn get_dictionary_copy(&self) -> HashMap<FieldElement, FieldElement> {
         match &self.data {
             Dictionary::SimpleDictionary(dict) => dict.clone(),
             Dictionary::DefaultDictionary {
@@ -194,13 +195,13 @@ impl DictTracker {
         }
     }
 
-    pub fn get_value(&mut self, key: &BigInt) -> Result<&BigInt, VirtualMachineError> {
+    pub fn get_value(&mut self, key: &FieldElement) -> Result<&FieldElement, VirtualMachineError> {
         self.data
             .get(key)
-            .ok_or_else(|| VirtualMachineError::NoValueForKey(key.clone()))
+            .ok_or_else(|| VirtualMachineError::NoValueForKey(key.num.clone()))
     }
 
-    pub fn insert_value(&mut self, key: &BigInt, val: &BigInt) {
+    pub fn insert_value(&mut self, key: &FieldElement, val: &FieldElement) {
         self.data.insert(key, val)
     }
 }
@@ -283,7 +284,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let mut initial_dict = HashMap::<BigInt, BigInt>::new();
+        let mut initial_dict = HashMap::<FieldElement, FieldElement>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
         let mem_proxy = &mut get_memory_proxy(&mut memory);
         let base = dict_manager.new_dict(&mut segments, mem_proxy, initial_dict.clone());
@@ -304,7 +305,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
-        let mut initial_dict = HashMap::<BigInt, BigInt>::new();
+        let mut initial_dict = HashMap::<FieldElement, FieldElement>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
         let mem_proxy = &mut get_memory_proxy(&mut memory);
         let base = dict_manager.new_default_dict(

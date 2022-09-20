@@ -1,14 +1,14 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
+use crate::hint_processor::hint_processor_utils::felt_to_usize;
 use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
 use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::FieldElement;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::{context::run_context::RunContext, errors::vm_errors::VirtualMachineError};
-use num_bigint::BigInt;
 use std::collections::HashMap;
 
 //Inserts value into the address of the given ids variable
@@ -47,7 +47,7 @@ pub fn get_ptr_from_var_name(
     if hint_reference.dereference {
         let value = vm_proxy.memory.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value + bigint_to_usize(immediate)?;
+            let modified_value = value + felt_to_usize(immediate)?;
             Ok(modified_value)
         } else {
             Ok(value.clone())
@@ -99,7 +99,7 @@ pub fn get_integer_from_var_name<'a>(
     vm_proxy: &'a VMProxy,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<&'a BigInt, VirtualMachineError> {
+) -> Result<&'a FieldElement, VirtualMachineError> {
     // let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
     // vm_proxy.memory.get_integer(&relocatable)
     let reference = get_reference_from_var_name(var_name, ids_data)?;

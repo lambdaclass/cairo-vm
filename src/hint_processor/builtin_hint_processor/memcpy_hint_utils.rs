@@ -8,7 +8,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
 };
 use num_bigint::BigInt;
-use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -67,7 +66,7 @@ pub fn memcpy_continue_copying(
     // get `n` variable from vm scope
     let n = exec_scopes_proxy.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1_i32;
+    let new_n = n - 1;
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
@@ -94,6 +93,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
@@ -123,7 +123,7 @@ mod tests {
         let vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
             get_integer_from_var_name(var_name, &vm_proxy, &ids_data, &ApTracking::default()),
-            Ok(&bigint!(10))
+            Ok(&felt!(10))
         );
     }
 
