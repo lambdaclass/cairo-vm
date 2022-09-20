@@ -267,3 +267,146 @@ impl ExecutionScopesProxy<'_> {
         self.assign_or_update_variable(name, any_box!(value));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bigint;
+
+    #[test]
+    fn get_local_variables_mut_main_scope_error() {
+        let mut exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes { data: Vec::new() },
+            current_scope: 5,
+        };
+
+        let error = exec_scopes_proxy.get_local_variables_mut();
+        assert!(error.is_err());
+        assert_eq!(
+            error.unwrap_err(),
+            VirtualMachineError::MainScopeError(ExecScopeError::NoScopeError)
+        );
+    }
+
+    #[test]
+    fn get_local_variables_main_scope_error() {
+        let exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes { data: Vec::new() },
+            current_scope: 5,
+        };
+
+        let error = exec_scopes_proxy.get_local_variables();
+        assert!(error.is_err());
+        assert_eq!(
+            error.unwrap_err(),
+            VirtualMachineError::MainScopeError(ExecScopeError::NoScopeError)
+        );
+    }
+
+    #[test]
+    fn get_any_boxed_ref_var_not_in_scope() {
+        let exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(1))])],
+            },
+            current_scope: 0,
+        };
+
+        let error = exec_scopes_proxy.get_any_boxed_ref("num");
+        assert!(error.is_err());
+        assert_eq!(
+            error.unwrap_err(),
+            VirtualMachineError::VariableNotInScopeError("num".to_string())
+        );
+    }
+
+    #[test]
+    fn get_any_boxed_mut_var_ok() {
+        let exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("num".to_string(), any_box!(1))])],
+            },
+            current_scope: 0,
+        };
+
+        assert!(exec_scopes_proxy.get_any_boxed_ref("num").is_ok());
+    }
+
+    #[test]
+    fn get_any_boxed_mut_var_not_in_scope() {
+        let exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(1))])],
+            },
+            current_scope: 0,
+        };
+
+        let error = exec_scopes_proxy.get_any_boxed_ref("num");
+        assert!(error.is_err());
+        assert_eq!(
+            error.unwrap_err(),
+            VirtualMachineError::VariableNotInScopeError("num".to_string())
+        );
+    }
+
+    #[test]
+    fn get_mut_int_ref_sucess() {
+        let mut exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(bigint!(1)))])],
+            },
+            current_scope: 0,
+        };
+
+        assert_eq!(exec_scopes_proxy.get_mut_int_ref("a"), Ok(&mut bigint!(1)));
+    }
+
+    #[test]
+    fn get_list_u64_sucess() {
+        let exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(vec![2_u64]))])],
+            },
+            current_scope: 0,
+        };
+
+        assert_eq!(exec_scopes_proxy.get_listu64("a"), Ok(vec![2_u64]));
+    }
+
+    #[test]
+    fn get_u64_ref_sucess() {
+        let exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(3_u64))])],
+            },
+            current_scope: 0,
+        };
+
+        assert_eq!(exec_scopes_proxy.get_u64_ref("a"), Ok(&3_u64));
+    }
+
+    #[test]
+    fn get_mut_u64_ref_sucess() {
+        let mut exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(4_u64))])],
+            },
+            current_scope: 0,
+        };
+
+        assert_eq!(exec_scopes_proxy.get_mut_u64_ref("a"), Ok(&mut 4_u64));
+    }
+
+    #[test]
+    fn insert_box_sucess() {
+        let mut exec_scopes_proxy = ExecutionScopesProxy {
+            scopes: &mut ExecutionScopes {
+                data: vec![HashMap::from([("a".to_string(), any_box!(3_u64))])],
+            },
+            current_scope: 0,
+        };
+
+        exec_scopes_proxy.insert_box("b", any_box!(7_u64));
+        assert_eq!(exec_scopes_proxy.get_u64_ref("b"), Ok(&7_u64));
+    }
+}
