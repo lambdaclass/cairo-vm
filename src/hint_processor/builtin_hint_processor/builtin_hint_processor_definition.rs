@@ -89,22 +89,53 @@ pub struct HintFunc(
         ) -> Result<(), VirtualMachineError>,
     >,
 );
+
+pub trait ExternalHintExecutor {
+    //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
+    fn execute_hint(
+        &self,
+        //Proxy to VM, contains refrences to necessary data
+        //+ MemoryProxy, which provides the necessary methods to manipulate memory
+        vm_proxy: &mut VMProxy,
+        //Proxy to ExecutionScopes, provides the necessary methods to manipulate the scopes and
+        //access current scope variables
+        exec_scopes_proxy: &mut ExecutionScopesProxy,
+        //Data structure containing ids data + hint code + ap tracking
+        hint_data: &HintProcessorData,
+    ) -> Result<(), VirtualMachineError>;
+}
 pub struct BuiltinHintProcessor {
     pub extra_hints: HashMap<String, HintFunc>,
+    pub external_executor: Option<Box<dyn ExternalHintExecutor>>,
 }
 impl BuiltinHintProcessor {
     pub fn new_empty() -> Self {
         BuiltinHintProcessor {
             extra_hints: HashMap::new(),
+            external_executor: None,
         }
     }
 
     pub fn new(extra_hints: HashMap<String, HintFunc>) -> Self {
-        BuiltinHintProcessor { extra_hints }
+        BuiltinHintProcessor {
+            extra_hints,
+            external_executor: None,
+        }
+    }
+
+    pub fn with_external_executor(executor: Box<dyn ExternalHintExecutor>) -> Self {
+        BuiltinHintProcessor {
+            extra_hints: HashMap::new(),
+            external_executor: Some(executor),
+        }
     }
 
     pub fn add_hint(&mut self, hint_code: String, hint_func: HintFunc) {
         self.extra_hints.insert(hint_code, hint_func);
+    }
+
+    pub fn add_external_executor(&mut self, executor: Box<dyn ExternalHintExecutor>) {
+        self.external_executor = Some(executor)
     }
 }
 
@@ -463,7 +494,12 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::EC_MUL_INNER => {
                 ec_mul_inner(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            code => Err(VirtualMachineError::UnknownHint(code.to_string())),
+            code => {
+                if let Some(ref executor) = self.external_executor {
+                    return executor.execute_hint(vm_proxy, exec_scopes_proxy, hint_data);
+                }
+                Err(VirtualMachineError::UnknownHint(code.to_string()))
+            }
         }
     }
 
