@@ -2,12 +2,12 @@ use crate::{
     bigint, relocatable,
     vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
 };
-use num_bigint::BigInt;
+use num_bigint::{BigInt, Sign, U64Digits};
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, ToPrimitive, Zero};
-use std::ops::{Add, Div, Mul, Rem, Sub};
+use std::ops::{Add, BitAnd, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, Hash, PartialEq, Ord, PartialOrd, Clone, Debug, Default)]
 pub struct FieldElement {
     pub num: BigInt,
 }
@@ -27,6 +27,18 @@ pub enum MaybeRelocatable {
 impl From<BigInt> for FieldElement {
     fn from(num: BigInt) -> Self {
         FieldElement { num }
+    }
+}
+
+impl From<&BigInt> for FieldElement {
+    fn from(num: &BigInt) -> Self {
+        FieldElement { num: num.clone() }
+    }
+}
+
+impl From<u128> for FieldElement {
+    fn from(num: u128) -> Self {
+        FieldElement { num: bigint!(num) }
     }
 }
 
@@ -125,6 +137,15 @@ impl Add<FieldElement> for FieldElement {
     }
 }
 
+impl Add<&FieldElement> for FieldElement {
+    type Output = Self;
+    fn add(self, other: &FieldElement) -> Self {
+        Self {
+            num: self.num + &other.num,
+        }
+    }
+}
+
 impl Add<&FieldElement> for &FieldElement {
     type Output = FieldElement;
     fn add(self, other: &FieldElement) -> FieldElement {
@@ -161,6 +182,15 @@ impl Add<&BigInt> for &FieldElement {
     }
 }
 
+impl Sub<FieldElement> for FieldElement {
+    type Output = FieldElement;
+    fn sub(self, other: FieldElement) -> FieldElement {
+        FieldElement {
+            num: self.num - &other.num,
+        }
+    }
+}
+
 impl Sub<&FieldElement> for &FieldElement {
     type Output = FieldElement;
     fn sub(self, other: &FieldElement) -> FieldElement {
@@ -170,11 +200,29 @@ impl Sub<&FieldElement> for &FieldElement {
     }
 }
 
+impl Sub<usize> for &FieldElement {
+    type Output = FieldElement;
+    fn sub(self, other: usize) -> FieldElement {
+        FieldElement {
+            num: &self.num - other,
+        }
+    }
+}
+
 impl Mul<&FieldElement> for &FieldElement {
     type Output = FieldElement;
     fn mul(self, rhs: &FieldElement) -> FieldElement {
         FieldElement {
             num: &self.num * &rhs.num,
+        }
+    }
+}
+
+impl Mul<&BigInt> for &FieldElement {
+    type Output = FieldElement;
+    fn mul(self, rhs: &BigInt) -> FieldElement {
+        FieldElement {
+            num: &self.num * rhs,
         }
     }
 }
@@ -202,6 +250,94 @@ impl Rem<&FieldElement> for &FieldElement {
     fn rem(self, modulus: &FieldElement) -> FieldElement {
         FieldElement {
             num: self.num.mod_floor(&modulus.num),
+        }
+    }
+}
+
+impl Neg for &FieldElement {
+    type Output = FieldElement;
+    fn neg(self) -> FieldElement {
+        FieldElement { num: -&self.num }
+    }
+}
+
+impl BitAnd<FieldElement> for FieldElement {
+    type Output = FieldElement;
+    fn bitand(self, rhs: FieldElement) -> FieldElement {
+        FieldElement {
+            num: self.num & rhs.num,
+        }
+    }
+}
+
+impl BitAnd<&FieldElement> for &FieldElement {
+    type Output = FieldElement;
+    fn bitand(self, rhs: &FieldElement) -> FieldElement {
+        FieldElement {
+            num: &self.num & &rhs.num,
+        }
+    }
+}
+
+impl BitAnd<u32> for FieldElement {
+    type Output = FieldElement;
+    fn bitand(self, rhs: u32) -> FieldElement {
+        FieldElement {
+            num: self.num & bigint!(rhs),
+        }
+    }
+}
+
+impl BitAnd<&BigInt> for FieldElement {
+    type Output = Self;
+    fn bitand(self, rhs: &BigInt) -> FieldElement {
+        Self {
+            num: self.num & rhs,
+        }
+    }
+}
+
+impl BitAnd<&BigInt> for &FieldElement {
+    type Output = FieldElement;
+    fn bitand(self, rhs: &BigInt) -> FieldElement {
+        FieldElement {
+            num: &self.num & rhs,
+        }
+    }
+}
+
+impl Shr<u32> for FieldElement {
+    type Output = FieldElement;
+    fn shr(self, rhs: u32) -> FieldElement {
+        FieldElement {
+            num: &self.num >> rhs,
+        }
+    }
+}
+
+impl Shr<u32> for &FieldElement {
+    type Output = FieldElement;
+    fn shr(self, rhs: u32) -> FieldElement {
+        FieldElement {
+            num: &self.num >> rhs,
+        }
+    }
+}
+
+impl Shl<u32> for FieldElement {
+    type Output = FieldElement;
+    fn shl(self, rhs: u32) -> FieldElement {
+        FieldElement {
+            num: self.num << rhs,
+        }
+    }
+}
+
+impl Shl<u32> for &FieldElement {
+    type Output = FieldElement;
+    fn shl(self, rhs: u32) -> FieldElement {
+        FieldElement {
+            num: &self.num << rhs,
         }
     }
 }
@@ -235,6 +371,49 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
 impl FieldElement {
     pub fn is_zero(&self) -> bool {
         self.num.is_zero()
+    }
+
+    pub fn is_positive(&self) -> bool {
+        self.num.is_positive()
+    }
+
+    pub fn is_negative(&self) -> bool {
+        self.num.is_negative()
+    }
+
+    pub fn to_bigint(&self) -> BigInt {
+        self.num.clone()
+    }
+
+    pub fn to_u64(&self) -> Option<u64> {
+        self.num.to_u64()
+    }
+
+    pub fn to_i32(&self) -> Option<i32> {
+        self.num.to_i32()
+    }
+
+    pub fn to_bytes_be(&self) -> (Sign, Vec<u8>) {
+        self.num.to_bytes_be()
+    }
+
+    pub fn iter_u64_digits(&self) -> U64Digits<'_> {
+        self.num.iter_u64_digits()
+    }
+
+    pub fn to_usize(&self) -> Option<usize> {
+        self.num.to_usize()
+    }
+
+    pub fn div_mod_floor(&self, rhs: &FieldElement) -> (FieldElement, FieldElement) {
+        let (q, r) = self.num.div_mod_floor(&rhs.num);
+        (FieldElement { num: q }, FieldElement { num: r })
+    }
+
+    pub fn pow(&self, exp: u32) -> FieldElement {
+        FieldElement {
+            num: self.num.pow(exp),
+        }
     }
 }
 
