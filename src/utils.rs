@@ -362,8 +362,8 @@ pub mod test_utils {
                         .trackers
                         .get_mut(&$tracker_num)
                         .unwrap()
-                        .get_value(&bigint!($key)),
-                    Ok(&bigint!($val))
+                        .get_value(&felt!($key)),
+                    Ok(&felt!($val))
                 );
             )*
         };
@@ -391,7 +391,7 @@ pub mod test_utils {
         ($exec_scopes_proxy:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
             $(
-            tracker.insert_value(&bigint!($key), &bigint!($val));
+            tracker.insert_value(&felt!($key), &felt!($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
@@ -409,16 +409,16 @@ pub mod test_utils {
 
     macro_rules! dict_manager_default {
         ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
-            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &felt!($default), None);
             $(
-            tracker.insert_value(&bigint!($key), &bigint!($val));
+            tracker.insert_value(&felt!($key), &felt!($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
         ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr) => {
-            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
+            let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &felt!($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
             $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
@@ -474,6 +474,7 @@ mod test {
 
     use super::*;
     use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::types::relocatable::FieldElement;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::trace::trace_entry::TraceEntry;
@@ -770,7 +771,7 @@ mod test {
     #[test]
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&felt!(5), &felt!(10));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -786,7 +787,7 @@ mod test {
     #[should_panic]
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(&relocatable!(2, 0));
-        tracker.insert_value(&bigint!(5), &bigint!(10));
+        tracker.insert_value(&felt!(5), &felt!(10));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -843,7 +844,7 @@ mod test {
 
     #[test]
     fn dict_manager_default_macro() {
-        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &bigint!(17), None);
+        let tracker = DictTracker::new_default_dict(&relocatable!(2, 0), &felt!(17), None);
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
