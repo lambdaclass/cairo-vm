@@ -95,6 +95,7 @@ mod tests {
     use super::*;
     use crate::felt;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+    use crate::types::relocatable::FieldElement;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;

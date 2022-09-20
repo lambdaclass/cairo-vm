@@ -210,9 +210,10 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{
-        bigint, hint_processor::proxies::memory_proxy::get_memory_proxy, relocatable,
+        bigint, felt, hint_processor::proxies::memory_proxy::get_memory_proxy, relocatable,
         vm::vm_memory::memory::Memory,
     };
+    use num_bigint::BigInt;
 
     #[test]
     fn create_dict_manager() {
@@ -232,12 +233,12 @@ mod tests {
 
     #[test]
     fn create_dict_tracker_default() {
-        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &bigint!(5), None);
+        let dict_tracker = DictTracker::new_default_dict(&relocatable!(1, 0), &felt!(5), None);
         assert_eq!(
             dict_tracker.data,
             Dictionary::DefaultDictionary {
                 dict: HashMap::new(),
-                default_value: bigint!(5)
+                default_value: felt!(5)
             }
         );
         assert_eq!(dict_tracker.current_ptr, relocatable!(1, 0));
@@ -265,14 +266,14 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         let mem_proxy = &mut get_memory_proxy(&mut memory);
-        let base = dict_manager.new_default_dict(&mut segments, mem_proxy, &bigint!(5), None);
+        let base = dict_manager.new_default_dict(&mut segments, mem_proxy, &felt!(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(5),
+                &felt!(5),
                 None
             ))
         );
@@ -285,7 +286,7 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         let mut initial_dict = HashMap::<FieldElement, FieldElement>::new();
-        initial_dict.insert(bigint!(5), bigint!(5));
+        initial_dict.insert(felt!(5), felt!(5));
         let mem_proxy = &mut get_memory_proxy(&mut memory);
         let base = dict_manager.new_dict(&mut segments, mem_proxy, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
@@ -306,12 +307,12 @@ mod tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         let mut initial_dict = HashMap::<FieldElement, FieldElement>::new();
-        initial_dict.insert(bigint!(5), bigint!(5));
+        initial_dict.insert(felt!(5), felt!(5));
         let mem_proxy = &mut get_memory_proxy(&mut memory);
         let base = dict_manager.new_default_dict(
             &mut segments,
             mem_proxy,
-            &bigint!(7),
+            &felt!(7),
             Some(initial_dict.clone()),
         );
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
@@ -320,7 +321,7 @@ mod tests {
             dict_manager.trackers.get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &bigint!(7),
+                &felt!(7),
                 Some(initial_dict)
             ))
         );
@@ -347,7 +348,7 @@ mod tests {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
             0,
-            DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6), None),
+            DictTracker::new_default_dict(&relocatable!(0, 0), &felt!(6), None),
         );
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
@@ -361,19 +362,19 @@ mod tests {
     #[test]
     fn dictionary_get_insert_simple() {
         let mut dictionary = Dictionary::SimpleDictionary(HashMap::new());
-        dictionary.insert(&bigint!(1), &bigint!(2));
-        assert_eq!(dictionary.get(&bigint!(1)), Some(&bigint!(2)));
-        assert_eq!(dictionary.get(&bigint!(2)), None);
+        dictionary.insert(&felt!(1), &felt!(2));
+        assert_eq!(dictionary.get(&felt!(1)), Some(&felt!(2)));
+        assert_eq!(dictionary.get(&felt!(2)), None);
     }
 
     #[test]
     fn dictionary_get_insert_default() {
         let mut dictionary = Dictionary::DefaultDictionary {
             dict: HashMap::new(),
-            default_value: bigint!(7),
+            default_value: felt!(7),
         };
-        dictionary.insert(&bigint!(1), &bigint!(2));
-        assert_eq!(dictionary.get(&bigint!(1)), Some(&bigint!(2)));
-        assert_eq!(dictionary.get(&bigint!(2)), Some(&bigint!(7)));
+        dictionary.insert(&felt!(1), &felt!(2));
+        assert_eq!(dictionary.get(&felt!(1)), Some(&felt!(2)));
+        assert_eq!(dictionary.get(&felt!(2)), Some(&felt!(7)));
     }
 }
