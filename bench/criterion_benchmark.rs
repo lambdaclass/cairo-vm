@@ -12,7 +12,7 @@ const BENCH_NAMES: &'static [&'static str] = &[
     "fibonacci_1000_multirun",
     "integration_builtins",
     "linear_search",
-    "keccak_integration_benchmarks",
+    "keccak_integration_benchmark",
     "secp_integration_benchmark",
     "blake2s_integration_benchmark",
     "dict_integration_benchmark",
