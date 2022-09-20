@@ -83,11 +83,11 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        if let Some(MaybeRelocatable::Int(FieldElement { num })) =
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&FieldElement, VirtualMachineError> {
+        if let Some(MaybeRelocatable::Int(felt)) =
             self.get(key).map_err(VirtualMachineError::MemoryError)?
         {
-            Ok(num)
+            Ok(felt)
         } else {
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from(key),
@@ -166,7 +166,7 @@ impl Memory {
         let mut values = Vec::new();
 
         for i in 0..size {
-            values.push(self.get_integer(&(addr + i))?);
+            values.push(&self.get_integer(&(addr + i))?.num);
         }
 
         Ok(values)
@@ -182,7 +182,7 @@ impl Default for Memory {
 #[cfg(test)]
 mod memory_tests {
     use crate::{
-        bigint,
+        bigint, felt,
         vm::{
             runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
@@ -431,7 +431,7 @@ mod memory_tests {
             .unwrap();
         assert_eq!(
             memory.get_integer(&Relocatable::from((0, 0))),
-            Ok(&bigint!(10))
+            Ok(&felt!(10))
         );
     }
 
