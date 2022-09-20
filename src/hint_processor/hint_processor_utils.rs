@@ -5,7 +5,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     types::{
         instruction::Register,
-        relocatable::{MaybeRelocatable, Relocatable},
+        relocatable::{FieldElement, MaybeRelocatable, Relocatable},
     },
     vm::{
         context::run_context::RunContext,
@@ -40,7 +40,7 @@ pub fn get_integer_from_reference<'a>(
     vm_proxy: &'a VMProxy,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
-) -> Result<&'a BigInt, VirtualMachineError> {
+) -> Result<&'a FieldElement, VirtualMachineError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
     if hint_reference.register.is_none() && hint_reference.immediate.is_some() {
@@ -73,7 +73,7 @@ pub fn get_ptr_from_reference(
     if hint_reference.dereference {
         let value = vm_proxy.memory.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value + bigint_to_usize(immediate)?;
+            let modified_value = value + felt_to_usize(immediate)?;
             Ok(modified_value)
         } else {
             Ok(value.clone())
@@ -118,7 +118,7 @@ pub fn compute_addr_from_reference(
             .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
         if let Some(imm) = &hint_reference.immediate {
-            Ok(dereferenced_addr + bigint_to_usize(imm)?)
+            Ok(dereferenced_addr + felt_to_usize(imm)?)
         } else {
             Ok(dereferenced_addr + hint_reference.offset2)
         }
@@ -148,9 +148,16 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
         .ok_or(VirtualMachineError::BigintToUsizeFail)
 }
 
-///Tries to convert a BigInt value to u32
-pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
-    bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
+//Tries to convert a FieldElement value to usize
+pub fn felt_to_usize(felt: &FieldElement) -> Result<usize, VirtualMachineError> {
+    bigint_to_usize(&felt.num)
+}
+
+///Tries to convert a FieldElement value to u32
+pub fn felt_to_u32(felt: &FieldElement) -> Result<u32, VirtualMachineError> {
+    felt.num
+        .to_u32()
+        .ok_or(VirtualMachineError::BigintToU32Fail)
 }
 
 ///Returns a reference to the RangeCheckBuiltinRunner struct if range_check builtin is present

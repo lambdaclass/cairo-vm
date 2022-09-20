@@ -3,11 +3,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use num_bigint::BigInt;
-
 use crate::any_box;
 use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::relocatable::FieldElement;
 use crate::vm::errors::exec_scope_errors::ExecScopeError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 
@@ -76,11 +75,11 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
-    ///Returns the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
-        let mut val: Option<BigInt> = None;
+    ///Returns the value in the current execution scope that matches the name and is of type FieldElement
+    pub fn get_int(&self, name: &str) -> Result<FieldElement, VirtualMachineError> {
+        let mut val: Option<FieldElement> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<BigInt>() {
+            if let Some(int) = variable.downcast_ref::<FieldElement>() {
                 val = Some(int.clone());
             }
         }
@@ -110,22 +109,25 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
-        let mut val: Option<&BigInt> = None;
+    ///Returns a reference to the value in the current execution scope that matches the name and is of type FieldElement
+    pub fn get_int_ref(&self, name: &str) -> Result<&FieldElement, VirtualMachineError> {
+        let mut val: Option<&FieldElement> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<BigInt>() {
+            if let Some(int) = variable.downcast_ref::<FieldElement>() {
                 val = Some(int);
             }
         }
         val.ok_or_else(|| VirtualMachineError::VariableNotInScopeError(name.to_string()))
     }
 
-    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type BigInt
-    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
-        let mut val: Option<&mut BigInt> = None;
+    ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type FieldElement
+    pub fn get_mut_int_ref(
+        &mut self,
+        name: &str,
+    ) -> Result<&mut FieldElement, VirtualMachineError> {
+        let mut val: Option<&mut FieldElement> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(int) = variable.downcast_mut::<BigInt>() {
+            if let Some(int) = variable.downcast_mut::<FieldElement>() {
                 val = Some(int);
             }
         }
@@ -133,10 +135,10 @@ impl ExecutionScopesProxy<'_> {
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List
-    pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<Vec<BigInt>> = None;
+    pub fn get_list(&self, name: &str) -> Result<Vec<FieldElement>, VirtualMachineError> {
+        let mut val: Option<Vec<FieldElement>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<FieldElement>>() {
                 val = Some(list.clone());
             }
         }
@@ -144,10 +146,10 @@ impl ExecutionScopesProxy<'_> {
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<&Vec<BigInt>> = None;
+    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<FieldElement>, VirtualMachineError> {
+        let mut val: Option<&Vec<FieldElement>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<FieldElement>>() {
                 val = Some(list);
             }
         }
@@ -158,10 +160,10 @@ impl ExecutionScopesProxy<'_> {
     pub fn get_mut_list_ref(
         &mut self,
         name: &str,
-    ) -> Result<&mut Vec<BigInt>, VirtualMachineError> {
-        let mut val: Option<&mut Vec<BigInt>> = None;
+    ) -> Result<&mut Vec<FieldElement>, VirtualMachineError> {
+        let mut val: Option<&mut Vec<FieldElement>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(list) = variable.downcast_mut::<Vec<BigInt>>() {
+            if let Some(list) = variable.downcast_mut::<Vec<FieldElement>>() {
                 val = Some(list);
             }
         }
@@ -248,10 +250,10 @@ impl ExecutionScopesProxy<'_> {
     pub fn get_mut_dict_int_list_u64_ref(
         &mut self,
         name: &str,
-    ) -> Result<&mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
-        let mut val: Option<&mut HashMap<BigInt, Vec<u64>>> = None;
+    ) -> Result<&mut HashMap<FieldElement, Vec<u64>>, VirtualMachineError> {
+        let mut val: Option<&mut HashMap<FieldElement, Vec<u64>>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(dict) = variable.downcast_mut::<HashMap<BigInt, Vec<u64>>>() {
+            if let Some(dict) = variable.downcast_mut::<HashMap<FieldElement, Vec<u64>>>() {
                 val = Some(dict);
             }
         }

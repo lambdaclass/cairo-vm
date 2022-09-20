@@ -2,8 +2,8 @@ use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
+use crate::types::relocatable::FieldElement;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use num_bigint::BigInt;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -44,7 +44,7 @@ pub struct HintReference {
     pub dereference: bool,
     pub inner_dereference: bool,
     pub ap_tracking_data: Option<ApTracking>,
-    pub immediate: Option<BigInt>,
+    pub immediate: Option<FieldElement>,
 }
 
 impl HintReference {
