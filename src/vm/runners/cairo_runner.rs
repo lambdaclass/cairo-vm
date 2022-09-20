@@ -5,7 +5,7 @@ use crate::{
         exec_scope::ExecutionScopes,
         instruction::Register,
         program::Program,
-        relocatable::{relocate_value, MaybeRelocatable, Relocatable},
+        relocatable::{relocate_value, FieldElement, MaybeRelocatable, Relocatable},
     },
     utils::{is_subsequence, to_field_element},
     vm::{
@@ -226,7 +226,9 @@ impl<'a> CairoRunner<'a> {
                     offset2: reference.value_address.offset2,
                     inner_dereference: reference.value_address.inner_dereference,
                     dereference: reference.value_address.dereference,
-                    immediate: reference.value_address.immediate.clone(),
+                    immediate: option_bigint_into_option_field_element(
+                        reference.value_address.immediate.clone(),
+                    ),
                     // only store `ap` tracking data if the reference is referred to it
                     ap_tracking_data: if reference.value_address.register == Some(Register::FP) {
                         None
@@ -379,13 +381,20 @@ impl<'a> CairoRunner<'a> {
                 writeln!(
                     stdout,
                     "{}",
-                    to_field_element(value.clone(), self.vm.prime.clone())
+                    to_field_element(value.num.clone(), self.vm.prime.clone())
                 )
                 .map_err(|_| RunnerError::WriteFail)?;
             }
         }
         Ok(())
     }
+}
+
+fn option_bigint_into_option_field_element(some_bigint: Option<BigInt>) -> Option<FieldElement> {
+    if let Some(num) = some_bigint {
+        return Some(FieldElement::from(num));
+    }
+    None
 }
 
 #[cfg(test)]
