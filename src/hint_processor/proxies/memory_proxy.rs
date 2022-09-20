@@ -3,7 +3,7 @@ use std::any::Any;
 use num_bigint::BigInt;
 
 use crate::{
-    types::relocatable::{MaybeRelocatable, Relocatable},
+    types::relocatable::{FieldElement, MaybeRelocatable, Relocatable},
     vm::{
         errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
@@ -31,7 +31,7 @@ impl MemoryProxy<'_> {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&FieldElement, VirtualMachineError> {
         self.memory.get_integer(key)
     }
 
