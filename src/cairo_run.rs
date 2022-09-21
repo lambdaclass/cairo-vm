@@ -22,26 +22,24 @@ pub fn cairo_run<'a>(
     let mut cairo_runner = CairoRunner::new(&program, trace_enabled, hint_processor)?;
     cairo_runner.initialize_segments(None);
 
-    let end = match cairo_runner.initialize_main_entrypoint() {
-        Ok(end) => end,
-        Err(error) => return Err(CairoRunError::Runner(error)),
-    };
+    let end = cairo_runner
+        .initialize_main_entrypoint()
+        .map_err(CairoRunError::Runner)?;
 
-    if let Err(error) = cairo_runner.initialize_vm() {
-        return Err(CairoRunError::Runner(error));
-    }
+    cairo_runner
+        .initialize_vm()
+        .map_err(CairoRunError::Runner)?;
 
-    if let Err(error) = cairo_runner.run_until_pc(end) {
-        return Err(CairoRunError::VirtualMachine(error));
-    }
+    cairo_runner
+        .run_until_pc(end)
+        .map_err(CairoRunError::VirtualMachine)?;
 
-    if let Err(error) = cairo_runner.vm.verify_auto_deductions() {
-        return Err(CairoRunError::VirtualMachine(error));
-    }
+    cairo_runner
+        .vm
+        .verify_auto_deductions()
+        .map_err(CairoRunError::VirtualMachine)?;
 
-    if let Err(error) = cairo_runner.relocate() {
-        return Err(CairoRunError::Trace(error));
-    }
+    cairo_runner.relocate().map_err(CairoRunError::Trace)?;
 
     Ok(cairo_runner)
 }
@@ -68,11 +66,12 @@ pub fn write_binary_trace(
     let mut buffer = BufWriter::new(file);
 
     for (i, entry) in relocated_trace.iter().enumerate() {
-        if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
-            let error_string =
-                format!("Failed to dump trace at position {i}, serialize error: {e}");
-            return Err(Error::new(ErrorKind::Other, error_string));
-        }
+        bincode::serialize_into(&mut buffer, entry).map_err(|e| {
+            Error::new(
+                ErrorKind::Other,
+                format!("Failed to dump trace at position {i}, serialize error: {e}"),
+            )
+        })?;
     }
 
     buffer.flush()
@@ -134,19 +133,15 @@ mod tests {
         program_path: &Path,
         hint_processor: &'a dyn HintProcessor,
     ) -> Result<CairoRunner<'a>, CairoRunError> {
-        let program = match Program::new(program_path, "main") {
-            Ok(program) => program,
-            Err(e) => return Err(CairoRunError::Program(e)),
-        };
+        let program = Program::new(program_path, "main").map_err(CairoRunError::Program)?;
 
         let mut cairo_runner = CairoRunner::new(&program, true, hint_processor).unwrap();
 
         cairo_runner.initialize_segments(None);
 
-        let end = match cairo_runner.initialize_main_entrypoint() {
-            Ok(end) => end,
-            Err(e) => return Err(CairoRunError::Runner(e)),
-        };
+        let end = cairo_runner
+            .initialize_main_entrypoint()
+            .map_err(CairoRunError::Runner)?;
 
         assert!(cairo_runner.initialize_vm().is_ok());
 
@@ -217,6 +212,15 @@ mod tests {
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert!(cairo_run(invalid_memory, "main", false, &hint_processor).is_err());
+    }
+
+    #[test]
+    fn write_output_program() {
+        let program_path = Path::new("cairo_programs/bitwise_output.json");
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_path, &hint_processor)
+            .expect("Couldn't initialize cairo runner");
+        assert!(write_output(&mut cairo_runner).is_ok());
     }
 
     #[test]
