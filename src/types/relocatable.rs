@@ -218,6 +218,15 @@ impl Mul<&FieldElement> for &FieldElement {
     }
 }
 
+impl Mul<FieldElement> for FieldElement {
+    type Output = FieldElement;
+    fn mul(self, rhs: FieldElement) -> FieldElement {
+        FieldElement {
+            num: self.num * rhs.num,
+        }
+    }
+}
+
 impl Mul<&BigInt> for &FieldElement {
     type Output = FieldElement;
     fn mul(self, rhs: &BigInt) -> FieldElement {

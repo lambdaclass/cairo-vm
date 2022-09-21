@@ -212,7 +212,7 @@ pub fn ec_double_assign_new_y(
         exec_scopes_proxy.get_int("y")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
+    let value = &(slope * (x - new_x) - y) % &*SECP_P;
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("new_y", value);
     Ok(())
@@ -298,7 +298,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes_proxy.get_int("new_x")?,
         exec_scopes_proxy.get_int("y0")?,
     );
-    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
+    let value = &(slope * (x0 - new_x) - y0) % &*SECP_P;
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("new_y", value);
 
@@ -316,20 +316,21 @@ pub fn ec_mul_inner(
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm_proxy, ids_data, ap_tracking)?
-        .mod_floor(vm_proxy.prime)
-        .bitand(bigint!(1));
+        % &vm_proxy.prime.bitand(bigint!(1));
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, scalar)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::FieldElement;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -361,7 +362,7 @@ mod tests {
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes_proxy.get_int("value"),
-            Ok(bigint_str!(
+            Ok(felt_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
         );

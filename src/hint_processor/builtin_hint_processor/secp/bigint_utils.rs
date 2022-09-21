@@ -8,6 +8,7 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::FieldElement;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 
 use num_bigint::BigInt;
@@ -29,7 +30,7 @@ pub fn nondet_bigint3(
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm_proxy, ids_data, ap_tracking)?;
     let value = exec_scopes_proxy.get_int_ref("value")?;
-    let arg: Vec<BigInt> = split(value)?.to_vec();
+    let arg: Vec<FieldElement> = split(value)?.to_vec();
     vm_proxy
         .memory
         .write_arg(vm_proxy.segments, &res_reloc, &arg, Some(vm_proxy.prime))
@@ -47,7 +48,7 @@ pub fn bigint_to_uint256(
     let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
     let d0 = vm_proxy.memory.get_integer(&x_struct)?;
     let d1 = vm_proxy.memory.get_integer(&(&x_struct + 1))?;
-    let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
+    let low = (d0 + &(d1 * &*BASE_86)) & &bigint!(u128::MAX);
     insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
 }
 

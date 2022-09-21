@@ -49,7 +49,7 @@ pub fn div_mod_n_safe_div(
     let b = exec_scopes_proxy.get_int_ref("b")?;
     let res = exec_scopes_proxy.get_int_ref("res")?;
 
-    let value = safe_div(&(res * b - a), &N)?;
+    let value = safe_div(&(&res.num * &b.num - &a.num), &N)?;
 
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
@@ -67,7 +67,7 @@ pub fn get_point_from_x(
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
     let v = get_integer_from_var_name("v", vm_proxy, ids_data, ap_tracking)?;
-    if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
+    if v.to_bigint().mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }
     exec_scopes_proxy.insert_value("value", y);
@@ -77,8 +77,9 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
+    use crate::types::relocatable::FieldElement;
+    use crate::{any_box, felt};
     use crate::{
         bigint, bigint_str,
         hint_processor::proxies::vm_proxy::get_vm_proxy,
@@ -123,7 +124,7 @@ mod tests {
 
     #[test]
     fn safe_div_fail() {
-        let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
+        let mut exec_scopes = scope![("a", felt!(0)), ("b", felt!(1)), ("res", felt!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
     }
