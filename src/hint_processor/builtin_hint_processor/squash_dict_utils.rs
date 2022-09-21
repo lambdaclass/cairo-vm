@@ -327,7 +327,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::{any_box, bigint, bigint_str};
+    use crate::{any_box, bigint, bigint_str, felt_str};
     use num_bigint::Sign;
 
     //Hint code as consts
@@ -1119,9 +1119,9 @@ mod tests {
         );
         //Check scope variables
         check_scope!(exec_scopes_proxy, [("access_indices", HashMap::from([(
-           bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"),
+           felt_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"),
             vec![felt!(0), felt!(1)]
-        )])), ("keys", Vec::<FieldElement>::new()), ("key", bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
+        )])), ("keys", Vec::<FieldElement>::new()), ("key", felt_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
         //Check ids variables
         check_memory![
             vm.memory,
