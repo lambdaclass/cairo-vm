@@ -1,0 +1,20 @@
+LambdaClass - StarkWare
+# Cairo-rs - Python FFI integration
+#### 20th September 2022
+
+### OVERVIEW
+In order to allow cairo-rs to execute any python code embedded into a Cairo program and to allow a Python context to call cairo-rs, we are adding support to provide communication of the VM state between Rust and Python via FFI bindings using PyO3, as an external crate. 
+
+### GOAL
+* Be able to efficiently and conveniently allow interactions between Python and cairo-rs. 
+* Have an external crate which encapsulates the python hint execution, and which is able to both run Cairo-rs, and be imported as a python module so that the VM can be ran from a python process.
+
+### SPECIFICATION
+* FFI integration and functionality will be encapsulated in a crate external to cairo-rs.
+* Variables defined by a hint can only be accessed by hints written in the same language, i.e., Rust hints are aware of variables defined by Rust hints and Python hints are aware of variables defined by Python hints.
+* Python hints are supported when running the cairo-rs standalone binary (as opposed to importing it from Python) only with the CPython interpreter.
+* The Cairo-rs VM can be instantiated by a Python interpreter as a regular object, allowing for multiple coexisting VMs.
+* When instantiated by a given Python interpreter, that same interpreter will be used to execute Python hints.
+* Hints which are currently supported by Rust implementation will still be used when running Python hints alongside.
+* Hint interaction with the VM will be restricted to read-write access to memory (with the methods __setitem__ and  __getitem__), segments manager (with the methods add and write_arg), ids (with the methods __setattr__ and __getattr__), hint execution scopes and read-only access to ap and fp registers.
+
