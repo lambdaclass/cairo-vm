@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use std::any::Any;
 
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::types::relocatable::{FieldElement, MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::vm_memory::memory::Memory;
 
@@ -88,6 +88,23 @@ impl MemorySegmentManager {
         }
     }
 
+    pub fn gen_arg_vec_felt(
+        &self,
+        arg: &[FieldElement],
+        prime: Option<&BigInt>,
+    ) -> Vec<MaybeRelocatable> {
+        if let Some(prime) = prime {
+            return arg
+                .iter()
+                .map(|x| MaybeRelocatable::from(x % prime))
+                .collect();
+        } else {
+            arg.iter()
+                .map(|x| MaybeRelocatable::from(x.clone()))
+                .collect()
+        }
+    }
+
     pub fn write_arg(
         &mut self,
         memory: &mut Memory,
@@ -97,14 +114,21 @@ impl MemorySegmentManager {
     ) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(vector) = arg.downcast_ref::<Vec<BigInt>>() {
             let data = self.gen_arg_vec_bigint(vector, prime);
-            self.load_data(
+            return self.load_data(
                 memory,
                 &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
                 data,
-            )
-        } else {
-            Err(MemoryError::WriteArg)
+            );
         }
+        if let Some(vector) = arg.downcast_ref::<Vec<FieldElement>>() {
+            let data = self.gen_arg_vec_felt(vector, prime);
+            return self.load_data(
+                memory,
+                &MaybeRelocatable::from((ptr.segment_index, ptr.offset)),
+                data,
+            );
+        }
+        Err(MemoryError::WriteArg)
     }
 }
 
