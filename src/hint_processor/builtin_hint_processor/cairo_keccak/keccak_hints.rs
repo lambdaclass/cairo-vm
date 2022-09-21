@@ -1,3 +1,4 @@
+use crate::felt;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
@@ -14,8 +15,8 @@ use num_traits::ToPrimitive;
 use std::collections::HashMap;
 
 lazy_static! {
-    pub static ref BYTES_IN_WORD: BigInt = bigint!(8);
-    pub static ref KECCAK_FULL_RATE_IN_BYTES: BigInt = bigint!(136);
+    pub static ref BYTES_IN_WORD: FieldElement = felt!(8);
+    pub static ref KECCAK_FULL_RATE_IN_BYTES: FieldElement = felt!(136);
 }
 const KECCAK_STATE_SIZE_FELTS: usize = 25;
 const BLOCK_SIZE: usize = 3;
@@ -37,8 +38,8 @@ pub fn keccak_write_args(
     let low = get_integer_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
 
-    let low_args = [low & bigint!(u64::MAX), low >> 64];
-    let high_args = [high & bigint!(u64::MAX), high >> 64];
+    let low_args = [low & &bigint!(u64::MAX), low >> 64];
+    let high_args = [high & &bigint!(u64::MAX), high >> 64];
 
     vm_proxy
         .memory

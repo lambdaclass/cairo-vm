@@ -1,9 +1,11 @@
+use crate::felt;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
 };
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::types::relocatable::FieldElement;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
@@ -11,10 +13,10 @@ use crate::{
     vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::{BigInt, Sign};
-use num_traits::Signed;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
-use std::{cmp, collections::HashMap, ops::Shl};
+use std::ops::Shl;
+use std::{cmp, collections::HashMap};
 
 /* Implements hint:
    %{
@@ -50,8 +52,8 @@ pub fn unsafe_keccak(
     if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
         if length > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
-                length.clone(),
-                keccak_max_size,
+                length.num.clone(),
+                keccak_max_size.num,
             ));
         }
     }
@@ -65,7 +67,7 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.clone()))?;
+        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.num.clone()))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
@@ -77,8 +79,8 @@ pub fn unsafe_keccak(
         let word = vm_proxy.memory.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {
-            return Err(VirtualMachineError::InvalidWordSize(word.clone()));
+        if word.is_negative() || word >= &felt!(1).shl(8 * (n_bytes as u32)) {
+            return Err(VirtualMachineError::InvalidWordSize(word.num.clone()));
         }
 
         let (_, mut bytes) = word.to_bytes_be();

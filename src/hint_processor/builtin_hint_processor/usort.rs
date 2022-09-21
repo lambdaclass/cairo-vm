@@ -113,7 +113,7 @@ pub fn verify_usort(
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();
     exec_scopes_proxy.insert_value("positions", positions);
-    exec_scopes_proxy.insert_value("last_pos", bigint!(0));
+    exec_scopes_proxy.insert_value("last_pos", felt!(0));
     Ok(())
 }
 
@@ -140,7 +140,7 @@ pub fn verify_multiplicity_body(
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = felt!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm_proxy, ids_data, ap_tracking)?;
-    exec_scopes_proxy.insert_value("last_pos", bigint!(current_pos + 1));
+    exec_scopes_proxy.insert_value("last_pos", felt!(current_pos + 1));
     Ok(())
 }
 

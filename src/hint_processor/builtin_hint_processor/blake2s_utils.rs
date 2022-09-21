@@ -1,4 +1,4 @@
-use crate::hint_processor::hint_processor_utils::bigint_to_u32;
+use crate::hint_processor::hint_processor_utils::felt_to_u32;
 use std::collections::HashMap;
 
 use num_traits::ToPrimitive;
@@ -13,7 +13,7 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
-use crate::types::relocatable::Relocatable;
+use crate::types::relocatable::{FieldElement, Relocatable};
 use crate::{
     types::relocatable::MaybeRelocatable,
     vm::{
@@ -42,7 +42,7 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
     new_array
 }
 
-fn get_maybe_relocatable_array_from_bigint(array: &[BigInt]) -> Vec<MaybeRelocatable> {
+fn get_maybe_relocatable_array_from_bigint(array: &[FieldElement]) -> Vec<MaybeRelocatable> {
     array.iter().map(MaybeRelocatable::from).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
@@ -58,8 +58,8 @@ fn compute_blake2s_func(
     let h = get_fixed_size_u32_array::<8>(&memory.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
     let message =
         get_fixed_size_u32_array::<16>(&memory.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
-    let t = bigint_to_u32(memory.get_integer(&output_rel.sub(2)?)?)?;
-    let f = bigint_to_u32(memory.get_integer(&output_rel.sub(1)?)?)?;
+    let t = felt_to_u32(memory.get_integer(&output_rel.sub(2)?)?)?;
+    let f = felt_to_u32(memory.get_integer(&output_rel.sub(1)?)?)?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
@@ -158,12 +158,10 @@ pub fn blake2s_add_uint256(
     //Declare constant
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
-    //Convert MASK to bigint
-    let mask = bigint!(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<FieldElement>::new();
     for i in 0..4 {
-        inner_data.push((&low >> (B * i)) & &mask);
+        inner_data.push((&low >> (B * i)) & MASK);
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -176,9 +174,9 @@ pub fn blake2s_add_uint256(
         )
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<FieldElement>::new();
     for i in 0..4 {
-        inner_data.push((&high >> (B * i)) & &mask);
+        inner_data.push((&high >> (B * i)) & MASK);
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -213,13 +211,12 @@ pub fn blake2s_add_uint256_bigend(
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
+
     const B: u32 = 32;
-    //Convert MASK to bigint
-    let mask = bigint!(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<FieldElement>::new();
     for i in 0..4 {
-        inner_data.push((&high >> (B * (3 - i))) & &mask);
+        inner_data.push((&high >> (B * (3 - i))) & MASK);
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -232,9 +229,9 @@ pub fn blake2s_add_uint256_bigend(
         )
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
-    let mut inner_data = Vec::<BigInt>::new();
+    let mut inner_data = Vec::<FieldElement>::new();
     for i in 0..4 {
-        inner_data.push((&low >> (B * (3 - i))) & &mask);
+        inner_data.push((&low >> (B * (3 - i))) & MASK);
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);

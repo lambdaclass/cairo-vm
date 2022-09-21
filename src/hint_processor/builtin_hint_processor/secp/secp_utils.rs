@@ -5,11 +5,11 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::relocatable::FieldElement;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
-use num_traits::{Signed, Zero};
 use std::collections::HashMap;
 
 lazy_static! {
@@ -33,19 +33,19 @@ Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
+pub fn split(integer: &FieldElement) -> Result<[FieldElement; 3], VirtualMachineError> {
     if integer.is_negative() {
-        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
+        return Err(VirtualMachineError::SecpSplitNegative(integer.num.clone()));
     }
 
     let mut num = integer.clone();
-    let mut canonical_repr: [BigInt; 3] = Default::default();
+    let mut canonical_repr: [FieldElement; 3] = Default::default();
     for item in &mut canonical_repr {
         *item = (&num & &*BASE_86_MAX).to_owned();
-        num >>= 86_usize;
+        num = num >> 86_u32;
     }
     if !num.is_zero() {
-        return Err(VirtualMachineError::SecpSplitutOfRange(integer.clone()));
+        return Err(VirtualMachineError::SecpSplitutOfRange(integer.num.clone()));
     }
     Ok(canonical_repr)
 }
@@ -56,7 +56,7 @@ elements and reconstructs the corresponding 256-bit integer (see split()).
 Note that the limbs do not have to be in the range [0, BASE).
 prime should be the Cairo field, and it is used to handle negative values of the limbs.
 */
-pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
+pub fn pack(d0: &FieldElement, d1: &FieldElement, d2: &FieldElement, prime: &BigInt) -> BigInt {
     let unreduced_big_int_3 = vec![d0, d1, d2];
 
     unreduced_big_int_3
@@ -95,29 +95,29 @@ pub fn pack_from_relocatable(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint_str;
+    use crate::{bigint_str, felt, felt_str};
 
     #[test]
     fn secp_split() {
-        let array_1 = split(&bigint!(0));
-        let array_2 = split(&bigint!(999992));
-        let array_3 = split(&bigint_str!(
+        let array_1 = split(&felt!(0));
+        let array_2 = split(&felt!(999992));
+        let array_3 = split(&felt_str!(
             b"7737125245533626718119526477371252455336267181195264773712524553362"
         ));
-        let array_4 = split(&bigint!(-1));
+        let array_4 = split(&felt!(-1));
         //TODO, Check SecpSplitutOfRange limit
-        let array_5 = split(&bigint_str!(
+        let array_5 = split(&felt_str!(
             b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
         ));
 
-        assert_eq!(array_1, Ok([bigint!(0), bigint!(0), bigint!(0)]));
-        assert_eq!(array_2, Ok([bigint!(999992), bigint!(0), bigint!(0)]));
+        assert_eq!(array_1, Ok([felt!(0), felt!(0), felt!(0)]));
+        assert_eq!(array_2, Ok([felt!(999992), felt!(0), felt!(0)]));
         assert_eq!(
             array_3,
             Ok([
-                bigint_str!(b"773712524553362"),
-                bigint_str!(b"57408430697461422066401280"),
-                bigint_str!(b"1292469707114105")
+                felt_str!(b"773712524553362"),
+                felt_str!(b"57408430697461422066401280"),
+                felt_str!(b"1292469707114105")
             ])
         );
         assert_eq!(
@@ -134,16 +134,16 @@ mod tests {
 
     #[test]
     fn secp_pack() {
-        let pack_1 = pack(&bigint!(10), &bigint!(10), &bigint!(10), &bigint!(160));
+        let pack_1 = pack(&felt!(10), &felt!(10), &felt!(10), &bigint!(160));
         assert_eq!(
             pack_1,
             bigint_str!(b"59863107065073783529622931521771477038469668772249610")
         );
 
         let pack_2 = pack(
-            &bigint_str!(b"773712524553362"),
-            &bigint_str!(b"57408430697461422066401280"),
-            &bigint_str!(b"1292469707114105"),
+            &felt_str!(b"773712524553362"),
+            &felt_str!(b"57408430697461422066401280"),
+            &felt_str!(b"1292469707114105"),
             &bigint_str!(b"1292469707114105"),
         );
         assert_eq!(

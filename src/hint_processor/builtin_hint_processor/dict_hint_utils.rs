@@ -862,8 +862,8 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<BigInt, BigInt>>(),
-            Some(&HashMap::<BigInt, BigInt>::new())
+                .downcast_ref::<HashMap<FieldElement, FieldElement>>(),
+            Some(&HashMap::<FieldElement, FieldElement>::new())
         );
     }
 
@@ -893,11 +893,11 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<BigInt, BigInt>>(),
+                .downcast_ref::<HashMap<FieldElement, FieldElement>>(),
             Some(&HashMap::from([
-                (bigint!(1), bigint!(2)),
-                (bigint!(3), bigint!(4)),
-                (bigint!(5), bigint!(6))
+                (felt!(1), felt!(2)),
+                (felt!(3), felt!(4)),
+                (felt!(5), felt!(6))
             ]))
         );
     }
