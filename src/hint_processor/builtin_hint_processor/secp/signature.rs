@@ -49,7 +49,7 @@ pub fn div_mod_n_safe_div(
     let b = exec_scopes_proxy.get_int_ref("b")?;
     let res = exec_scopes_proxy.get_int_ref("res")?;
 
-    let value = safe_div(&(&res.num * &b.num - &a.num), &N)?;
+    let value = safe_div(&(res * b - a), &N)?;
 
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn safe_div_fail() {
-        let mut exec_scopes = scope![("a", felt!(0)), ("b", felt!(1)), ("res", felt!(1))];
+        let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
     }

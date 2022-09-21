@@ -2,7 +2,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_ptr_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
 };
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::felt_to_usize;
+use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
@@ -34,7 +34,7 @@ pub fn find_element(
     }
 
     if let Some(find_element_index_value) = find_element_index {
-        let find_element_index_usize = felt_to_usize(&find_element_index_value)?;
+        let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
         let found_key = vm_proxy
             .memory
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
@@ -42,7 +42,7 @@ pub fn find_element(
 
         if found_key != key {
             return Err(VirtualMachineError::InvalidIndex(
-                find_element_index_value.num,
+                find_element_index_value,
                 key.num.clone(),
                 found_key.num.clone(),
             ));
@@ -62,9 +62,9 @@ pub fn find_element(
         }
 
         if let Ok(find_element_max_size) = exec_scopes_proxy.get_int_ref("find_element_max_size") {
-            if n_elms > find_element_max_size {
+            if &n_elms.to_bigint() > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
-                    find_element_max_size.num.clone(),
+                    find_element_max_size.clone(),
                     n_elms.num.clone(),
                 ));
             }
@@ -116,9 +116,9 @@ pub fn search_sorted_lower(
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
-        if n_elms > &find_element_max_size {
+        if n_elms.to_bigint() > find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
-                find_element_max_size.num,
+                find_element_max_size,
                 n_elms.num.clone(),
             ));
         }

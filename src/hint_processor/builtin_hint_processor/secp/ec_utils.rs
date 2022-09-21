@@ -362,7 +362,7 @@ mod tests {
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes_proxy.get_int("value"),
-            Ok(felt_str!(
+            Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
         );

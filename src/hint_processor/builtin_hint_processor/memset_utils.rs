@@ -5,6 +5,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
+use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -41,7 +42,7 @@ pub fn memset_continue_loop(
     // get `n` variable from vm scope
     let n = exec_scopes_proxy.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1;
+    let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = bigint!(new_n.is_positive() as i32);

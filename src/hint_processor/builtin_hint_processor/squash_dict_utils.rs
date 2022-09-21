@@ -19,15 +19,13 @@ use crate::{
 
 fn get_access_indices<'a>(
     exec_scopes_proxy: &'a mut ExecutionScopesProxy,
-) -> Result<&'a HashMap<FieldElement, Vec<FieldElement>>, VirtualMachineError> {
-    let mut access_indices: Option<&HashMap<FieldElement, Vec<FieldElement>>> = None;
+) -> Result<&'a HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
+    let mut access_indices: Option<&HashMap<BigInt, Vec<BigInt>>> = None;
     if let Some(variable) = exec_scopes_proxy
         .get_local_variables_mut()?
         .get_mut("access_indices")
     {
-        if let Some(py_access_indices) =
-            variable.downcast_mut::<HashMap<FieldElement, Vec<FieldElement>>>()
-        {
+        if let Some(py_access_indices) = variable.downcast_mut::<HashMap<BigInt, Vec<BigInt>>>() {
             access_indices = Some(py_access_indices);
         }
     }
@@ -54,7 +52,7 @@ pub fn squash_dict_inner_first_iteration(
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
-        .ok_or(VirtualMachineError::NoKeyInAccessIndices(key.num))?
+        .ok_or(VirtualMachineError::NoKeyInAccessIndices(key))?
         .clone();
     current_access_indices.sort();
     current_access_indices.reverse();
@@ -111,7 +109,7 @@ pub fn squash_dict_inner_check_access_index(
     let new_access_index = current_access_indices
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
-    let index_delta_minus1 = new_access_index.clone() - current_access_index - felt!(1);
+    let index_delta_minus1 = new_access_index.clone() - felt!(current_access_index - 1);
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
     insert_value_from_var_name(
@@ -179,13 +177,13 @@ pub fn squash_dict_inner_used_accesses_assert(
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
-        .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.num.clone()))?;
+        .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
     if n_used_accesses != &felt!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
             n_used_accesses.num.clone(),
             access_indices_at_key.len(),
-            key.num,
+            key,
         ));
     }
     Ok(())
@@ -268,9 +266,9 @@ pub fn squash_dict(
     }
     let squash_dict_max_size = exec_scopes_proxy.get_int("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
-        if n_accesses > &max_size {
+        if n_accesses.to_bigint() > max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
-                max_size.num,
+                max_size,
                 n_accesses.num.clone(),
             ));
         };
@@ -522,8 +520,8 @@ mod tests {
         let mut vm = vm!();
         //Store scope variables
         let mut exec_scopes = scope![
-            ("current_access_indices", Vec::<FieldElement>::new()),
-            ("current_access_index", felt!(1))
+            ("current_access_indices", Vec::<BigInt>::new()),
+            ("current_access_index", bigint!(1))
         ];
         //Initialize fp
         vm.run_context.fp = 1;

@@ -10,6 +10,8 @@ use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
+use num_traits::Signed;
+use num_traits::Zero;
 use std::collections::HashMap;
 
 lazy_static! {
@@ -33,19 +35,19 @@ Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(integer: &FieldElement) -> Result<[FieldElement; 3], VirtualMachineError> {
+pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
-        return Err(VirtualMachineError::SecpSplitNegative(integer.num.clone()));
+        return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
 
     let mut num = integer.clone();
-    let mut canonical_repr: [FieldElement; 3] = Default::default();
+    let mut canonical_repr: [BigInt; 3] = Default::default();
     for item in &mut canonical_repr {
         *item = (&num & &*BASE_86_MAX).to_owned();
-        num = num >> 86_u32;
+        num >>= 86_usize;
     }
     if !num.is_zero() {
-        return Err(VirtualMachineError::SecpSplitutOfRange(integer.num.clone()));
+        return Err(VirtualMachineError::SecpSplitutOfRange(integer.clone()));
     }
     Ok(canonical_repr)
 }
@@ -99,25 +101,25 @@ mod tests {
 
     #[test]
     fn secp_split() {
-        let array_1 = split(&felt!(0));
-        let array_2 = split(&felt!(999992));
-        let array_3 = split(&felt_str!(
+        let array_1 = split(&bigint!(0));
+        let array_2 = split(&bigint!(999992));
+        let array_3 = split(&bigint_str!(
             b"7737125245533626718119526477371252455336267181195264773712524553362"
         ));
-        let array_4 = split(&felt!(-1));
+        let array_4 = split(&bigint!(-1));
         //TODO, Check SecpSplitutOfRange limit
-        let array_5 = split(&felt_str!(
+        let array_5 = split(&bigint_str!(
             b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
         ));
 
-        assert_eq!(array_1, Ok([felt!(0), felt!(0), felt!(0)]));
-        assert_eq!(array_2, Ok([felt!(999992), felt!(0), felt!(0)]));
+        assert_eq!(array_1, Ok([bigint!(0), bigint!(0), bigint!(0)]));
+        assert_eq!(array_2, Ok([bigint!(999992), bigint!(0), bigint!(0)]));
         assert_eq!(
             array_3,
             Ok([
-                felt_str!(b"773712524553362"),
-                felt_str!(b"57408430697461422066401280"),
-                felt_str!(b"1292469707114105")
+                bigint_str!(b"773712524553362"),
+                bigint_str!(b"57408430697461422066401280"),
+                bigint_str!(b"1292469707114105")
             ])
         );
         assert_eq!(

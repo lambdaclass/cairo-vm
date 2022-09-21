@@ -3,6 +3,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use num_bigint::BigInt;
+
 use crate::any_box;
 use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
 use crate::types::exec_scope::ExecutionScopes;
@@ -75,11 +77,11 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
-    ///Returns the value in the current execution scope that matches the name and is of type FieldElement
-    pub fn get_int(&self, name: &str) -> Result<FieldElement, VirtualMachineError> {
-        let mut val: Option<FieldElement> = None;
+    ///Returns the value in the current execution scope that matches the name and is of type BigInt
+    pub fn get_int(&self, name: &str) -> Result<BigInt, VirtualMachineError> {
+        let mut val: Option<BigInt> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<FieldElement>() {
+            if let Some(int) = variable.downcast_ref::<BigInt>() {
                 val = Some(int.clone());
             }
         }
@@ -109,11 +111,11 @@ impl ExecutionScopesProxy<'_> {
         ))
     }
 
-    ///Returns a reference to the value in the current execution scope that matches the name and is of type FieldElement
-    pub fn get_int_ref(&self, name: &str) -> Result<&FieldElement, VirtualMachineError> {
-        let mut val: Option<&FieldElement> = None;
+    ///Returns a reference to the value in the current execution scope that matches the name and is of type BigInt
+    pub fn get_int_ref(&self, name: &str) -> Result<&BigInt, VirtualMachineError> {
+        let mut val: Option<&BigInt> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(int) = variable.downcast_ref::<FieldElement>() {
+            if let Some(int) = variable.downcast_ref::<BigInt>() {
                 val = Some(int);
             }
         }

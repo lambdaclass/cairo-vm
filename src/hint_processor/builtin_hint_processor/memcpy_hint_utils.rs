@@ -8,6 +8,8 @@ use crate::{
     serde::deserialize_program::ApTracking,
 };
 use num_bigint::BigInt;
+
+use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -66,7 +68,7 @@ pub fn memcpy_continue_copying(
     // get `n` variable from vm scope
     let n = exec_scopes_proxy.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1;
+    let new_n = n - 1_usize;
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
