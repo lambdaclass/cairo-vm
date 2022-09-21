@@ -15,7 +15,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 ///Structure representing a limited access to the execution scopes
 ///Allows adding and removing scopes, but will only allow modifications to the last scope present before hint execution
 pub struct ExecutionScopesProxy<'a> {
-    scopes: &'a mut ExecutionScopes,
+    pub scopes: &'a mut ExecutionScopes,
     current_scope: usize,
 }
 
@@ -70,6 +70,11 @@ impl ExecutionScopesProxy<'_> {
         &self,
     ) -> Result<&HashMap<String, Box<dyn Any>>, VirtualMachineError> {
         if self.scopes.data.len() > self.current_scope {
+            println!("self.current_scope: {:?}", self.current_scope);
+            println!(
+                "&self.scopes.data[self.current_scope]: {:?}",
+                &self.scopes.data[self.current_scope]
+            );
             return Ok(&self.scopes.data[self.current_scope]);
         }
         Err(VirtualMachineError::MainScopeError(
@@ -162,10 +167,10 @@ impl ExecutionScopesProxy<'_> {
     pub fn get_mut_list_ref(
         &mut self,
         name: &str,
-    ) -> Result<&mut Vec<FieldElement>, VirtualMachineError> {
-        let mut val: Option<&mut Vec<FieldElement>> = None;
+    ) -> Result<&mut Vec<BigInt>, VirtualMachineError> {
+        let mut val: Option<&mut Vec<BigInt>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(list) = variable.downcast_mut::<Vec<FieldElement>>() {
+            if let Some(list) = variable.downcast_mut::<Vec<BigInt>>() {
                 val = Some(list);
             }
         }

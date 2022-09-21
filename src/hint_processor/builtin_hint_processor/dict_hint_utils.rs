@@ -1,3 +1,5 @@
+use num_bigint::BigInt;
+
 use crate::{
     hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy,
     types::relocatable::FieldElement,
@@ -25,14 +27,14 @@ pub const DICT_ACCESS_SIZE: usize = 3;
 
 fn copy_initial_dict(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
-) -> Option<HashMap<FieldElement, FieldElement>> {
-    let mut initial_dict: Option<HashMap<FieldElement, FieldElement>> = None;
+) -> Option<HashMap<BigInt, BigInt>> {
+    let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
     if let Some(variable) = exec_scopes_proxy
         .get_local_variables()
         .ok()?
         .get("initial_dict")
     {
-        if let Some(dict) = variable.downcast_ref::<HashMap<FieldElement, FieldElement>>() {
+        if let Some(dict) = variable.downcast_ref::<HashMap<BigInt, BigInt>>() {
             initial_dict = Some(dict.clone());
         }
     }
@@ -57,14 +59,19 @@ pub fn dict_new(
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict =
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
+
+    println!("initial_dict: {:?}", initial_dict);
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
-        dict_manager
-            .borrow_mut()
-            .new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?
+        dict_manager.borrow_mut().new_dict(
+            vm_proxy.segments,
+            &mut vm_proxy.memory,
+            HashMap::new(),
+        )?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?;
+        let base =
+            dict_manager.new_dict(vm_proxy.segments, &mut vm_proxy.memory, HashMap::new())?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
@@ -89,7 +96,9 @@ pub fn default_dict_new(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?.clone();
+        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?
+            .to_bigint()
+            .clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -125,13 +134,13 @@ pub fn dict_read(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
-    let value = tracker.get_value(key)?;
+    let value = tracker.get_value(&key)?;
     insert_value_from_var_name("value", value.clone(), vm_proxy, ids_data, ap_tracking)
 }
 
@@ -147,8 +156,9 @@ pub fn dict_write(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?;
+    let key = &get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
+    let new_value =
+        get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
@@ -162,7 +172,7 @@ pub fn dict_write(
     //Get previous value
     let prev_value = tracker.get_value(key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm_proxy
@@ -188,9 +198,11 @@ pub fn dict_update(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
-    let prev_value = get_integer_from_var_name("prev_value", vm_proxy, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?;
+    let key = &get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
+    let prev_value =
+        get_integer_from_var_name("prev_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
+    let new_value =
+        &get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
@@ -199,11 +211,11 @@ pub fn dict_update(
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(key)?;
-    if current_value != prev_value {
+    if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.num.clone(),
-            current_value.num.clone(),
-            key.num.clone(),
+            prev_value.clone(),
+            current_value.clone(),
+            key.clone(),
         ));
     }
     //Update Value
@@ -302,11 +314,17 @@ mod tests {
         add_segments!(vm, 1);
 
         //Store initial dict in scope
-        let mut exec_scopes = scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
+        let mut exec_scopes: ExecutionScopes =
+            scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
+        println!("exec_scopes: {:?}", exec_scopes.data);
         //ids and references are not needed for this test
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy)
-            .expect("Error while executing hint");
+        let exec_scopes_proxy: &mut ExecutionScopesProxy =
+            &mut get_exec_scopes_proxy(&mut exec_scopes);
+        println!("exec_scopes_proxy: {:?}", exec_scopes_proxy.scopes.data);
+        assert_eq!(
+            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            Ok(())
+        );
         //first new segment is added for the dictionary
         assert_eq!(vm.segments.num_segments, 2);
         //new segment base (1,0) is inserted into ap (1,0)
@@ -447,7 +465,7 @@ mod tests {
                 .get(&0),
             Some(&DictTracker::new_default_dict(
                 &relocatable!(0, 0),
-                &felt!(17),
+                &bigint!(17),
                 None
             ))
         );
@@ -862,8 +880,8 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<FieldElement, FieldElement>>(),
-            Some(&HashMap::<FieldElement, FieldElement>::new())
+                .downcast_ref::<HashMap<BigInt, BigInt>>(),
+            Some(&HashMap::<BigInt, BigInt>::new())
         );
     }
 
@@ -893,11 +911,11 @@ mod tests {
             variables
                 .get("initial_dict")
                 .unwrap()
-                .downcast_ref::<HashMap<FieldElement, FieldElement>>(),
+                .downcast_ref::<HashMap<BigInt, BigInt>>(),
             Some(&HashMap::from([
-                (felt!(1), felt!(2)),
-                (felt!(3), felt!(4)),
-                (felt!(5), felt!(6))
+                (bigint!(1), bigint!(2)),
+                (bigint!(3), bigint!(4)),
+                (bigint!(5), bigint!(6))
             ]))
         );
     }

@@ -109,7 +109,7 @@ pub fn squash_dict_inner_check_access_index(
     let new_access_index = current_access_indices
         .pop()
         .ok_or(VirtualMachineError::EmptyCurrentAccessIndices)?;
-    let index_delta_minus1 = new_access_index.clone() - felt!(current_access_index - 1);
+    let index_delta_minus1 = new_access_index.clone() - current_access_index - 1;
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
     insert_value_from_var_name(
@@ -519,10 +519,13 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![
+        let mut exec_scopes: ExecutionScopes = scope![
             ("current_access_indices", Vec::<BigInt>::new()),
             ("current_access_index", bigint!(1))
         ];
+
+        println!("exec_scopes: {:?}", exec_scopes.data);
+
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (loop_temps)
