@@ -19,7 +19,7 @@ pub fn isqrt(n: &FieldElement) -> Result<FieldElement, VirtualMachineError> {
     let mut y = (x.clone() + felt!(1)).shr(1);
     while y < x {
         x = y;
-        y = (x.clone() + (n % &x)).shr(1);
+        y = (x.clone() + (n.div_floor(&x))).shr(1);
     }
     if !(x.pow(2) <= *n && *n < (x.clone() + felt!(1)).pow(2)) {
         return Err(VirtualMachineError::FailedToGetSqrt(n.num.clone()));

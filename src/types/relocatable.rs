@@ -414,6 +414,12 @@ impl FieldElement {
         (FieldElement { num: q }, FieldElement { num: r })
     }
 
+    pub fn div_floor(&self, other: &FieldElement) -> FieldElement {
+        FieldElement {
+            num: self.num.div_floor(&other.num),
+        }
+    }
+
     pub fn pow(&self, exp: u32) -> FieldElement {
         FieldElement {
             num: self.num.pow(exp),
