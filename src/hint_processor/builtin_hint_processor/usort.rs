@@ -49,10 +49,13 @@ pub fn usort_body(
             ));
         }
     }
-    let mut positions_dict: HashMap<FieldElement, Vec<u64>> = HashMap::new();
-    let mut output: Vec<FieldElement> = Vec::new();
+    let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
+    let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm_proxy.memory.get_integer(&(&input_ptr + i as usize))?;
+        let val = &vm_proxy
+            .memory
+            .get_integer(&(&input_ptr + i as usize))?
+            .to_bigint();
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
@@ -106,14 +109,16 @@ pub fn verify_usort(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?.clone();
+    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?
+        .clone()
+        .to_bigint();
     let mut positions = exec_scopes_proxy
         .get_mut_dict_int_list_u64_ref("positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();
     exec_scopes_proxy.insert_value("positions", positions);
-    exec_scopes_proxy.insert_value("last_pos", felt!(0));
+    exec_scopes_proxy.insert_value("last_pos", bigint!(0));
     Ok(())
 }
 

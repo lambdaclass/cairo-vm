@@ -128,13 +128,10 @@ impl ExecutionScopesProxy<'_> {
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type FieldElement
-    pub fn get_mut_int_ref(
-        &mut self,
-        name: &str,
-    ) -> Result<&mut FieldElement, VirtualMachineError> {
-        let mut val: Option<&mut FieldElement> = None;
+    pub fn get_mut_int_ref(&mut self, name: &str) -> Result<&mut BigInt, VirtualMachineError> {
+        let mut val: Option<&mut BigInt> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(int) = variable.downcast_mut::<FieldElement>() {
+            if let Some(int) = variable.downcast_mut::<BigInt>() {
                 val = Some(int);
             }
         }
@@ -257,10 +254,10 @@ impl ExecutionScopesProxy<'_> {
     pub fn get_mut_dict_int_list_u64_ref(
         &mut self,
         name: &str,
-    ) -> Result<&mut HashMap<FieldElement, Vec<u64>>, VirtualMachineError> {
-        let mut val: Option<&mut HashMap<FieldElement, Vec<u64>>> = None;
+    ) -> Result<&mut HashMap<BigInt, Vec<u64>>, VirtualMachineError> {
+        let mut val: Option<&mut HashMap<BigInt, Vec<u64>>> = None;
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
-            if let Some(dict) = variable.downcast_mut::<HashMap<FieldElement, Vec<u64>>>() {
+            if let Some(dict) = variable.downcast_mut::<HashMap<BigInt, Vec<u64>>>() {
                 val = Some(dict);
             }
         }
