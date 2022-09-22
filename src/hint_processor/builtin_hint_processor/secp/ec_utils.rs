@@ -212,7 +212,7 @@ pub fn ec_double_assign_new_y(
         exec_scopes_proxy.get_int("y")?,
     );
 
-    let value = &(slope * (x - new_x) - y) % &*SECP_P;
+    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("new_y", value);
     Ok(())
@@ -298,7 +298,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes_proxy.get_int("new_x")?,
         exec_scopes_proxy.get_int("y0")?,
     );
-    let value = &(slope * (x0 - new_x) - y0) % &*SECP_P;
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("new_y", value);
 

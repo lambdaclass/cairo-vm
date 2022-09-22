@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_index", felt!(2))];
+        let mut exec_scopes = scope![("find_element_index", bigint!(2))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_max_size", felt!(1))];
+        let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
@@ -479,7 +479,7 @@ mod tests {
     #[test]
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_max_size", felt!(1))];
+        let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(

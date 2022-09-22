@@ -277,7 +277,7 @@ pub fn squash_dict(
         .to_usize()
         .ok_or_else(|| VirtualMachineError::NAccessesTooBig(n_accesses.num.clone()))?;
     //A map from key to the list of indices accessing it.
-    let mut access_indices = HashMap::<FieldElement, Vec<FieldElement>>::new();
+    let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
         let key_addr = &address + DICT_ACCESS_SIZE * i;
         let key = vm_proxy
@@ -285,16 +285,16 @@ pub fn squash_dict(
             .get_integer(&key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
-            .entry(key.clone())
-            .or_insert(Vec::<FieldElement>::new())
-            .push(felt!(i));
+            .entry(key.to_bigint().clone())
+            .or_insert(Vec::<BigInt>::new())
+            .push(bigint!(i));
     }
     //Descending list of keys.
-    let mut keys: Vec<FieldElement> = access_indices.keys().cloned().collect();
+    let mut keys: Vec<BigInt> = access_indices.keys().cloned().collect();
     keys.sort();
     keys.reverse();
     //Are the keys used bigger than the range_check bound.
-    let big_keys = if keys[0] >= felt!(range_check_bound) {
+    let big_keys = if keys[0] >= range_check_bound {
         felt!(1)
     } else {
         felt!(0)
@@ -345,13 +345,13 @@ mod tests {
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
-        let mut access_indices = HashMap::<FieldElement, Vec<FieldElement>>::new();
-        let current_accessed_indices = vec![felt!(9), felt!(3), felt!(10), felt!(7)];
-        access_indices.insert(felt!(5), current_accessed_indices);
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", felt!(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
@@ -371,9 +371,9 @@ mod tests {
             [
                 (
                     "current_access_indices",
-                    vec![felt!(10), felt!(9), felt!(7)]
+                    vec![bigint!(10), bigint!(9), bigint!(7)]
                 ),
-                ("current_access_index", felt!(3))
+                ("current_access_index", bigint!(3))
             ]
         );
         //Check that current_access_index is now at range_check_ptr
@@ -384,14 +384,14 @@ mod tests {
     fn squash_dict_inner_first_iteration_empty_accessed_indices() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
-        let mut access_indices = HashMap::<FieldElement, Vec<FieldElement>>::new();
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
         //Leave current_accessed_indices empty
-        let current_accessed_indices = Vec::<FieldElement>::new();
-        access_indices.insert(felt!(5), current_accessed_indices);
+        let current_accessed_indices = Vec::<BigInt>::new();
+        access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", felt!(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
@@ -434,7 +434,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", Vec::<FieldElement>::new())];
+        let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -456,7 +456,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", vec![felt!(4), felt!(7)])];
+        let mut exec_scopes = scope![("current_access_indices", vec![bigint!(4), bigint!(7)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -481,9 +481,9 @@ mod tests {
         let mut exec_scopes = scope![
             (
                 "current_access_indices",
-                vec![felt!(10), felt!(9), felt!(7), felt!(5)]
+                vec![bigint!(10), bigint!(9), bigint!(7), bigint!(5)]
             ),
-            ("current_access_index", felt!(1))
+            ("current_access_index", bigint!(1))
         ];
         //Initialize fp
         vm.run_context.fp = 1;
@@ -501,10 +501,10 @@ mod tests {
             [
                 (
                     "current_access_indices",
-                    vec![felt!(10), felt!(9), felt!(7)]
+                    vec![bigint!(10), bigint!(9), bigint!(7)]
                 ),
-                ("new_access_index", felt!(5)),
-                ("current_access_index", felt!(5))
+                ("new_access_index", bigint!(5)),
+                ("current_access_index", bigint!(5))
             ]
         );
         //Check the value of loop_temps.index_delta_minus_1
@@ -547,7 +547,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", vec![felt!(4), felt!(7)])];
+        let mut exec_scopes = scope![("current_access_indices", vec![bigint!(4), bigint!(7)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -569,7 +569,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", Vec::<FieldElement>::new())];
+        let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -590,7 +590,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", Vec::<FieldElement>::new())];
+        let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Execute the hint
         //Hint should produce an error if assertion fails
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
@@ -606,7 +606,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", vec![felt!(29)])];
+        let mut exec_scopes = scope![("current_access_indices", vec![bigint!(29)])];
         //Execute the hint
         //Hint should produce an error if assertion fails
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
@@ -620,13 +620,13 @@ mod tests {
     fn squash_dict_inner_uses_accesses_assert_valid() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
-        let mut access_indices = HashMap::<FieldElement, Vec<FieldElement>>::new();
-        let current_accessed_indices = vec![felt!(9), felt!(3), felt!(10), felt!(7)];
-        access_indices.insert(felt!(5), current_accessed_indices);
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", felt!(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
@@ -646,13 +646,13 @@ mod tests {
     fn squash_dict_inner_uses_accesses_assert_wrong_used_access_number() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
-        let mut access_indices = HashMap::<FieldElement, Vec<FieldElement>>::new();
-        let current_accessed_indices = vec![felt!(9), felt!(3), felt!(10), felt!(7)];
-        access_indices.insert(felt!(5), current_accessed_indices);
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", felt!(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
@@ -675,13 +675,13 @@ mod tests {
     fn squash_dict_inner_uses_accesses_assert_used_access_number_relocatable() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
-        let mut access_indices = HashMap::<FieldElement, Vec<FieldElement>>::new();
-        let current_accessed_indices = vec![felt!(9), felt!(3), felt!(10), felt!(7)];
-        access_indices.insert(felt!(5), current_accessed_indices);
+        let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
+        let current_accessed_indices = vec![bigint!(9), bigint!(3), bigint!(10), bigint!(7)];
+        access_indices.insert(bigint!(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", felt!(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", bigint!(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
@@ -704,7 +704,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("keys", Vec::<FieldElement>::new())];
+        let mut exec_scopes = scope![("keys", Vec::<BigInt>::new())];
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
@@ -719,7 +719,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("keys", vec![felt!(3)])];
+        let mut exec_scopes = scope![("keys", vec![bigint!(3)])];
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
@@ -749,7 +749,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("keys", vec![felt!(1), felt!(3)])];
+        let mut exec_scopes = scope![("keys", vec![bigint!(1), bigint!(3)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
@@ -765,7 +765,7 @@ mod tests {
         //Check local variables
         check_scope!(
             exec_scopes_proxy,
-            [("keys", vec![felt!(1)]), ("key", felt!(3))]
+            [("keys", vec![bigint!(1)]), ("key", bigint!(3))]
         );
     }
 
@@ -775,7 +775,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("keys", Vec::<FieldElement>::new())];
+        let mut exec_scopes = scope![("keys", Vec::<BigInt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
@@ -829,10 +829,10 @@ mod tests {
             [
                 (
                     "access_indices",
-                    HashMap::from([(felt!(1), vec![felt!(0), felt!(1)])])
+                    HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
                 ),
-                ("keys", Vec::<FieldElement>::new()),
-                ("key", felt!(1))
+                ("keys", Vec::<BigInt>::new()),
+                ("key", bigint!(1))
             ]
         );
         //Check ids variables
@@ -887,16 +887,16 @@ mod tests {
                 (
                     "access_indices",
                     HashMap::from([
-                        (felt!(1), vec![felt!(0), felt!(1)]),
-                        (felt!(2), vec![felt!(2), felt!(3)])
+                        (bigint!(1), vec![bigint!(0), bigint!(1)]),
+                        (bigint!(2), vec![bigint!(2), bigint!(3)])
                     ])
                 ),
-                ("keys", vec![felt!(2)]),
-                ("key", felt!(1))
+                ("keys", vec![bigint!(2)]),
+                ("key", bigint!(1))
             ]
         );
         let keys = exec_scopes_proxy.get_list("keys").unwrap();
-        assert_eq!(keys, vec![felt!(2)]);
+        assert_eq!(keys, vec![bigint!(2)]);
         //Check ids variables
         check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
     }
@@ -908,7 +908,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         //Create scope variables
-        let mut exec_scopes = scope![("__squash_dict_max_size", felt!(12))];
+        let mut exec_scopes = scope![("__squash_dict_max_size", bigint!(12))];
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
@@ -943,10 +943,10 @@ mod tests {
             [
                 (
                     "access_indices",
-                    HashMap::from([(felt!(1), vec![felt!(0), felt!(1)])])
+                    HashMap::from([(bigint!(1), vec![bigint!(0), bigint!(1)])])
                 ),
-                ("keys", Vec::<FieldElement>::new()),
-                ("key", felt!(1))
+                ("keys", Vec::<BigInt>::new()),
+                ("key", bigint!(1))
             ]
         );
         //Check ids variables
@@ -960,7 +960,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         //Create scope variables
-        let mut exec_scopes = scope![("__squash_dict_max_size", felt!(1))];
+        let mut exec_scopes = scope![("__squash_dict_max_size", bigint!(1))];
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
@@ -1120,9 +1120,9 @@ mod tests {
         );
         //Check scope variables
         check_scope!(exec_scopes_proxy, [("access_indices", HashMap::from([(
-           felt_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"),
-            vec![felt!(0), felt!(1)]
-        )])), ("keys", Vec::<FieldElement>::new()), ("key", felt_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
+           bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"),
+            vec![bigint!(0), bigint!(1)]
+        )])), ("keys", Vec::<BigInt>::new()), ("key", bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
         //Check ids variables
         check_memory![
             vm.memory,

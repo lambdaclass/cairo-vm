@@ -142,10 +142,10 @@ impl ExecutionScopesProxy<'_> {
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List
-    pub fn get_list(&self, name: &str) -> Result<Vec<FieldElement>, VirtualMachineError> {
-        let mut val: Option<Vec<FieldElement>> = None;
+    pub fn get_list(&self, name: &str) -> Result<Vec<BigInt>, VirtualMachineError> {
+        let mut val: Option<Vec<BigInt>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<FieldElement>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
                 val = Some(list.clone());
             }
         }
@@ -153,10 +153,10 @@ impl ExecutionScopesProxy<'_> {
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
-    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<FieldElement>, VirtualMachineError> {
-        let mut val: Option<&Vec<FieldElement>> = None;
+    pub fn get_list_ref(&self, name: &str) -> Result<&Vec<BigInt>, VirtualMachineError> {
+        let mut val: Option<&Vec<BigInt>> = None;
         if let Some(variable) = self.get_local_variables()?.get(name) {
-            if let Some(list) = variable.downcast_ref::<Vec<FieldElement>>() {
+            if let Some(list) = variable.downcast_ref::<Vec<BigInt>>() {
                 val = Some(list);
             }
         }
