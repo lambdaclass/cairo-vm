@@ -51,7 +51,7 @@ pub fn is_nn_out_of_range(
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if &(-a - felt!(1)) % vm_proxy.prime < felt!(range_check_builtin._bound.clone()) {
+    let value = if &(-a - 1_usize) % vm_proxy.prime < felt!(range_check_builtin._bound.clone()) {
         felt!(0)
     } else {
         felt!(1)
@@ -267,7 +267,7 @@ pub fn split_felt(
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: FieldElement = value & &((felt!(1) << 128) - felt!(1));
+    let low: FieldElement = value & &((felt!(1) << 128) - 1);
     let high: FieldElement = value >> 128;
     insert_value_from_var_name("high", high, vm_proxy, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)

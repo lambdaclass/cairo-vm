@@ -316,7 +316,7 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = (get_integer_from_var_name("scalar", vm_proxy, ids_data, ap_tracking)?
         % vm_proxy.prime)
-        & &bigint!(1);
+        & 1_u32;
     insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, scalar)
 }
 

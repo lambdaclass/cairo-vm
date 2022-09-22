@@ -14,7 +14,7 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 ///Structure representing a limited access to the execution scopes
 ///Allows adding and removing scopes, but will only allow modifications to the last scope present before hint execution
 pub struct ExecutionScopesProxy<'a> {
-    pub scopes: &'a mut ExecutionScopes,
+    scopes: &'a mut ExecutionScopes,
     current_scope: usize,
 }
 

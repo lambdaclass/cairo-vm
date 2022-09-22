@@ -1,4 +1,3 @@
-use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_relocatable_from_var_name, insert_value_from_var_name,
 };
@@ -47,7 +46,7 @@ pub fn bigint_to_uint256(
     let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
     let d0 = vm_proxy.memory.get_integer(&x_struct)?;
     let d1 = vm_proxy.memory.get_integer(&(&x_struct + 1))?;
-    let low = (d0 + &(d1 * &*BASE_86)) & &bigint!(u128::MAX);
+    let low = (d0 + &(d1 * &*BASE_86)) & u128::MAX;
     insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
 }
 

@@ -8,7 +8,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
 };
 use num_bigint::BigInt;
-
 use num_traits::Signed;
 use std::any::Any;
 use std::collections::HashMap;

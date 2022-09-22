@@ -200,6 +200,15 @@ impl Sub<&FieldElement> for &FieldElement {
     }
 }
 
+impl Sub<usize> for FieldElement {
+    type Output = FieldElement;
+    fn sub(self, other: usize) -> FieldElement {
+        FieldElement {
+            num: self.num - other,
+        }
+    }
+}
+
 impl Sub<usize> for &FieldElement {
     type Output = FieldElement;
     fn sub(self, other: usize) -> FieldElement {
@@ -293,6 +302,24 @@ impl BitAnd<u32> for FieldElement {
     fn bitand(self, rhs: u32) -> FieldElement {
         FieldElement {
             num: self.num & bigint!(rhs),
+        }
+    }
+}
+
+impl BitAnd<u128> for FieldElement {
+    type Output = FieldElement;
+    fn bitand(self, rhs: u128) -> FieldElement {
+        FieldElement {
+            num: self.num & bigint!(rhs),
+        }
+    }
+}
+
+impl BitAnd<u128> for &FieldElement {
+    type Output = FieldElement;
+    fn bitand(self, rhs: u128) -> FieldElement {
+        FieldElement {
+            num: &self.num & bigint!(rhs),
         }
     }
 }

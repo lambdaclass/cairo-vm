@@ -212,7 +212,6 @@ mod tests {
         bigint, hint_processor::proxies::memory_proxy::get_memory_proxy, relocatable,
         vm::vm_memory::memory::Memory,
     };
-    use num_bigint::BigInt;
 
     #[test]
     fn create_dict_manager() {

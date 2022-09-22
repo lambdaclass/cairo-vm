@@ -192,10 +192,10 @@ pub fn uint256_unsigned_div_rem(
     //Then, div_mod_floor equals Python divmod
     let (quotient, remainder) = a.div_mod_floor(&div);
 
-    let quotient_low = &quotient & &felt!(u128::MAX);
+    let quotient_low = &quotient & u128::MAX;
     let quotient_high = quotient.shr(128);
 
-    let remainder_low = &remainder & &felt!(u128::MAX);
+    let remainder_low = &remainder & u128::MAX;
     let remainder_high = remainder.shr(128);
 
     //Insert ids.quotient.low

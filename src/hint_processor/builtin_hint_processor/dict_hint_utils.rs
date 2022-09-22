@@ -1,7 +1,7 @@
-use num_bigint::BigInt;
-
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
+
+use num_bigint::BigInt;
 
 use crate::{
     any_box,
@@ -56,7 +56,6 @@ pub fn dict_new(
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict =
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
-
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
         dict_manager
