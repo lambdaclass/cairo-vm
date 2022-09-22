@@ -60,13 +60,12 @@ pub fn dict_new(
     let initial_dict =
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
 
-    println!("initial_dict: {:?}", initial_dict);
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
         dict_manager.borrow_mut().new_dict(
             vm_proxy.segments,
             &mut vm_proxy.memory,
-            HashMap::new(),
+            initial_dict,
         )?
     } else {
         let mut dict_manager = DictManager::new();
@@ -96,9 +95,7 @@ pub fn default_dict_new(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?
-            .to_bigint()
-            .clone();
+        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -213,7 +210,7 @@ pub fn dict_update(
     let current_value = tracker.get_value(key)?;
     if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
+            prev_value,
             current_value.clone(),
             key.clone(),
         ));
@@ -316,11 +313,9 @@ mod tests {
         //Store initial dict in scope
         let mut exec_scopes: ExecutionScopes =
             scope![("initial_dict", HashMap::<BigInt, BigInt>::new())];
-        println!("exec_scopes: {:?}", exec_scopes.data);
         //ids and references are not needed for this test
         let exec_scopes_proxy: &mut ExecutionScopesProxy =
             &mut get_exec_scopes_proxy(&mut exec_scopes);
-        println!("exec_scopes_proxy: {:?}", exec_scopes_proxy.scopes.data);
         assert_eq!(
             run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
             Ok(())
