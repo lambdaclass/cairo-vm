@@ -21,11 +21,8 @@ pub fn memset_enter_scope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n: Box<dyn Any> = Box::new(
-        get_integer_from_var_name("n", vm_proxy, ids_data, ap_tracking)?
-            .to_bigint()
-            .clone(),
-    );
+    let n: Box<dyn Any> =
+        Box::new(get_integer_from_var_name("n", vm_proxy, ids_data, ap_tracking)?.to_bigint());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }

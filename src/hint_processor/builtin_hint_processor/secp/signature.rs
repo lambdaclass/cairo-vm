@@ -77,9 +77,8 @@ pub fn get_point_from_x(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::any_box;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::types::relocatable::FieldElement;
-    use crate::{any_box, felt};
     use crate::{
         bigint, bigint_str,
         hint_processor::proxies::vm_proxy::get_vm_proxy,

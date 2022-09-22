@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::{
     hint_processor::proxies::memory_proxy::MemoryProxy,
-    types::relocatable::{FieldElement, MaybeRelocatable, Relocatable},
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         errors::vm_errors::VirtualMachineError, vm_memory::memory_segments::MemorySegmentManager,
     },
@@ -209,7 +209,7 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{
-        bigint, felt, hint_processor::proxies::memory_proxy::get_memory_proxy, relocatable,
+        bigint, hint_processor::proxies::memory_proxy::get_memory_proxy, relocatable,
         vm::vm_memory::memory::Memory,
     };
     use num_bigint::BigInt;

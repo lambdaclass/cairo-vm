@@ -325,7 +325,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
-    use crate::{any_box, bigint, bigint_str, felt_str};
+    use crate::{any_box, bigint, bigint_str};
     use num_bigint::Sign;
 
     //Hint code as consts
@@ -523,8 +523,6 @@ mod tests {
             ("current_access_indices", Vec::<BigInt>::new()),
             ("current_access_index", bigint!(1))
         ];
-
-        println!("exec_scopes: {:?}", exec_scopes.data);
 
         //Initialize fp
         vm.run_context.fp = 1;

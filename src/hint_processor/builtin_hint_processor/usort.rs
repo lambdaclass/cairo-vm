@@ -1,10 +1,8 @@
-use crate::felt;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
-use crate::types::relocatable::FieldElement;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
 };

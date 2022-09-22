@@ -8,7 +8,6 @@ use num_bigint::BigInt;
 use crate::any_box;
 use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
 use crate::types::exec_scope::ExecutionScopes;
-use crate::types::relocatable::FieldElement;
 use crate::vm::errors::exec_scope_errors::ExecScopeError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 
@@ -70,11 +69,6 @@ impl ExecutionScopesProxy<'_> {
         &self,
     ) -> Result<&HashMap<String, Box<dyn Any>>, VirtualMachineError> {
         if self.scopes.data.len() > self.current_scope {
-            println!("self.current_scope: {:?}", self.current_scope);
-            println!(
-                "&self.scopes.data[self.current_scope]: {:?}",
-                &self.scopes.data[self.current_scope]
-            );
             return Ok(&self.scopes.data[self.current_scope]);
         }
         Err(VirtualMachineError::MainScopeError(

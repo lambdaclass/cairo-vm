@@ -1,9 +1,6 @@
 use num_bigint::BigInt;
 
-use crate::{
-    hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy,
-    types::relocatable::FieldElement,
-};
+use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
@@ -62,11 +59,9 @@ pub fn dict_new(
 
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
-        dict_manager.borrow_mut().new_dict(
-            vm_proxy.segments,
-            &mut vm_proxy.memory,
-            initial_dict,
-        )?
+        dict_manager
+            .borrow_mut()
+            .new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
         let base =
@@ -282,7 +277,6 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use crate::any_box;
-    use crate::felt;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;

@@ -474,7 +474,6 @@ mod test {
 
     use super::*;
     use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::types::relocatable::FieldElement;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::trace::trace_entry::TraceEntry;
