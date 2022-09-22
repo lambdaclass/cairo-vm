@@ -99,7 +99,7 @@ func run_tests{range_check_ptr:felt, bitwise_ptr: BitwiseBuiltin*}(iter: felt, s
     let (elem_ptr_lower: Bicycle*) = search_sorted_lower(
         array_ptr=bike_small_array,
         elm_size=Bicycle.SIZE,
-        n_elms=30,
+        n_elms=5,
         key=6,
     )
 

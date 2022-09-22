@@ -1,14 +1,16 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_ptr_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
-};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
-use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::{
-    bigint, hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
+    bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+            insert_value_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+        hint_processor_utils::bigint_to_usize,
+        proxies::{exec_scopes_proxy::ExecutionScopesProxy, vm_proxy::VMProxy},
+    },
+    serde::deserialize_program::ApTracking,
+    vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
@@ -126,25 +128,41 @@ pub fn search_sorted_lower(
     }
 
     let mut array_iter = vm_proxy.memory.get_relocatable(&rel_array_ptr)?.clone();
+    let initial_offset = array_iter.offset;
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
         .ok_or(VirtualMachineError::KeyNotFound)?;
 
-    for i in 0..n_elms_usize {
+    let mut low = 0;
+    let mut high = n_elms_usize;
+    let mut mid = (low + high) / 2;
+
+    while low < high {
+        mid = (low + high) / 2;
+        array_iter.offset = initial_offset + elm_size_usize * mid;
         let value = vm_proxy.memory.get_integer(&array_iter)?;
-        if value >= key {
-            return insert_value_from_var_name(
-                "index",
-                bigint!(i),
-                vm_proxy,
-                ids_data,
-                ap_tracking,
-            );
+        if value < key {
+            low = mid + 1;
+        } else {
+            high = mid;
         }
-        array_iter.offset += elm_size_usize;
     }
-    insert_value_from_var_name("index", n_elms.clone(), vm_proxy, ids_data, ap_tracking)
+
+    // Since we're looking for a value greater or eq than the key, we could find the correct index
+    // in mid or low. So we have to check low if its still pointing at the array and mid didn't
+    // return a wanted value.
+    let value_mid = vm_proxy.memory.get_integer(&array_iter)?;
+    array_iter.offset = initial_offset + elm_size_usize * low;
+    let value_low = vm_proxy.memory.get_integer(&array_iter);
+
+    if value_mid >= key {
+        insert_value_from_var_name("index", bigint!(mid), vm_proxy, ids_data, ap_tracking)
+    } else if low < n_elms_usize && value_low? >= key {
+        insert_value_from_var_name("index", bigint!(low), vm_proxy, ids_data, ap_tracking)
+    } else {
+        insert_value_from_var_name("index", n_elms.clone(), vm_proxy, ids_data, ap_tracking)
+    }
 }
 
 #[cfg(test)]
@@ -379,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn search_sorted_lower() {
+    fn search_sorted_lower_sucess() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         assert_eq!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
