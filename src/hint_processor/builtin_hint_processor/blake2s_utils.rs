@@ -42,7 +42,7 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
     new_array
 }
 
-fn get_maybe_relocatable_array_from_bigint(array: &[FieldElement]) -> Vec<MaybeRelocatable> {
+fn get_maybe_relocatable_array_from_felt(array: &[FieldElement]) -> Vec<MaybeRelocatable> {
     array.iter().map(MaybeRelocatable::from).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
@@ -164,7 +164,7 @@ pub fn blake2s_add_uint256(
         inner_data.push((&low >> (B * i)) & MASK);
     }
     //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm_proxy
         .memory
         .load_data(
@@ -179,7 +179,7 @@ pub fn blake2s_add_uint256(
         inner_data.push((&high >> (B * i)) & MASK);
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm_proxy
         .memory
         .load_data(
@@ -219,7 +219,7 @@ pub fn blake2s_add_uint256_bigend(
         inner_data.push((&high >> (B * (3 - i))) & MASK);
     }
     //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm_proxy
         .memory
         .load_data(
@@ -234,7 +234,7 @@ pub fn blake2s_add_uint256_bigend(
         inner_data.push((&low >> (B * (3 - i))) & MASK);
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_bigint(&inner_data);
+    let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm_proxy
         .memory
         .load_data(

@@ -147,7 +147,7 @@ pub fn dict_write(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = &get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let new_value =
         get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
@@ -161,9 +161,9 @@ pub fn dict_write(
     //Tracker set to track next dictionary entry
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     //Get previous value
-    let prev_value = tracker.get_value(key)?.clone();
+    let prev_value = tracker.get_value(&key)?.clone();
     //Insert new value into tracker
-    tracker.insert_value(key, &new_value);
+    tracker.insert_value(&key, &new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
     vm_proxy
@@ -189,11 +189,11 @@ pub fn dict_update(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = &get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
+    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let prev_value =
         get_integer_from_var_name("prev_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let new_value =
-        &get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
+        get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?.to_bigint();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
@@ -201,7 +201,7 @@ pub fn dict_update(
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key)?;
+    let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
         return Err(VirtualMachineError::WrongPrevValue(
             prev_value,
@@ -210,7 +210,7 @@ pub fn dict_update(
         ));
     }
     //Update Value
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(&key, &new_value);
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }
