@@ -9,12 +9,12 @@ This trait implies the definition of two functions:
         ap_tracking_data: &ApTracking,
         reference_ids: &HashMap<String, usize>,
         references: &HashMap<usize, HintReference>,
-    ) -> Result<Box<dyn Any>, VirtualMachineError>;`: Transforms hint data outputted by the VM into whichever format will be later used by execute_hint.
+    ) -> Result<Box<dyn Any>, VirtualMachineError>;`: Transforms hint data outputted by the VM into a user defined format that will be later used by execute_hint.
     
 * `fn execute_hint(&self, 
         vm_proxy: &mut VMProxy,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
-        hint_data: &Box<dyn Any>,) -> Result<(), VirtualMachineError>`: Executes the hint which data is provided by a dynamic structure previously created by compile_hint.
+        hint_data: &Box<dyn Any>,) -> Result<(), VirtualMachineError>`: Executes the hint with the data provided by a dynamic structure previously created by compile_hint.
         
 ## How do we implement this trait?
 Cairo-rs provides a series of interfaces used by `compile_hint()` and `execute_hint()` implementations.
@@ -40,7 +40,7 @@ pub struct HintReference {
     pub immediate: Option<BigInt>,
 }
 ```
-This represents the reference corresponding to each ids, which will later be accessible from the hint functions.
+Represents the reference corresponding to each ids, which will later be accessible from the hint functions.
 
 ### VMProxy
 ```rust
@@ -52,7 +52,7 @@ pub struct VMProxy<'a> {
     pub prime: &'a BigInt,
 }
 ```
-A `struct` representing limited access to the VM's internal values and structures.
+Represents limited access to the VM's internal values and structures.
 ### ExecutionScopesProxy
 ```rust
 pub struct ExecutionScopesProxy<'a> {
@@ -60,7 +60,7 @@ pub struct ExecutionScopesProxy<'a> {
     current_scope: usize,
 }
 ```
-Structure representing a limited access to the execution scopes.
+Represents limited access to the execution scopes.
 It allows adding and removing scopes, but will only allow modifications to the last scope present before hint execution using its implementation.
 
 ## A more detailed look at BuiltinHintProcessor
@@ -112,4 +112,4 @@ As we can see, `compile_hint()` generates `HintProcessorData` by wrapping the co
             hint_code::ADD_SEGMENT => add_segment(vm_proxy),
 ...
 ```
-Hint data is cast back to a `HintProcessorData` reference. I a function that was previously added to the HintProcessor is found in the hint code, it's called and it's return value is returned as the result of the current hint. If not, the code is matched against predefined instructions(`&str`) so that they can be executed.
+Hint data is cast back to a `HintProcessorData` reference. If a function that was previously added to the HintProcessor is found in the hint code, it's called and its return value is used as the result for the current hint. If not, the code is matched against predefined instructions(`&str`) so that they can be executed.
