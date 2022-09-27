@@ -32,7 +32,7 @@ pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
 }
 
 impl VMProxy<'_> {
-    ///Adds a new segment and to the VM.memory returns its starting location as a RelocatableValue.
+    ///Adds a new segment and to the VMProxy.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add_segment(self.segments)
     }
