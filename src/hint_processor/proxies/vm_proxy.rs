@@ -1,7 +1,7 @@
 use num_bigint::BigInt;
 
 use crate::{
-    types::relocatable::Relocatable,
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
         runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine,
@@ -52,5 +52,14 @@ impl VMProxy<'_> {
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
         self.memory.get_integer(key)
+    }
+
+    ///Inserts a value into a memory address given by a Relocatable value
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
+        self.memory.insert_value(key, val)
     }
 }
