@@ -626,6 +626,10 @@ impl VirtualMachine {
         }
         Ok(())
     }
+
+    pub fn add_memory_segment(&mut self) -> Relocatable {
+        self.segments.add(&mut self.memory)
+    }
 }
 
 #[cfg(test)]
