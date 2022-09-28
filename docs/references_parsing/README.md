@@ -55,7 +55,7 @@ Cases 3 and 4 are just the non-dereferenced versions of 1 and 2. Here `reg` can 
  `type` is generally a field element pointer (`felt*`) or simple a field element (`felt`), but can be any other Cairo type or struct.
 
 
-**Example: ```[cast(fp + (-1), felt*)```**
+**Example: ```[cast(fp + (-1), felt*)]```**
 
 Suppose that the `fp` register is holding the address (1, 3). Then `fp + (-1)` would yield address (1, 2). Suppose now that (1, 2) holds the value 5. Then, the value associated with this reference will be 5 after applying the dereference operator `[]`. 
 
