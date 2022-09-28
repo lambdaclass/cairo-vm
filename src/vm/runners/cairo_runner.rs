@@ -69,7 +69,8 @@ impl<'a> CairoRunner<'a> {
         self.initialize_vm(vm)?;
         Ok(end)
     }
-    pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+
+    fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             String::from("output"),
             String::from("pedersen"),
@@ -112,11 +113,7 @@ impl<'a> CairoRunner<'a> {
         Ok(())
     }
     ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
-    pub fn initialize_segments(
-        &mut self,
-        vm: &mut VirtualMachine,
-        program_base: Option<Relocatable>,
-    ) {
+    fn initialize_segments(&mut self, vm: &mut VirtualMachine, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
             None => Some(vm.segments.add(&mut vm.memory)),
@@ -190,7 +187,7 @@ impl<'a> CairoRunner<'a> {
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
-    pub fn initialize_main_entrypoint(
+    fn initialize_main_entrypoint(
         &mut self,
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
@@ -214,7 +211,7 @@ impl<'a> CairoRunner<'a> {
         }
     }
 
-    pub fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         vm.run_context.pc = self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?.clone();
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;
         vm.run_context.fp = self.initial_fp.as_ref().ok_or(RunnerError::NoFP)?.offset;
