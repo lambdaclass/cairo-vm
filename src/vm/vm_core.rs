@@ -690,6 +690,17 @@ impl VirtualMachine {
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.load_data(&mut self.memory, ptr, data)
     }
+
+    //// Writes args into the memory at address ptr and returns the first address after the data.
+    /// Perfroms modulo on each element
+    pub fn write_arg(
+        &mut self,
+        ptr: &Relocatable,
+        arg: &dyn Any,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        self.segments
+            .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
+    }
 }
 
 #[cfg(test)]
