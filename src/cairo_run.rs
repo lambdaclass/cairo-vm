@@ -23,17 +23,7 @@ pub fn cairo_run<'a>(
 
     let mut cairo_runner = CairoRunner::new(&program, hint_processor)?;
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
-    cairo_runner.initialize_builtins(&mut vm)?;
-    cairo_runner.initialize_segments(&mut vm, None);
-
-    let end = match cairo_runner.initialize_main_entrypoint(&mut vm) {
-        Ok(end) => end,
-        Err(error) => return Err(CairoRunError::Runner(error)),
-    };
-
-    if let Err(error) = cairo_runner.initialize_vm(&mut vm) {
-        return Err(CairoRunError::Runner(error));
-    }
+    let end = cairo_runner.initialize(&mut vm)?;
 
     if let Err(error) = cairo_runner.run_until_pc(end, &mut vm) {
         return Err(CairoRunError::VirtualMachine(error));

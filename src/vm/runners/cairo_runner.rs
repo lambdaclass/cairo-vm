@@ -62,6 +62,13 @@ impl<'a> CairoRunner<'a> {
         })
     }
 
+    pub fn initialize(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, RunnerError> {
+        self.initialize_builtins(vm)?;
+        self.initialize_segments(vm, None);
+        let end = self.initialize_main_entrypoint(vm)?;
+        self.initialize_vm(vm)?;
+        Ok(end)
+    }
     pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             String::from("output"),
