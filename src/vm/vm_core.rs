@@ -688,7 +688,6 @@ impl VirtualMachine {
         ptr: &MaybeRelocatable,
         data: Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        // self.memory.load_data(self.segments, ptr, data)
         self.segments.load_data(&mut self.memory, ptr, data)
     }
 }
