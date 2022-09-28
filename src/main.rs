@@ -35,10 +35,11 @@ fn main() -> Result<(), CairoRunError> {
 
     let args = Args::parse();
     let trace_enabled = args.trace_file.is_some();
-    let mut cairo_runner = match cairo_run::cairo_run(
+    let cairo_runner = match cairo_run::cairo_run(
         &args.filename,
         &args.entrypoint,
         trace_enabled,
+        args.print_output,
         &hint_processor,
     ) {
         Ok(runner) => runner,
@@ -54,10 +55,6 @@ fn main() -> Result<(), CairoRunError> {
             Ok(()) => (),
             Err(_e) => return Err(CairoRunError::Runner(RunnerError::WriteFail)),
         }
-    }
-
-    if args.print_output {
-        cairo_run::write_output(&mut cairo_runner)?;
     }
 
     if let Some(memory_path) = args.memory_file {

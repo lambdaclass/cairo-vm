@@ -71,11 +71,7 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(
-        prime: BigInt,
-        builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
-        trace_enabled: bool,
-    ) -> VirtualMachine {
+    pub fn new(prime: BigInt, trace_enabled: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -92,7 +88,7 @@ impl VirtualMachine {
         VirtualMachine {
             run_context,
             prime,
-            builtin_runners,
+            builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: None,
@@ -828,7 +824,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -861,7 +857,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -896,7 +892,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -929,7 +925,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -962,7 +958,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1085,7 +1081,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1275,7 +1271,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -2012,7 +2008,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
         };
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = vm!();
         //Create program and execution segments
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -2113,7 +2109,7 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = vm!();
 
         vm.memory = memory!(((1, 0), 145944781867024385_i64));
 
@@ -2610,7 +2606,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
-        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
+        let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(8);
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
