@@ -121,7 +121,6 @@ pub fn block_permutation(
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     let values = vm_proxy
-        .memory
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
             KECCAK_STATE_SIZE_FELTS,

@@ -28,7 +28,6 @@ pub fn set_add(
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
     let elm = vm_proxy
-        .memory
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
         .map_err(VirtualMachineError::MemoryError)?;
 
@@ -43,7 +42,6 @@ pub fn set_add(
 
     for i in (0..range_limit).step_by(elm_size) {
         let set_iter = vm_proxy
-            .memory
             .get_range(
                 &MaybeRelocatable::from(set_ptr.clone() + i as usize),
                 elm_size,
