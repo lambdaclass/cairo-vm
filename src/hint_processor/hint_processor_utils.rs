@@ -23,7 +23,7 @@ pub fn insert_value_from_reference(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm_proxy, ap_tracking)?;
-    vm_proxy.memory.insert_value(&var_addr, value)
+    vm_proxy.insert_value(&var_addr, value)
 }
 
 ///Returns the Integer value stored in the given ids variable

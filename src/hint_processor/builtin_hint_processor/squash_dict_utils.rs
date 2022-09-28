@@ -64,7 +64,7 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes_proxy.insert_value("current_access_indices", current_access_indices);
     exec_scopes_proxy.insert_value("current_access_index", first_val.clone());
     //Insert current_accesss_index into range_check_ptr
-    vm_proxy.memory.insert_value(&range_check_ptr, first_val)
+    vm_proxy.insert_value(&range_check_ptr, first_val)
 }
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1

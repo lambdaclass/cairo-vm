@@ -19,7 +19,7 @@ pub fn insert_value_from_var_name(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let var_address = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    vm_proxy.memory.insert_value(&var_address, value)
+    vm_proxy.insert_value(&var_address, value)
 }
 
 //Inserts value into ap

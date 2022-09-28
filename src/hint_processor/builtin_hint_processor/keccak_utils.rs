@@ -98,8 +98,8 @@ pub fn unsafe_keccak(
     let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
-    vm_proxy.memory.insert_value(&high_addr, &high)?;
-    vm_proxy.memory.insert_value(&low_addr, &low)
+    vm_proxy.insert_value(&high_addr, &high)?;
+    vm_proxy.insert_value(&low_addr, &low)
 }
 
 /*
@@ -189,8 +189,8 @@ pub fn unsafe_keccak_finalize(
     let high = BigInt::from_bytes_be(Sign::Plus, &hashed[..16]);
     let low = BigInt::from_bytes_be(Sign::Plus, &hashed[16..32]);
 
-    vm_proxy.memory.insert_value(&high_addr, &high)?;
-    vm_proxy.memory.insert_value(&low_addr, &low)
+    vm_proxy.insert_value(&high_addr, &high)?;
+    vm_proxy.insert_value(&low_addr, &low)
 }
 
 fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
