@@ -140,7 +140,7 @@ pub fn unsafe_keccak_finalize(
 
     // in the KeccakState struct, the field `end_ptr` is the second one, so this variable should be get from
     // the memory cell contiguous to the one where KeccakState is pointing to.
-    let end_ptr = vm_proxy.memory.get_relocatable(&Relocatable {
+    let end_ptr = vm_proxy.get_relocatable(&Relocatable {
         segment_index: keccak_state_ptr.segment_index,
         offset: keccak_state_ptr.offset + 1,
     })?;
