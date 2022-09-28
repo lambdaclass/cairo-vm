@@ -454,7 +454,7 @@ impl VirtualMachine {
         }
     }
 
-    pub fn step_hint(
+    pub fn step(
         &mut self,
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
@@ -468,24 +468,10 @@ impl VirtualMachine {
                 hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
             }
         }
-        Ok(())
-    }
-
-    pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
+        self.skip_instruction_execution = false;
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
-        self.skip_instruction_execution = false;
         Ok(())
-    }
-
-    pub fn step(
-        &mut self,
-        hint_executor: &dyn HintProcessor,
-        exec_scopes: &mut ExecutionScopes,
-        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
-    ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary)?;
-        self.step_instruction()
     }
 
     fn compute_op0_deductions(
