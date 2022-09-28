@@ -3,8 +3,10 @@ use num_bigint::BigInt;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
-        context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine,
+        context::run_context::RunContext,
+        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        runners::builtin_runner::BuiltinRunner,
+        vm_core::VirtualMachine,
         vm_memory::memory_segments::MemorySegmentManager,
     },
 };
@@ -57,6 +59,14 @@ impl VMProxy<'_> {
     ///Gets the relocatable value corresponding to the Relocatable address
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
         self.memory.get_relocatable(key)
+    }
+
+    ///Gets a MaybeRelocatable value from memory indicated by a generic address
+    pub fn get_maybe<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    where
+        Relocatable: TryFrom<&'a K>,
+    {
+        self.memory.get(key)
     }
 
     ///Inserts a value into a memory address given by a Relocatable value
