@@ -68,8 +68,7 @@ pub fn get_address_from_var_name(
         ids_data
             .get(var_name)
             .ok_or(VirtualMachineError::FailedToGetIds)?,
-        vm_proxy.run_context,
-        &vm_proxy.memory,
+        vm_proxy,
         ap_tracking,
     )?))
 }
@@ -85,8 +84,7 @@ pub fn get_relocatable_from_var_name(
         ids_data
             .get(var_name)
             .ok_or(VirtualMachineError::FailedToGetIds)?,
-        vm_proxy.run_context,
-        &vm_proxy.memory,
+        vm_proxy,
         ap_tracking,
     )
 }

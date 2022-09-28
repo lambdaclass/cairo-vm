@@ -30,8 +30,8 @@ pub fn is_nn(
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if a.mod_floor(vm_proxy.prime) >= bigint!(0)
-        && a.mod_floor(vm_proxy.prime) < range_check_builtin._bound
+    let value = if a.mod_floor(vm_proxy.get_prime()) >= bigint!(0)
+        && a.mod_floor(vm_proxy.get_prime()) < range_check_builtin._bound
     {
         bigint!(0)
     } else {
@@ -49,7 +49,7 @@ pub fn is_nn_out_of_range(
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Main logic (assert a is not negative and within the expected range)
-    let value = if (-a - 1usize).mod_floor(vm_proxy.prime) < range_check_builtin._bound {
+    let value = if (-a - 1usize).mod_floor(vm_proxy.get_prime()) < range_check_builtin._bound {
         bigint!(0)
     } else {
         bigint!(1)
@@ -73,7 +73,7 @@ pub fn assert_le_felt(
     let b = get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Assert a <= b
-    if a.mod_floor(vm_proxy.prime) > b.mod_floor(vm_proxy.prime) {
+    if a.mod_floor(vm_proxy.get_prime()) > b.mod_floor(vm_proxy.get_prime()) {
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
     }
     //Calculate value of small_inputs
@@ -92,10 +92,10 @@ pub fn is_le_felt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a_mod =
-        get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?.mod_floor(vm_proxy.prime);
-    let b_mod =
-        get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?.mod_floor(vm_proxy.prime);
+    let a_mod = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?
+        .mod_floor(vm_proxy.get_prime());
+    let b_mod = get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?
+        .mod_floor(vm_proxy.get_prime());
     let value = if a_mod > b_mod {
         bigint!(1)
     } else {
@@ -123,7 +123,7 @@ pub fn assert_not_equal(
     match (vm_proxy.memory.get(&a_addr), vm_proxy.memory.get(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                if (a - b).is_multiple_of(vm_proxy.prime) {
+                if (a - b).is_multiple_of(vm_proxy.get_prime()) {
                     return Err(VirtualMachineError::AssertNotEqualFail(
                         maybe_rel_a.clone(),
                         maybe_rel_b.clone(),
@@ -167,7 +167,7 @@ pub fn assert_nn(
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    if a.mod_floor(vm_proxy.prime) >= range_check_builtin._bound {
+    if a.mod_floor(vm_proxy.get_prime()) >= range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
     };
     Ok(())
@@ -185,10 +185,10 @@ pub fn assert_not_zero(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    if value.is_multiple_of(vm_proxy.prime) {
+    if value.is_multiple_of(vm_proxy.get_prime()) {
         return Err(VirtualMachineError::AssertNotZero(
             value.clone(),
-            vm_proxy.prime.clone(),
+            vm_proxy.get_prime().clone(),
         ));
     };
     Ok(())
@@ -220,7 +220,7 @@ pub fn split_int(
     let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
     let output = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
     //Main Logic
-    let res = (value.mod_floor(vm_proxy.prime)).mod_floor(base);
+    let res = (value.mod_floor(vm_proxy.get_prime())).mod_floor(base);
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
@@ -238,7 +238,7 @@ pub fn is_positive(
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     //Main logic (assert a is positive)
-    let int_value = as_int(value, vm_proxy.prime);
+    let int_value = as_int(value, vm_proxy.get_prime());
     if int_value.abs() > range_check_builtin._bound {
         return Err(VirtualMachineError::ValueOutsideValidRange(int_value));
     }
@@ -286,7 +286,7 @@ pub fn sqrt(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let mod_value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?
-        .mod_floor(vm_proxy.prime);
+        .mod_floor(vm_proxy.get_prime());
     //This is equal to mod_value > bigint!(2).pow(250)
     if (&mod_value).shr(250_i32).is_positive() {
         return Err(VirtualMachineError::ValueOutside250BitRange(mod_value));
@@ -304,10 +304,10 @@ pub fn signed_div_rem(
     let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
     let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     // Main logic
-    if !div.is_positive() || div > &(vm_proxy.prime / &builtin._bound) {
+    if !div.is_positive() || div > &(vm_proxy.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
             div.clone(),
-            vm_proxy.prime / &builtin._bound,
+            vm_proxy.get_prime() / &builtin._bound,
         ));
     }
     // Divide by 2
@@ -318,7 +318,7 @@ pub fn signed_div_rem(
         ));
     }
 
-    let int_value = &as_int(value, vm_proxy.prime);
+    let int_value = &as_int(value, vm_proxy.get_prime());
     let (q, r) = int_value.div_mod_floor(div);
     if bound.neg() > q || &q >= bound {
         return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
@@ -346,10 +346,10 @@ pub fn unsigned_div_rem(
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
     // Main logic
-    if !div.is_positive() || div > &(vm_proxy.prime / &builtin._bound) {
+    if !div.is_positive() || div > &(vm_proxy.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
             div.clone(),
-            vm_proxy.prime / &builtin._bound,
+            vm_proxy.get_prime() / &builtin._bound,
         ));
     }
     let (q, r) = value.div_mod_floor(div);
@@ -373,7 +373,7 @@ pub fn assert_250_bit(
     let shift = bigint!(1).shl(128_i32);
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     //Main logic
-    let int_value = as_int(value, vm_proxy.prime).mod_floor(vm_proxy.prime);
+    let int_value = as_int(value, vm_proxy.get_prime()).mod_floor(vm_proxy.get_prime());
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
@@ -404,7 +404,7 @@ pub fn assert_lt_felt(
     // assert_integer(ids.b)
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
-    if a.mod_floor(vm_proxy.prime) >= b.mod_floor(vm_proxy.prime) {
+    if a.mod_floor(vm_proxy.get_prime()) >= b.mod_floor(vm_proxy.get_prime()) {
         return Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()));
     };
     Ok(())

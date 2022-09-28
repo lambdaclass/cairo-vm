@@ -19,10 +19,7 @@ fn pedersen_integration_test() {
         true,
     );
     let end = cairo_runner.initialize(&mut vm).unwrap();
-    assert!(
-        cairo_runner.run_until_pc(end, &mut vm) == Ok(()),
-        "Execution failed"
-    );
+    assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
     assert!(cairo_runner.relocate(&mut vm) == Ok(()), "Execution failed");
 
     let python_vm_relocated_trace: Vec<RelocatedTraceEntry> = vec![
