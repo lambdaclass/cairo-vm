@@ -701,6 +701,15 @@ impl VirtualMachine {
         self.segments
             .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
     }
+
+    ///Gets n elements from memory starting from addr (n being size)
+    pub fn get_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+        self.memory.get_range(addr, size)
+    }
 }
 
 #[cfg(test)]

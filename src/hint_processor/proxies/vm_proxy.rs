@@ -99,4 +99,13 @@ impl VMProxy<'_> {
         self.memory
             .write_arg(self.segments, ptr, arg, Some(self.prime))
     }
+
+    ///Gets n elements from memory starting from addr (n being size)
+    pub fn get_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+        self.memory.get_range(addr, size)
+    }
 }
