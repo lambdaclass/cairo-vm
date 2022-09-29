@@ -58,12 +58,10 @@ pub fn dict_new(
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
-        dict_manager
-            .borrow_mut()
-            .new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?
+        dict_manager.borrow_mut().new_dict(vm_proxy, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?;
+        let base = dict_manager.new_dict(vm_proxy, initial_dict)?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
