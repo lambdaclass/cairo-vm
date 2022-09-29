@@ -2,12 +2,11 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
 use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
-use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
-use crate::vm::{context::run_context::RunContext, errors::vm_errors::VirtualMachineError};
+use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
@@ -25,11 +24,10 @@ pub fn insert_value_from_var_name(
 
 //Inserts value into ap
 pub fn insert_value_into_ap(
-    memory: &mut MemoryProxy,
-    run_context: &RunContext,
+    vm_proxy: &mut VMProxy,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
-    memory.insert_value(&(run_context.get_ap()), value)
+    vm_proxy.memory.insert_value(&vm_proxy.get_ap(), value)
 }
 
 //Returns the Relocatable value stored in the given ids variable

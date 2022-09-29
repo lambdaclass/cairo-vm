@@ -67,7 +67,7 @@ pub fn dict_new(
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, base)
+    insert_value_into_ap(vm_proxy, base)
 }
 
 /*Implements hint:
@@ -110,7 +110,7 @@ pub fn default_dict_new(
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, base)
+    insert_value_into_ap(vm_proxy, base)
 }
 
 /* Implements hint:
