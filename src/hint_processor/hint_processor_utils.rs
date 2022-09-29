@@ -7,10 +7,7 @@ use crate::{
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{
-        errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
-    },
+    vm::errors::vm_errors::VirtualMachineError,
 };
 
 use super::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
@@ -131,20 +128,4 @@ pub fn bigint_to_usize(bigint: &BigInt) -> Result<usize, VirtualMachineError> {
 ///Tries to convert a BigInt value to u32
 pub fn bigint_to_u32(bigint: &BigInt) -> Result<u32, VirtualMachineError> {
     bigint.to_u32().ok_or(VirtualMachineError::BigintToU32Fail)
-}
-
-///Returns a reference to the RangeCheckBuiltinRunner struct if range_check builtin is present
-pub fn get_range_check_builtin(
-    builtin_runners: &Vec<(String, Box<dyn BuiltinRunner>)>,
-) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
-    for (name, builtin) in builtin_runners {
-        if name == &String::from("range_check") {
-            if let Some(range_check_builtin) =
-                builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
-            {
-                return Ok(range_check_builtin);
-            };
-        }
-    }
-    Err(VirtualMachineError::NoRangeCheckBuiltin)
 }
