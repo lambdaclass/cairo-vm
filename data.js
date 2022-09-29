@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1664477657296,
+  "lastUpdate": 1664477865785,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -38701,6 +38701,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 191569153,
             "range": "± 7327455",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "be99511587c0a0ed4701aa1cdf280ae2adbeeaf9",
+          "message": "[Remove VMProxy -5] insert_value & get_relocatable",
+          "timestamp": "2022-09-28T19:27:48Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/449/commits/be99511587c0a0ed4701aa1cdf280ae2adbeeaf9"
+        },
+        "date": 1664477863519,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1593261496,
+            "range": "± 3345745",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 608913939,
+            "range": "± 1356856",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 296377532,
+            "range": "± 903238",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1454187962,
+            "range": "± 1584171",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 204945549,
+            "range": "± 1016762",
             "unit": "ns/iter"
           }
         ]
