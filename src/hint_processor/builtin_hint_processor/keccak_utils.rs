@@ -74,7 +74,7 @@ pub fn unsafe_keccak(
             offset: data.offset + word_i,
         };
 
-        let word = vm_proxy.memory.get_integer(&word_addr)?;
+        let word = vm_proxy.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {

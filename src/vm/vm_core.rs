@@ -636,7 +636,7 @@ impl VirtualMachine {
         }
         Ok(())
     }
-
+    ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add(&mut self.memory)
     }
@@ -651,6 +651,11 @@ impl VirtualMachine {
 
     pub fn get_prime(&self) -> &BigInt {
         &self.prime
+    }
+
+    ///Gets the integer value corresponding to the Relocatable address
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        self.memory.get_integer(key)
     }
 }
 

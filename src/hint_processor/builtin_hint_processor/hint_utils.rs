@@ -96,8 +96,6 @@ pub fn get_integer_from_var_name<'a>(
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    // let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    // vm_proxy.memory.get_integer(&relocatable)
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm_proxy, reference, ap_tracking)
 }

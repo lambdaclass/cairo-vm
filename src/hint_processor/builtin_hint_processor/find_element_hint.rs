@@ -132,7 +132,7 @@ pub fn search_sorted_lower(
         .ok_or(VirtualMachineError::KeyNotFound)?;
 
     for i in 0..n_elms_usize {
-        let value = vm_proxy.memory.get_integer(&array_iter)?;
+        let value = vm_proxy.get_integer(&array_iter)?;
         if value >= key {
             return insert_value_from_var_name(
                 "index",

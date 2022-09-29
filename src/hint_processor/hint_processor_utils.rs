@@ -40,7 +40,7 @@ pub fn get_integer_from_reference<'a>(
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm_proxy, ap_tracking)?;
-    vm_proxy.memory.get_integer(&var_addr)
+    vm_proxy.get_integer(&var_addr)
 }
 
 ///Returns the Relocatable value stored in the given ids variable

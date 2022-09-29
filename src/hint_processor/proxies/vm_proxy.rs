@@ -3,8 +3,9 @@ use num_bigint::BigInt;
 use crate::{
     types::relocatable::Relocatable,
     vm::{
-        context::run_context::RunContext, runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine, vm_memory::memory_segments::MemorySegmentManager,
+        context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
+        runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine,
+        vm_memory::memory_segments::MemorySegmentManager,
     },
 };
 
@@ -31,6 +32,7 @@ pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
 }
 
 impl VMProxy<'_> {
+    ///Adds a new segment and to the VMProxy.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add_segment(self.segments)
     }
@@ -45,5 +47,10 @@ impl VMProxy<'_> {
 
     pub fn get_prime(&self) -> &BigInt {
         self.prime
+    }
+
+    ///Gets the integer value corresponding to the Relocatable address
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        self.memory.get_integer(key)
     }
 }
