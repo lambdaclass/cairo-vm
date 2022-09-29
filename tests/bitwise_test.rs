@@ -21,14 +21,7 @@ fn bitwise_integration_test() {
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         true,
     );
-    cairo_runner.initialize_builtins(&mut vm).unwrap();
-    cairo_runner.initialize_segments(&mut vm, None);
-    let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
-
-    assert!(
-        cairo_runner.initialize_vm(&mut vm,) == Ok(()),
-        "Execution failed"
-    );
+    let end = cairo_runner.initialize(&mut vm).unwrap();
     assert!(
         cairo_runner.run_until_pc(end, &mut vm) == Ok(()),
         "Execution failed"

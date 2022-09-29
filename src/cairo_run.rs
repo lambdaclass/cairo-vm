@@ -23,17 +23,7 @@ pub fn cairo_run<'a>(
 
     let mut cairo_runner = CairoRunner::new(&program, hint_processor)?;
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
-    cairo_runner.initialize_builtins(&mut vm)?;
-    cairo_runner.initialize_segments(&mut vm, None);
-
-    let end = match cairo_runner.initialize_main_entrypoint(&mut vm) {
-        Ok(end) => end,
-        Err(error) => return Err(CairoRunError::Runner(error)),
-    };
-
-    if let Err(error) = cairo_runner.initialize_vm(&mut vm) {
-        return Err(CairoRunError::Runner(error));
-    }
+    let end = cairo_runner.initialize(&mut vm)?;
 
     if let Err(error) = cairo_runner.run_until_pc(end, &mut vm) {
         return Err(CairoRunError::VirtualMachine(error));
@@ -154,16 +144,10 @@ mod tests {
 
         let mut cairo_runner = CairoRunner::new(&program, hint_processor).unwrap();
         let mut vm = vm!(true);
-        cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
-
-        let end = match cairo_runner.initialize_main_entrypoint(&mut vm) {
+        let end = match cairo_runner.initialize(&mut vm) {
             Ok(end) => end,
             Err(e) => return Err(CairoRunError::Runner(e)),
         };
-
-        assert!(cairo_runner.initialize_vm(&mut vm).is_ok());
-
         assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
 
         Ok((cairo_runner, vm))
@@ -176,11 +160,8 @@ mod tests {
         let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
 
-        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
-
-        assert!(cairo_runner.initialize_vm(&mut vm).is_ok());
+        let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
         assert!(cairo_runner.relocate(&mut vm).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
@@ -286,9 +267,7 @@ mod tests {
         let hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
         let mut vm = vm!();
-        cairo_runner.initialize_segments(&mut vm, None);
-        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
-        assert!(cairo_runner.initialize_vm(&mut vm).is_ok());
+        let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
         assert!(vm.trace.is_none());
     }
