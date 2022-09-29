@@ -24,7 +24,7 @@ use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
-use super::errors::memory_errors::MemoryError;
+use super::{errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -718,6 +718,19 @@ impl VirtualMachine {
         size: usize,
     ) -> Result<Vec<&BigInt>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
+    }
+
+    pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+        for (name, builtin) in &self.builtin_runners {
+            if name == &String::from("range_check") {
+                if let Some(range_check_builtin) =
+                    builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                {
+                    return Ok(range_check_builtin);
+                };
+            }
+        }
+        Err(VirtualMachineError::NoRangeCheckBuiltin)
     }
 }
 
