@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1664460629064,
+  "lastUpdate": 1664462461730,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -38393,6 +38393,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 204423110,
             "range": "± 697889",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mariano.nicolini@lambdaclass.com",
+            "name": "Mariano A. Nicolini",
+            "username": "entropidelic"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a8e8fa9aa2554e6bfb76d145ab1acd5ff29888e4",
+          "message": "Merge pull request #453 from lambdaclass/modularize-initialize\n\nEncapsulate initialization phase",
+          "timestamp": "2022-09-29T11:29:04-03:00",
+          "tree_id": "25e162352711beeffaa2b399067e99ae224f541d",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/a8e8fa9aa2554e6bfb76d145ab1acd5ff29888e4"
+        },
+        "date": 1664462458871,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1571395790,
+            "range": "± 3226476",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 623726034,
+            "range": "± 10916004",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 298219268,
+            "range": "± 1537302",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1507706098,
+            "range": "± 2719018",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 208110763,
+            "range": "± 821155",
             "unit": "ns/iter"
           }
         ]
