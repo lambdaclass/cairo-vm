@@ -139,12 +139,13 @@ pub fn uint256_signed_nn(
     let a_high = vm_proxy.get_integer(&(a_addr + 1))?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: BigInt =
-        if !a_high.is_negative() && (a_high.mod_floor(vm_proxy.prime)) <= bigint!(i128::MAX) {
-            bigint!(1)
-        } else {
-            bigint!(0)
-        };
+    let result: BigInt = if !a_high.is_negative()
+        && (a_high.mod_floor(vm_proxy.get_prime())) <= bigint!(i128::MAX)
+    {
+        bigint!(1)
+    } else {
+        bigint!(0)
+    };
     insert_value_into_ap(vm_proxy, result)
 }
 

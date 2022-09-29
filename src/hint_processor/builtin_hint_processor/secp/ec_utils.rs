@@ -72,8 +72,8 @@ pub fn compute_doubling_slope(
 
     let value = ec_double_slope(
         (
-            pack(x_d0, x_d1, x_d2, vm_proxy.prime),
-            pack(y_d0, y_d1, y_d2, vm_proxy.prime),
+            pack(x_d0, x_d1, x_d2, vm_proxy.get_prime()),
+            pack(y_d0, y_d1, y_d2, vm_proxy.get_prime()),
         ),
         &bigint!(0),
         &SECP_P,
@@ -129,12 +129,12 @@ pub fn compute_slope(
 
     let value = line_slope(
         &(
-            pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.prime),
-            pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime),
+            pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.get_prime()),
+            pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.get_prime()),
         ),
         &(
-            pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime),
-            pack(point1_y_d0, point1_y_d1, point1_y_d2, vm_proxy.prime),
+            pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.get_prime()),
+            pack(point1_y_d0, point1_y_d1, point1_y_d2, vm_proxy.get_prime()),
         ),
         &SECP_P,
     );
@@ -182,9 +182,9 @@ pub fn ec_double_assign_new_x(
         vm_proxy.get_integer(&(&point_reloc + 5))?,
     );
 
-    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.prime);
-    let x = pack(x_d0, x_d1, x_d2, vm_proxy.prime);
-    let y = pack(y_d0, y_d1, y_d2, vm_proxy.prime);
+    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.get_prime());
+    let x = pack(x_d0, x_d1, x_d2, vm_proxy.get_prime());
+    let y = pack(y_d0, y_d1, y_d2, vm_proxy.get_prime());
 
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
@@ -267,10 +267,10 @@ pub fn fast_ec_add_assign_new_x(
         vm_proxy.get_integer(&(&point1_reloc + 2))?,
     );
 
-    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.prime);
-    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.prime);
-    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime);
-    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime);
+    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.get_prime());
+    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.get_prime());
+    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.get_prime());
+    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.get_prime());
 
     let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
 
@@ -316,7 +316,7 @@ pub fn ec_mul_inner(
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm_proxy, ids_data, ap_tracking)?
-        .mod_floor(vm_proxy.prime)
+        .mod_floor(vm_proxy.get_prime())
         .bitand(bigint!(1));
     insert_value_into_ap(vm_proxy, scalar)
 }
