@@ -42,7 +42,7 @@ impl VMProxy<'_> {
     pub fn get_fp(&self) -> Relocatable {
         self.run_context.get_fp()
     }
-    
+
     pub fn get_prime(&self) -> &BigInt {
         self.prime
     }
