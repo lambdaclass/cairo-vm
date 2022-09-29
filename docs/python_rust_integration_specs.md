@@ -7,18 +7,19 @@ In order to allow cairo-rs to execute any python code embedded into a Cairo prog
 
 ### GOAL
 * Be able to efficiently and conveniently allow interactions between Python and cairo-rs. 
-* Have an external crate which encapsulates the python hint execution, and which is able to both run Cairo-rs, and be imported as a python module so that the VM can be ran from a python process.
+* Have an external crate which encapsulates the python hint execution, and which is able to both run cairo-rs, and be imported as a python module so that the VM can be ran from a python process.
 
 ### SPECIFICATION
-* A cairo-rs VM with the builtin hint processor enabled can include another fallback hint processor to execute hints not implemented by the builtin hint processor. 
-* FFI integration and functionality will be encapsulated in a crate external to cairo-rs.
-* Variables defined by a hint can only be accessed by hints written in the same language, i.e., Rust hints are aware only of variables defined by Rust hints and Python hints are aware only of variables defined by Python hints.
-* Python hints are supported when running the cairo-rs standalone binary (as opposed to importing it from Python) only with the CPython interpreter.
-* The Cairo-rs VM can be instantiated by a Rust program, still allowing python hints in cairo programs.
-* The Cairo-rs VM can be instantiated by a Python interpreter as a regular object. 
-* A Rust or Python program can instantiate one or more independent cairo-rs VMs, allowing for multiple coexisting VMs.
-* When instantiated by a Python interpreter, that same interpreter will be used to execute Python hints, i.e. python hints have limited access to the running context (code paths, modules, scopes created by previous hints).
-* An instance of a cairo-rs VM will be running either a cairo program interpretation loop or a python hint, but not both at the same time.
+* FFI integration and functionality will be encapsulated in a crate external to cairo-rs. This crate will be called cairo-rs-py.
+* The crate cairo-rs-py will behave as a cairo-rs VM wrapper, which can also be imported as a python module. 
+* Variables defined by a hint can only be accessed by hints implemented in the same language, i.e., Rust hints are aware only of variables defined by Rust hints and Python hints are aware only of variables defined by Python hints. By Rust hints we refer to those implemented by the builtin hint processor. 
+* Python hints are supported when running the cairo-rs-py standalone binary (as opposed to importing it from Python) only with the CPython interpreter.
+* The cairo-rs-py VM can be instantiated by a Rust program, still allowing python hints in cairo programs.	 	
+* The cairo-rs-py VM can be instantiated by a Python interpreter as a regular object. 
+* A Rust or Python program can instantiate one or more independent cairo-rs-py VMs, allowing for multiple coexisting VMs.
+* When instantiated by a Python interpreter, that same interpreter will be used to execute Python hints. 
+* Python hints have limited access to the running context (code paths, modules, scopes created by previous hints).
+* An instance of a cairo-rs-py VM will be running either a cairo program interpretation loop or a python hint, but not both at the same time.
 	* i.e. hints do not run concurrently 
 	* The VM state shared with hints can only be accessed by a single hint at a time.
 	* The VM memory is private to a VM instance and cannot be shared across differents VM instances.
