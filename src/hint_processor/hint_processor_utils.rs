@@ -81,11 +81,7 @@ pub fn compute_addr_from_reference(
                 .as_ref()
                 .ok_or(VirtualMachineError::NoneApTrackingData)?;
 
-            apply_ap_tracking_correction(
-                &vm_proxy.run_context.get_ap(),
-                var_ap_trackig,
-                hint_ap_tracking,
-            )?
+            apply_ap_tracking_correction(&vm_proxy.get_ap(), var_ap_trackig, hint_ap_tracking)?
         }
         None => return Err(VirtualMachineError::NoRegisterInReference),
     };
