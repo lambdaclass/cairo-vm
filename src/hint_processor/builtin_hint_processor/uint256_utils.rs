@@ -122,8 +122,8 @@ pub fn uint256_sqrt(
             &root
         )));
     }
-    vm_proxy.memory.insert_value(&root_addr, root)?;
-    vm_proxy.memory.insert_value(&(root_addr + 1), bigint!(0))
+    vm_proxy.insert_value(&root_addr, root)?;
+    vm_proxy.insert_value(&(root_addr + 1), bigint!(0))
 }
 
 /*
@@ -200,7 +200,7 @@ pub fn uint256_unsigned_div_rem(
     let remainder_high = remainder.shr(128_usize);
 
     //Insert ids.quotient.low
-    vm_proxy.memory.insert_value(&quotient_addr, quotient_low)?;
+    vm_proxy.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
     vm_proxy
         .memory

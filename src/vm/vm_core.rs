@@ -657,6 +657,20 @@ impl VirtualMachine {
     pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
         self.memory.get_integer(key)
     }
+
+    ///Gets the relocatable value corresponding to the Relocatable address
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
+        self.memory.get_relocatable(key)
+    }
+
+    ///Inserts a value into a memory address given by a Relocatable value
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
+        self.memory.insert_value(key, val)
+    }
 }
 
 #[cfg(test)]
