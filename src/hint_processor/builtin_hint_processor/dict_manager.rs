@@ -3,11 +3,9 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::{
-    hint_processor::proxies::{memory_proxy::MemoryProxy, vm_proxy::VMProxy},
+    hint_processor::proxies::vm_proxy::VMProxy,
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{
-        errors::vm_errors::VirtualMachineError, vm_memory::memory_segments::MemorySegmentManager,
-    },
+    vm::errors::vm_errors::VirtualMachineError,
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -91,12 +89,11 @@ impl DictManager {
     //Creates a new Cairo default dictionary
     pub fn new_default_dict(
         &mut self,
-        segments: &mut MemorySegmentManager,
-        memory: &mut MemoryProxy,
+        vm_proxy: &mut VMProxy,
         default_value: &BigInt,
         initial_dict: Option<HashMap<BigInt, BigInt>>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base = memory.add_segment(segments);
+        let base = vm_proxy.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
             return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
@@ -208,11 +205,8 @@ impl DictTracker {
 mod tests {
     use super::*;
     use crate::{
-        bigint,
-        hint_processor::proxies::{memory_proxy::get_memory_proxy, vm_proxy::get_vm_proxy},
-        relocatable,
-        utils::test_utils::*,
-        vm::{vm_core::VirtualMachine, vm_memory::memory::Memory},
+        bigint, hint_processor::proxies::vm_proxy::get_vm_proxy, relocatable, utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
     };
 
     use num_bigint::Sign;
@@ -264,10 +258,9 @@ mod tests {
     #[test]
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
-        let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        let mem_proxy = &mut get_memory_proxy(&mut memory);
-        let base = dict_manager.new_default_dict(&mut segments, mem_proxy, &bigint!(5), None);
+        let mut vm = vm!();
+        let mut vm_proxy = get_vm_proxy(&mut vm);
+        let base = dict_manager.new_default_dict(&mut vm_proxy, &bigint!(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -278,7 +271,7 @@ mod tests {
                 None
             ))
         );
-        assert_eq!(segments.num_segments, 1);
+        assert_eq!(vm_proxy.segments.num_segments, 1);
     }
 
     #[test]
@@ -304,17 +297,12 @@ mod tests {
     #[test]
     fn dict_manager_new_default_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
-        let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
+        let mut vm = vm!();
+        let mut vm_proxy = get_vm_proxy(&mut vm);
         initial_dict.insert(bigint!(5), bigint!(5));
-        let mem_proxy = &mut get_memory_proxy(&mut memory);
-        let base = dict_manager.new_default_dict(
-            &mut segments,
-            mem_proxy,
-            &bigint!(7),
-            Some(initial_dict.clone()),
-        );
+        let base =
+            dict_manager.new_default_dict(&mut vm_proxy, &bigint!(7), Some(initial_dict.clone()));
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -325,7 +313,7 @@ mod tests {
                 Some(initial_dict)
             ))
         );
-        assert_eq!(segments.num_segments, 1);
+        assert_eq!(vm_proxy.segments.num_segments, 1);
     }
 
     #[test]
