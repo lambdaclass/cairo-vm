@@ -1,5 +1,4 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::get_range_check_builtin;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use num_bigint::BigInt;
@@ -256,7 +255,7 @@ pub fn squash_dict(
     let ptr_diff = get_integer_from_var_name("ptr_diff", vm_proxy, ids_data, ap_tracking)?;
     let n_accesses = get_integer_from_var_name("n_accesses", vm_proxy, ids_data, ap_tracking)?;
     //Get range_check_builtin
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let range_check_builtin = vm_proxy.get_range_check_builtin()?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
     if ptr_diff.mod_floor(&bigint!(DICT_ACCESS_SIZE)) != bigint!(0) {
