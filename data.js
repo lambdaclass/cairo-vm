@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1664484296946,
+  "lastUpdate": 1664488646644,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -39155,6 +39155,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 198290282,
             "range": "± 372421",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6b3e505395b38c92eda734508a4fb8a09bf4a6ae",
+          "message": "[Remove VMProxy -5] insert_value & get_relocatable (#449)\n\n* add vm_proxy.insert_value method\r\n\r\n* use vm_proxy.insert_value in uint256_utils.rs\r\n\r\n* add VM.get_relocatable method\r\n\r\n* Use vm_proxy.get_relocatable in find_element_hints.rs\r\n\r\n* replace vm_proxy.memory.get_relocatable\r\n\r\n* replace vm_proxy.memory.insert_value",
+          "timestamp": "2022-09-29T18:45:42-03:00",
+          "tree_id": "e9bf8aeee0527b889fe5af7b9cade16ebd3d6c0b",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/6b3e505395b38c92eda734508a4fb8a09bf4a6ae"
+        },
+        "date": 1664488644002,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1534148664,
+            "range": "± 2921389",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 604089274,
+            "range": "± 12400013",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 282993495,
+            "range": "± 2821776",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1501937206,
+            "range": "± 2821766",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 202526269,
+            "range": "± 907724",
             "unit": "ns/iter"
           }
         ]
