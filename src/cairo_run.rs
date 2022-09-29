@@ -3,6 +3,7 @@ use crate::types::program::Program;
 use crate::vm::errors::{cairo_run_errors::CairoRunError, runner_errors::RunnerError};
 use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::trace::trace_entry::RelocatedTraceEntry;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::fs::File;
 use std::io::{self, BufWriter, Error, ErrorKind, Write};
@@ -12,6 +13,7 @@ pub fn cairo_run<'a>(
     path: &'a Path,
     entrypoint: &'a str,
     trace_enabled: bool,
+    print_output: bool,
     hint_processor: &'a dyn HintProcessor,
 ) -> Result<CairoRunner<'a>, CairoRunError> {
     let program = match Program::new(path, entrypoint) {
@@ -19,39 +21,48 @@ pub fn cairo_run<'a>(
         Err(error) => return Err(CairoRunError::Program(error)),
     };
 
-    let mut cairo_runner = CairoRunner::new(&program, trace_enabled, hint_processor)?;
-    cairo_runner.initialize_segments(None);
+    let mut cairo_runner = CairoRunner::new(&program, hint_processor)?;
+    let mut vm = VirtualMachine::new(program.prime, trace_enabled);
+    cairo_runner.initialize_builtins(&mut vm)?;
+    cairo_runner.initialize_segments(&mut vm, None);
 
-    let end = match cairo_runner.initialize_main_entrypoint() {
+    let end = match cairo_runner.initialize_main_entrypoint(&mut vm) {
         Ok(end) => end,
         Err(error) => return Err(CairoRunError::Runner(error)),
     };
 
-    if let Err(error) = cairo_runner.initialize_vm() {
+    if let Err(error) = cairo_runner.initialize_vm(&mut vm) {
         return Err(CairoRunError::Runner(error));
     }
 
-    if let Err(error) = cairo_runner.run_until_pc(end) {
+    if let Err(error) = cairo_runner.run_until_pc(end, &mut vm) {
         return Err(CairoRunError::VirtualMachine(error));
     }
 
-    if let Err(error) = cairo_runner.vm.verify_auto_deductions() {
+    if let Err(error) = vm.verify_auto_deductions() {
         return Err(CairoRunError::VirtualMachine(error));
     }
 
-    if let Err(error) = cairo_runner.relocate() {
+    if let Err(error) = cairo_runner.relocate(&mut vm) {
         return Err(CairoRunError::Trace(error));
+    }
+
+    if print_output {
+        write_output(&mut cairo_runner, &mut vm)?;
     }
 
     Ok(cairo_runner)
 }
 
-pub fn write_output(cairo_runner: &mut CairoRunner) -> Result<(), CairoRunError> {
+pub fn write_output(
+    cairo_runner: &mut CairoRunner,
+    vm: &mut VirtualMachine,
+) -> Result<(), CairoRunError> {
     let mut buffer = BufWriter::new(io::stdout());
     writeln!(&mut buffer, "Program Output: ")
         .map_err(|_| CairoRunError::Runner(RunnerError::WriteFail))?;
     cairo_runner
-        .write_output(&mut buffer)
+        .write_output(vm, &mut buffer)
         .map_err(CairoRunError::Runner)?;
     buffer
         .flush()
@@ -127,48 +138,51 @@ mod tests {
     use crate::{
         bigint,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        utils::test_utils::vm,
     };
+    use num_bigint::Sign;
     use std::io::Read;
 
     fn run_test_program<'a>(
         program_path: &Path,
         hint_processor: &'a dyn HintProcessor,
-    ) -> Result<CairoRunner<'a>, CairoRunError> {
+    ) -> Result<(CairoRunner<'a>, VirtualMachine), CairoRunError> {
         let program = match Program::new(program_path, "main") {
             Ok(program) => program,
             Err(e) => return Err(CairoRunError::Program(e)),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program, true, hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program, hint_processor).unwrap();
+        let mut vm = vm!(true);
+        cairo_runner.initialize_builtins(&mut vm).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
 
-        cairo_runner.initialize_segments(None);
-
-        let end = match cairo_runner.initialize_main_entrypoint() {
+        let end = match cairo_runner.initialize_main_entrypoint(&mut vm) {
             Ok(end) => end,
             Err(e) => return Err(CairoRunError::Runner(e)),
         };
 
-        assert!(cairo_runner.initialize_vm().is_ok());
+        assert!(cairo_runner.initialize_vm(&mut vm).is_ok());
 
-        assert!(cairo_runner.run_until_pc(end).is_ok());
+        assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
 
-        Ok(cairo_runner)
+        Ok((cairo_runner, vm))
     }
 
     #[test]
     fn cairo_run_custom_entry_point() {
         let program_path = Path::new("cairo_programs/not_main.json");
         let program = Program::new(program_path, "not_main").unwrap();
-
+        let mut vm = vm!();
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
-        cairo_runner.initialize_segments(None);
+        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        cairo_runner.initialize_segments(&mut vm, None);
 
-        let end = cairo_runner.initialize_main_entrypoint().unwrap();
+        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
 
-        assert!(cairo_runner.initialize_vm().is_ok());
-        assert!(cairo_runner.run_until_pc(end).is_ok());
-        assert!(cairo_runner.relocate().is_ok());
+        assert!(cairo_runner.initialize_vm(&mut vm).is_ok());
+        assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
+        assert!(cairo_runner.relocate(&mut vm).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
         assert_eq!(cairo_runner.relocated_memory[2], Some(bigint!(123)));
@@ -198,7 +212,7 @@ mod tests {
         // it should fail when the program is loaded.
         let no_data_program_path = Path::new("cairo_programs/no_data_program.json");
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(cairo_run(no_data_program_path, "main", false, &hint_processor).is_err());
+        assert!(cairo_run(no_data_program_path, "main", false, false, &hint_processor).is_err());
     }
 
     #[test]
@@ -207,7 +221,7 @@ mod tests {
         // it should fail when trying to run initialize_main_entrypoint.
         let no_main_program_path = Path::new("cairo_programs/no_main_program.json");
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(cairo_run(no_main_program_path, "main", false, &hint_processor).is_err());
+        assert!(cairo_run(no_main_program_path, "main", false, false, &hint_processor).is_err());
     }
 
     #[test]
@@ -216,7 +230,7 @@ mod tests {
         // decode the instruction.
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
         let hint_processor = BuiltinHintProcessor::new_empty();
-        assert!(cairo_run(invalid_memory, "main", false, &hint_processor).is_err());
+        assert!(cairo_run(invalid_memory, "main", false, false, &hint_processor).is_err());
     }
 
     #[test]
@@ -228,11 +242,11 @@ mod tests {
         // run test program until the end
         let hint_processor = BuiltinHintProcessor::new_empty();
         let cairo_runner_result = run_test_program(program_path, &hint_processor);
-        let mut cairo_runner = cairo_runner_result.unwrap();
+        let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate().is_ok());
-        assert!(cairo_runner.vm.trace.is_some());
+        assert!(cairo_runner.relocate(&mut vm).is_ok());
+        assert!(vm.trace.is_some());
         assert!(cairo_runner.relocated_trace.is_some());
 
         // write cairo_rs vm trace file
@@ -253,10 +267,10 @@ mod tests {
         // run test program until the end
         let hint_processor = BuiltinHintProcessor::new_empty();
         let cairo_runner_result = run_test_program(program_path, &hint_processor);
-        let mut cairo_runner = cairo_runner_result.unwrap();
+        let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate().is_ok());
+        assert!(cairo_runner.relocate(&mut vm).is_ok());
 
         // write cairo_rs vm memory file
         assert!(write_binary_memory(&cairo_runner.relocated_memory, cairo_rs_memory_path).is_ok());
@@ -270,11 +284,12 @@ mod tests {
         let program_path = Path::new("cairo_programs/struct.json");
         let program = Program::new(program_path, "main").unwrap();
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, false, &hint_processor).unwrap();
-        cairo_runner.initialize_segments(None);
-        let end = cairo_runner.initialize_main_entrypoint().unwrap();
-        assert!(cairo_runner.initialize_vm().is_ok());
-        assert!(cairo_runner.run_until_pc(end).is_ok());
-        assert!(cairo_runner.vm.trace.is_none());
+        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut vm = vm!();
+        cairo_runner.initialize_segments(&mut vm, None);
+        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
+        assert!(cairo_runner.initialize_vm(&mut vm).is_ok());
+        assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
+        assert!(vm.trace.is_none());
     }
 }
