@@ -95,7 +95,6 @@ pub fn compute_addr_from_reference(
     } else {
         let addr = base_addr + hint_reference.offset1;
         let dereferenced_addr = vm_proxy
-            .memory
             .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
         if let Some(imm) = &hint_reference.immediate {

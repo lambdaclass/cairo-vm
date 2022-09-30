@@ -203,17 +203,11 @@ pub fn uint256_unsigned_div_rem(
     //Insert ids.quotient.low
     vm_proxy.insert_value(&quotient_addr, quotient_low)?;
     //Insert ids.quotient.high
-    vm_proxy
-        .memory
-        .insert_value(&(quotient_addr + 1), quotient_high)?;
+    vm_proxy.insert_value(&(quotient_addr + 1), quotient_high)?;
     //Insert ids.remainder.low
-    vm_proxy
-        .memory
-        .insert_value(&remainder_addr, remainder_low)?;
+    vm_proxy.insert_value(&remainder_addr, remainder_low)?;
     //Insert ids.remainder.high
-    vm_proxy
-        .memory
-        .insert_value(&(remainder_addr + 1), remainder_high)
+    vm_proxy.insert_value(&(remainder_addr + 1), remainder_high)
 }
 
 #[cfg(test)]

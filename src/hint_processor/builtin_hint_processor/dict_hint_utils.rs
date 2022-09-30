@@ -154,9 +154,7 @@ pub fn dict_write(
     tracker.insert_value(key, new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm_proxy
-        .memory
-        .insert_value(&dict_ptr_prev_value, prev_value)?;
+    vm_proxy.insert_value(&dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 
