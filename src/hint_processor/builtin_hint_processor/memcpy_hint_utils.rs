@@ -17,10 +17,10 @@ use crate::{
     vm::errors::vm_errors::VirtualMachineError,
 };
 
-///Implements hint: memory[ap] = segments.add()
+//Implements hint: memory[ap] = segments.add()
 pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
-    let new_segment_base = vm_proxy.memory.add_segment(vm_proxy.segments);
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, new_segment_base)
+    let new_segment_base = vm_proxy.add_memory_segment();
+    insert_value_into_ap(vm_proxy, new_segment_base)
 }
 
 //Implements hint: vm_enter_scope()
