@@ -150,7 +150,7 @@ pub fn unsafe_keccak_finalize(
     let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
 
     let n_elems = maybe_rel_end_ptr
-        .sub(&maybe_rel_start_ptr, vm_proxy.prime)?
+        .sub(&maybe_rel_start_ptr, vm_proxy.get_prime())?
         .get_int_ref()?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;

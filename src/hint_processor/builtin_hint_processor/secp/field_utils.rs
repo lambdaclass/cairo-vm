@@ -40,7 +40,7 @@ pub fn verify_zero(
 
     insert_value_from_var_name(
         "q",
-        q.mod_floor(vm_proxy.prime),
+        q.mod_floor(vm_proxy.get_prime()),
         vm_proxy,
         ids_data,
         ap_tracking,

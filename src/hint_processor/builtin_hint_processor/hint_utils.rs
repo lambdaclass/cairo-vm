@@ -27,7 +27,7 @@ pub fn insert_value_into_ap(
     vm_proxy: &mut VMProxy,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
-    vm_proxy.memory.insert_value(&vm_proxy.get_ap(), value)
+    vm_proxy.insert_value(&vm_proxy.get_ap(), value)
 }
 
 //Returns the Relocatable value stored in the given ids variable

@@ -19,7 +19,7 @@ use super::memory_proxy::{get_memory_proxy, MemoryProxy};
 pub struct VMProxy<'a> {
     pub memory: MemoryProxy<'a>,
     pub segments: &'a mut MemorySegmentManager,
-    pub run_context: &'a mut RunContext,
+    run_context: &'a mut RunContext,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     prime: &'a BigInt,
 }
@@ -107,5 +107,14 @@ impl VMProxy<'_> {
         size: usize,
     ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
         self.memory.get_range(addr, size)
+    }
+
+    ///Gets n integer values from memory starting from addr (n being size),
+    pub fn get_integer_range(
+        &self,
+        addr: &Relocatable,
+        size: usize,
+    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+        self.memory.get_integer_range(addr, size)
     }
 }

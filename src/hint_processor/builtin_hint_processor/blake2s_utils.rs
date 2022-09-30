@@ -10,16 +10,10 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_ptr_from_var_name, get_relocatable_from_var_name,
 };
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
-use crate::{
-    types::relocatable::MaybeRelocatable,
-    vm::{
-        errors::vm_errors::VirtualMachineError, vm_memory::memory_segments::MemorySegmentManager,
-    },
-};
+use crate::{types::relocatable::MaybeRelocatable, vm::errors::vm_errors::VirtualMachineError};
 use num_bigint::BigInt;
 
 fn get_fixed_size_u32_array<const T: usize>(
@@ -51,20 +45,19 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(
-    segments: &mut MemorySegmentManager,
-    memory: &mut MemoryProxy,
+    vm_proxy: &mut VMProxy,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
-    let h = get_fixed_size_u32_array::<8>(&memory.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
+    let h = get_fixed_size_u32_array::<8>(&vm_proxy.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
     let message =
-        get_fixed_size_u32_array::<16>(&memory.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
-    let t = bigint_to_u32(memory.get_integer(&output_rel.sub(2)?)?)?;
-    let f = bigint_to_u32(memory.get_integer(&output_rel.sub(1)?)?)?;
+        get_fixed_size_u32_array::<16>(&vm_proxy.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
+    let t = bigint_to_u32(vm_proxy.get_integer(&output_rel.sub(2)?)?)?;
+    let f = bigint_to_u32(vm_proxy.get_integer(&output_rel.sub(1)?)?)?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
-    memory
-        .load_data(segments, &output_ptr, new_state)
+    vm_proxy
+        .load_data(&output_ptr, new_state)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -79,7 +72,7 @@ pub fn compute_blake2s(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let output = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
-    compute_blake2s_func(vm_proxy.segments, &mut vm_proxy.memory, output)
+    compute_blake2s_func(vm_proxy, output)
 }
 
 /* Implements Hint:

@@ -78,7 +78,7 @@ pub fn pack_from_var_name(
     let d1 = vm_proxy.get_integer(&(&to_pack + 1))?;
     let d2 = vm_proxy.get_integer(&(&to_pack + 2))?;
 
-    Ok(pack(d0, d1, d2, vm_proxy.prime))
+    Ok(pack(d0, d1, d2, vm_proxy.get_prime()))
 }
 
 pub fn pack_from_relocatable(
@@ -89,7 +89,7 @@ pub fn pack_from_relocatable(
     let d1 = vm_proxy.get_integer(&(&rel + 1))?;
     let d2 = vm_proxy.get_integer(&(&rel + 2))?;
 
-    Ok(pack(d0, d1, d2, vm_proxy.prime))
+    Ok(pack(d0, d1, d2, vm_proxy.get_prime()))
 }
 
 #[cfg(test)]
