@@ -21,7 +21,7 @@ pub struct VMProxy<'a> {
     pub segments: &'a mut MemorySegmentManager,
     pub run_context: &'a mut RunContext,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
-    pub prime: &'a BigInt,
+    prime: &'a BigInt,
 }
 
 ///Creates a VMProxy from a VM instance
