@@ -1,10 +1,11 @@
 use num_bigint::BigInt;
 
 use crate::{
-    types::relocatable::Relocatable,
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
-        context::run_context::RunContext, runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine, vm_memory::memory_segments::MemorySegmentManager,
+        context::run_context::RunContext, errors::vm_errors::VirtualMachineError,
+        runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine,
+        vm_memory::memory_segments::MemorySegmentManager,
     },
 };
 
@@ -31,11 +32,43 @@ pub fn get_vm_proxy(vm: &mut VirtualMachine) -> VMProxy {
 }
 
 impl VMProxy<'_> {
+    ///Adds a new segment and to the VMProxy.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add_segment(self.segments)
     }
 
     pub fn get_num_segments(&mut self) -> usize {
         self.segments.num_segments
+    }
+    
+    pub fn get_ap(&self) -> Relocatable {
+        self.run_context.get_ap()
+    }
+
+    pub fn get_fp(&self) -> Relocatable {
+        self.run_context.get_fp()
+    }
+
+    pub fn get_prime(&self) -> &BigInt {
+        self.prime
+    }
+
+    ///Gets the integer value corresponding to the Relocatable address
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        self.memory.get_integer(key)
+    }
+
+    ///Gets the relocatable value corresponding to the Relocatable address
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
+        self.memory.get_relocatable(key)
+    }
+
+    ///Inserts a value into a memory address given by a Relocatable value
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
+        self.memory.insert_value(key, val)
     }
 }

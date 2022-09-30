@@ -24,6 +24,7 @@ pub fn criterion_benchmarks(c: &mut Criterion) {
                     black_box(Path::new(&benchmark_name.1)),
                     "main",
                     false,
+                    false,
                     &hint_processor,
                 )
             })

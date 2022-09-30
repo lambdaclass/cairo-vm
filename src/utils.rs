@@ -178,16 +178,17 @@ pub mod test_utils {
     pub(crate) use references;
 
     macro_rules! vm_with_range_check {
-        () => {
-            VirtualMachine::new(
+        () => {{
+            let mut vm = VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-                vec![(
-                    "range_check".to_string(),
-                    Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
-                )],
                 false,
-            )
-        };
+            );
+            vm.builtin_runners = vec![(
+                "range_check".to_string(),
+                Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
+            )];
+            vm
+        }};
     }
     pub(crate) use vm_with_range_check;
 
@@ -195,7 +196,6 @@ pub mod test_utils {
         () => {{
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-                vec![],
                 false,
             )
         }};
@@ -203,7 +203,6 @@ pub mod test_utils {
         ($use_trace:expr) => {{
             VirtualMachine::new(
                 BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
-                vec![],
                 $use_trace,
             )
         }};

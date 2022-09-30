@@ -71,11 +71,7 @@ impl HintData {
 }
 
 impl VirtualMachine {
-    pub fn new(
-        prime: BigInt,
-        builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
-        trace_enabled: bool,
-    ) -> VirtualMachine {
+    pub fn new(prime: BigInt, trace_enabled: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -92,7 +88,7 @@ impl VirtualMachine {
         VirtualMachine {
             run_context,
             prime,
-            builtin_runners,
+            builtin_runners: Vec::new(),
             _program_base: None,
             memory: Memory::new(),
             accessed_addresses: None,
@@ -454,7 +450,7 @@ impl VirtualMachine {
         }
     }
 
-    pub fn step(
+    pub fn step_hint(
         &mut self,
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
@@ -468,10 +464,24 @@ impl VirtualMachine {
                 hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
             }
         }
-        self.skip_instruction_execution = false;
+        Ok(())
+    }
+
+    pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let instruction = self.decode_current_instruction()?;
         self.run_instruction(instruction)?;
+        self.skip_instruction_execution = false;
         Ok(())
+    }
+
+    pub fn step(
+        &mut self,
+        hint_executor: &dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+    ) -> Result<(), VirtualMachineError> {
+        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary)?;
+        self.step_instruction()
     }
 
     fn compute_op0_deductions(
@@ -626,9 +636,40 @@ impl VirtualMachine {
         }
         Ok(())
     }
-
+    ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add(&mut self.memory)
+    }
+
+    pub fn get_ap(&self) -> Relocatable {
+        self.run_context.get_ap()
+    }
+
+    pub fn get_fp(&self) -> Relocatable {
+        self.run_context.get_fp()
+    }
+
+    pub fn get_prime(&self) -> &BigInt {
+        &self.prime
+    }
+
+    ///Gets the integer value corresponding to the Relocatable address
+    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+        self.memory.get_integer(key)
+    }
+
+    ///Gets the relocatable value corresponding to the Relocatable address
+    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
+        self.memory.get_relocatable(key)
+    }
+
+    ///Inserts a value into a memory address given by a Relocatable value
+    pub fn insert_value<T: Into<MaybeRelocatable>>(
+        &mut self,
+        key: &Relocatable,
+        val: T,
+    ) -> Result<(), VirtualMachineError> {
+        self.memory.insert_value(key, val)
     }
 }
 
@@ -802,7 +843,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = VirtualMachine::new(bigint!(39), false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -835,7 +876,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -870,7 +911,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -903,7 +944,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -936,7 +977,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1059,7 +1100,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1249,7 +1290,7 @@ mod tests {
             op1: MaybeRelocatable::Int(bigint!(10)),
         };
 
-        let mut vm = VirtualMachine::new(bigint!(39), Vec::new(), false);
+        let mut vm = vm!();
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1986,7 +2027,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
         };
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = vm!();
         //Create program and execution segments
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -2087,7 +2128,7 @@ mod tests {
             opcode: Opcode::NOp,
         };
 
-        let mut vm = VirtualMachine::new(bigint!(127), Vec::new(), false);
+        let mut vm = vm!();
 
         vm.memory = memory!(((1, 0), 145944781867024385_i64));
 
@@ -2584,7 +2625,7 @@ mod tests {
 
     #[test]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
-        let mut vm = VirtualMachine::new(bigint!(17), Vec::new(), false);
+        let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(8);
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
