@@ -681,6 +681,15 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         self.memory.insert_value(key, val)
     }
+
+    ///Writes data into the memory at address ptr and returns the first address after the data.
+    pub fn load_data(
+        &mut self,
+        ptr: &MaybeRelocatable,
+        data: Vec<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        self.segments.load_data(&mut self.memory, ptr, data)
+    }
 }
 
 #[cfg(test)]

@@ -127,12 +127,7 @@ pub fn finalize_blake2s(
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm_proxy
-        .memory
-        .load_data(
-            vm_proxy.segments,
-            &MaybeRelocatable::RelocatableValue(blake2s_ptr_end),
-            data,
-        )
+        .load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), data)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -168,12 +163,7 @@ pub fn blake2s_add_uint256(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
-        .load_data(
-            vm_proxy.segments,
-            &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
-            data,
-        )
+        .load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
@@ -183,9 +173,7 @@ pub fn blake2s_add_uint256(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
         .load_data(
-            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
@@ -224,12 +212,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
-        .load_data(
-            vm_proxy.segments,
-            &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
-            data,
-        )
+        .load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
@@ -239,9 +222,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
         .load_data(
-            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
