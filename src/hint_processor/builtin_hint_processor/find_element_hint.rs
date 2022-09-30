@@ -39,7 +39,6 @@ pub fn find_element(
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
         let found_key = vm_proxy
-            .memory
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
@@ -78,7 +77,6 @@ pub fn find_element(
 
         for i in 0..n_elms_iter {
             let iter_key = vm_proxy
-                .memory
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
@@ -127,7 +125,7 @@ pub fn search_sorted_lower(
         }
     }
 
-    let mut array_iter = vm_proxy.memory.get_relocatable(&rel_array_ptr)?.clone();
+    let mut array_iter = vm_proxy.get_relocatable(&rel_array_ptr)?.clone();
     let initial_offset = array_iter.offset;
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
@@ -141,7 +139,7 @@ pub fn search_sorted_lower(
     while low < high {
         mid = (low + high) / 2;
         array_iter.offset = initial_offset + elm_size_usize * mid;
-        let value = vm_proxy.memory.get_integer(&array_iter)?;
+        let value = vm_proxy.get_integer(&array_iter)?;
         if value < key {
             low = mid + 1;
         } else {

@@ -51,7 +51,7 @@ pub fn usort_body(
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm_proxy.memory.get_integer(&(&input_ptr + i as usize))?;
+        let val = vm_proxy.get_integer(&(&input_ptr + i as usize))?;
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
@@ -66,20 +66,16 @@ pub fn usort_body(
         multiplicities.push(positions_dict[k].len());
     }
     exec_scopes_proxy.insert_value("positions_dict", positions_dict);
-    let output_base = vm_proxy.memory.add_segment(vm_proxy.segments);
-    let multiplicities_base = vm_proxy.memory.add_segment(vm_proxy.segments);
+    let output_base = vm_proxy.add_memory_segment();
+    let multiplicities_base = vm_proxy.add_memory_segment();
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
-        vm_proxy
-            .memory
-            .insert_value(&(&output_base + i), sorted_element)?;
+        vm_proxy.insert_value(&(&output_base + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm_proxy
-            .memory
-            .insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
+        vm_proxy.insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
     }
 
     insert_value_from_var_name(

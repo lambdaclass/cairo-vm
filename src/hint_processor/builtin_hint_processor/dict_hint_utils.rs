@@ -58,16 +58,14 @@ pub fn dict_new(
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
-        dict_manager
-            .borrow_mut()
-            .new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?
+        dict_manager.borrow_mut().new_dict(vm_proxy, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(vm_proxy.segments, &mut vm_proxy.memory, initial_dict)?;
+        let base = dict_manager.new_dict(vm_proxy, initial_dict)?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, base)
+    insert_value_into_ap(vm_proxy, base)
 }
 
 /*Implements hint:
@@ -93,24 +91,16 @@ pub fn default_dict_new(
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
-        dict_manager.borrow_mut().new_default_dict(
-            vm_proxy.segments,
-            &mut vm_proxy.memory,
-            &default_value,
-            initial_dict,
-        )?
+        dict_manager
+            .borrow_mut()
+            .new_default_dict(vm_proxy, &default_value, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_default_dict(
-            vm_proxy.segments,
-            &mut vm_proxy.memory,
-            &default_value,
-            initial_dict,
-        )?;
+        let base = dict_manager.new_default_dict(vm_proxy, &default_value, initial_dict)?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, base)
+    insert_value_into_ap(vm_proxy, base)
 }
 
 /* Implements hint:
@@ -164,9 +154,7 @@ pub fn dict_write(
     tracker.insert_value(key, new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm_proxy
-        .memory
-        .insert_value(&dict_ptr_prev_value, prev_value)?;
+    vm_proxy.insert_value(&dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 

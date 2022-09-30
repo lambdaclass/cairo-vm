@@ -83,7 +83,7 @@ pub fn compare_bytes_in_word_nondet(
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
     let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm_proxy, value)
 }
 
 /*
@@ -102,7 +102,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm_proxy, value)
 }
 
 /*

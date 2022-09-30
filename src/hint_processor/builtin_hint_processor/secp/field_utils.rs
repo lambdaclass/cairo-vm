@@ -40,7 +40,7 @@ pub fn verify_zero(
 
     insert_value_from_var_name(
         "q",
-        q.mod_floor(vm_proxy.prime),
+        q.mod_floor(vm_proxy.get_prime()),
         vm_proxy,
         ids_data,
         ap_tracking,
@@ -102,7 +102,7 @@ pub fn is_zero_nondet(
     let x = exec_scopes_proxy.get_int("x")?;
 
     let value = bigint!(x.is_zero() as usize);
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm_proxy, value)
 }
 
 /*

@@ -127,12 +127,7 @@ pub fn finalize_blake2s(
     }
     let data = get_maybe_relocatable_array_from_u32(&full_padding);
     vm_proxy
-        .memory
-        .load_data(
-            vm_proxy.segments,
-            &MaybeRelocatable::RelocatableValue(blake2s_ptr_end),
-            data,
-        )
+        .load_data(&MaybeRelocatable::RelocatableValue(blake2s_ptr_end), data)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -152,8 +147,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm_proxy, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
-    let low = vm_proxy.memory.get_integer(&low_addr)?.clone();
-    let high = vm_proxy.memory.get_integer(&high_addr)?.clone();
+    let low = vm_proxy.get_integer(&low_addr)?.clone();
+    let high = vm_proxy.get_integer(&high_addr)?.clone();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -168,12 +163,7 @@ pub fn blake2s_add_uint256(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
-        .load_data(
-            vm_proxy.segments,
-            &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
-            data,
-        )
+        .load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
@@ -183,9 +173,7 @@ pub fn blake2s_add_uint256(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
         .load_data(
-            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
@@ -208,8 +196,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm_proxy, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
-    let low = vm_proxy.memory.get_integer(&low_addr)?.clone();
-    let high = vm_proxy.memory.get_integer(&high_addr)?.clone();
+    let low = vm_proxy.get_integer(&low_addr)?.clone();
+    let high = vm_proxy.get_integer(&high_addr)?.clone();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
@@ -224,12 +212,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
-        .load_data(
-            vm_proxy.segments,
-            &MaybeRelocatable::RelocatableValue(data_ptr.clone()),
-            data,
-        )
+        .load_data(&MaybeRelocatable::RelocatableValue(data_ptr.clone()), data)
         .map_err(VirtualMachineError::MemoryError)?;
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
@@ -239,9 +222,7 @@ pub fn blake2s_add_uint256_bigend(
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
     vm_proxy
-        .memory
         .load_data(
-            vm_proxy.segments,
             &MaybeRelocatable::RelocatableValue(data_ptr).add_usize_mod(4, None),
             data,
         )
