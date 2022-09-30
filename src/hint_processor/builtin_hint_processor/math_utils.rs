@@ -224,7 +224,7 @@ pub fn split_int(
     if res > *bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
-    vm_proxy.memory.insert_value(&output, res)
+    vm_proxy.insert_value(&output, res)
 }
 
 //from starkware.cairo.common.math_utils import is_positive

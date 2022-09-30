@@ -125,7 +125,7 @@ pub fn search_sorted_lower(
         }
     }
 
-    let mut array_iter = vm_proxy.memory.get_relocatable(&rel_array_ptr)?.clone();
+    let mut array_iter = vm_proxy.get_relocatable(&rel_array_ptr)?.clone();
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
