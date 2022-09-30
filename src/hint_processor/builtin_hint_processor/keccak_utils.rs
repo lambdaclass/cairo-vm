@@ -157,7 +157,6 @@ pub fn unsafe_keccak_finalize(
 
     let mut keccak_input = Vec::new();
     let range = vm_proxy
-        .memory
         .get_range(&maybe_rel_start_ptr, n_elems)
         .map_err(VirtualMachineError::MemoryError)?;
 

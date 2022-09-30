@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use num_bigint::BigInt;
 
 use crate::{
@@ -85,5 +87,25 @@ impl VMProxy<'_> {
         data: Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.memory.load_data(self.segments, ptr, data)
+    }
+
+    //// Writes args into the memory at address ptr and returns the first address after the data.
+    /// Perfroms modulo on each element
+    pub fn write_arg(
+        &mut self,
+        ptr: &Relocatable,
+        arg: &dyn Any,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        self.memory
+            .write_arg(self.segments, ptr, arg, Some(self.prime))
+    }
+
+    ///Gets n elements from memory starting from addr (n being size)
+    pub fn get_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+        self.memory.get_range(addr, size)
     }
 }

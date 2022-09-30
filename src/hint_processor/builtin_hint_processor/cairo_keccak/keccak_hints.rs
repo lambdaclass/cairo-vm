@@ -40,23 +40,11 @@ pub fn keccak_write_args(
     let high_args = [high & bigint!(u64::MAX), high >> 64];
 
     vm_proxy
-        .memory
-        .write_arg(
-            vm_proxy.segments,
-            &inputs_ptr,
-            &low_args.to_vec(),
-            Some(vm_proxy.prime),
-        )
+        .write_arg(&inputs_ptr, &low_args.to_vec())
         .map_err(VirtualMachineError::MemoryError)?;
 
     vm_proxy
-        .memory
-        .write_arg(
-            vm_proxy.segments,
-            &inputs_ptr.add(2)?,
-            &high_args.to_vec(),
-            Some(vm_proxy.prime),
-        )
+        .write_arg(&inputs_ptr.add(2)?, &high_args.to_vec())
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -133,7 +121,6 @@ pub fn block_permutation(
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
 
     let values = vm_proxy
-        .memory
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
             KECCAK_STATE_SIZE_FELTS,
@@ -149,13 +136,7 @@ pub fn block_permutation(
     let bigint_values = u64_array_to_bigint_vec(&u64_values);
 
     vm_proxy
-        .memory
-        .write_arg(
-            vm_proxy.segments,
-            &keccak_ptr,
-            &bigint_values,
-            Some(vm_proxy.prime),
-        )
+        .write_arg(&keccak_ptr, &bigint_values)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -205,13 +186,7 @@ pub fn cairo_keccak_finalize(
     let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", vm_proxy, ids_data, ap_tracking)?;
 
     vm_proxy
-        .memory
-        .write_arg(
-            vm_proxy.segments,
-            &keccak_ptr_end,
-            &padding,
-            Some(vm_proxy.prime),
-        )
+        .write_arg(&keccak_ptr_end, &padding)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
