@@ -71,15 +71,11 @@ pub fn usort_body(
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
-        vm_proxy
-            .memory
-            .insert_value(&(&output_base + i), sorted_element)?;
+        vm_proxy.insert_value(&(&output_base + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm_proxy
-            .memory
-            .insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
+        vm_proxy.insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
     }
 
     insert_value_from_var_name(
