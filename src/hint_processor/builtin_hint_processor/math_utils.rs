@@ -120,7 +120,7 @@ pub fn assert_not_equal(
     let a_addr = get_address_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let b_addr = get_address_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
     //Check that the ids are in memory
-    match (vm_proxy.memory.get(&a_addr), vm_proxy.memory.get(&b_addr)) {
+    match (vm_proxy.get_maybe(&a_addr), vm_proxy.get_maybe(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => match (maybe_rel_a, maybe_rel_b) {
             (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
                 if (a - b).is_multiple_of(vm_proxy.get_prime()) {

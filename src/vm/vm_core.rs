@@ -24,6 +24,8 @@ use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
+use super::errors::memory_errors::MemoryError;
+
 #[derive(PartialEq, Debug)]
 pub struct Operands {
     dst: MaybeRelocatable,
@@ -661,6 +663,14 @@ impl VirtualMachine {
     ///Gets the relocatable value corresponding to the Relocatable address
     pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
         self.memory.get_relocatable(key)
+    }
+
+    ///Gets a MaybeRelocatable value from memory indicated by a generic address
+    pub fn get_maybe<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    where
+        Relocatable: TryFrom<&'a K>,
+    {
+        self.memory.get(key)
     }
 
     ///Inserts a value into a memory address given by a Relocatable value
