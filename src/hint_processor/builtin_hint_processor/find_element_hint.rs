@@ -37,7 +37,6 @@ pub fn find_element(
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
         let found_key = vm_proxy
-            .memory
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
@@ -76,7 +75,6 @@ pub fn find_element(
 
         for i in 0..n_elms_iter {
             let iter_key = vm_proxy
-                .memory
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 

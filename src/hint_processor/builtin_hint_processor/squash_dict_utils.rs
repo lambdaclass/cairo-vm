@@ -281,7 +281,6 @@ pub fn squash_dict(
     for i in 0..n_accesses_usize {
         let key_addr = &address + DICT_ACCESS_SIZE * i;
         let key = vm_proxy
-            .memory
             .get_integer(&key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
