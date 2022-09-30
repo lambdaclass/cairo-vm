@@ -37,10 +37,6 @@ impl VMProxy<'_> {
         self.memory.add_segment(self.segments)
     }
 
-    pub fn get_num_segments(&mut self) -> usize {
-        self.segments.num_segments
-    }
-
     pub fn get_ap(&self) -> Relocatable {
         self.run_context.get_ap()
     }
