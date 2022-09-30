@@ -70,13 +70,7 @@ pub fn sha256_main(
     let output_base = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
 
     vm_proxy
-        .memory
-        .write_arg(
-            vm_proxy.segments,
-            &output_base,
-            &output,
-            Some(vm_proxy.prime),
-        )
+        .write_arg(&output_base, &output)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -113,13 +107,7 @@ pub fn sha256_finalize(
     }
 
     vm_proxy
-        .memory
-        .write_arg(
-            vm_proxy.segments,
-            &sha256_ptr_end,
-            &padding,
-            Some(vm_proxy.prime),
-        )
+        .write_arg(&sha256_ptr_end, &padding)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
