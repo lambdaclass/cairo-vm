@@ -25,23 +25,16 @@ pub fn cairo_run<'a>(
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
-    let end = cairo_runner
-        .initialize_main_entrypoint()
-        .map_err(CairoRunError::Runner)?;
-
-    cairo_runner
-        .initialize_vm()
-        .map_err(CairoRunError::Runner)?;
-
     cairo_runner
         .run_until_pc(end, &mut vm)
         .map_err(CairoRunError::VirtualMachine)?;
 
-    vm
-        .verify_auto_deductions()
+    vm.verify_auto_deductions()
         .map_err(CairoRunError::VirtualMachine)?;
 
-    cairo_runner.relocate(&mut vm).map_err(CairoRunError::Trace)?;
+    cairo_runner
+        .relocate(&mut vm)
+        .map_err(CairoRunError::Trace)?;
 
     if print_output {
         write_output(&mut cairo_runner, &mut vm)?;
@@ -148,7 +141,8 @@ mod tests {
 
         let mut cairo_runner = CairoRunner::new(&program, hint_processor).unwrap();
         let mut vm = vm!(true);
-        cairo_runner.initialize(&mut vm)
+        let end = cairo_runner
+            .initialize(&mut vm)
             .map_err(CairoRunError::Runner)?;
 
         assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
@@ -221,9 +215,9 @@ mod tests {
     fn write_output_program() {
         let program_path = Path::new("cairo_programs/bitwise_output.json");
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = run_test_program(program_path, &hint_processor)
+        let (mut cairo_runner, mut vm) = run_test_program(program_path, &hint_processor)
             .expect("Couldn't initialize cairo runner");
-        assert!(write_output(&mut cairo_runner).is_ok());
+        assert!(write_output(&mut cairo_runner, &mut vm).is_ok());
     }
 
     #[test]
