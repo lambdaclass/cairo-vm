@@ -66,8 +66,8 @@ pub fn usort_body(
         multiplicities.push(positions_dict[k].len());
     }
     exec_scopes_proxy.insert_value("positions_dict", positions_dict);
-    let output_base = vm_proxy.memory.add_segment(vm_proxy.segments);
-    let multiplicities_base = vm_proxy.memory.add_segment(vm_proxy.segments);
+    let output_base = vm_proxy.add_memory_segment();
+    let multiplicities_base = vm_proxy.add_memory_segment();
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
