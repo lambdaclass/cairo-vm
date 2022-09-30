@@ -17,7 +17,7 @@ use super::memory_proxy::{get_memory_proxy, MemoryProxy};
 pub struct VMProxy<'a> {
     pub memory: MemoryProxy<'a>,
     pub segments: &'a mut MemorySegmentManager,
-    pub run_context: &'a mut RunContext,
+    run_context: &'a mut RunContext,
     pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     pub prime: &'a BigInt,
 }

@@ -74,18 +74,14 @@ pub fn compute_addr_from_reference(
 ) -> Result<Relocatable, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         //This should never fail
-        Some(Register::FP) => vm_proxy.run_context.get_fp(),
+        Some(Register::FP) => vm_proxy.get_fp(),
         Some(Register::AP) => {
             let var_ap_trackig = hint_reference
                 .ap_tracking_data
                 .as_ref()
                 .ok_or(VirtualMachineError::NoneApTrackingData)?;
 
-            apply_ap_tracking_correction(
-                &vm_proxy.run_context.get_ap(),
-                var_ap_trackig,
-                hint_ap_tracking,
-            )?
+            apply_ap_tracking_correction(&vm_proxy.get_ap(), var_ap_trackig, hint_ap_tracking)?
         }
         None => return Err(VirtualMachineError::NoRegisterInReference),
     };
