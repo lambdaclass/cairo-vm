@@ -4,9 +4,10 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
+
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
 };
@@ -15,15 +16,15 @@ use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 pub fn find_element(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
-    let elm_size_bigint = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?;
-    let n_elms = get_integer_from_var_name("n_elms", vm_proxy, ids_data, ap_tracking)?;
-    let array_start = get_ptr_from_var_name("array_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
+    let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let find_element_index = exec_scopes_proxy.get_int("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
@@ -36,7 +37,7 @@ pub fn find_element(
 
     if let Some(find_element_index_value) = find_element_index {
         let find_element_index_usize = bigint_to_usize(&find_element_index_value)?;
-        let found_key = vm_proxy
+        let found_key = vm
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
@@ -47,13 +48,7 @@ pub fn find_element(
                 found_key.clone(),
             ));
         }
-        insert_value_from_var_name(
-            "index",
-            find_element_index_value,
-            vm_proxy,
-            ids_data,
-            ap_tracking,
-        )?;
+        insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
         exec_scopes_proxy.delete_variable("find_element_index");
         Ok(())
     } else {
@@ -74,18 +69,12 @@ pub fn find_element(
             .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
 
         for i in 0..n_elms_iter {
-            let iter_key = vm_proxy
+            let iter_key = vm
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
             if iter_key == key {
-                return insert_value_from_var_name(
-                    "index",
-                    bigint!(i),
-                    vm_proxy,
-                    ids_data,
-                    ap_tracking,
-                );
+                return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
             }
         }
 
@@ -94,17 +83,16 @@ pub fn find_element(
 }
 
 pub fn search_sorted_lower(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let find_element_max_size = exec_scopes_proxy.get_int("find_element_max_size");
-    let n_elms = get_integer_from_var_name("n_elms", vm_proxy, ids_data, ap_tracking)?;
-    let rel_array_ptr =
-        get_relocatable_from_var_name("array_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?;
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
+    let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
         return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
@@ -123,26 +111,20 @@ pub fn search_sorted_lower(
         }
     }
 
-    let mut array_iter = vm_proxy.get_relocatable(&rel_array_ptr)?.clone();
+    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.clone();
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
         .ok_or(VirtualMachineError::KeyNotFound)?;
 
     for i in 0..n_elms_usize {
-        let value = vm_proxy.get_integer(&array_iter)?;
+        let value = vm.get_integer(&array_iter)?;
         if value >= key {
-            return insert_value_from_var_name(
-                "index",
-                bigint!(i),
-                vm_proxy,
-                ids_data,
-                ap_tracking,
-            );
+            return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_value_from_var_name("index", n_elms.clone(), vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("index", n_elms.clone(), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -154,7 +136,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::vm;

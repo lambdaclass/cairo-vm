@@ -1,8 +1,7 @@
 use crate::{
     bigint,
     hint_processor::{
-        hint_processor_definition::HintProcessor,
-        proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
+        hint_processor_definition::HintProcessor, proxies::exec_scopes_proxy::get_exec_scopes_proxy,
     },
     serde::deserialize_program::ApTracking,
     types::{
@@ -459,11 +458,10 @@ impl VirtualMachine {
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
                 //We create a new proxy with every hint as the current scope can change
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
+                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data)?
             }
         }
         Ok(())

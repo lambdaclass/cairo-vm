@@ -2,7 +2,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
     math_utils::{div_mod, safe_div},
@@ -24,13 +24,13 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = pack_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let b = pack_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
+    let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
     exec_scopes_proxy.insert_value("a", a);
@@ -56,17 +56,16 @@ pub fn div_mod_n_safe_div(
 }
 
 pub fn get_point_from_x(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int =
-        pack_from_var_name("x_cube", vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
+    let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&SECP_P);
     let y_cube_int = (x_cube_int + &*BETA).mod_floor(&SECP_P);
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
-    let v = get_integer_from_var_name("v", vm_proxy, ids_data, ap_tracking)?;
+    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?;
     if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }
@@ -78,10 +77,13 @@ pub fn get_point_from_x(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
+    use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::{
         bigint, bigint_str,
-        hint_processor::proxies::vm_proxy::get_vm_proxy,
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{
@@ -94,6 +96,7 @@ mod tests {
 
     #[test]
     fn safe_div_ok() {
+        let hint_code = hint_code::DIV_MOD_N_PACKED_DIVMOD;
         let mut vm = vm!();
 
         vm.memory = memory![
@@ -107,15 +110,9 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            div_mod_n_packed_divmod(
-                vm_proxy,
-                exec_scopes_proxy,
-                &ids_data,
-                &ApTracking::default()
-            ),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
         assert_eq!(div_mod_n_safe_div(exec_scopes_proxy), Ok(()));
@@ -130,6 +127,7 @@ mod tests {
 
     #[test]
     fn get_point_from_x_ok() {
+        let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
         vm.memory = memory![
             ((1, 0), 18),
@@ -139,18 +137,12 @@ mod tests {
         ];
         vm.run_context.fp = 1;
         let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert!(get_point_from_x(
-            vm_proxy,
-            exec_scopes_proxy_ref!(),
-            &ids_data,
-            &ApTracking::default()
-        )
-        .is_ok());
+        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()))
     }
 
     #[test]
     fn get_point_from_x_negative_y() {
+        let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         vm.memory = memory![
@@ -162,17 +154,12 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            get_point_from_x(
-                vm_proxy,
-                exec_scopes_proxy,
-                &ids_data,
-                &ApTracking::default()
-            ),
+            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
             Ok(())
         );
+
         check_scope!(
             exec_scopes_proxy,
             [(
