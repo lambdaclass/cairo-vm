@@ -109,7 +109,7 @@ mod tests {
         vm.memory = memory![((1, 0), 10)];
 
         assert_eq!(
-            get_integer_from_var_name(var_name, &mut vm, &ids_data, &ApTracking::default()),
+            get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
             Ok(&bigint!(10))
         );
     }
@@ -130,7 +130,7 @@ mod tests {
         vm.memory = memory![((1, 0), (1, 1))];
 
         assert_eq!(
-            get_integer_from_var_name(var_name, &mut vm, &ids_data, &ApTracking::default()),
+            get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
