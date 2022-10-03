@@ -4,29 +4,26 @@ use cairo_rs::hint_processor::builtin_hint_processor::builtin_hint_processor_def
 };
 use cairo_rs::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use cairo_rs::hint_processor::hint_processor_definition::HintReference;
-use cairo_rs::hint_processor::proxies::{
-    exec_scopes_proxy::ExecutionScopesProxy, vm_proxy::VMProxy,
-};
+use cairo_rs::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use cairo_rs::serde::deserialize_program::ApTracking;
-use cairo_rs::vm::errors::vm_errors::VirtualMachineError;
+use cairo_rs::vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine};
 use std::collections::HashMap;
 use std::path::Path;
 
-
 // Create the function that implements the custom hint
 fn print_a_hint(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     _exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     println!("{}", a);
     Ok(())
 }
 
 fn main() {
-    // Wrap the Rust hint implementation in a Box smart pointer inside a HintFunc 
+    // Wrap the Rust hint implementation in a Box smart pointer inside a HintFunc
     let hint = HintFunc(Box::new(print_a_hint));
 
     //Instantiate the hint processor
