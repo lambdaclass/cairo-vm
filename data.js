@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1664826211108,
+  "lastUpdate": 1664827564205,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -41419,6 +41419,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 206577746,
             "range": "± 1004158",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "aa33c9f6c640daa9c4b1075a1b72ad0bf7d12787",
+          "message": "[Remove VMProxy - Final] Remove vm_proxy.rs and memory_proxy.rs. Refactor builtin_hint_processor functions (#470)\n\n* Hint functions use &mut VitualMachine\r\n\r\n* Fix unit tests\r\n\r\n* cargo clippy\r\n\r\n* Delete vm_proxy.rs & memory_proxy.rs\r\n\r\n* Replace variables names vm_proxy -> vm\r\n\r\n* fix custom_hint_example\r\n\r\n* Remove VMProxy from custom_hint_example\r\n\r\n* Remove unnecesary endlines\r\n\r\n* remove &mut VM in memcpy_hint_utils unit tests",
+          "timestamp": "2022-10-03T16:52:59-03:00",
+          "tree_id": "d5e425306a4419ac06e0e6d3f271b8195ecb8b71",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/aa33c9f6c640daa9c4b1075a1b72ad0bf7d12787"
+        },
+        "date": 1664827559860,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1701664992,
+            "range": "± 42939430",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 627995660,
+            "range": "± 10689502",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 309549465,
+            "range": "± 9643807",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1485015524,
+            "range": "± 27484342",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 219591386,
+            "range": "± 5841467",
             "unit": "ns/iter"
           }
         ]
