@@ -6,7 +6,6 @@ use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -52,23 +51,21 @@ pub fn bigint_to_uint256(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-
-    use crate::types::relocatable::Relocatable;
-    use crate::vm::vm_core::VirtualMachine;
-    use num_bigint::Sign;
-    use std::any::Any;
-
-    use super::*;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
+    use crate::vm::vm_core::VirtualMachine;
     use crate::{bigint, bigint_str, types::relocatable::MaybeRelocatable};
+    use num_bigint::Sign;
+    use std::any::Any;
 
     #[test]
     fn run_nondet_bigint3_ok() {

@@ -1,6 +1,5 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -293,22 +292,20 @@ pub fn squash_dict(
 
 #[cfg(test)]
 mod tests {
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::vm_memory::memory::Memory;
-    use std::any::Any;
-
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
+    use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::vm::vm_memory::memory::Memory;
     use crate::{any_box, bigint, bigint_str};
     use num_bigint::Sign;
+    use std::any::Any;
 
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";

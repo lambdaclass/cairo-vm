@@ -490,7 +490,6 @@ fn get_ids_data(
 #[cfg(test)]
 mod tests {
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;

@@ -2,7 +2,6 @@ use crate::bigint;
 use crate::bigint_str;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;

@@ -5,7 +5,6 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
@@ -131,7 +130,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;

@@ -2,7 +2,6 @@ use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,

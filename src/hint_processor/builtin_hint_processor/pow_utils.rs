@@ -1,3 +1,6 @@
+use crate::hint_processor::builtin_hint_processor::hint_utils::{
+    get_relocatable_from_var_name, insert_value_from_var_name,
+};
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -5,10 +8,6 @@ use crate::{bigint, hint_processor::hint_processor_definition::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
-
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_relocatable_from_var_name, insert_value_from_var_name,
-};
 
 /*
 Implements hint:
@@ -34,7 +33,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
