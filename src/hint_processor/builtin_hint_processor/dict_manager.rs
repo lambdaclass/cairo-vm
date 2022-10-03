@@ -243,9 +243,8 @@ mod tests {
     #[test]
     fn dict_manager_new_dict_empty() {
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(&mut vm_proxy, HashMap::new());
+        let base = dict_manager.new_dict(&mut vm, HashMap::new());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -259,8 +258,7 @@ mod tests {
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
-        let base = dict_manager.new_default_dict(&mut vm_proxy, &bigint!(5), None);
+        let base = dict_manager.new_default_dict(&mut vm, &bigint!(5), None);
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -278,10 +276,9 @@ mod tests {
     fn dict_manager_new_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         initial_dict.insert(bigint!(5), bigint!(5));
-        let base = dict_manager.new_dict(&mut vm_proxy, initial_dict.clone());
+        let base = dict_manager.new_dict(&mut vm, initial_dict.clone());
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -299,10 +296,8 @@ mod tests {
         let mut dict_manager = DictManager::new();
         let mut initial_dict = HashMap::<BigInt, BigInt>::new();
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
         initial_dict.insert(bigint!(5), bigint!(5));
-        let base =
-            dict_manager.new_default_dict(&mut vm_proxy, &bigint!(7), Some(initial_dict.clone()));
+        let base = dict_manager.new_default_dict(&mut vm, &bigint!(7), Some(initial_dict.clone()));
         assert_eq!(base, Ok(MaybeRelocatable::from((0, 0))));
         assert!(dict_manager.trackers.contains_key(&0));
         assert_eq!(
@@ -323,9 +318,8 @@ mod tests {
             .trackers
             .insert(0, DictTracker::new_empty(&relocatable!(0, 0)));
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            dict_manager.new_dict(&mut vm_proxy, HashMap::new()),
+            dict_manager.new_dict(&mut vm, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }
@@ -338,9 +332,8 @@ mod tests {
             DictTracker::new_default_dict(&relocatable!(0, 0), &bigint!(6), None),
         );
         let mut vm = vm!();
-        let mut vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            dict_manager.new_dict(&mut vm_proxy, HashMap::new()),
+            dict_manager.new_dict(&mut vm, HashMap::new()),
             Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(0))
         );
     }

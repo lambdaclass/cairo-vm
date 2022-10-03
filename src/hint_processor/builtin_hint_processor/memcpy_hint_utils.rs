@@ -121,9 +121,8 @@ mod tests {
         //Insert ids.prev_locs.exp into memory
         vm.memory = memory![((1, 0), 10)];
 
-        let vm_proxy = get_vm_proxy(&mut vm);
         assert_eq!(
-            get_integer_from_var_name(var_name, &vm_proxy, &ids_data, &ApTracking::default()),
+            get_integer_from_var_name(var_name, &mut vm, &ids_data, &ApTracking::default()),
             Ok(&bigint!(10))
         );
     }
@@ -143,9 +142,8 @@ mod tests {
         //Insert ids.variable into memory as a RelocatableValue
         vm.memory = memory![((1, 0), (1, 1))];
 
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
         assert_eq!(
-            get_integer_from_var_name(var_name, vm_proxy, &ids_data, &ApTracking::default()),
+            get_integer_from_var_name(var_name, &mut vm, &ids_data, &ApTracking::default()),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))

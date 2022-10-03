@@ -290,15 +290,13 @@ pub mod test_utils {
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_proxy:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let vm_proxy = &mut get_vm_proxy(&mut $vm);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(vm_proxy, $exec_proxy, &any_box!(hint_data))
+            hint_processor.execute_hint(&mut $vm, $exec_proxy, &any_box!(hint_data))
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let vm_proxy = &mut get_vm_proxy(&mut $vm);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(vm_proxy, exec_scopes_proxy_ref!(), &any_box!(hint_data))
+            hint_processor.execute_hint(&mut $vm, exec_scopes_proxy_ref!(), &any_box!(hint_data))
         }};
     }
     pub(crate) use run_hint;

@@ -132,11 +132,7 @@ mod tests {
         vm.memory = memory![((1, 1), 7)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        let vm_proxy = &mut &mut get_vm_proxy(&mut vm);
-        assert_eq!(
-            sha256_input(vm_proxy, &ids_data, &ApTracking::new()),
-            Ok(())
-        );
+        assert_eq!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![&vm.memory, ((1, 0), 1)];
     }
@@ -147,11 +143,7 @@ mod tests {
         vm.memory = memory![((1, 1), 3)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert_eq!(
-            sha256_input(vm_proxy, &ids_data, &ApTracking::new()),
-            Ok(())
-        );
+        assert_eq!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![&vm.memory, ((1, 0), 0)];
     }
@@ -183,8 +175,7 @@ mod tests {
         ];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["sha256_start", "output"];
-        let vm_proxy = &mut get_vm_proxy(&mut vm);
-        assert_eq!(sha256_main(vm_proxy, &ids_data, &ApTracking::new()), Ok(()));
+        assert_eq!(sha256_main(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
 
         check_memory![
             &vm.memory,
