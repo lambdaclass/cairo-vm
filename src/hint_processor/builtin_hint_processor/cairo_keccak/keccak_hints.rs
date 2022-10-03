@@ -1,7 +1,7 @@
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
+
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, hint_processor::hint_processor_definition::HintReference,
@@ -227,7 +227,7 @@ mod tests {
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;

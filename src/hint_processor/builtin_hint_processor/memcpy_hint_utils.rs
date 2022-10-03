@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
+
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
@@ -95,7 +95,7 @@ pub fn memcpy_continue_copying(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;

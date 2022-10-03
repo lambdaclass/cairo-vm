@@ -1,8 +1,7 @@
 use crate::{
     bigint,
     hint_processor::{
-        hint_processor_definition::HintProcessor,
-        proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
+        hint_processor_definition::HintProcessor, proxies::exec_scopes_proxy::get_exec_scopes_proxy,
     },
     serde::deserialize_program::ApTracking,
     types::{

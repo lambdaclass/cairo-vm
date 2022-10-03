@@ -61,7 +61,6 @@ use crate::hint_processor::builtin_hint_processor::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -507,7 +506,7 @@ fn get_ids_data(
 #[cfg(test)]
 mod tests {
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;

@@ -6,7 +6,7 @@ use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
+
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -58,7 +58,7 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+
     use crate::types::relocatable::Relocatable;
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::Sign;

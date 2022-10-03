@@ -1,6 +1,5 @@
 use crate::{
-    hint_processor::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy},
-    vm::vm_core::VirtualMachine,
+    hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
 };
 use std::{
     collections::HashMap,
@@ -420,7 +419,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;

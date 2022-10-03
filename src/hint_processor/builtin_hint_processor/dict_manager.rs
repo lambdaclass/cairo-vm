@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use num_bigint::BigInt;
 
 use crate::{
-    hint_processor::proxies::vm_proxy::VMProxy,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
@@ -204,10 +203,7 @@ impl DictTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        bigint, hint_processor::proxies::vm_proxy::get_vm_proxy, relocatable, utils::test_utils::*,
-        vm::vm_core::VirtualMachine,
-    };
+    use crate::{bigint, relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
 
     use num_bigint::Sign;
 

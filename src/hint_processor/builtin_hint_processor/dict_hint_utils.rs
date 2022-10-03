@@ -13,7 +13,6 @@ use crate::{
             insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
-        proxies::vm_proxy::VMProxy,
     },
     serde::deserialize_program::ApTracking,
     vm::errors::vm_errors::VirtualMachineError,
@@ -266,7 +265,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
+
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;

@@ -10,7 +10,7 @@ use crate::{
     vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
-use super::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
+use super::hint_processor_definition::HintReference;
 
 ///Inserts value into the address of the given ids variable
 pub fn insert_value_from_reference(
