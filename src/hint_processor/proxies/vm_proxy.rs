@@ -7,7 +7,7 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
-        runners::builtin_runner::BuiltinRunner,
+        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
         vm_core::VirtualMachine,
         vm_memory::memory_segments::MemorySegmentManager,
     },
@@ -116,5 +116,18 @@ impl VMProxy<'_> {
         size: usize,
     ) -> Result<Vec<&BigInt>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
+    }
+
+    pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+        for (name, builtin) in self.builtin_runners {
+            if name == &String::from("range_check") {
+                if let Some(range_check_builtin) =
+                    builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                {
+                    return Ok(range_check_builtin);
+                };
+            }
+        }
+        Err(VirtualMachineError::NoRangeCheckBuiltin)
     }
 }

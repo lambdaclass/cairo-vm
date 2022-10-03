@@ -1,4 +1,3 @@
-use crate::hint_processor::hint_processor_utils::get_range_check_builtin;
 use crate::hint_processor::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
 use std::{
     collections::HashMap,
@@ -28,7 +27,7 @@ pub fn is_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let range_check_builtin = vm_proxy.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if a.mod_floor(vm_proxy.get_prime()) >= bigint!(0)
         && a.mod_floor(vm_proxy.get_prime()) < range_check_builtin._bound
@@ -47,7 +46,7 @@ pub fn is_nn_out_of_range(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let range_check_builtin = vm_proxy.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if (-a - 1usize).mod_floor(vm_proxy.get_prime()) < range_check_builtin._bound {
         bigint!(0)
@@ -71,7 +70,7 @@ pub fn assert_le_felt(
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     let b = get_integer_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let range_check_builtin = vm_proxy.get_range_check_builtin()?;
     //Assert a <= b
     if a.mod_floor(vm_proxy.get_prime()) > b.mod_floor(vm_proxy.get_prime()) {
         return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
@@ -164,7 +163,7 @@ pub fn assert_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let range_check_builtin = vm_proxy.get_range_check_builtin()?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
     if a.mod_floor(vm_proxy.get_prime()) >= range_check_builtin._bound {
@@ -236,7 +235,7 @@ pub fn is_positive(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    let range_check_builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let range_check_builtin = vm_proxy.get_range_check_builtin()?;
     //Main logic (assert a is positive)
     let int_value = as_int(value, vm_proxy.get_prime());
     if int_value.abs() > range_check_builtin._bound {
@@ -302,7 +301,7 @@ pub fn signed_div_rem(
     let div = get_integer_from_var_name("div", vm_proxy, ids_data, ap_tracking)?;
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
     let bound = get_integer_from_var_name("bound", vm_proxy, ids_data, ap_tracking)?;
-    let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let builtin = vm_proxy.get_range_check_builtin()?;
     // Main logic
     if !div.is_positive() || div > &(vm_proxy.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
@@ -344,7 +343,7 @@ pub fn unsigned_div_rem(
 ) -> Result<(), VirtualMachineError> {
     let div = get_integer_from_var_name("div", vm_proxy, ids_data, ap_tracking)?;
     let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?;
-    let builtin = get_range_check_builtin(vm_proxy.builtin_runners)?;
+    let builtin = vm_proxy.get_range_check_builtin()?;
     // Main logic
     if !div.is_positive() || div > &(vm_proxy.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
