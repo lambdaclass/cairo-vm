@@ -46,14 +46,14 @@ pub struct HintData {
 }
 
 pub struct VirtualMachine {
-    pub run_context: RunContext,
-    pub prime: BigInt,
-    pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
-    pub segments: MemorySegmentManager,
-    pub _program_base: Option<MaybeRelocatable>,
-    pub memory: Memory,
+    pub(crate) run_context: RunContext,
+    pub(crate) prime: BigInt,
+    pub(crate) builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub(crate) segments: MemorySegmentManager,
+    pub(crate) _program_base: Option<MaybeRelocatable>,
+    pub(crate) memory: Memory,
     accessed_addresses: Option<Vec<Relocatable>>,
-    pub trace: Option<Vec<TraceEntry>>,
+    pub(crate) trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
 }
