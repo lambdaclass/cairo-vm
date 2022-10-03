@@ -1,8 +1,8 @@
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::instruction::Register;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::any::Any;
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ pub trait HintProcessor {
         &self,
         //Proxy to VM, contains refrences to necessary data
         //+ MemoryProxy, which provides the necessary methods to manipulate memory
-        vm_proxy: &mut VMProxy,
+        vm: &mut VirtualMachine,
         //Proxy to ExecutionScopes, provides the necessary methods to manipulate the scopes and
         //access current scope variables
         exec_scopes_proxy: &mut ExecutionScopesProxy,

@@ -140,6 +140,7 @@ dependencies = [
  "sha2 0.10.2",
  "sha3",
  "starknet-crypto",
+ "thiserror",
 ]
 
 [[package]]
@@ -484,8 +485,6 @@ checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
 [[package]]
 name = "parse-hyperlinks"
 version = "0.23.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0181d37c4d5ae35cc8be7cf823c1a933005661da6a08bcb2855aa392c9a54b8e"
 dependencies = [
  "html-escape",
  "nom",

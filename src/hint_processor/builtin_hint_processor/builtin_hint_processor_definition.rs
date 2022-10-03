@@ -35,6 +35,7 @@ use crate::hint_processor::hint_processor_definition::{HintProcessor, HintRefere
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -60,7 +61,6 @@ use crate::hint_processor::builtin_hint_processor::usort::{
     usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
     verify_usort,
 };
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -82,7 +82,7 @@ impl HintProcessorData {
 pub struct HintFunc(
     pub  Box<
         dyn Fn(
-            &mut VMProxy,
+            &mut VirtualMachine,
             &mut ExecutionScopesProxy,
             &HashMap<String, HintReference>,
             &ApTracking,
@@ -111,7 +111,7 @@ impl BuiltinHintProcessor {
 impl HintProcessor for BuiltinHintProcessor {
     fn execute_hint(
         &self,
-        vm_proxy: &mut VMProxy,
+        vm: &mut VirtualMachine,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
         hint_data: &Box<dyn Any>,
     ) -> Result<(), VirtualMachineError> {
@@ -121,7 +121,7 @@ impl HintProcessor for BuiltinHintProcessor {
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
@@ -129,124 +129,114 @@ impl HintProcessor for BuiltinHintProcessor {
         }
 
         match &*hint_data.code {
-            hint_code::ADD_SEGMENT => add_segment(vm_proxy),
-            hint_code::IS_NN => is_nn(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::ADD_SEGMENT => add_segment(vm),
+            hint_code::IS_NN => is_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_NN_OUT_OF_RANGE => {
-                is_nn_out_of_range(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                is_nn_out_of_range(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::IS_LE_FELT => {
-                is_le_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_LE_FELT => {
-                assert_le_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::ASSERT_250_BITS => {
-                assert_250_bit(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::IS_POSITIVE => {
-                is_positive(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::IS_POSITIVE => is_positive(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SPLIT_INT_ASSERT_RANGE => {
-                split_int_assert_range(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                split_int_assert_range(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::SPLIT_INT => {
-                split_int(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::SPLIT_INT => split_int(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_NOT_EQUAL => {
-                assert_not_equal(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_not_equal(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::ASSERT_NN => {
-                assert_nn(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
-            hint_code::SQRT => sqrt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::ASSERT_NN => assert_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SQRT => sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_NOT_ZERO => {
-                assert_not_zero(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_not_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::VM_EXIT_SCOPE => exit_scope(exec_scopes_proxy),
             hint_code::MEMCPY_ENTER_SCOPE => memcpy_enter_scope(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::MEMSET_ENTER_SCOPE => memset_enter_scope(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::MEMCPY_CONTINUE_COPYING => memcpy_continue_copying(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::MEMSET_CONTINUE_LOOP => memset_continue_loop(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::SPLIT_FELT => {
-                split_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::SPLIT_FELT => split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UNSIGNED_DIV_REM => {
-                unsigned_div_rem(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::SIGNED_DIV_REM => {
-                signed_div_rem(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                signed_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::ASSERT_LT_FELT => {
-                assert_lt_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_lt_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::FIND_ELEMENT => find_element(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::SEARCH_SORTED_LOWER => search_sorted_lower(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::POW => pow(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
-            hint_code::SET_ADD => set_add(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
-            hint_code::DICT_NEW => dict_new(vm_proxy, exec_scopes_proxy),
+            hint_code::POW => pow(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SET_ADD => set_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::DICT_NEW => dict_new(vm, exec_scopes_proxy),
             hint_code::DICT_READ => dict_read(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::DICT_WRITE => dict_write(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::DEFAULT_DICT_NEW => default_dict_new(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => squash_dict_inner_first_iteration(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::USORT_ENTER_SCOPE => usort_enter_scope(exec_scopes_proxy),
             hint_code::USORT_BODY => usort_body(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::USORT_VERIFY => verify_usort(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
@@ -255,63 +245,61 @@ impl HintProcessor for BuiltinHintProcessor {
                 verify_multiplicity_assert(exec_scopes_proxy)
             }
             hint_code::USORT_VERIFY_MULTIPLICITY_BODY => verify_multiplicity_body(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::BLAKE2S_COMPUTE => {
-                compute_blake2s(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO => {
-                verify_zero(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::VERIFY_ZERO => verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::NONDET_BIGINT3 => nondet_bigint3(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::REDUCE => reduce(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::BLAKE2S_FINALIZE => {
-                finalize_blake2s(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256 => {
-                blake2s_add_uint256(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                blake2s_add_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => {
-                blake2s_add_uint256_bigend(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                blake2s_add_uint256_bigend(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UNSAFE_KECCAK => unsafe_keccak(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::UNSAFE_KECCAK_FINALIZE => {
-                unsafe_keccak_finalize(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                unsafe_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::SQUASH_DICT_INNER_SKIP_LOOP => squash_dict_inner_skip_loop(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::SQUASH_DICT_INNER_CHECK_ACCESS_INDEX => {
                 squash_dict_inner_check_access_index(
-                    vm_proxy,
+                    vm,
                     exec_scopes_proxy,
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
                 )
             }
             hint_code::SQUASH_DICT_INNER_CONTINUE_LOOP => squash_dict_inner_continue_loop(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
@@ -324,144 +312,140 @@ impl HintProcessor for BuiltinHintProcessor {
             }
             hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
                 squash_dict_inner_used_accesses_assert(
-                    vm_proxy,
+                    vm,
                     exec_scopes_proxy,
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
                 )
             }
             hint_code::SQUASH_DICT_INNER_NEXT_KEY => squash_dict_inner_next_key(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::SQUASH_DICT => squash_dict(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::VM_ENTER_SCOPE => enter_scope(exec_scopes_proxy),
             hint_code::DICT_UPDATE => dict_update(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::DICT_SQUASH_COPY_DICT => dict_squash_copy_dict(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::DICT_SQUASH_UPDATE_PTR => dict_squash_update_ptr(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::UINT256_ADD => {
-                uint256_add(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
-            hint_code::SPLIT_64 => split_64(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::UINT256_ADD => uint256_add(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SPLIT_64 => split_64(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UINT256_SQRT => {
-                uint256_sqrt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint256_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_SIGNED_NN => {
-                uint256_signed_nn(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint256_signed_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UINT256_UNSIGNED_DIV_REM => {
-                uint256_unsigned_div_rem(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                uint256_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BIGINT_TO_UINT256 => {
-                bigint_to_uint256(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::IS_ZERO_PACK => is_zero_pack(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm_proxy, exec_scopes_proxy),
+            hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes_proxy),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => {
                 is_zero_assign_scope_variables(exec_scopes_proxy)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes_proxy),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::EC_NEGATE => ec_negate(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::COMPUTE_SLOPE => compute_slope(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes_proxy),
             hint_code::KECCAK_WRITE_ARGS => {
-                keccak_write_args(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                keccak_write_args(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::COMPARE_BYTES_IN_WORD_NONDET => {
-                compare_bytes_in_word_nondet(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                compare_bytes_in_word_nondet(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::SHA256_MAIN => {
-                sha256_main(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::SHA256_MAIN => sha256_main(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SHA256_INPUT => {
-                sha256_input(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::SHA256_FINALIZE => {
-                sha256_finalize(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
                 compare_keccak_full_rate_in_bytes_nondet(
-                    vm_proxy,
+                    vm,
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
                 )
             }
             hint_code::BLOCK_PERMUTATION => {
-                block_permutation(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::CAIRO_KECCAK_FINALIZE => {
-                cairo_keccak_finalize(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                cairo_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => fast_ec_add_assign_new_x(
-                vm_proxy,
+                vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
             hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes_proxy),
             hint_code::EC_MUL_INNER => {
-                ec_mul_inner(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking)
+                ec_mul_inner(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             code => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
@@ -506,7 +490,6 @@ fn get_ids_data(
 #[cfg(test)]
 mod tests {
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;

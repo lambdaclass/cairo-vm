@@ -1,8 +1,8 @@
 use crate::bigint;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
@@ -13,21 +13,21 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn set_add(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let set_ptr = get_ptr_from_var_name("set_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", vm_proxy, ids_data, ap_tracking)?
+    let set_ptr = get_ptr_from_var_name("set_ptr", vm, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?
         .to_usize()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
-    let elm_ptr = get_ptr_from_var_name("elm_ptr", vm_proxy, ids_data, ap_tracking)?;
-    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let elm_ptr = get_ptr_from_var_name("elm_ptr", vm, ids_data, ap_tracking)?;
+    let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
         return Err(VirtualMachineError::ValueNotPositive(bigint!(elm_size)));
     }
-    let elm = vm_proxy
+    let elm = vm
         .get_range(&MaybeRelocatable::from(elm_ptr), elm_size)
         .map_err(VirtualMachineError::MemoryError)?;
 
@@ -41,7 +41,7 @@ pub fn set_add(
     let range_limit = set_end_ptr.sub_rel(&set_ptr)?;
 
     for i in (0..range_limit).step_by(elm_size) {
-        let set_iter = vm_proxy
+        let set_iter = vm
             .get_range(
                 &MaybeRelocatable::from(set_ptr.clone() + i as usize),
                 elm_size,
@@ -49,23 +49,17 @@ pub fn set_add(
             .map_err(VirtualMachineError::MemoryError)?;
 
         if set_iter == elm {
-            insert_value_from_var_name(
-                "index",
-                bigint!(i / elm_size),
-                vm_proxy,
-                ids_data,
-                ap_tracking,
-            )?;
+            insert_value_from_var_name("index", bigint!(i / elm_size), vm, ids_data, ap_tracking)?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
                 bigint!(1),
-                vm_proxy,
+                vm,
                 ids_data,
                 ap_tracking,
             );
         }
     }
-    insert_value_from_var_name("is_elm_in_set", bigint!(0), vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("is_elm_in_set", bigint!(0), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -76,7 +70,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
