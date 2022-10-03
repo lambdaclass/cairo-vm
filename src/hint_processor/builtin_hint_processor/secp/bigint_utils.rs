@@ -23,16 +23,15 @@ Implements hint:
 %}
 */
 pub fn nondet_bigint3(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let res_reloc = get_relocatable_from_var_name("res", vm_proxy, ids_data, ap_tracking)?;
+    let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes_proxy.get_int_ref("value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
-    vm_proxy
-        .write_arg(&res_reloc, &arg)
+    vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
@@ -40,15 +39,15 @@ pub fn nondet_bigint3(
 // Implements hint
 // %{ ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1) %}
 pub fn bigint_to_uint256(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_struct = get_relocatable_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
-    let d0 = vm_proxy.get_integer(&x_struct)?;
-    let d1 = vm_proxy.get_integer(&(&x_struct + 1))?;
+    let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let d0 = vm.get_integer(&x_struct)?;
+    let d1 = vm.get_integer(&(&x_struct + 1))?;
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
-    insert_value_from_var_name("low", low, vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]

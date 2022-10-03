@@ -15,15 +15,14 @@ Implements hint:
 %{ ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1 %}
 */
 pub fn pow(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let prev_locs_addr =
-        get_relocatable_from_var_name("prev_locs", vm_proxy, ids_data, ap_tracking)?;
-    let prev_locs_exp = vm_proxy.get_integer(&(&prev_locs_addr + 4))?;
-    let locs_bit = prev_locs_exp.mod_floor(vm_proxy.get_prime()) & bigint!(1);
-    insert_value_from_var_name("locs", locs_bit, vm_proxy, ids_data, ap_tracking)?;
+    let prev_locs_addr = get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)?;
+    let prev_locs_exp = vm.get_integer(&(&prev_locs_addr + 4))?;
+    let locs_bit = prev_locs_exp.mod_floor(vm.get_prime()) & bigint!(1);
+    insert_value_from_var_name("locs", locs_bit, vm, ids_data, ap_tracking)?;
     Ok(())
 }
 

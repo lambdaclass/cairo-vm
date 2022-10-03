@@ -69,10 +69,10 @@ impl DictManager {
     //For now, no initial dict will be processed (Assumes initial_dict = None)
     pub fn new_dict(
         &mut self,
-        vm_proxy: &mut VirtualMachine,
+        vm: &mut VirtualMachine,
         initial_dict: HashMap<BigInt, BigInt>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base = vm_proxy.add_memory_segment();
+        let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
             return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,
@@ -88,11 +88,11 @@ impl DictManager {
     //Creates a new Cairo default dictionary
     pub fn new_default_dict(
         &mut self,
-        vm_proxy: &mut VirtualMachine,
+        vm: &mut VirtualMachine,
         default_value: &BigInt,
         initial_dict: Option<HashMap<BigInt, BigInt>>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let base = vm_proxy.add_memory_segment();
+        let base = vm.add_memory_segment();
         if self.trackers.contains_key(&base.segment_index) {
             return Err(VirtualMachineError::CantCreateDictionaryOnTakenSegment(
                 base.segment_index,

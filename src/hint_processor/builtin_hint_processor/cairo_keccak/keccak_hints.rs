@@ -28,24 +28,22 @@ Implements hint:
     %}
 */
 pub fn keccak_write_args(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let inputs_ptr = get_ptr_from_var_name("inputs", vm_proxy, ids_data, ap_tracking)?;
+    let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
 
-    let low = get_integer_from_var_name("low", vm_proxy, ids_data, ap_tracking)?;
-    let high = get_integer_from_var_name("high", vm_proxy, ids_data, ap_tracking)?;
+    let low = get_integer_from_var_name("low", vm, ids_data, ap_tracking)?;
+    let high = get_integer_from_var_name("high", vm, ids_data, ap_tracking)?;
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
 
-    vm_proxy
-        .write_arg(&inputs_ptr, &low_args.to_vec())
+    vm.write_arg(&inputs_ptr, &low_args.to_vec())
         .map_err(VirtualMachineError::MemoryError)?;
 
-    vm_proxy
-        .write_arg(&inputs_ptr.add(2)?, &high_args.to_vec())
+    vm.write_arg(&inputs_ptr.add(2)?, &high_args.to_vec())
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -60,11 +58,11 @@ Implements hint:
     memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)
 */
 pub fn compare_bytes_in_word_nondet(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
@@ -72,7 +70,7 @@ pub fn compare_bytes_in_word_nondet(
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
     let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
-    insert_value_into_ap(vm_proxy, value)
+    insert_value_into_ap(vm, value)
 }
 
 /*
@@ -84,14 +82,14 @@ Implements hint:
     "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
-    insert_value_into_ap(vm_proxy, value)
+    insert_value_into_ap(vm, value)
 }
 
 /*
@@ -107,7 +105,7 @@ Implements hint:
     %}
 */
 pub fn block_permutation(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -119,9 +117,9 @@ pub fn block_permutation(
         ));
     }
 
-    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm, ids_data, ap_tracking)?;
 
-    let values = vm_proxy
+    let values = vm
         .get_range(
             &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
             KECCAK_STATE_SIZE_FELTS,
@@ -136,8 +134,7 @@ pub fn block_permutation(
 
     let bigint_values = u64_array_to_bigint_vec(&u64_values);
 
-    vm_proxy
-        .write_arg(&keccak_ptr, &bigint_values)
+    vm.write_arg(&keccak_ptr, &bigint_values)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())
@@ -156,7 +153,7 @@ pub fn block_permutation(
     %}
 */
 pub fn cairo_keccak_finalize(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -184,10 +181,9 @@ pub fn cairo_keccak_finalize(
         padding.extend_from_slice(base_padding.as_slice());
     }
 
-    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", vm_proxy, ids_data, ap_tracking)?;
+    let keccak_ptr_end = get_ptr_from_var_name("keccak_ptr_end", vm, ids_data, ap_tracking)?;
 
-    vm_proxy
-        .write_arg(&keccak_ptr_end, &padding)
+    vm.write_arg(&keccak_ptr_end, &padding)
         .map_err(VirtualMachineError::MemoryError)?;
 
     Ok(())

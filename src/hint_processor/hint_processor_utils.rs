@@ -15,17 +15,17 @@ use super::hint_processor_definition::HintReference;
 ///Inserts value into the address of the given ids variable
 pub fn insert_value_from_reference(
     value: impl Into<MaybeRelocatable>,
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let var_addr = compute_addr_from_reference(hint_reference, vm_proxy, ap_tracking)?;
-    vm_proxy.insert_value(&var_addr, value)
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    vm.insert_value(&var_addr, value)
 }
 
 ///Returns the Integer value stored in the given ids variable
 pub fn get_integer_from_reference<'a>(
-    vm_proxy: &'a VirtualMachine,
+    vm: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
@@ -36,20 +36,20 @@ pub fn get_integer_from_reference<'a>(
         return Ok(hint_reference.immediate.as_ref().unwrap());
     }
 
-    let var_addr = compute_addr_from_reference(hint_reference, vm_proxy, ap_tracking)?;
-    vm_proxy.get_integer(&var_addr)
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    vm.get_integer(&var_addr)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
 pub fn get_ptr_from_reference(
-    vm_proxy: &VirtualMachine,
+    vm: &VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let var_addr = compute_addr_from_reference(hint_reference, vm_proxy, ap_tracking)?;
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
     //Add immediate if present in reference
     if hint_reference.dereference {
-        let value = vm_proxy.get_relocatable(&var_addr)?;
+        let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)
@@ -65,20 +65,20 @@ pub fn get_ptr_from_reference(
 pub fn compute_addr_from_reference(
     //Reference data of the ids variable
     hint_reference: &HintReference,
-    vm_proxy: &VirtualMachine,
+    vm: &VirtualMachine,
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
     let base_addr = match hint_reference.register {
         //This should never fail
-        Some(Register::FP) => vm_proxy.get_fp(),
+        Some(Register::FP) => vm.get_fp(),
         Some(Register::AP) => {
             let var_ap_trackig = hint_reference
                 .ap_tracking_data
                 .as_ref()
                 .ok_or(VirtualMachineError::NoneApTrackingData)?;
 
-            apply_ap_tracking_correction(&vm_proxy.get_ap(), var_ap_trackig, hint_ap_tracking)?
+            apply_ap_tracking_correction(&vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
         }
         None => return Err(VirtualMachineError::NoRegisterInReference),
     };
@@ -91,7 +91,7 @@ pub fn compute_addr_from_reference(
         Ok(base_addr + hint_reference.offset1 + hint_reference.offset2)
     } else {
         let addr = base_addr + hint_reference.offset1;
-        let dereferenced_addr = vm_proxy
+        let dereferenced_addr = vm
             .get_relocatable(&addr)
             .map_err(|_| VirtualMachineError::FailedToGetIds)?;
         if let Some(imm) = &hint_reference.immediate {

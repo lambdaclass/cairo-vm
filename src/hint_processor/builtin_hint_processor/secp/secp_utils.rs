@@ -69,28 +69,28 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
 
 pub fn pack_from_var_name(
     name: &str,
-    vm_proxy: &VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<BigInt, VirtualMachineError> {
-    let to_pack = get_relocatable_from_var_name(name, vm_proxy, ids_data, ap_tracking)?;
+    let to_pack = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
 
-    let d0 = vm_proxy.get_integer(&to_pack)?;
-    let d1 = vm_proxy.get_integer(&(&to_pack + 1))?;
-    let d2 = vm_proxy.get_integer(&(&to_pack + 2))?;
+    let d0 = vm.get_integer(&to_pack)?;
+    let d1 = vm.get_integer(&(&to_pack + 1))?;
+    let d2 = vm.get_integer(&(&to_pack + 2))?;
 
-    Ok(pack(d0, d1, d2, vm_proxy.get_prime()))
+    Ok(pack(d0, d1, d2, vm.get_prime()))
 }
 
 pub fn pack_from_relocatable(
     rel: Relocatable,
-    vm_proxy: &VirtualMachine,
+    vm: &VirtualMachine,
 ) -> Result<BigInt, VirtualMachineError> {
-    let d0 = vm_proxy.get_integer(&rel)?;
-    let d1 = vm_proxy.get_integer(&(&rel + 1))?;
-    let d2 = vm_proxy.get_integer(&(&rel + 2))?;
+    let d0 = vm.get_integer(&rel)?;
+    let d1 = vm.get_integer(&(&rel + 1))?;
+    let d2 = vm.get_integer(&(&rel + 2))?;
 
-    Ok(pack(d0, d1, d2, vm_proxy.get_prime()))
+    Ok(pack(d0, d1, d2, vm.get_prime()))
 }
 
 #[cfg(test)]

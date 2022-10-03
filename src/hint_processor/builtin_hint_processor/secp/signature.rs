@@ -25,13 +25,13 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let a = pack_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
-    let b = pack_from_var_name("b", vm_proxy, ids_data, ap_tracking)?;
+    let a = pack_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
     exec_scopes_proxy.insert_value("a", a);
@@ -57,17 +57,16 @@ pub fn div_mod_n_safe_div(
 }
 
 pub fn get_point_from_x(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_cube_int =
-        pack_from_var_name("x_cube", vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
+    let x_cube_int = pack_from_var_name("x_cube", vm, ids_data, ap_tracking)?.mod_floor(&SECP_P);
     let y_cube_int = (x_cube_int + &*BETA).mod_floor(&SECP_P);
     let mut y = y_cube_int.modpow(&((&*SECP_P + 1) / 4), &*SECP_P);
 
-    let v = get_integer_from_var_name("v", vm_proxy, ids_data, ap_tracking)?;
+    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?;
     if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }

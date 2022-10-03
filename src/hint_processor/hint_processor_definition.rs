@@ -13,7 +13,7 @@ pub trait HintProcessor {
         &self,
         //Proxy to VM, contains refrences to necessary data
         //+ MemoryProxy, which provides the necessary methods to manipulate memory
-        vm_proxy: &mut VirtualMachine,
+        vm: &mut VirtualMachine,
         //Proxy to ExecutionScopes, provides the necessary methods to manipulate the scopes and
         //access current scope variables
         exec_scopes_proxy: &mut ExecutionScopesProxy,

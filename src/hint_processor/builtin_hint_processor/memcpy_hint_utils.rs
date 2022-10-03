@@ -19,9 +19,9 @@ use crate::{
 };
 
 //Implements hint: memory[ap] = segments.add()
-pub fn add_segment(vm_proxy: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
-    let new_segment_base = vm_proxy.add_memory_segment();
-    insert_value_into_ap(vm_proxy, new_segment_base)
+pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
+    let new_segment_base = vm.add_memory_segment();
+    insert_value_into_ap(vm, new_segment_base)
 }
 
 //Implements hint: vm_enter_scope()
@@ -43,13 +43,13 @@ pub fn exit_scope(exec_scopes_proxy: &mut ExecutionScopesProxy) -> Result<(), Vi
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let len: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("len", vm_proxy, ids_data, ap_tracking)?.clone());
+        Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?.clone());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), len)]));
     Ok(())
 }
@@ -60,7 +60,7 @@ pub fn memcpy_enter_scope(
 //     ids.continue_copying = 1 if n > 0 else 0
 // %}
 pub fn memcpy_continue_copying(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -72,21 +72,9 @@ pub fn memcpy_continue_copying(
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
     if new_n.is_positive() {
-        insert_value_from_var_name(
-            "continue_copying",
-            bigint!(1),
-            vm_proxy,
-            ids_data,
-            ap_tracking,
-        )?;
+        insert_value_from_var_name("continue_copying", bigint!(1), vm, ids_data, ap_tracking)?;
     } else {
-        insert_value_from_var_name(
-            "continue_copying",
-            bigint!(0),
-            vm_proxy,
-            ids_data,
-            ap_tracking,
-        )?;
+        insert_value_from_var_name("continue_copying", bigint!(0), vm, ids_data, ap_tracking)?;
     }
     exec_scopes_proxy.insert_value("n", new_n);
     Ok(())

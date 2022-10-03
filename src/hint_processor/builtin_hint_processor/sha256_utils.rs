@@ -24,11 +24,11 @@ const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
 ];
 
 pub fn sha256_input(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let n_bytes = get_integer_from_var_name("n_bytes", vm_proxy, ids_data, ap_tracking)?;
+    let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
 
     insert_value_from_var_name(
         "full_word",
@@ -37,23 +37,23 @@ pub fn sha256_input(
         } else {
             BigInt::zero()
         },
-        vm_proxy,
+        vm,
         ids_data,
         ap_tracking,
     )
 }
 
 pub fn sha256_main(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let input_ptr = get_ptr_from_var_name("sha256_start", vm_proxy, ids_data, ap_tracking)?;
+    let input_ptr = get_ptr_from_var_name("sha256_start", vm, ids_data, ap_tracking)?;
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * SHA256_INPUT_CHUNK_SIZE_FELTS);
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
-        let input_element = vm_proxy.get_integer(&(&input_ptr + i))?;
+        let input_element = vm.get_integer(&(&input_ptr + i))?;
         let bytes = bigint_to_u32(input_element)?.to_be_bytes();
         message.extend(bytes);
     }
@@ -68,16 +68,15 @@ pub fn sha256_main(
         output.push(bigint!(new_state));
     }
 
-    let output_base = get_ptr_from_var_name("output", vm_proxy, ids_data, ap_tracking)?;
+    let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
 
-    vm_proxy
-        .write_arg(&output_base, &output)
+    vm.write_arg(&output_base, &output)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
 
 pub fn sha256_finalize(
-    vm_proxy: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -96,7 +95,7 @@ pub fn sha256_finalize(
         output.push(bigint!(new_state));
     }
 
-    let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm_proxy, ids_data, ap_tracking)?;
+    let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm, ids_data, ap_tracking)?;
 
     let mut padding: Vec<BigInt> = Vec::new();
     let zero_vector_message = vec![BigInt::zero(); 16];
@@ -107,8 +106,7 @@ pub fn sha256_finalize(
         padding.extend_from_slice(output.as_slice());
     }
 
-    vm_proxy
-        .write_arg(&sha256_ptr_end, &padding)
+    vm.write_arg(&sha256_ptr_end, &padding)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
 }
