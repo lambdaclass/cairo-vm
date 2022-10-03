@@ -40,6 +40,7 @@ fn main() {
         Path::new("custom_hint.json"),
         "main",
         false,
+        false,
         &hint_processor,
     )
     .expect("Couldn't run program");
