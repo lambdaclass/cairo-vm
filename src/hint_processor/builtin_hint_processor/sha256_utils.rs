@@ -3,6 +3,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::hint_processor_utils::bigint_to_u32;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
 };
@@ -23,7 +24,7 @@ const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
 ];
 
 pub fn sha256_input(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -43,7 +44,7 @@ pub fn sha256_input(
 }
 
 pub fn sha256_main(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -76,7 +77,7 @@ pub fn sha256_main(
 }
 
 pub fn sha256_finalize(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

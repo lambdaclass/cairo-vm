@@ -3,6 +3,7 @@ use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::HashMap;
@@ -13,7 +14,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::hint_processor_definition::HintReference;
 
 pub fn set_add(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

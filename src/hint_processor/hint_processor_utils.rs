@@ -7,7 +7,7 @@ use crate::{
         instruction::Register,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
 use super::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
@@ -15,7 +15,7 @@ use super::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy
 ///Inserts value into the address of the given ids variable
 pub fn insert_value_from_reference(
     value: impl Into<MaybeRelocatable>,
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -25,7 +25,7 @@ pub fn insert_value_from_reference(
 
 ///Returns the Integer value stored in the given ids variable
 pub fn get_integer_from_reference<'a>(
-    vm_proxy: &'a VMProxy,
+    vm_proxy: &'a VirtualMachine,
     hint_reference: &'a HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
@@ -42,7 +42,7 @@ pub fn get_integer_from_reference<'a>(
 
 ///Returns the Relocatable value stored in the given ids variable
 pub fn get_ptr_from_reference(
-    vm_proxy: &VMProxy,
+    vm_proxy: &VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
@@ -65,7 +65,7 @@ pub fn get_ptr_from_reference(
 pub fn compute_addr_from_reference(
     //Reference data of the ids variable
     hint_reference: &HintReference,
-    vm_proxy: &VMProxy,
+    vm_proxy: &VirtualMachine,
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {

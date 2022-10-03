@@ -7,6 +7,7 @@ use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
 };
@@ -15,7 +16,7 @@ use num_traits::{Signed, ToPrimitive};
 use std::collections::HashMap;
 
 pub fn find_element(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -94,7 +95,7 @@ pub fn find_element(
 }
 
 pub fn search_sorted_lower(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

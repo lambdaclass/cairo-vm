@@ -35,6 +35,7 @@ use crate::hint_processor::hint_processor_definition::{HintProcessor, HintRefere
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -82,7 +83,7 @@ impl HintProcessorData {
 pub struct HintFunc(
     pub  Box<
         dyn Fn(
-            &mut VMProxy,
+            &mut VirtualMachine,
             &mut ExecutionScopesProxy,
             &HashMap<String, HintReference>,
             &ApTracking,
@@ -111,7 +112,7 @@ impl BuiltinHintProcessor {
 impl HintProcessor for BuiltinHintProcessor {
     fn execute_hint(
         &self,
-        vm_proxy: &mut VMProxy,
+        vm_proxy: &mut VirtualMachine,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
         hint_data: &Box<dyn Any>,
     ) -> Result<(), VirtualMachineError> {

@@ -4,6 +4,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
     serde::deserialize_program::ApTracking,
@@ -40,7 +41,7 @@ use std::{cmp, collections::HashMap, ops::Shl};
    %}
 */
 pub fn unsafe_keccak(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -118,7 +119,7 @@ Implements hint:
 
  */
 pub fn unsafe_keccak_finalize(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

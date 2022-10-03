@@ -3,6 +3,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
 };
@@ -28,7 +29,7 @@ pub fn usort_enter_scope(
 }
 
 pub fn usort_body(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -96,7 +97,7 @@ pub fn usort_body(
 }
 
 pub fn verify_usort(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -124,7 +125,7 @@ pub fn verify_multiplicity_assert(
 }
 
 pub fn verify_multiplicity_body(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

@@ -6,6 +6,7 @@ use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::isqrt;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::{div_rem, Integer};
 use num_traits::Signed;
@@ -27,7 +28,7 @@ Implements hint:
 %}
 */
 pub fn uint256_add(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -69,7 +70,7 @@ Implements hint:
 %}
 */
 pub fn split_64(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -97,7 +98,7 @@ Implements hint:
 %}
 */
 pub fn uint256_sqrt(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -131,7 +132,7 @@ Implements hint:
 %{ memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0 %}
 */
 pub fn uint256_signed_nn(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -163,7 +164,7 @@ Implements hint:
 %}
 */
 pub fn uint256_unsigned_div_rem(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

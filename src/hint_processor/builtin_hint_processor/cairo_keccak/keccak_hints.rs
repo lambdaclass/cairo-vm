@@ -2,6 +2,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking, types::relocatable::MaybeRelocatable,
@@ -27,7 +28,7 @@ Implements hint:
     %}
 */
 pub fn keccak_write_args(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -59,7 +60,7 @@ Implements hint:
     memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)
 */
 pub fn compare_bytes_in_word_nondet(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -83,7 +84,7 @@ Implements hint:
     "memory[ap] = to_felt_or_relocatable(ids.n_bytes >= ids.KECCAK_FULL_RATE_IN_BYTES)"
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -106,7 +107,7 @@ Implements hint:
     %}
 */
 pub fn block_permutation(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -155,7 +156,7 @@ pub fn block_permutation(
     %}
 */
 pub fn cairo_keccak_finalize(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

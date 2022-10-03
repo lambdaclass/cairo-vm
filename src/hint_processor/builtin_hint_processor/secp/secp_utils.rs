@@ -7,6 +7,7 @@ use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};
@@ -68,7 +69,7 @@ pub fn pack(d0: &BigInt, d1: &BigInt, d2: &BigInt, prime: &BigInt) -> BigInt {
 
 pub fn pack_from_var_name(
     name: &str,
-    vm_proxy: &VMProxy,
+    vm_proxy: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<BigInt, VirtualMachineError> {
@@ -83,7 +84,7 @@ pub fn pack_from_var_name(
 
 pub fn pack_from_relocatable(
     rel: Relocatable,
-    vm_proxy: &VMProxy,
+    vm_proxy: &VirtualMachine,
 ) -> Result<BigInt, VirtualMachineError> {
     let d0 = vm_proxy.get_integer(&rel)?;
     let d1 = vm_proxy.get_integer(&(&rel + 1))?;

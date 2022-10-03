@@ -7,6 +7,7 @@ use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
@@ -14,7 +15,7 @@ use std::collections::HashMap;
 pub fn insert_value_from_var_name(
     var_name: &str,
     value: impl Into<MaybeRelocatable>,
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -24,7 +25,7 @@ pub fn insert_value_from_var_name(
 
 //Inserts value into ap
 pub fn insert_value_into_ap(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
     vm_proxy.insert_value(&vm_proxy.get_ap(), value)
@@ -33,7 +34,7 @@ pub fn insert_value_into_ap(
 //Returns the Relocatable value stored in the given ids variable
 pub fn get_ptr_from_var_name(
     var_name: &str,
-    vm_proxy: &VMProxy,
+    vm_proxy: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
@@ -58,7 +59,7 @@ pub fn get_ptr_from_var_name(
 //Gets the address, as a MaybeRelocatable of the variable given by the ids name
 pub fn get_address_from_var_name(
     var_name: &str,
-    vm_proxy: &VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -74,7 +75,7 @@ pub fn get_address_from_var_name(
 //Gets the address, as a Relocatable of the variable given by the ids name
 pub fn get_relocatable_from_var_name(
     var_name: &str,
-    vm_proxy: &VMProxy,
+    vm_proxy: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
@@ -92,7 +93,7 @@ pub fn get_relocatable_from_var_name(
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
-    vm_proxy: &'a VMProxy,
+    vm_proxy: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {

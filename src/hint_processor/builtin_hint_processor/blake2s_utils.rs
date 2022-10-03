@@ -1,4 +1,5 @@
 use crate::hint_processor::hint_processor_utils::bigint_to_u32;
+use crate::vm::vm_core::VirtualMachine;
 use std::collections::HashMap;
 
 use num_traits::ToPrimitive;
@@ -45,7 +46,7 @@ output_ptr should point to the middle of an instance, right after initial_state,
 which should all have a value at this point, and right before the output portion which will be
 written by this function.*/
 fn compute_blake2s_func(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     output_rel: Relocatable,
 ) -> Result<(), VirtualMachineError> {
     let h = get_fixed_size_u32_array::<8>(&vm_proxy.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
@@ -67,7 +68,7 @@ fn compute_blake2s_func(
    compute_blake2s_func(segments=segments, output_ptr=ids.output)
 */
 pub fn compute_blake2s(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -98,7 +99,7 @@ pub fn compute_blake2s(
     segments.write_arg(ids.blake2s_ptr_end, padding)
 */
 pub fn finalize_blake2s(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -132,7 +133,7 @@ pub fn finalize_blake2s(
     segments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -181,7 +182,7 @@ pub fn blake2s_add_uint256(
     segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])
 */
 pub fn blake2s_add_uint256_bigend(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

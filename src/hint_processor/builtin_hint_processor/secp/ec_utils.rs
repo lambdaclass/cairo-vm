@@ -9,6 +9,7 @@ use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
@@ -27,7 +28,7 @@ Implements hint:
 %}
 */
 pub fn ec_negate(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -53,7 +54,7 @@ Implements hint:
 %}
 */
 pub fn compute_doubling_slope(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -98,7 +99,7 @@ Implements hint:
 %}
 */
 pub fn compute_slope(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -156,7 +157,7 @@ Implements hint:
 %}
 */
 pub fn ec_double_assign_new_x(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -232,7 +233,7 @@ Implements hint:
 %}
 */
 pub fn fast_ec_add_assign_new_x(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -310,7 +311,7 @@ Implements hint:
 %{ memory[ap] = (ids.scalar % PRIME) % 2 %}
 */
 pub fn ec_mul_inner(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

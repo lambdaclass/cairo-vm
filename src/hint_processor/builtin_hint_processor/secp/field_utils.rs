@@ -9,6 +9,7 @@ use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -27,7 +28,7 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -56,7 +57,7 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -75,7 +76,7 @@ Implements hint:
 %}
 */
 pub fn is_zero_pack(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -95,7 +96,7 @@ On .json compiled program
 "memory[ap] = to_felt_or_relocatable(x == 0)"
 */
 pub fn is_zero_nondet(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope

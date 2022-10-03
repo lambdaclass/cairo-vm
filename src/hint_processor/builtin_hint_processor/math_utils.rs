@@ -1,4 +1,7 @@
-use crate::hint_processor::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy};
+use crate::{
+    hint_processor::{hint_processor_definition::HintReference, proxies::vm_proxy::VMProxy},
+    vm::vm_core::VirtualMachine,
+};
 use std::{
     collections::HashMap,
     ops::{Neg, Shl, Shr},
@@ -22,7 +25,7 @@ use crate::{
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -41,7 +44,7 @@ pub fn is_nn(
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -64,7 +67,7 @@ pub fn is_nn_out_of_range(
 //        ids.small_inputs = int(
 //            a < range_check_builtin.bound and (b - a) < range_check_builtin.bound)
 pub fn assert_le_felt(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -87,7 +90,7 @@ pub fn assert_le_felt(
 //Implements hint:from starkware.cairo.common.math_cmp import is_le_felt
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -112,7 +115,7 @@ pub fn is_le_felt(
 //            f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -158,7 +161,7 @@ pub fn assert_not_equal(
 //     assert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'
 // %}
 pub fn assert_nn(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -179,7 +182,7 @@ pub fn assert_nn(
 // assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'
 // %}
 pub fn assert_not_zero(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -195,7 +198,7 @@ pub fn assert_not_zero(
 
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -210,7 +213,7 @@ pub fn split_int_assert_range(
 //Implements hint: memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -230,7 +233,7 @@ pub fn split_int(
 //ids.is_positive = 1 if is_positive(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -259,7 +262,7 @@ pub fn is_positive(
 //     ids.high = ids.value >> 128
 // %}
 pub fn split_felt(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -280,7 +283,7 @@ pub fn split_felt(
 //        assert 2 ** 250 < PRIME
 //        ids.root = isqrt(value)
 pub fn sqrt(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -294,7 +297,7 @@ pub fn sqrt(
 }
 
 pub fn signed_div_rem(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -337,7 +340,7 @@ assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
 ids.q, ids.r = divmod(ids.value, ids.div)
 */
 pub fn unsigned_div_rem(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -363,7 +366,7 @@ pub fn unsigned_div_rem(
 //        # Calculation for the assertion.
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -392,7 +395,7 @@ Implements hint:
 %}
 */
 pub fn assert_lt_felt(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

@@ -3,6 +3,7 @@ use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_v
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
     math_utils::{div_mod, safe_div},
@@ -24,7 +25,7 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -56,7 +57,7 @@ pub fn div_mod_n_safe_div(
 }
 
 pub fn get_point_from_x(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

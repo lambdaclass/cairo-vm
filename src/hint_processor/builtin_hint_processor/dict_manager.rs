@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use crate::{
     hint_processor::proxies::vm_proxy::VMProxy,
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -70,7 +70,7 @@ impl DictManager {
     //For now, no initial dict will be processed (Assumes initial_dict = None)
     pub fn new_dict(
         &mut self,
-        vm_proxy: &mut VMProxy,
+        vm_proxy: &mut VirtualMachine,
         initial_dict: HashMap<BigInt, BigInt>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let base = vm_proxy.add_memory_segment();
@@ -89,7 +89,7 @@ impl DictManager {
     //Creates a new Cairo default dictionary
     pub fn new_default_dict(
         &mut self,
-        vm_proxy: &mut VMProxy,
+        vm_proxy: &mut VirtualMachine,
         default_value: &BigInt,
         initial_dict: Option<HashMap<BigInt, BigInt>>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {

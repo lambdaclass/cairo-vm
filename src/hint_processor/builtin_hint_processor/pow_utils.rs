@@ -1,6 +1,7 @@
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{bigint, hint_processor::hint_processor_definition::HintReference};
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -15,7 +16,7 @@ Implements hint:
 %{ ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1 %}
 */
 pub fn pow(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {

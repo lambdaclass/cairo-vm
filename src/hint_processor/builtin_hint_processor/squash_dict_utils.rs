@@ -1,6 +1,7 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::ToPrimitive;
@@ -38,7 +39,7 @@ fn get_access_indices<'a>(
     memory[ids.range_check_ptr] = current_access_index
 */
 pub fn squash_dict_inner_first_iteration(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -68,7 +69,7 @@ pub fn squash_dict_inner_first_iteration(
 
 // Implements Hint: ids.should_skip_loop = 0 if current_access_indices else 1
 pub fn squash_dict_inner_skip_loop(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -96,7 +97,7 @@ pub fn squash_dict_inner_skip_loop(
    current_access_index = new_access_index
 */
 pub fn squash_dict_inner_check_access_index(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -125,7 +126,7 @@ pub fn squash_dict_inner_check_access_index(
 
 // Implements Hint: ids.loop_temps.should_continue = 1 if current_access_indices else 0
 pub fn squash_dict_inner_continue_loop(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -162,7 +163,7 @@ pub fn squash_dict_inner_len_assert(
 
 //Implements hint: assert ids.n_used_accesses == len(access_indices[key]
 pub fn squash_dict_inner_used_accesses_assert(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -202,7 +203,7 @@ pub fn squash_dict_inner_assert_len_keys(
 //  assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'
 //  ids.next_key = key = keys.pop()
 pub fn squash_dict_inner_next_key(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -245,7 +246,7 @@ pub fn squash_dict_inner_next_key(
     ids.first_key = key = keys.pop()
 */
 pub fn squash_dict(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

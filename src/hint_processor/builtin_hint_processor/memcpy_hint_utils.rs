@@ -3,6 +3,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::hint_processor::proxies::vm_proxy::VMProxy;
+use crate::vm::vm_core::VirtualMachine;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
     serde::deserialize_program::ApTracking,
@@ -18,7 +19,7 @@ use crate::{
 };
 
 //Implements hint: memory[ap] = segments.add()
-pub fn add_segment(vm_proxy: &mut VMProxy) -> Result<(), VirtualMachineError> {
+pub fn add_segment(vm_proxy: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
     let new_segment_base = vm_proxy.add_memory_segment();
     insert_value_into_ap(vm_proxy, new_segment_base)
 }
@@ -42,7 +43,7 @@ pub fn exit_scope(exec_scopes_proxy: &mut ExecutionScopesProxy) -> Result<(), Vi
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.len}) %}
 pub fn memcpy_enter_scope(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -59,7 +60,7 @@ pub fn memcpy_enter_scope(
 //     ids.continue_copying = 1 if n > 0 else 0
 // %}
 pub fn memcpy_continue_copying(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

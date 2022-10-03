@@ -1,4 +1,6 @@
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::{
+    hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy, vm::vm_core::VirtualMachine,
+};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use num_bigint::BigInt;
@@ -50,7 +52,7 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available
 */
 pub fn dict_new(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
@@ -79,7 +81,7 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available, an empty dict is created always
 */
 pub fn default_dict_new(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -109,7 +111,7 @@ pub fn default_dict_new(
    ids.value = dict_tracker.data[ids.key]
 */
 pub fn dict_read(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -131,7 +133,7 @@ pub fn dict_read(
     dict_tracker.data[ids.key] = ids.new_value
 */
 pub fn dict_write(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -170,7 +172,7 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -210,7 +212,7 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -240,7 +242,7 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    vm_proxy: &mut VMProxy,
+    vm_proxy: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
