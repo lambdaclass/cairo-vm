@@ -17,10 +17,10 @@ use super::memory_proxy::{get_memory_proxy, MemoryProxy};
 
 ///Structure representing a limited access to the VM's internal values
 pub struct VMProxy<'a> {
-    pub memory: MemoryProxy<'a>,
-    pub segments: &'a mut MemorySegmentManager,
+    memory: MemoryProxy<'a>,
+    segments: &'a mut MemorySegmentManager,
     run_context: &'a mut RunContext,
-    pub builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
+    builtin_runners: &'a Vec<(String, Box<dyn BuiltinRunner>)>,
     prime: &'a BigInt,
 }
 
