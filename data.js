@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1664809097802,
+  "lastUpdate": 1664810939621,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -40961,6 +40961,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 203500717,
             "range": "± 1708711",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4538c854a16641434cfa484ca91c1f02cab80727",
+          "message": "Integrate parse-hyperlinks and fix out of bounds (#466)\n\n* Integrate parse-hyperlinks to the tree\r\n* Error out of take_until_unbalanced on odd '\\'\r\n* Don't include vendored deps in codecov",
+          "timestamp": "2022-10-03T12:17:08-03:00",
+          "tree_id": "aa509bc791cda417acd56f9631895d483789b09b",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4538c854a16641434cfa484ca91c1f02cab80727"
+        },
+        "date": 1664810937304,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1560823220,
+            "range": "± 2577285",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 575393128,
+            "range": "± 2074394",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 282717042,
+            "range": "± 649376",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1421864958,
+            "range": "± 1964286",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 203479302,
+            "range": "± 521940",
             "unit": "ns/iter"
           }
         ]
