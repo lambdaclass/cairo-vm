@@ -9,7 +9,7 @@ use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
-    pub segment_index: usize,
+    pub segment_index: isize,
     pub offset: usize,
 }
 
