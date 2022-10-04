@@ -219,7 +219,7 @@ impl<'a> CairoRunner<'a> {
             self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
         ));
         for (_, builtin) in vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut vm.memory);
+            builtin.add_validation_rule(&mut vm.memory)?;
         }
         vm.memory
             .validate_existing_memory()

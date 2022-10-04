@@ -51,7 +51,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, memory: &mut Memory) {
+    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
@@ -71,10 +71,11 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         let segment_index: usize = self
             .base
             .try_into()
-            .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))
-            .unwrap();
+            .map_err(|_| RunnerError::RunnerInTemporarySegment(self.base))?;
 
         memory.add_validation_rule(segment_index, rule);
+
+        Ok(())
     }
 
     fn deduce_memory_cell(

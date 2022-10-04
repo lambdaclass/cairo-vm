@@ -93,7 +93,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
     fn base(&self) -> Relocatable {
         Relocatable::from((self.base, 0))
     }
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
 
     fn deduce_memory_cell(
         &mut self,
