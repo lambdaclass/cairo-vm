@@ -389,8 +389,13 @@ impl<'a> CairoRunner<'a> {
             if vm.segments.segment_used_sizes == None {
                 vm.segments.compute_effective_sizes(&vm.memory);
             }
+
+            let segment_index: usize = base
+                .segment_index
+                .try_into()
+                .map_err(|_| RunnerError::RunnerInTemporarySegment(base.segment_index))?;
             // See previous comment, the unwrap below is safe.
-            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
+            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[segment_index] {
                 let value = vm.memory.get_integer(&(base.clone() + i)).map_err(|_| {
                     RunnerError::MemoryGet(MaybeRelocatable::from(base.clone() + i))
                 })?;
