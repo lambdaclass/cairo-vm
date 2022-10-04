@@ -1,7 +1,7 @@
+use crate::vm::errors::trace_errors::TraceError;
 ///A trace entry for every instruction that was executed.
 ///Holds the register values before the instruction was executed.
-use crate::types::relocatable::Relocatable;
-use crate::vm::errors::trace_errors::TraceError;
+use crate::{types::relocatable::Relocatable, vm::errors::memory_errors::MemoryError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq)]
@@ -22,10 +22,14 @@ pub fn relocate_trace_register(
     value: &Relocatable,
     relocation_table: &Vec<usize>,
 ) -> Result<usize, TraceError> {
-    if relocation_table.len() <= value.segment_index {
+    let segment_index: usize = value.segment_index.try_into().map_err(|_| {
+        TraceError::MemoryError(MemoryError::AddressInTemporarySegment(value.segment_index))
+    })?;
+
+    if relocation_table.len() <= segment_index {
         return Err(TraceError::NoRelocationFound);
     }
-    Ok(relocation_table[value.segment_index] + value.offset)
+    Ok(relocation_table[segment_index] + value.offset)
 }
 
 #[cfg(test)]
