@@ -1,6 +1,4 @@
-use crate::{
-    hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy, vm::vm_core::VirtualMachine,
-};
+use crate::{types::exec_scope::ExecutionScopes, vm::vm_core::VirtualMachine};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use num_bigint::BigInt;
@@ -23,15 +21,9 @@ use super::dict_manager::DictManager;
 //DictAccess struct has three memebers, so the size of DictAccess* is 3
 pub const DICT_ACCESS_SIZE: usize = 3;
 
-fn copy_initial_dict(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
-) -> Option<HashMap<BigInt, BigInt>> {
+fn copy_initial_dict(exec_scopes: &mut ExecutionScopes) -> Option<HashMap<BigInt, BigInt>> {
     let mut initial_dict: Option<HashMap<BigInt, BigInt>> = None;
-    if let Some(variable) = exec_scopes_proxy
-        .get_local_variables()
-        .ok()?
-        .get("initial_dict")
-    {
+    if let Some(variable) = exec_scopes.get_local_variables().ok()?.get("initial_dict") {
         if let Some(dict) = variable.downcast_ref::<HashMap<BigInt, BigInt>>() {
             initial_dict = Some(dict.clone());
         }
@@ -52,18 +44,17 @@ is not available
 */
 pub fn dict_new(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
-    let initial_dict =
-        copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
+    let initial_dict = copy_initial_dict(exec_scopes).ok_or(VirtualMachineError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
-    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
+    let base = if let Ok(dict_manager) = exec_scopes.get_dict_manager() {
         dict_manager.borrow_mut().new_dict(vm, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
         let base = dict_manager.new_dict(vm, initial_dict)?;
-        exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
+        exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
     insert_value_into_ap(vm, base)
@@ -81,7 +72,7 @@ is not available, an empty dict is created always
 */
 pub fn default_dict_new(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -89,16 +80,16 @@ pub fn default_dict_new(
     let default_value =
         get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
-    let initial_dict = copy_initial_dict(exec_scopes_proxy);
+    let initial_dict = copy_initial_dict(exec_scopes);
     //Check if there is a dict manager in scope, create it if there isnt one
-    let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
+    let base = if let Ok(dict_manager) = exec_scopes.get_dict_manager() {
         dict_manager
             .borrow_mut()
             .new_default_dict(vm, &default_value, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
         let base = dict_manager.new_default_dict(vm, &default_value, initial_dict)?;
-        exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
+        exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
     insert_value_into_ap(vm, base)
@@ -111,13 +102,13 @@ pub fn default_dict_new(
 */
 pub fn dict_read(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
-    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
@@ -133,7 +124,7 @@ pub fn dict_read(
 */
 pub fn dict_write(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -141,7 +132,7 @@ pub fn dict_write(
     let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     //Get tracker for dictionary
-    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //dict_ptr is a pointer to a struct, with the ordered fields (key, prev_value, new_value),
@@ -172,7 +163,7 @@ pub fn dict_write(
 */
 pub fn dict_update(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -182,7 +173,7 @@ pub fn dict_update(
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
-    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
@@ -212,22 +203,22 @@ pub fn dict_update(
 */
 pub fn dict_squash_copy_dict(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let dict_accesses_end = get_ptr_from_var_name("dict_accesses_end", vm, ids_data, ap_tracking)?;
-    let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
+    let dict_manager_ref = exec_scopes.get_dict_manager()?;
     let dict_manager = dict_manager_ref.borrow();
     let dict_copy: Box<dyn Any> = Box::new(
         dict_manager
             .get_tracker(&dict_accesses_end)?
             .get_dictionary_copy(),
     );
-    exec_scopes_proxy.enter_scope(HashMap::from([
+    exec_scopes.enter_scope(HashMap::from([
         (
             String::from("dict_manager"),
-            any_box!(exec_scopes_proxy.get_dict_manager()?),
+            any_box!(exec_scopes.get_dict_manager()?),
         ),
         (String::from("initial_dict"), dict_copy),
     ]));
@@ -241,14 +232,14 @@ pub fn dict_squash_copy_dict(
 */
 pub fn dict_squash_update_ptr(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let squashed_dict_start =
         get_ptr_from_var_name("squashed_dict_start", vm, ids_data, ap_tracking)?;
     let squashed_dict_end = get_ptr_from_var_name("squashed_dict_end", vm, ids_data, ap_tracking)?;
-    exec_scopes_proxy
+    exec_scopes
         .get_dict_manager()?
         .borrow_mut()
         .get_tracker_mut(&squashed_dict_start)?

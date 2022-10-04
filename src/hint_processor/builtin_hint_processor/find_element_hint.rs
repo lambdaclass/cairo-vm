@@ -1,15 +1,16 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_ptr_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
-};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
-use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
-    bigint, hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
+    bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+            insert_value_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+        hint_processor_utils::bigint_to_usize,
+    },
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
@@ -17,7 +18,7 @@ use std::collections::HashMap;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -25,7 +26,7 @@ pub fn find_element(
     let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let find_element_index = exec_scopes_proxy.get_int("find_element_index").ok();
+    let find_element_index = exec_scopes.get_int("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
@@ -49,14 +50,14 @@ pub fn find_element(
             ));
         }
         insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
-        exec_scopes_proxy.delete_variable("find_element_index");
+        exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
         if n_elms.is_negative() {
             return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
         }
 
-        if let Ok(find_element_max_size) = exec_scopes_proxy.get_int_ref("find_element_max_size") {
+        if let Ok(find_element_max_size) = exec_scopes.get_int_ref("find_element_max_size") {
             if n_elms > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
                     find_element_max_size.clone(),
@@ -84,11 +85,11 @@ pub fn find_element(
 
 pub fn search_sorted_lower(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = exec_scopes_proxy.get_int("find_element_max_size");
+    let find_element_max_size = exec_scopes.get_int("find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;

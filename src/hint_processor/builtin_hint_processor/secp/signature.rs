@@ -1,12 +1,12 @@
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
     vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::BigInt;
@@ -25,7 +25,7 @@ value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -33,31 +33,29 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-    exec_scopes_proxy.insert_value("a", a);
-    exec_scopes_proxy.insert_value("b", b);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("res", value);
+    exec_scopes.insert_value("a", a);
+    exec_scopes.insert_value("b", b);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
     Ok(())
 }
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
-pub fn div_mod_n_safe_div(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
-) -> Result<(), VirtualMachineError> {
-    let a = exec_scopes_proxy.get_int_ref("a")?;
-    let b = exec_scopes_proxy.get_int_ref("b")?;
-    let res = exec_scopes_proxy.get_int_ref("res")?;
+pub fn div_mod_n_safe_div(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
+    let a = exec_scopes.get_int_ref("a")?;
+    let b = exec_scopes.get_int_ref("b")?;
+    let res = exec_scopes.get_int_ref("res")?;
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    exec_scopes_proxy.insert_value("value", value);
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
 pub fn get_point_from_x(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -69,7 +67,7 @@ pub fn get_point_from_x(
     if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }
-    exec_scopes_proxy.insert_value("value", y);
+    exec_scopes.insert_value("value", y);
     Ok(())
 }
 

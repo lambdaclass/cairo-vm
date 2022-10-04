@@ -4,9 +4,9 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 };
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -51,12 +51,12 @@ Implements hint:
 */
 pub fn reduce(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", value);
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
@@ -70,13 +70,13 @@ Implements hint:
 */
 pub fn is_zero_pack(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("x", x);
+    exec_scopes.insert_value("x", x);
     Ok(())
 }
 
@@ -90,10 +90,10 @@ On .json compiled program
 */
 pub fn is_zero_nondet(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = exec_scopes_proxy.get_int("x")?;
+    let x = exec_scopes.get_int("x")?;
 
     let value = bigint!(x.is_zero() as usize);
     insert_value_into_ap(vm, value)
@@ -109,14 +109,14 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = exec_scopes_proxy.get_int("x")?;
+    let x = exec_scopes.get_int("x")?;
 
     let value = div_mod(&bigint!(1), &x, &SECP_P);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("x_inv", value);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("x_inv", value);
     Ok(())
 }
 
