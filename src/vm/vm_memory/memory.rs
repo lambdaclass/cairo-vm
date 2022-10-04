@@ -36,7 +36,7 @@ impl Memory {
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
         let val = MaybeRelocatable::from(val);
-        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
+        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone())?;
         let data_len = self.data.len();
         let segment = self
             .data
@@ -71,7 +71,7 @@ impl Memory {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
-        let (i, j) = from_relocatable_to_indexes(relocatable);
+        let (i, j) = from_relocatable_to_indexes(relocatable)?;
         if self.data.len() > i && self.data[i].len() > j {
             if let Some(ref element) = self.data[i][j] {
                 return Ok(Some(element));
