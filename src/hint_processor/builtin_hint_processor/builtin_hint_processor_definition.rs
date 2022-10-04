@@ -409,7 +409,6 @@ fn get_ids_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::*;
@@ -532,8 +531,7 @@ mod tests {
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
         vm.memory = memory![((1, 2), 5)];
         let ids_data = ids_data!["continue_copying"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
     }
 
     #[test]
@@ -571,9 +569,8 @@ mod tests {
         vm.memory = memory![((1, 1), 5)];
 
         let ids_data = ids_data!["continue_copying"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 1)),
@@ -594,8 +591,7 @@ mod tests {
         exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
         // Initialize memory segments
         add_segments!(vm, 1);
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes).is_ok());
     }
 
     #[test]
@@ -620,9 +616,8 @@ mod tests {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
         //Check exec_scopes
@@ -650,8 +645,7 @@ mod tests {
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(500))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
     }
 
     #[test]
@@ -672,9 +666,8 @@ mod tests {
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(2))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::KeccakMaxSize(bigint!(5), bigint!(2)))
         );
     }
@@ -719,9 +712,8 @@ mod tests {
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
         let mut exec_scopes = scope![("__keccak_max_size", bigint!(10))];
-        let exec_scopes_proxy = &mut &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::InvalidWordSize(bigint!(-1)))
         );
     }

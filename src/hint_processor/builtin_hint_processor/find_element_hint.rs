@@ -136,7 +136,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::vm;
@@ -225,9 +224,8 @@ mod tests {
     fn element_found_by_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_index", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Ok(())
         );
         check_memory![vm.memory, ((1, 3), 1)];
@@ -249,9 +247,8 @@ mod tests {
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_index", bigint!(2))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Err(VirtualMachineError::KeyNotFound)
         );
     }
@@ -340,9 +337,8 @@ mod tests {
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );
     }
@@ -459,13 +455,12 @@ mod tests {
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code::SEARCH_SORTED_LOWER,
-                exec_scopes_proxy
+                &mut exec_scopes
             ),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );

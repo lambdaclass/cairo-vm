@@ -79,7 +79,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::{
         bigint, bigint_str,
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
@@ -108,19 +107,14 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
-        assert_eq!(div_mod_n_safe_div(exec_scopes_proxy), Ok(()));
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(div_mod_n_safe_div(&mut exec_scopes), Ok(()));
     }
 
     #[test]
     fn safe_div_fail() {
         let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
+        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(&mut exec_scopes));
     }
 
     #[test]
@@ -152,14 +146,10 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [(
                 "value",
                 bigint_str!(

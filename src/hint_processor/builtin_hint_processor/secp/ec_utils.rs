@@ -327,7 +327,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
@@ -352,14 +351,10 @@ mod tests {
         let ids_data = ids_data!["point"];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes_proxy.get_int("value"),
+            exec_scopes.get_int("value"),
             Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
@@ -386,13 +381,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -440,13 +431,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -491,14 +478,10 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "slope",
@@ -557,14 +540,13 @@ mod tests {
             )
         ];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -617,14 +599,10 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -671,14 +649,13 @@ mod tests {
         ];
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",

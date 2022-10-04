@@ -57,7 +57,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -81,11 +80,7 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check hint memory inserts
         check_memory![
             &vm.memory,
@@ -121,9 +116,8 @@ mod tests {
         let mut exec_scopes = scope![("value", bigint!(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

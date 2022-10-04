@@ -61,7 +61,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::vm_memory::memory::Memory;
@@ -113,8 +112,7 @@ mod tests {
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
         vm.memory = memory![((1, 1), 5)];
         let ids_data = ids_data!["continue_loop"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
         // assert ids.continue_loop = 0
         check_memory![vm.memory, ((1, 0), 0)];
     }
@@ -131,8 +129,7 @@ mod tests {
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.memory = memory![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
 
         // assert ids.continue_loop = 1
         check_memory![vm.memory, ((1, 0), 1)];
@@ -173,9 +170,8 @@ mod tests {
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),

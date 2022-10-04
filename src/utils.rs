@@ -62,6 +62,7 @@ pub fn to_field_element(num: BigInt, prime: BigInt) -> BigInt {
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
+    use crate::types::exec_scope::ExecutionScopes;
     use lazy_static::lazy_static;
     use num_bigint::BigInt;
 
@@ -280,23 +281,16 @@ pub mod test_utils {
     }
     pub(crate) use exec_scopes_ref;
 
-    macro_rules! exec_scopes_proxy_ref {
-        () => {
-            &mut get_exec_scopes_proxy(&mut ExecutionScopes::new())
-        };
-    }
-    pub(crate) use exec_scopes_proxy_ref;
-
     macro_rules! run_hint {
-        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_proxy:expr) => {{
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_proxy, &any_box!(hint_data))
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, exec_scopes_proxy_ref!(), &any_box!(hint_data))
+            hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(hint_data))
         }};
     }
     pub(crate) use run_hint;
@@ -311,9 +305,9 @@ pub mod test_utils {
     pub(crate) use add_segments;
 
     macro_rules! check_scope {
-        ( $exec_proxy: expr, [ $( ($name: expr, $val: expr)),* ] ) => {
+        ( $exec_scope: expr, [ $( ($name: expr, $val: expr)),* ] ) => {
             $(
-                check_scope_value($exec_proxy, $name, $val);
+                check_scope_value($exec_scope, $name, $val);
             )*
         };
     }
@@ -336,10 +330,10 @@ pub mod test_utils {
     pub(crate) use scope;
 
     macro_rules! check_dictionary {
-        ( $exec_scopes_proxy: expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
+        ( $exec_scopes: expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             $(
                 assert_eq!(
-                    $exec_scopes_proxy
+                    $exec_scopes
                         .get_dict_manager()
                         .unwrap()
                         .borrow_mut()
@@ -355,9 +349,9 @@ pub mod test_utils {
     pub(crate) use check_dictionary;
 
     macro_rules! check_dict_ptr {
-        ($exec_scopes_proxy: expr, $tracker_num: expr, ($i:expr, $off:expr)) => {
+        ($exec_scopes: expr, $tracker_num: expr, ($i:expr, $off:expr)) => {
             assert_eq!(
-                $exec_scopes_proxy
+                $exec_scopes
                     .get_dict_manager()
                     .unwrap()
                     .borrow()
@@ -372,40 +366,40 @@ pub mod test_utils {
     pub(crate) use check_dict_ptr;
 
     macro_rules! dict_manager {
-        ($exec_scopes_proxy:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
+        ($exec_scopes:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
             $(
             tracker.insert_value(&bigint!($key), &bigint!($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
-        ($exec_scopes_proxy:expr, $tracker_num:expr) => {
+        ($exec_scopes:expr, $tracker_num:expr) => {
             let  tracker = DictTracker::new_empty(&relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
 
     }
     pub(crate) use dict_manager;
 
     macro_rules! dict_manager_default {
-        ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
+        ($exec_scopes:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
             $(
             tracker.insert_value(&bigint!($key), &bigint!($val));
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
-        ($exec_scopes_proxy:expr, $tracker_num:expr,$default:expr) => {
+        ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
             let tracker = DictTracker::new_default_dict(&relocatable!($tracker_num, 0), &bigint!($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)))
         };
     }
     pub(crate) use dict_manager_default;
@@ -427,14 +421,12 @@ pub mod test_utils {
     }
     pub(crate) use vec_data_inner;
 
-    use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
     pub fn check_scope_value<T: std::fmt::Debug + std::cmp::PartialEq + 'static>(
-        proxy: &ExecutionScopesProxy,
+        scopes: &ExecutionScopes,
         name: &str,
         value: T,
     ) {
-        let scope_value = proxy.get_any_boxed_ref(name).unwrap();
+        let scope_value = scopes.get_any_boxed_ref(name).unwrap();
         assert_eq!(scope_value.downcast_ref::<T>(), Some(&value));
     }
 }
@@ -447,7 +439,6 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictManager;
     use crate::hint_processor::builtin_hint_processor::dict_manager::DictTracker;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use std::any::Any;
@@ -699,9 +690,8 @@ mod test {
             any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
         );
         exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
-        let exec_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         check_scope!(
-            exec_proxy,
+            &exec_scopes,
             [
                 ("a", String::from("Hello")),
                 (
@@ -723,9 +713,8 @@ mod test {
             any_box!(Rc::new(RefCell::new(HashMap::<usize, Vec<usize>>::new()))),
         );
         exec_scopes.assign_or_update_variable("c", any_box!(vec![1, 2, 3, 4]));
-        let exec_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         check_scope!(
-            exec_proxy,
+            &exec_scopes,
             [
                 ("a", String::from("Hello")),
                 (
@@ -761,8 +750,7 @@ mod test {
             "dict_manager",
             any_box!(Rc::new(RefCell::new(dict_manager))),
         );
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        check_dictionary!(exec_scopes_proxy, 2, (5, 10));
+        check_dictionary!(&exec_scopes, 2, (5, 10));
     }
 
     #[test]
@@ -777,8 +765,7 @@ mod test {
             "dict_manager",
             any_box!(Rc::new(RefCell::new(dict_manager))),
         );
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        check_dictionary!(exec_scopes_proxy, 2, (5, 11));
+        check_dictionary!(&exec_scopes, 2, (5, 11));
     }
 
     #[test]
@@ -791,8 +778,7 @@ mod test {
             "dict_manager",
             any_box!(Rc::new(RefCell::new(dict_manager))),
         );
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        check_dict_ptr!(exec_scopes_proxy, 2, (2, 0));
+        check_dict_ptr!(&exec_scopes, 2, (2, 0));
     }
 
     #[test]
@@ -806,8 +792,7 @@ mod test {
             "dict_manager",
             any_box!(Rc::new(RefCell::new(dict_manager))),
         );
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        check_dict_ptr!(exec_scopes_proxy, 2, (3, 0));
+        check_dict_ptr!(&exec_scopes, 2, (3, 0));
     }
 
     #[test]
@@ -816,10 +801,9 @@ mod test {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        dict_manager!(exec_scopes_proxy, 2);
+        dict_manager!(exec_scopes, 2);
         assert_eq!(
-            exec_scopes_proxy.get_dict_manager(),
+            exec_scopes.get_dict_manager(),
             Ok(Rc::new(RefCell::new(dict_manager)))
         );
     }
@@ -830,10 +814,9 @@ mod test {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        dict_manager_default!(exec_scopes_proxy, 2, 17);
+        dict_manager_default!(exec_scopes, 2, 17);
         assert_eq!(
-            exec_scopes_proxy.get_dict_manager(),
+            exec_scopes.get_dict_manager(),
             Ok(Rc::new(RefCell::new(dict_manager)))
         );
     }

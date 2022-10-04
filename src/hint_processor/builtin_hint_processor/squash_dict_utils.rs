@@ -296,7 +296,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -339,14 +338,10 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "current_access_indices",
@@ -378,9 +373,8 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["range_check_ptr"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -419,11 +413,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.should_skip_loop
         check_memory![vm.memory, ((1, 0), 1)];
     }
@@ -441,11 +431,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["should_skip_loop"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.should_skip_loop
         check_memory![vm.memory, ((1, 0), 0)];
     }
@@ -469,14 +455,10 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "current_access_indices",
@@ -509,9 +491,8 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::EmptyCurrentAccessIndices)
         );
     }
@@ -529,11 +510,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         check_memory![vm.memory, ((1, 3), 1)];
     }
@@ -551,11 +528,7 @@ mod tests {
         //Create ids_data
         let ids_data = ids_data!["loop_temps"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.loop_temps.should_continue (loop_temps + 3)
         check_memory![vm.memory, ((1, 3), 0)];
     }
@@ -569,9 +542,8 @@ mod tests {
         let mut exec_scopes = scope![("current_access_indices", Vec::<BigInt>::new())];
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
     }
@@ -585,9 +557,8 @@ mod tests {
         let mut exec_scopes = scope![("current_access_indices", vec![bigint!(29)])];
         //Execute the hint
         //Hint should produce an error if assertion fails
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(VirtualMachineError::CurrentAccessIndicesNotEmpty)
         );
     }
@@ -611,11 +582,7 @@ mod tests {
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
         //Hint would fail is assertion fails
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
     }
 
     #[test]
@@ -636,9 +603,8 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::NumUsedAccessesAssertFail(
                 bigint!(5),
                 4,
@@ -665,9 +631,8 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["n_used_accesses"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from((1, 0))
             ))
@@ -682,9 +647,8 @@ mod tests {
         //Store scope variables
         let mut exec_scopes = scope![("keys", Vec::<BigInt>::new())];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
     }
@@ -697,9 +661,8 @@ mod tests {
         //Store scope variables
         let mut exec_scopes = scope![("keys", vec![bigint!(3)])];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(VirtualMachineError::KeysNotEmpty)
         );
     }
@@ -731,16 +694,12 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["next_key"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check the value of ids.next_key
         check_memory![vm.memory, ((1, 0), 3)];
         //Check local variables
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [("keys", vec![bigint!(1)]), ("key", bigint!(3))]
         );
     }
@@ -757,9 +716,8 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["next_key"];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::EmptyKeys)
         );
     }
@@ -794,14 +752,10 @@ mod tests {
         ];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "access_indices",
@@ -851,14 +805,10 @@ mod tests {
         ];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "access_indices",
@@ -871,7 +821,7 @@ mod tests {
                 ("key", bigint!(1))
             ]
         );
-        let keys = exec_scopes_proxy.get_list("keys").unwrap();
+        let keys = exec_scopes.get_list("keys").unwrap();
         assert_eq!(keys, vec![bigint!(2)]);
         //Check ids variables
         check_memory![vm.memory, ((1, 1), 0), ((1, 2), 1)];
@@ -908,14 +858,10 @@ mod tests {
             "n_accesses"
         ];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "access_indices",
@@ -960,9 +906,8 @@ mod tests {
             "n_accesses"
         ];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 bigint!(1),
                 bigint!(2)
@@ -1089,13 +1034,9 @@ mod tests {
         ];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
-        check_scope!(exec_scopes_proxy, [("access_indices", HashMap::from([(
+        check_scope!(&exec_scopes, [("access_indices", HashMap::from([(
            bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"),
             vec![bigint!(0), bigint!(1)]
         )])), ("keys", Vec::<BigInt>::new()), ("key", bigint_str!(b"3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);

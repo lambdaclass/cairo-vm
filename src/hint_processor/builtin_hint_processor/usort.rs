@@ -139,7 +139,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -160,9 +159,8 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }
