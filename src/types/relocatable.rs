@@ -19,8 +19,8 @@ pub enum MaybeRelocatable {
     Int(BigInt),
 }
 
-impl From<(usize, usize)> for Relocatable {
-    fn from(index_offset: (usize, usize)) -> Self {
+impl From<(isize, usize)> for Relocatable {
+    fn from(index_offset: (isize, usize)) -> Self {
         Relocatable {
             segment_index: index_offset.0,
             offset: index_offset.1,
@@ -28,8 +28,8 @@ impl From<(usize, usize)> for Relocatable {
     }
 }
 
-impl From<(usize, usize)> for MaybeRelocatable {
-    fn from(index_offset: (usize, usize)) -> Self {
+impl From<(isize, usize)> for MaybeRelocatable {
+    fn from(index_offset: (isize, usize)) -> Self {
         MaybeRelocatable::RelocatableValue(Relocatable::from(index_offset))
     }
 }
