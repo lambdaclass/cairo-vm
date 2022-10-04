@@ -363,12 +363,15 @@ pub fn relocate_value(
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            if relocation_table.len() <= relocatable.segment_index {
+            let segment_index: usize = relocatable
+                .segment_index
+                .try_into()
+                .map_err(|_| MemoryError::AddressInTemporarySegment(relocatable.segment_index))?;
+
+            if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);
             }
-            match BigInt::from_usize(
-                relocation_table[relocatable.segment_index] + relocatable.offset,
-            ) {
+            match BigInt::from_usize(relocation_table[segment_index] + relocatable.offset) {
                 None => Err(MemoryError::Relocation),
                 Some(relocated_value) => Ok(relocated_value),
             }
