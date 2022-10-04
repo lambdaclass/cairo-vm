@@ -18,7 +18,7 @@ impl MemorySegmentManager {
         self.num_segments += 1;
         memory.data.push(Vec::new());
         Relocatable {
-            segment_index,
+            segment_index: segment_index as isize,
             offset: 0,
         }
     }
