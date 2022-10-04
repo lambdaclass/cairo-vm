@@ -122,7 +122,7 @@ impl Memory {
         if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
             if !self.validated_addresses.contains(address) {
                 for (index, validation_rule) in self.validation_rules.iter() {
-                    if &rel_addr.segment_index == index {
+                    if rel_addr.segment_index == *index as isize {
                         self.validated_addresses
                             .insert(validation_rule.0(self, address)?);
                     }
@@ -138,7 +138,7 @@ impl Memory {
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for i in 0..self.data.len() {
             for j in 0..self.data[i].len() {
-                self.validate_memory_cell(&MaybeRelocatable::from((i, j)))?;
+                self.validate_memory_cell(&MaybeRelocatable::from((i as isize, j)))?;
             }
         }
         Ok(())
