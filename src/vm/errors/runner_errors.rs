@@ -30,6 +30,8 @@ pub enum RunnerError {
     MemoryInitializationError(MemoryError),
     #[error("Memory addresses must be relocatable")]
     NonRelocatableAddress,
+    #[error("Runner base mustn't be in a TemporarySegment, segment: {0}")]
+    RunnerInTemporarySegment(isize),
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
     #[error("Expected integer at address {0:?}")]
