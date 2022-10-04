@@ -7,7 +7,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct OutputBuiltinRunner {
-    base: usize,
+    base: isize,
     _stop_ptr: Option<Relocatable>,
 }
 

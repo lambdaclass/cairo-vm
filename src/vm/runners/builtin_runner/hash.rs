@@ -11,7 +11,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
-    pub base: usize,
+    pub base: isize,
     _ratio: usize,
     cells_per_instance: usize,
     _n_input_cells: usize,

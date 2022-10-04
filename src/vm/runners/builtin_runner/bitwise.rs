@@ -13,7 +13,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct BitwiseBuiltinRunner {
     _ratio: usize,
-    pub base: usize,
+    pub base: isize,
     cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,

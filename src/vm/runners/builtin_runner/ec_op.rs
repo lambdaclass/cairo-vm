@@ -13,7 +13,7 @@ use crate::{bigint, bigint_str};
 
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
-    pub base: usize,
+    pub base: isize,
     cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,

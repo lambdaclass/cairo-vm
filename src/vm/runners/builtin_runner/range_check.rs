@@ -14,7 +14,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
-    base: usize,
+    base: isize,
     _stop_ptr: Option<Relocatable>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
@@ -67,7 +67,14 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                 }
             },
         ));
-        memory.add_validation_rule(self.base, rule);
+
+        let segment_index: usize = self
+            .base
+            .try_into()
+            .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))
+            .unwrap();
+
+        memory.add_validation_rule(segment_index, rule);
     }
 
     fn deduce_memory_cell(
