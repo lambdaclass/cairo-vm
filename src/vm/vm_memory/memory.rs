@@ -339,7 +339,7 @@ mod memory_tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         for _ in 0..3 {
             segments.add(&mut memory);
         }
@@ -369,7 +369,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(bigint!(-10)),
             )
             .unwrap();
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
@@ -392,7 +392,7 @@ mod memory_tests {
                 &MaybeRelocatable::from((1, 4)),
             )
             .unwrap();
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
@@ -414,7 +414,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(bigint!(-45)),
             )
             .unwrap();
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         assert_eq!(memory.validate_existing_memory(), Ok(()));
     }
 
