@@ -8,6 +8,7 @@ use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
     pub num_segments: usize,
+    pub num_temp_segments: usize,
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
@@ -38,6 +39,7 @@ impl MemorySegmentManager {
     pub fn new() -> MemorySegmentManager {
         MemorySegmentManager {
             num_segments: 0,
+            num_temp_segments: 0,
             segment_used_sizes: None,
         }
     }
