@@ -5,10 +5,10 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
@@ -27,14 +27,14 @@ Implements hint:
 %}
 */
 pub fn ec_negate(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_y = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)? + 3;
-    let y = pack_from_relocatable(point_y, vm_proxy)?;
+    let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3;
+    let y = pack_from_relocatable(point_y, vm)?;
     let value = (-y).mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
@@ -53,27 +53,27 @@ Implements hint:
 %}
 */
 pub fn compute_doubling_slope(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm_proxy.memory.get_integer(&point_reloc)?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 2))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
+        vm.get_integer(&point_reloc)?,
+        vm.get_integer(&(&point_reloc + 1))?,
+        vm.get_integer(&(&point_reloc + 2))?,
+        vm.get_integer(&(&point_reloc + 3))?,
+        vm.get_integer(&(&point_reloc + 4))?,
+        vm.get_integer(&(&point_reloc + 5))?,
     );
 
     let value = ec_double_slope(
         (
-            pack(x_d0, x_d1, x_d2, vm_proxy.prime),
-            pack(y_d0, y_d1, y_d2, vm_proxy.prime),
+            pack(x_d0, x_d1, x_d2, vm.get_prime()),
+            pack(y_d0, y_d1, y_d2, vm.get_prime()),
         ),
         &bigint!(0),
         &SECP_P,
@@ -98,43 +98,43 @@ Implements hint:
 %}
 */
 pub fn compute_slope(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm_proxy.memory.get_integer(&point0_reloc)?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 2))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 5))?,
+        vm.get_integer(&point0_reloc)?,
+        vm.get_integer(&(&point0_reloc + 1))?,
+        vm.get_integer(&(&point0_reloc + 2))?,
+        vm.get_integer(&(&point0_reloc + 3))?,
+        vm.get_integer(&(&point0_reloc + 4))?,
+        vm.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1
-    let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2, point1_y_d0, point1_y_d1, point1_y_d2) = (
-        vm_proxy.memory.get_integer(&point1_reloc)?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 2))?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 5))?,
+        vm.get_integer(&point1_reloc)?,
+        vm.get_integer(&(&point1_reloc + 1))?,
+        vm.get_integer(&(&point1_reloc + 2))?,
+        vm.get_integer(&(&point1_reloc + 3))?,
+        vm.get_integer(&(&point1_reloc + 4))?,
+        vm.get_integer(&(&point1_reloc + 5))?,
     );
 
     let value = line_slope(
         &(
-            pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.prime),
-            pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime),
+            pack(point0_x_d0, point0_x_d1, point0_x_d2, vm.get_prime()),
+            pack(point0_y_d0, point0_y_d1, point0_y_d2, vm.get_prime()),
         ),
         &(
-            pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime),
-            pack(point1_y_d0, point1_y_d1, point1_y_d2, vm_proxy.prime),
+            pack(point1_x_d0, point1_x_d1, point1_x_d2, vm.get_prime()),
+            pack(point1_y_d0, point1_y_d1, point1_y_d2, vm.get_prime()),
         ),
         &SECP_P,
     );
@@ -156,35 +156,35 @@ Implements hint:
 %}
 */
 pub fn ec_double_assign_new_x(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        vm_proxy.memory.get_integer(&slope_reloc)?,
-        vm_proxy.memory.get_integer(&(&slope_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&slope_reloc + 2))?,
+        vm.get_integer(&slope_reloc)?,
+        vm.get_integer(&(&slope_reloc + 1))?,
+        vm.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point
-    let point_reloc = get_relocatable_from_var_name("point", vm_proxy, ids_data, ap_tracking)?;
+    let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
 
     let (x_d0, x_d1, x_d2, y_d0, y_d1, y_d2) = (
-        vm_proxy.memory.get_integer(&point_reloc)?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 2))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point_reloc + 5))?,
+        vm.get_integer(&point_reloc)?,
+        vm.get_integer(&(&point_reloc + 1))?,
+        vm.get_integer(&(&point_reloc + 2))?,
+        vm.get_integer(&(&point_reloc + 3))?,
+        vm.get_integer(&(&point_reloc + 4))?,
+        vm.get_integer(&(&point_reloc + 5))?,
     );
 
-    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.prime);
-    let x = pack(x_d0, x_d1, x_d2, vm_proxy.prime);
-    let y = pack(y_d0, y_d1, y_d2, vm_proxy.prime);
+    let slope = pack(slope_d0, slope_d1, slope_d2, vm.get_prime());
+    let x = pack(x_d0, x_d1, x_d2, vm.get_prime());
+    let y = pack(y_d0, y_d1, y_d2, vm.get_prime());
 
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
@@ -232,45 +232,45 @@ Implements hint:
 %}
 */
 pub fn fast_ec_add_assign_new_x(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //ids.slope
-    let slope_reloc = get_relocatable_from_var_name("slope", vm_proxy, ids_data, ap_tracking)?;
+    let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
     let (slope_d0, slope_d1, slope_d2) = (
-        vm_proxy.memory.get_integer(&slope_reloc)?,
-        vm_proxy.memory.get_integer(&(&slope_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&slope_reloc + 2))?,
+        vm.get_integer(&slope_reloc)?,
+        vm.get_integer(&(&slope_reloc + 1))?,
+        vm.get_integer(&(&slope_reloc + 2))?,
     );
 
     //ids.point0
-    let point0_reloc = get_relocatable_from_var_name("point0", vm_proxy, ids_data, ap_tracking)?;
+    let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
 
     let (point0_x_d0, point0_x_d1, point0_x_d2, point0_y_d0, point0_y_d1, point0_y_d2) = (
-        vm_proxy.memory.get_integer(&point0_reloc)?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 2))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 3))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 4))?,
-        vm_proxy.memory.get_integer(&(&point0_reloc + 5))?,
+        vm.get_integer(&point0_reloc)?,
+        vm.get_integer(&(&point0_reloc + 1))?,
+        vm.get_integer(&(&point0_reloc + 2))?,
+        vm.get_integer(&(&point0_reloc + 3))?,
+        vm.get_integer(&(&point0_reloc + 4))?,
+        vm.get_integer(&(&point0_reloc + 5))?,
     );
 
     //ids.point1.x
-    let point1_reloc = get_relocatable_from_var_name("point1", vm_proxy, ids_data, ap_tracking)?;
+    let point1_reloc = get_relocatable_from_var_name("point1", vm, ids_data, ap_tracking)?;
 
     let (point1_x_d0, point1_x_d1, point1_x_d2) = (
-        vm_proxy.memory.get_integer(&point1_reloc)?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 1))?,
-        vm_proxy.memory.get_integer(&(&point1_reloc + 2))?,
+        vm.get_integer(&point1_reloc)?,
+        vm.get_integer(&(&point1_reloc + 1))?,
+        vm.get_integer(&(&point1_reloc + 2))?,
     );
 
-    let slope = pack(slope_d0, slope_d1, slope_d2, vm_proxy.prime);
-    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, vm_proxy.prime);
-    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm_proxy.prime);
-    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm_proxy.prime);
+    let slope = pack(slope_d0, slope_d1, slope_d2, vm.get_prime());
+    let x0 = pack(point0_x_d0, point0_x_d1, point0_x_d2, vm.get_prime());
+    let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm.get_prime());
+    let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm.get_prime());
 
     let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
 
@@ -310,15 +310,15 @@ Implements hint:
 %{ memory[ap] = (ids.scalar % PRIME) % 2 %}
 */
 pub fn ec_mul_inner(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //(ids.scalar % PRIME) % 2
-    let scalar = get_integer_from_var_name("scalar", vm_proxy, ids_data, ap_tracking)?
-        .mod_floor(vm_proxy.prime)
+    let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
+        .mod_floor(vm.get_prime())
         .bitand(bigint!(1));
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, scalar)
+    insert_value_into_ap(vm, scalar)
 }
 
 #[cfg(test)]
@@ -328,7 +328,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;

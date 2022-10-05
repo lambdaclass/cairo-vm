@@ -5,10 +5,10 @@ use crate::{
             get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
         },
         hint_processor_definition::HintReference,
-        proxies::{exec_scopes_proxy::ExecutionScopesProxy, vm_proxy::VMProxy},
+        proxies::exec_scopes_proxy::ExecutionScopesProxy,
     },
     serde::deserialize_program::ApTracking,
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 
 use num_bigint::BigInt;
@@ -31,14 +31,14 @@ pub fn usort_enter_scope(
 }
 
 pub fn usort_body(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let input_ptr = get_ptr_from_var_name("input", vm_proxy, ids_data, ap_tracking)?;
+    let input_ptr = get_ptr_from_var_name("input", vm, ids_data, ap_tracking)?;
     let usort_max_size = exec_scopes_proxy.get_u64("usort_max_size");
-    let input_len = get_integer_from_var_name("input_len", vm_proxy, ids_data, ap_tracking)?;
+    let input_len = get_integer_from_var_name("input_len", vm, ids_data, ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()
         .ok_or(VirtualMachineError::BigintToUsizeFail)?;
@@ -54,7 +54,7 @@ pub fn usort_body(
     let mut positions_dict: HashMap<BigInt, Vec<u64>> = HashMap::new();
     let mut output: Vec<BigInt> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm_proxy.memory.get_integer(&(&input_ptr + i as usize))?;
+        let val = vm.get_integer(&(&input_ptr + i as usize))?;
         if let Err(output_index) = output.binary_search(val) {
             output.insert(output_index, val.clone());
         }
@@ -69,46 +69,36 @@ pub fn usort_body(
         multiplicities.push(positions_dict[k].len());
     }
     exec_scopes_proxy.insert_value("positions_dict", positions_dict);
-    let output_base = vm_proxy.memory.add_segment(vm_proxy.segments);
-    let multiplicities_base = vm_proxy.memory.add_segment(vm_proxy.segments);
+    let output_base = vm.add_memory_segment();
+    let multiplicities_base = vm.add_memory_segment();
     let output_len = output.len();
 
     for (i, sorted_element) in output.into_iter().enumerate() {
-        vm_proxy
-            .memory
-            .insert_value(&(&output_base + i), sorted_element)?;
+        vm.insert_value(&(&output_base + i), sorted_element)?;
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm_proxy
-            .memory
-            .insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
+        vm.insert_value(&(&multiplicities_base + i), bigint!(repetition_amount))?;
     }
 
-    insert_value_from_var_name(
-        "output_len",
-        bigint!(output_len),
-        vm_proxy,
-        ids_data,
-        ap_tracking,
-    )?;
-    insert_value_from_var_name("output", output_base, vm_proxy, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output_len", bigint!(output_len), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("output", output_base, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name(
         "multiplicities",
         multiplicities_base,
-        vm_proxy,
+        vm,
         ids_data,
         ap_tracking,
     )
 }
 
 pub fn verify_usort(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_var_name("value", vm_proxy, ids_data, ap_tracking)?.clone();
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
     let mut positions = exec_scopes_proxy
         .get_mut_dict_int_list_u64_ref("positions_dict")?
         .remove(&value)
@@ -131,7 +121,7 @@ pub fn verify_multiplicity_assert(
 }
 
 pub fn verify_multiplicity_body(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -141,7 +131,7 @@ pub fn verify_multiplicity_body(
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
     let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
-    insert_value_from_var_name("next_item_index", pos_diff, vm_proxy, ids_data, ap_tracking)?;
+    insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
     exec_scopes_proxy.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())
 }
@@ -157,7 +147,7 @@ mod tests {
                 hint_code::USORT_BODY,
             },
             hint_processor_definition::HintProcessor,
-            proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
+            proxies::exec_scopes_proxy::get_exec_scopes_proxy,
         },
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,

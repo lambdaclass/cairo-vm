@@ -2,12 +2,11 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::bigint_to_usize;
 use crate::hint_processor::hint_processor_utils::compute_addr_from_reference;
 use crate::hint_processor::hint_processor_utils::get_integer_from_reference;
-use crate::hint_processor::proxies::memory_proxy::MemoryProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
-use crate::vm::{context::run_context::RunContext, errors::vm_errors::VirtualMachineError};
+use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
@@ -15,37 +14,36 @@ use std::collections::HashMap;
 pub fn insert_value_from_var_name(
     var_name: &str,
     value: impl Into<MaybeRelocatable>,
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let var_address = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    vm_proxy.memory.insert_value(&var_address, value)
+    let var_address = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+    vm.insert_value(&var_address, value)
 }
 
 //Inserts value into ap
 pub fn insert_value_into_ap(
-    memory: &mut MemoryProxy,
-    run_context: &RunContext,
+    vm: &mut VirtualMachine,
     value: impl Into<MaybeRelocatable>,
 ) -> Result<(), VirtualMachineError> {
-    memory.insert_value(&(run_context.get_ap()), value)
+    vm.insert_value(&vm.get_ap(), value)
 }
 
 //Returns the Relocatable value stored in the given ids variable
 pub fn get_ptr_from_var_name(
     var_name: &str,
-    vm_proxy: &VMProxy,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
-    let var_addr = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
+    let var_addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
     //Add immediate if present in reference
     let hint_reference = ids_data
         .get(&String::from(var_name))
         .ok_or(VirtualMachineError::FailedToGetIds)?;
     if hint_reference.dereference {
-        let value = vm_proxy.memory.get_relocatable(&var_addr)?;
+        let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
             let modified_value = value + bigint_to_usize(immediate)?;
             Ok(modified_value)
@@ -60,7 +58,7 @@ pub fn get_ptr_from_var_name(
 //Gets the address, as a MaybeRelocatable of the variable given by the ids name
 pub fn get_address_from_var_name(
     var_name: &str,
-    vm_proxy: &VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -68,8 +66,7 @@ pub fn get_address_from_var_name(
         ids_data
             .get(var_name)
             .ok_or(VirtualMachineError::FailedToGetIds)?,
-        vm_proxy.run_context,
-        &vm_proxy.memory,
+        vm,
         ap_tracking,
     )?))
 }
@@ -77,7 +74,7 @@ pub fn get_address_from_var_name(
 //Gets the address, as a Relocatable of the variable given by the ids name
 pub fn get_relocatable_from_var_name(
     var_name: &str,
-    vm_proxy: &VMProxy,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, VirtualMachineError> {
@@ -85,8 +82,7 @@ pub fn get_relocatable_from_var_name(
         ids_data
             .get(var_name)
             .ok_or(VirtualMachineError::FailedToGetIds)?,
-        vm_proxy.run_context,
-        &vm_proxy.memory,
+        vm,
         ap_tracking,
     )
 }
@@ -96,14 +92,12 @@ pub fn get_relocatable_from_var_name(
 //else raises Err
 pub fn get_integer_from_var_name<'a>(
     var_name: &str,
-    vm_proxy: &'a VMProxy,
+    vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<&'a BigInt, VirtualMachineError> {
-    // let relocatable = get_relocatable_from_var_name(var_name, vm_proxy, ids_data, ap_tracking)?;
-    // vm_proxy.memory.get_integer(&relocatable)
     let reference = get_reference_from_var_name(var_name, ids_data)?;
-    get_integer_from_reference(vm_proxy, reference, ap_tracking)
+    get_integer_from_reference(vm, reference, ap_tracking)
 }
 
 pub fn get_reference_from_var_name<'a>(
@@ -120,9 +114,7 @@ mod tests {
     use super::*;
     use crate::{
         bigint,
-        hint_processor::{
-            hint_processor_definition::HintReference, proxies::vm_proxy::get_vm_proxy,
-        },
+        hint_processor::hint_processor_definition::HintReference,
         relocatable,
         utils::test_utils::*,
         vm::{
@@ -140,7 +132,7 @@ mod tests {
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
         assert_eq!(
-            get_ptr_from_var_name("imm", &get_vm_proxy(&mut vm), &ids_data, &ApTracking::new()),
+            get_ptr_from_var_name("imm", &mut vm, &ids_data, &ApTracking::new()),
             Ok(relocatable!(0, 2))
         );
     }

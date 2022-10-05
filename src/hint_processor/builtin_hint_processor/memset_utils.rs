@@ -1,9 +1,8 @@
 use crate::bigint;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
-
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::any::Any;
@@ -16,13 +15,13 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("n", vm_proxy, ids_data, ap_tracking)?.clone());
+        Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?.clone());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
@@ -34,7 +33,7 @@ pub fn memset_enter_scope(
 %}
 */
 pub fn memset_continue_loop(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -46,13 +45,7 @@ pub fn memset_continue_loop(
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = bigint!(new_n.is_positive() as i32);
-    insert_value_from_var_name(
-        "continue_loop",
-        should_continue,
-        vm_proxy,
-        ids_data,
-        ap_tracking,
-    )?;
+    insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
     exec_scopes_proxy.insert_value("n", new_n);
@@ -66,7 +59,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::vm_memory::memory::Memory;

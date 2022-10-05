@@ -5,10 +5,10 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::hint_processor::proxies::vm_proxy::VMProxy;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -27,24 +27,18 @@ Implements hint:
 %}
 */
 pub fn verify_zero(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let val = pack_from_var_name("val", vm_proxy, ids_data, ap_tracking)?;
+    let val = pack_from_var_name("val", vm, ids_data, ap_tracking)?;
     let (q, r) = val.div_rem(&SECP_P);
 
     if !r.is_zero() {
         return Err(VirtualMachineError::SecpVerifyZero(val));
     }
 
-    insert_value_from_var_name(
-        "q",
-        q.mod_floor(vm_proxy.prime),
-        vm_proxy,
-        ids_data,
-        ap_tracking,
-    )
+    insert_value_from_var_name("q", q.mod_floor(vm.get_prime()), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -56,12 +50,12 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = pack_from_var_name("x", vm_proxy, ids_data, ap_tracking)?.mod_floor(&SECP_P);
+    let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
@@ -75,12 +69,12 @@ Implements hint:
 %}
 */
 pub fn is_zero_pack(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let x_packed = pack_from_var_name("x", vm_proxy, ids_data, ap_tracking)?;
+    let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&SECP_P);
     exec_scopes_proxy.insert_value("x", x);
     Ok(())
@@ -95,14 +89,14 @@ On .json compiled program
 "memory[ap] = to_felt_or_relocatable(x == 0)"
 */
 pub fn is_zero_nondet(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
     let x = exec_scopes_proxy.get_int("x")?;
 
     let value = bigint!(x.is_zero() as usize);
-    insert_value_into_ap(&mut vm_proxy.memory, vm_proxy.run_context, value)
+    insert_value_into_ap(vm, value)
 }
 
 /*
@@ -136,7 +130,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
