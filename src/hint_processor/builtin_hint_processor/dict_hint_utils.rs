@@ -1,4 +1,6 @@
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::{
+    hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy, vm::vm_core::VirtualMachine,
+};
 use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use num_bigint::BigInt;
@@ -11,7 +13,6 @@ use crate::{
             insert_value_into_ap,
         },
         hint_processor_definition::HintReference,
-        proxies::vm_proxy::VMProxy,
     },
     serde::deserialize_program::ApTracking,
     vm::errors::vm_errors::VirtualMachineError,
@@ -50,7 +51,7 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available
 */
 pub fn dict_new(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
 ) -> Result<(), VirtualMachineError> {
     //Get initial dictionary from scope (defined by an earlier hint)
@@ -58,14 +59,14 @@ pub fn dict_new(
         copy_initial_dict(exec_scopes_proxy).ok_or(VirtualMachineError::NoInitialDict)?;
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
-        dict_manager.borrow_mut().new_dict(vm_proxy, initial_dict)?
+        dict_manager.borrow_mut().new_dict(vm, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_dict(vm_proxy, initial_dict)?;
+        let base = dict_manager.new_dict(vm, initial_dict)?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(vm_proxy, base)
+    insert_value_into_ap(vm, base)
 }
 
 /*Implements hint:
@@ -79,28 +80,28 @@ For now, the functionality to create a dictionary from a previously defined init
 is not available, an empty dict is created always
 */
 pub fn default_dict_new(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm_proxy, ids_data, ap_tracking)?.clone();
+        get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.clone();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
     let base = if let Ok(dict_manager) = exec_scopes_proxy.get_dict_manager() {
         dict_manager
             .borrow_mut()
-            .new_default_dict(vm_proxy, &default_value, initial_dict)?
+            .new_default_dict(vm, &default_value, initial_dict)?
     } else {
         let mut dict_manager = DictManager::new();
-        let base = dict_manager.new_default_dict(vm_proxy, &default_value, initial_dict)?;
+        let base = dict_manager.new_default_dict(vm, &default_value, initial_dict)?;
         exec_scopes_proxy.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         base
     };
-    insert_value_into_ap(vm_proxy, base)
+    insert_value_into_ap(vm, base)
 }
 
 /* Implements hint:
@@ -109,19 +110,19 @@ pub fn default_dict_new(
    ids.value = dict_tracker.data[ids.key]
 */
 pub fn dict_read(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     let value = tracker.get_value(key)?;
-    insert_value_from_var_name("value", value.clone(), vm_proxy, ids_data, ap_tracking)
+    insert_value_from_var_name("value", value.clone(), vm, ids_data, ap_tracking)
 }
 
 /* Implements hint:
@@ -131,14 +132,14 @@ pub fn dict_read(
     dict_tracker.data[ids.key] = ids.new_value
 */
 pub fn dict_write(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
@@ -154,7 +155,7 @@ pub fn dict_write(
     tracker.insert_value(key, new_value);
     //Insert previous value into dict_ptr.prev_value
     //Addres for dict_ptr.prev_value should be dict_ptr* + 1 (defined above)
-    vm_proxy.insert_value(&dict_ptr_prev_value, prev_value)?;
+    vm.insert_value(&dict_ptr_prev_value, prev_value)?;
     Ok(())
 }
 
@@ -170,15 +171,15 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let key = get_integer_from_var_name("key", vm_proxy, ids_data, ap_tracking)?;
-    let prev_value = get_integer_from_var_name("prev_value", vm_proxy, ids_data, ap_tracking)?;
-    let new_value = get_integer_from_var_name("new_value", vm_proxy, ids_data, ap_tracking)?;
-    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm_proxy, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let prev_value = get_integer_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
+    let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
+    let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
 
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
@@ -210,13 +211,12 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let dict_accesses_end =
-        get_ptr_from_var_name("dict_accesses_end", vm_proxy, ids_data, ap_tracking)?;
+    let dict_accesses_end = get_ptr_from_var_name("dict_accesses_end", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let dict_manager = dict_manager_ref.borrow();
     let dict_copy: Box<dyn Any> = Box::new(
@@ -240,15 +240,14 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let squashed_dict_start =
-        get_ptr_from_var_name("squashed_dict_start", vm_proxy, ids_data, ap_tracking)?;
-    let squashed_dict_end =
-        get_ptr_from_var_name("squashed_dict_end", vm_proxy, ids_data, ap_tracking)?;
+        get_ptr_from_var_name("squashed_dict_start", vm, ids_data, ap_tracking)?;
+    let squashed_dict_end = get_ptr_from_var_name("squashed_dict_end", vm, ids_data, ap_tracking)?;
     exec_scopes_proxy
         .get_dict_manager()?
         .borrow_mut()
@@ -264,7 +263,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
-    use crate::hint_processor::proxies::vm_proxy::get_vm_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::vm::vm_memory::memory::Memory;
     use std::collections::HashMap;

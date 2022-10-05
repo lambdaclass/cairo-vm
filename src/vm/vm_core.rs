@@ -1,8 +1,7 @@
 use crate::{
     bigint,
     hint_processor::{
-        hint_processor_definition::HintProcessor,
-        proxies::{exec_scopes_proxy::get_exec_scopes_proxy, vm_proxy::get_vm_proxy},
+        hint_processor_definition::HintProcessor, proxies::exec_scopes_proxy::get_exec_scopes_proxy,
     },
     serde::deserialize_program::ApTracking,
     types::{
@@ -24,7 +23,7 @@ use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
 
-use super::errors::memory_errors::MemoryError;
+use super::{errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -46,14 +45,14 @@ pub struct HintData {
 }
 
 pub struct VirtualMachine {
-    pub run_context: RunContext,
-    pub prime: BigInt,
-    pub builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
-    pub segments: MemorySegmentManager,
-    pub _program_base: Option<MaybeRelocatable>,
-    pub memory: Memory,
+    pub(crate) run_context: RunContext,
+    pub(crate) prime: BigInt,
+    pub(crate) builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub(crate) segments: MemorySegmentManager,
+    pub(crate) _program_base: Option<MaybeRelocatable>,
+    pub(crate) memory: Memory,
     accessed_addresses: Option<Vec<Relocatable>>,
-    pub trace: Option<Vec<TraceEntry>>,
+    pub(crate) trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
 }
@@ -459,11 +458,10 @@ impl VirtualMachine {
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            let mut vm_proxy = get_vm_proxy(self);
             for hint_data in hint_list.iter() {
                 //We create a new proxy with every hint as the current scope can change
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(&mut vm_proxy, &mut exec_scopes_proxy, hint_data)?
+                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data)?
             }
         }
         Ok(())
@@ -689,6 +687,48 @@ impl VirtualMachine {
         data: Vec<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.load_data(&mut self.memory, ptr, data)
+    }
+
+    //// Writes args into the memory at address ptr and returns the first address after the data.
+    /// Perfroms modulo on each element
+    pub fn write_arg(
+        &mut self,
+        ptr: &Relocatable,
+        arg: &dyn Any,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        self.segments
+            .write_arg(&mut self.memory, ptr, arg, Some(&self.prime))
+    }
+
+    ///Gets n elements from memory starting from addr (n being size)
+    pub fn get_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+        self.memory.get_range(addr, size)
+    }
+
+    ///Gets n integer values from memory starting from addr (n being size),
+    pub fn get_integer_range(
+        &self,
+        addr: &Relocatable,
+        size: usize,
+    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+        self.memory.get_integer_range(addr, size)
+    }
+
+    pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+        for (name, builtin) in &self.builtin_runners {
+            if name == &String::from("range_check") {
+                if let Some(range_check_builtin) =
+                    builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
+                {
+                    return Ok(range_check_builtin);
+                };
+            }
+        }
+        Err(VirtualMachineError::NoRangeCheckBuiltin)
     }
 }
 
