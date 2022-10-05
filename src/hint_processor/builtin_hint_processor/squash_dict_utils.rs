@@ -16,9 +16,9 @@ use crate::{
     vm::errors::vm_errors::VirtualMachineError,
 };
 
-fn get_access_indices<'a>(
-    exec_scopes: &'a mut ExecutionScopes,
-) -> Result<&'a HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
+fn get_access_indices(
+    exec_scopes: &mut ExecutionScopes,
+) -> Result<&HashMap<BigInt, Vec<BigInt>>, VirtualMachineError> {
     let mut access_indices: Option<&HashMap<BigInt, Vec<BigInt>>> = None;
     if let Some(variable) = exec_scopes
         .get_local_variables_mut()?
