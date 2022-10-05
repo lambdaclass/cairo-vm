@@ -38,7 +38,7 @@ pub struct CairoRunner<'a> {
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
-    hint_executor: &'a dyn HintProcessor,
+    pub hint_executor: &'a dyn HintProcessor,
 }
 
 impl<'a> CairoRunner<'a> {
@@ -226,7 +226,7 @@ impl<'a> CairoRunner<'a> {
             .map_err(RunnerError::MemoryValidationError)
     }
 
-    fn get_reference_list(&self) -> HashMap<usize, HintReference> {
+    pub fn get_reference_list(&self) -> HashMap<usize, HintReference> {
         let mut references = HashMap::<usize, HintReference>::new();
 
         for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
@@ -252,7 +252,7 @@ impl<'a> CairoRunner<'a> {
     }
 
     /// Gets the data used by the HintProcessor to execute each hint
-    fn get_hint_data_dictionary(
+    pub fn get_hint_data_dictionary(
         &self,
         references: &HashMap<usize, HintReference>,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {

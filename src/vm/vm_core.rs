@@ -46,7 +46,7 @@ pub struct HintData {
 }
 
 pub struct VirtualMachine {
-    pub(crate) run_context: RunContext,
+    pub run_context: RunContext,
     pub(crate) prime: BigInt,
     pub(crate) builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
     pub(crate) segments: MemorySegmentManager,
