@@ -653,10 +653,6 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
-    pub fn get_run_context(&self) -> &RunContext {
-        &self.run_context
-    }
-
     pub fn get_prime(&self) -> &BigInt {
         &self.prime
     }
