@@ -14,6 +14,7 @@ pub struct Memory {
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     pub validation_rules: HashMap<usize, ValidationRule>,
+    pub relocation_rules: HashMap<isize, Relocatable>,
 }
 
 impl Memory {
@@ -23,6 +24,7 @@ impl Memory {
             temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
             validated_addresses: HashSet::<MaybeRelocatable>::new(),
             validation_rules: HashMap::new(),
+            relocation_rules: HashMap::new(),
         }
     }
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
