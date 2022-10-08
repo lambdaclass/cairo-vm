@@ -649,6 +649,10 @@ impl VirtualMachine {
         self.run_context.get_fp()
     }
 
+    pub fn get_pc(&self) -> &Relocatable {
+        self.run_context.get_pc()
+    }
+
     pub fn get_prime(&self) -> &BigInt {
         &self.prime
     }
@@ -729,6 +733,21 @@ impl VirtualMachine {
             }
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
+    }
+
+    #[doc(hidden)]
+    pub fn set_ap(&mut self, ap: usize) {
+        self.run_context.set_ap(ap)
+    }
+
+    #[doc(hidden)]
+    pub fn set_fp(&mut self, fp: usize) {
+        self.run_context.set_fp(fp)
+    }
+
+    #[doc(hidden)]
+    pub fn set_pc(&mut self, pc: Relocatable) {
+        self.run_context.set_pc(pc)
     }
 }
 
