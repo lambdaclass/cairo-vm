@@ -26,15 +26,15 @@ impl Memory {
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
     /// Will panic if the segment index given by the address corresponds to a non-allocated segment
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
-    pub fn insert<'a, K: 'a, V: 'a>(&mut self, key: &'a K, val: &'a V) -> Result<(), MemoryError>
+    pub fn insert<K, V>(&mut self, key: K, val: V) -> Result<(), MemoryError>
     where
-        Relocatable: TryFrom<&'a K>,
-        MaybeRelocatable: From<&'a K>,
-        MaybeRelocatable: From<&'a V>,
+        MaybeRelocatable: From<K>,
+        MaybeRelocatable: From<V>,
     {
-        let relocatable: Relocatable = key
-            .try_into()
-            .map_err(|_| MemoryError::AddressNotRelocatable)?;
+        let relocatable: Relocatable = match key.into() {
+            MaybeRelocatable::RelocatableValue(x) => x,
+            _ => return Err(MemoryError::AddressNotRelocatable),
+        };
         let val = MaybeRelocatable::from(val);
         let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
         let data_len = self.data.len();
@@ -61,7 +61,7 @@ impl Memory {
                 }
             }
         };
-        self.validate_memory_cell(&MaybeRelocatable::from(key))
+        self.validate_memory_cell(&MaybeRelocatable::RelocatableValue(relocatable))
     }
 
     pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
@@ -110,7 +110,7 @@ impl Memory {
         key: &Relocatable,
         val: T,
     ) -> Result<(), VirtualMachineError> {
-        self.insert(key, &val.into())
+        self.insert(key, val.into())
             .map_err(VirtualMachineError::MemoryError)
     }
 

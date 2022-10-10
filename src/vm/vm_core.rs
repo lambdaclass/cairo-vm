@@ -688,7 +688,7 @@ impl VirtualMachine {
     pub fn load_data(
         &mut self,
         ptr: &MaybeRelocatable,
-        data: Vec<MaybeRelocatable>,
+        data: impl IntoIterator<Item = MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.load_data(&mut self.memory, ptr, data)
     }

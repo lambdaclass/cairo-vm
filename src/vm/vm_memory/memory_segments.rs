@@ -27,12 +27,14 @@ impl MemorySegmentManager {
         &mut self,
         memory: &mut Memory,
         ptr: &MaybeRelocatable,
-        data: Vec<MaybeRelocatable>,
+        data: impl IntoIterator<Item = MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
-        for (num, value) in data.iter().enumerate() {
-            memory.insert(&ptr.add_usize_mod(num, None), value)?;
+        let mut count = 0;
+        for (num, value) in data.into_iter().enumerate() {
+            memory.insert(ptr.add_usize_mod(num, None), value)?;
+            count += 1;
         }
-        Ok(ptr.add_usize_mod(data.len(), None))
+        Ok(ptr.add_usize_mod(count, None))
     }
 
     pub fn new() -> MemorySegmentManager {
