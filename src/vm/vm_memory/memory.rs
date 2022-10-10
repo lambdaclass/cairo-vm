@@ -75,9 +75,14 @@ impl Memory {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
-        let (i, j) = from_relocatable_to_indexes(relocatable)?;
-        if self.data.len() > i && self.data[i].len() > j {
-            if let Some(ref element) = self.data[i][j] {
+        let data = if relocatable.segment_index.is_negative() {
+            &self.temp_data
+        } else {
+            &self.data
+        };
+        let (i, j) = (relocatable.segment_index.abs() as usize, relocatable.offset);
+        if data.len() > i && data[i].len() > j {
+            if let Some(ref element) = data[i][j] {
                 return Ok(Some(element));
             }
         }
