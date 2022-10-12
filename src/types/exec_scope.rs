@@ -11,19 +11,16 @@ pub struct ExecutionScopes {
 }
 
 impl ExecutionScopes {
-    // USED
     pub fn new() -> ExecutionScopes {
         ExecutionScopes {
             data: vec![HashMap::new()],
         }
     }
 
-    // USED
     pub fn enter_scope(&mut self, new_scope_locals: HashMap<String, Box<dyn Any>>) {
         self.data.push(new_scope_locals);
     }
 
-    // USED
     pub fn exit_scope(&mut self) -> Result<(), ExecScopeError> {
         if self.data.len() == 1 {
             return Err(ExecScopeError::ExitMainScopeError);
