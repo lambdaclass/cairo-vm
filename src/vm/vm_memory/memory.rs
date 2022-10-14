@@ -236,7 +236,7 @@ mod memory_tests {
     }
 
     #[test]
-    fn get_from_temp_segment_succesful() {
+    fn get_valuef_from_temp_segment() {
         let mut memory = Memory::new();
         memory.temp_data = vec![vec![None, None, Some(mayberelocatable!(8))]];
         assert_eq!(
@@ -244,6 +244,20 @@ mod memory_tests {
             Ok(Some(&mayberelocatable!(8)))
         );
     }
+
+    #[test]
+    fn insert_value_in_temp_segment() {
+        let key = MaybeRelocatable::from((-1, 3));
+        let val = MaybeRelocatable::from(bigint!(8));
+        let mut memory = Memory::new();
+        memory.temp_data.push(Vec::new());
+        memory.insert(&key, &val).unwrap();
+        assert_eq!(
+            memory.temp_data[0][3],
+            Some(MaybeRelocatable::from(bigint!(8)))
+        );
+    }
+
     #[test]
     fn insert_and_get_from_temp_segment_succesful() {
         let key = MaybeRelocatable::from((-1, 0));
@@ -254,6 +268,21 @@ mod memory_tests {
         assert_eq!(
             memory.get(&key).unwrap(),
             Some(&MaybeRelocatable::from(bigint!(5)))
+        );
+    }
+
+    #[test]
+    fn insert_and_get_from_temp_segment_failed() {
+        let key = mayberelocatable!(-1, 1);
+        let mut memory = Memory::new();
+        memory.temp_data = vec![vec![None, Some(mayberelocatable!(8))]];
+        assert_eq!(
+            memory.insert(&key, &mayberelocatable!(5)),
+            Err(MemoryError::InconsistentMemory(
+                mayberelocatable!(-1, 1),
+                mayberelocatable!(8),
+                mayberelocatable!(5)
+            ))
         );
     }
 
