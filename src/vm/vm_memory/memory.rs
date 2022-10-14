@@ -198,6 +198,7 @@ impl Default for Memory {
 mod memory_tests {
     use crate::{
         bigint,
+        utils::test_utils::mayberelocatable,
         vm::{
             runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
@@ -234,6 +235,15 @@ mod memory_tests {
         );
     }
 
+    #[test]
+    fn get_from_temp_segment_succesful() {
+        let mut memory = Memory::new();
+        memory.temp_data = vec![vec![None, None, Some(mayberelocatable!(8))]];
+        assert_eq!(
+            memory.get(&mayberelocatable!(-1, 2)),
+            Ok(Some(&mayberelocatable!(8)))
+        );
+    }
     #[test]
     fn insert_and_get_from_temp_segment_succesful() {
         let key = MaybeRelocatable::from((-1, 0));
