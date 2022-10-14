@@ -235,6 +235,19 @@ mod memory_tests {
     }
 
     #[test]
+    fn insert_and_get_from_temp_segment_succesful() {
+        let key = MaybeRelocatable::from((-1, 0));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.temp_data.push(Vec::new());
+        memory.insert(&key, &val).unwrap();
+        assert_eq!(
+            memory.get(&key).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(5)))
+        );
+    }
+
+    #[test]
     fn get_non_allocated_memory() {
         let key = MaybeRelocatable::from((0, 0));
         let memory = Memory::new();
