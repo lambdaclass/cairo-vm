@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665775042616,
+  "lastUpdate": 1665780039715,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -42288,6 +42288,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 281708615,
             "range": "± 8959209",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "e88b01d2720be49ac617332bf1bb70dabfa24188",
+          "message": "Refactor Memory methods to handle Temporary segment cases",
+          "timestamp": "2022-10-14T04:26:05Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/481/commits/e88b01d2720be49ac617332bf1bb70dabfa24188"
+        },
+        "date": 1665780036298,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1955800864,
+            "range": "± 60611938",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 732504799,
+            "range": "± 22484215",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 345706455,
+            "range": "± 13767720",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1601756889,
+            "range": "± 57973486",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 247369508,
+            "range": "± 12006383",
             "unit": "ns/iter"
           }
         ]
