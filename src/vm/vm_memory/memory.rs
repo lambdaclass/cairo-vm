@@ -41,9 +41,15 @@ impl Memory {
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
         let val = MaybeRelocatable::from(val);
         let (value_index, value_offset) = from_relocatable_to_indexes(&relocatable);
-        let data_len = self.data.len();
-        let segment = self
-            .data
+
+        let data = if relocatable.segment_index.is_negative() {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+
+        let data_len = data.len();
+        let segment = data
             .get_mut(value_index)
             .ok_or(MemoryError::UnallocatedSegment(value_index, data_len))?;
         //Check if the element is inserted next to the last one on the segment
