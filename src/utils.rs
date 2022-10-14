@@ -49,7 +49,14 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
 }
 
 pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) {
-    (relocatable.segment_index.abs() as usize, relocatable.offset)
+    if relocatable.segment_index.is_negative() {
+        (
+            (relocatable.segment_index.abs() - 1) as usize,
+            relocatable.offset,
+        )
+    } else {
+        (relocatable.segment_index as usize, relocatable.offset)
+    }
 }
 
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
