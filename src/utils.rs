@@ -853,4 +853,13 @@ mod test {
         assert_eq!(data[2], mayberelocatable!(49128305));
         assert_eq!(data[3], mayberelocatable!(997130409));
     }
+    #[test]
+    fn from_relocatable_to_indexes_test() {
+        let reloc_1 = relocatable!(1, 5);
+        let reloc_2 = relocatable!(0, 5);
+        let reloc_3 = relocatable!(-1, 5);
+        assert_eq!((1, 5), from_relocatable_to_indexes(&reloc_1));
+        assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_2));
+        assert_eq!((0, 5), from_relocatable_to_indexes(&reloc_3));
+    }
 }
