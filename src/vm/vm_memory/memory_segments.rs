@@ -8,6 +8,7 @@ use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
     pub num_segments: usize,
+    pub num_temp_segments: usize,
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
@@ -22,6 +23,18 @@ impl MemorySegmentManager {
             offset: 0,
         }
     }
+
+    ///Adds a new temporary segment and returns its starting location as a RelocatableValue.
+    ///Negative segment_index indicates its refer to a temporary segment
+    pub fn add_temporary_segment(&mut self, memory: &mut Memory) -> Relocatable {
+        self.num_temp_segments += 1;
+        memory.temp_data.push(Vec::new());
+        Relocatable {
+            segment_index: -(self.num_temp_segments as isize),
+            offset: 0,
+        }
+    }
+
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
@@ -38,6 +51,7 @@ impl MemorySegmentManager {
     pub fn new() -> MemorySegmentManager {
         MemorySegmentManager {
             num_segments: 0,
+            num_temp_segments: 0,
             segment_used_sizes: None,
         }
     }
@@ -144,6 +158,31 @@ mod tests {
             }
         );
         assert_eq!(segments.num_segments, 2);
+    }
+
+    #[test]
+    fn add_one_temporary_segment() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let base = segments.add_temporary_segment(&mut memory);
+        assert_eq!(base, relocatable!(-1, 0));
+        assert_eq!(segments.num_temp_segments, 1);
+    }
+
+    #[test]
+    fn add_two_temporary_segments() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let mut _base = segments.add_temporary_segment(&mut memory);
+        _base = segments.add_temporary_segment(&mut memory);
+        assert_eq!(
+            _base,
+            Relocatable {
+                segment_index: -2,
+                offset: 0
+            }
+        );
+        assert_eq!(segments.num_temp_segments, 2);
     }
 
     #[test]

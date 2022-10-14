@@ -11,6 +11,7 @@ pub struct ValidationRule(
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
+    pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     pub validation_rules: HashMap<usize, ValidationRule>,
 }
@@ -19,6 +20,7 @@ impl Memory {
     pub fn new() -> Memory {
         Memory {
             data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
             validated_addresses: HashSet::<MaybeRelocatable>::new(),
             validation_rules: HashMap::new(),
         }
