@@ -359,8 +359,12 @@ mod tests {
         );
         //Check that value variable (at address (1,1)) contains the proper value
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 1))),
-            Ok(Some(&MaybeRelocatable::from(bigint!(12))))
+            vm.memory
+                .get(&MaybeRelocatable::from((1, 1)))
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::from(bigint!(12))
         );
         //Check that the tracker's current_ptr has moved accordingly
         check_dict_ptr!(exec_scopes_proxy, 2, (2, 3));
