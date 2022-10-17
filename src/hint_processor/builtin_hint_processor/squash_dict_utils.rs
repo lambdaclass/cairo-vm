@@ -266,7 +266,7 @@ pub fn squash_dict(
             .get_integer(&key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
-            .entry(key.clone())
+            .entry(key.into_owned())
             .or_insert(Vec::<BigInt>::new())
             .push(bigint!(i));
     }
