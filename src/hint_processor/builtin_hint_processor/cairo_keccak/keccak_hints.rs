@@ -10,6 +10,7 @@ use crate::{
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 lazy_static! {
@@ -191,16 +192,18 @@ pub fn cairo_keccak_finalize(
 // Helper function to transform a vector of MaybeRelocatables into a vector
 // of u64. Raises error if there are None's or if MaybeRelocatables are not Bigints.
 fn maybe_reloc_vec_to_u64_array(
-    vec: &[Option<&MaybeRelocatable>],
+    vec: &[Option<Cow<MaybeRelocatable>>],
 ) -> Result<[u64; KECCAK_STATE_SIZE_FELTS], VirtualMachineError> {
     let array: [u64; KECCAK_STATE_SIZE_FELTS] = vec
         .iter()
-        .map(|n| {
-            if let Some(MaybeRelocatable::Int(num)) = n {
+        .map(|n| match n {
+            Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
+            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-            } else {
-                Err(VirtualMachineError::ExpectedIntAtRange(n.cloned()))
             }
+            _ => Err(VirtualMachineError::ExpectedIntAtRange(
+                n.map(Cow::into_owned),
+            )),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?
         .try_into()
