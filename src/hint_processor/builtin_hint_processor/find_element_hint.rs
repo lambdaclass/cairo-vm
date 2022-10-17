@@ -41,11 +41,11 @@ pub fn find_element(
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-        if found_key != key {
+        if found_key.as_ref() != key {
             return Err(VirtualMachineError::InvalidIndex(
                 find_element_index_value,
                 key.clone(),
-                found_key.clone(),
+                found_key.into_owned(),
             ));
         }
         insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
@@ -73,7 +73,7 @@ pub fn find_element(
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-            if iter_key == key {
+            if iter_key.as_ref() == key {
                 return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
             }
         }
@@ -119,7 +119,7 @@ pub fn search_sorted_lower(
 
     for i in 0..n_elms_usize {
         let value = vm.get_integer(&array_iter)?;
-        if value >= key {
+        if value.as_ref() >= key {
             return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
         }
         array_iter.offset += elm_size_usize;
