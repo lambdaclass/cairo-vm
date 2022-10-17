@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use crate::types::relocatable::Relocatable;
@@ -64,7 +65,7 @@ impl Memory {
         self.validate_memory_cell(&MaybeRelocatable::from(key))
     }
 
-    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
     where
         Relocatable: TryFrom<&'a K>,
     {
@@ -74,7 +75,7 @@ impl Memory {
         let (i, j) = from_relocatable_to_indexes(relocatable);
         if self.data.len() > i && self.data[i].len() > j {
             if let Some(ref element) = self.data[i][j] {
-                return Ok(Some(element));
+                return Ok(Some(Cow::Borrowed(element)));
             }
         }
         Ok(None)
@@ -83,25 +84,26 @@ impl Memory {
     //Gets the value from memory address.
     //If the value is an MaybeRelocatable::Int(Bigint) return &Bigint
     //else raises Err
-    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
-        if let Some(MaybeRelocatable::Int(int)) =
-            self.get(key).map_err(VirtualMachineError::MemoryError)?
-        {
-            Ok(int)
-        } else {
-            Err(VirtualMachineError::ExpectedInteger(
+    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
+        match self.get(key).map_err(VirtualMachineError::MemoryError)? {
+            Some(Cow::Borrowed(MaybeRelocatable::Int(int))) => Ok(Cow::Borrowed(int)),
+            Some(Cow::Owned(MaybeRelocatable::Int(int))) => Ok(Cow::Owned(int)),
+            _ => Err(VirtualMachineError::ExpectedInteger(
                 MaybeRelocatable::from(key),
-            ))
+            )),
         }
     }
 
-    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
-        match self.get(key) {
-            Ok(Some(MaybeRelocatable::RelocatableValue(rel))) => Ok(rel),
-            Ok(_) => Err(VirtualMachineError::ExpectedRelocatable(
+    pub fn get_relocatable(
+        &self,
+        key: &Relocatable,
+    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
+        match self.get(key).map_err(VirtualMachineError::MemoryError)? {
+            Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel))) => Ok(Cow::Borrowed(rel)),
+            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(rel))) => Ok(Cow::Owned(rel)),
+            _ => Err(VirtualMachineError::ExpectedRelocatable(
                 MaybeRelocatable::from(key),
             )),
-            Err(memory_error) => Err(VirtualMachineError::MemoryError(memory_error)),
         }
     }
 
@@ -148,7 +150,7 @@ impl Memory {
         &self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
@@ -162,7 +164,7 @@ impl Memory {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
         let mut values = Vec::new();
 
         for i in 0..size {
@@ -214,8 +216,8 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key, &val).unwrap();
         assert_eq!(
-            memory.get(&key).unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(5)))
+            memory.get(&key).unwrap().unwrap().as_ref(),
+            &MaybeRelocatable::from(bigint!(5))
         );
     }
 
@@ -298,7 +300,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
         memory.insert(&key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b).unwrap(), Some(&val));
+        assert_eq!(memory.get(&key_b).unwrap().unwrap().as_ref(), &val);
     }
 
     #[test]
@@ -310,7 +312,7 @@ mod memory_tests {
         memory.data.push(Vec::new());
         memory.insert(&key_a, &val).unwrap();
         memory.insert(&key_b, &val).unwrap();
-        assert_eq!(memory.get(&key_b).unwrap(), Some(&val));
+        assert_eq!(memory.get(&key_b).unwrap().unwrap().as_ref(), &val);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 1))).unwrap(), None);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 2))).unwrap(), None);
         assert_eq!(memory.get(&MaybeRelocatable::from((0, 3))).unwrap(), None);
@@ -430,8 +432,11 @@ mod memory_tests {
             )
             .unwrap();
         assert_eq!(
-            memory.get_integer(&Relocatable::from((0, 0))),
-            Ok(&bigint!(10))
+            memory
+                .get_integer(&Relocatable::from((0, 0)))
+                .unwrap()
+                .as_ref(),
+            &bigint!(10)
         );
     }
 
