@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1665780402246,
+  "lastUpdate": 1666026617417,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -42388,6 +42388,60 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 242338221,
             "range": "± 6813975",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "pedro.fontana@lambdaclass.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e5278010f71508e7e628366ca421da10946403b0",
+          "message": "Relocatable.segment_index to isize (#471)\n\n* Change Relocatable.segment_index to isize\r\n\r\n* Update Relocatable::from and MaybeRelocatable::from impl\r\n\r\n* Solve memeory.rs errors\r\n\r\n* Solve memeory_segments.rs errors\r\n\r\n* Add Err AddressInTemporarySegment\r\n\r\n* Add Err RunnerInTemporarySegment\r\n\r\n* Chenge Builtins.base to isize\r\n\r\n* Solve cairo_runner.rs errors\r\n\r\n* Solve vm_core.rs errors\r\n\r\n* Solve relocatable.rs errors\r\n\r\n* Solve trace_entry.rs errors\r\n\r\n* Update fn from_relocatable_to_indexes\r\n\r\n* Change DictManager.trackers to HashMap<isize, DictTracker>\r\n\r\n* Builtins.add_validation_rule return Result<(),RunnerError>\r\n\r\n* Fix unittests\r\n\r\n* Add temporary segments (#474)\r\n\r\n* Add Memory.temp_data\r\n\r\n* Add MemorySegmentManager.num_temp_segment field\r\n\r\n* Add MemorySegmentManager.add_temporary_segment method",
+          "timestamp": "2022-10-17T11:58:06-05:00",
+          "tree_id": "c8a32858b1eb40e410fa7209990ccf697f3ee6a7",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e5278010f71508e7e628366ca421da10946403b0"
+        },
+        "date": 1666026614315,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1598938837,
+            "range": "± 5444013",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 587819585,
+            "range": "± 953258",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 297303908,
+            "range": "± 545654",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1447567667,
+            "range": "± 3269730",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 209622172,
+            "range": "± 694540",
             "unit": "ns/iter"
           }
         ]
