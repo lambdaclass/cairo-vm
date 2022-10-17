@@ -8,6 +8,7 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::bigint_to_u32;
 use crate::vm::vm_core::VirtualMachine;
 use num_traits::ToPrimitive;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use crate::serde::deserialize_program::ApTracking;
@@ -16,7 +17,7 @@ use crate::{types::relocatable::MaybeRelocatable, vm::errors::vm_errors::Virtual
 use num_bigint::BigInt;
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<&BigInt>,
+    h_range: &Vec<Cow<BigInt>>,
 ) -> Result<[u32; T], VirtualMachineError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for num in h_range {
@@ -50,8 +51,8 @@ fn compute_blake2s_func(
     let h = get_fixed_size_u32_array::<8>(&vm.get_integer_range(&(output_rel.sub(26)?), 8)?)?;
     let message =
         get_fixed_size_u32_array::<16>(&vm.get_integer_range(&(output_rel.sub(18)?), 16)?)?;
-    let t = bigint_to_u32(vm.get_integer(&output_rel.sub(2)?)?)?;
-    let f = bigint_to_u32(vm.get_integer(&output_rel.sub(1)?)?)?;
+    let t = bigint_to_u32(vm.get_integer(&output_rel.sub(2)?)?.as_ref())?;
+    let f = bigint_to_u32(vm.get_integer(&output_rel.sub(1)?)?.as_ref())?;
     let new_state =
         get_maybe_relocatable_array_from_u32(&blake2s_compress(&h, &message, t, 0, f, 0));
     let output_ptr = MaybeRelocatable::RelocatableValue(output_rel);
@@ -136,8 +137,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.clone();
-    let high = vm.get_integer(&high_addr)?.clone();
+    let low = vm.get_integer(&low_addr)?.as_ref();
+    let high = vm.get_integer(&high_addr)?.as_ref();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -147,7 +148,7 @@ pub fn blake2s_add_uint256(
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((&low >> (B * i)) & &mask);
+        inner_data.push((low >> (B * i)) & &mask);
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -156,7 +157,7 @@ pub fn blake2s_add_uint256(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((&high >> (B * i)) & &mask);
+        inner_data.push((high >> (B * i)) & &mask);
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -183,8 +184,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.clone();
-    let high = vm.get_integer(&high_addr)?.clone();
+    let low = vm.get_integer(&low_addr)?.as_ref();
+    let high = vm.get_integer(&high_addr)?.as_ref();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
@@ -194,7 +195,7 @@ pub fn blake2s_add_uint256_bigend(
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((&high >> (B * (3 - i))) & &mask);
+        inner_data.push((high >> (B * (3 - i))) & &mask);
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -203,7 +204,7 @@ pub fn blake2s_add_uint256_bigend(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((&low >> (B * (3 - i))) & &mask);
+        inner_data.push((low >> (B * (3 - i))) & &mask);
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
