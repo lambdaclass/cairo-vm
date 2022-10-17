@@ -14,6 +14,7 @@ use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
+use std::borrow::Cow;
 use std::{cmp, collections::HashMap, ops::Shl};
 
 /* Implements hint:
@@ -77,8 +78,8 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {
-            return Err(VirtualMachineError::InvalidWordSize(word.clone()));
+        if word.is_negative() || word.as_ref() >= &bigint!(1).shl(8 * (n_bytes as u32)) {
+            return Err(VirtualMachineError::InvalidWordSize(word.into_owned()));
         }
 
         let (_, mut bytes) = word.to_bytes_be();
@@ -147,7 +148,7 @@ pub fn unsafe_keccak_finalize(
 
     // this is not very nice code, we should consider adding the sub() method for Relocatable's
     let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
-    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
+    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.into_owned());
 
     let n_elems = maybe_rel_end_ptr
         .sub(&maybe_rel_start_ptr, vm.get_prime())?
@@ -165,7 +166,7 @@ pub fn unsafe_keccak_finalize(
     for maybe_reloc_word in range.iter() {
         let word = maybe_reloc_word
             .ok_or(VirtualMachineError::ExpectedIntAtRange(
-                maybe_reloc_word.cloned(),
+                maybe_reloc_word.map(Cow::into_owned),
             ))?
             .get_int_ref()?;
 
