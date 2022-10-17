@@ -130,14 +130,20 @@ pub mod test_utils {
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
-                Ok(Some(&mayberelocatable!($sival, $offval)))
+                $mem.get(&mayberelocatable!($si, $off))
+                    .unwrap()
+                    .unwrap()
+                    .as_ref(),
+                &mayberelocatable!($sival, $offval)
             )
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
-                Ok(Some(&mayberelocatable!($val)))
+                $mem.get(&mayberelocatable!($si, $off))
+                    .unwrap()
+                    .unwrap()
+                    .as_ref(),
+                &mayberelocatable!($val)
             )
         };
     }

@@ -440,7 +440,7 @@ impl VirtualMachine {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         match instruction_ref.to_i64() {
             Some(instruction) => {
-                if let Some(MaybeRelocatable::Int(imm_ref)) = imm.map(|x| x.as_ref()) {
+                if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
                     let decoded_instruction =
                         decode_instruction(instruction, Some(imm_ref.clone()))?;
                     return Ok(decoded_instruction);
@@ -788,9 +788,9 @@ mod tests {
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 5)];
-        assert_eq!((&bigint!(5), None), {
+        assert_eq!((bigint!(5), None), {
             let value = vm.get_instruction_encoding().unwrap();
-            (value.0.as_ref(), value.1)
+            (value.0.into_owned(), value.1)
         });
     }
 
@@ -805,8 +805,8 @@ mod tests {
             .expect("Unexpected error on get_instruction_encoding");
         assert_eq!(num.as_ref(), &bigint!(5));
         assert_eq!(
-            imm.map(|x| x.as_ref()),
-            Some(&MaybeRelocatable::Int(bigint!(6)))
+            imm.map(Cow::into_owned),
+            Some(MaybeRelocatable::Int(bigint!(6)))
         );
     }
 

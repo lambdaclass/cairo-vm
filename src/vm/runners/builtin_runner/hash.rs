@@ -68,8 +68,8 @@ impl BuiltinRunner for HashBuiltinRunner {
             offset: address.offset - 2,
         }));
         if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
-            num_a.map(|x| x.map(|x| x.as_ref())),
-            num_b.map(|x| x.map(|x| x.as_ref())),
+            num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+            num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
             self.verified_addresses.push(address.clone());
 

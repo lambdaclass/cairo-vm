@@ -62,8 +62,8 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         let num_x = memory.get(&x_addr);
         let num_y = memory.get(&y_addr);
         if let (Ok(Some(MaybeRelocatable::Int(num_x))), Ok(Some(MaybeRelocatable::Int(num_y)))) = (
-            num_x.map(|x| x.map(|x| x.as_ref())),
-            num_y.map(|x| x.map(|x| x.as_ref())),
+            num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+            num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
             let _2_pow_bits = bigint!(1).shl(self.total_n_bits);
             if num_x >= &_2_pow_bits {
