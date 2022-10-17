@@ -23,7 +23,7 @@ pub trait BuiltinRunner {
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
     ///Returns the builtin's base
     fn base(&self) -> Relocatable;
-    fn add_validation_rule(&self, memory: &mut Memory);
+    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError>;
     fn deduce_memory_cell(
         &mut self,
         address: &Relocatable,

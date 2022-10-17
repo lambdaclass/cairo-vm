@@ -20,4 +20,6 @@ pub enum MemoryError {
     Relocation,
     #[error("Could not cast arguments")]
     WriteArg,
+    #[error("Memory addresses mustn't be in a TemporarySegment, segment: {0}")]
+    AddressInTemporarySegment(isize),
 }
