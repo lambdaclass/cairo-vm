@@ -53,7 +53,7 @@ pub fn sha256_main(
 
     for i in 0..SHA256_INPUT_CHUNK_SIZE_FELTS {
         let input_element = vm.get_integer(&(&input_ptr + i))?;
-        let bytes = bigint_to_u32(input_element)?.to_be_bytes();
+        let bytes = bigint_to_u32(input_element.as_ref())?.to_be_bytes();
         message.extend(bytes);
     }
 
