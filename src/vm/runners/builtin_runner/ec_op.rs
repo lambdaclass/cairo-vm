@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::borrow::Cow;
 
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -120,7 +121,7 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&BigInt>::with_capacity(self.n_input_cells);
+        let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells);
         for i in 0..self.n_input_cells {
             match memory
                 .get(&instance.add_usize_mod(i, None))
@@ -128,18 +129,20 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             {
                 None => return Ok(None),
                 Some(addr) => {
-                    if let &MaybeRelocatable::Int(ref num) = addr {
-                        input_cells.push(num);
-                    } else {
-                        return Err(RunnerError::ExpectedInteger(
-                            instance.add_usize_mod(i, None),
-                        ));
-                    }
+                    input_cells.push(match addr {
+                        Cow::Borrowed(MaybeRelocatable::Int(num)) => Cow::Borrowed(num),
+                        Cow::Owned(MaybeRelocatable::Int(num)) => Cow::Owned(num),
+                        _ => {
+                            return Err(RunnerError::ExpectedInteger(
+                                instance.add_usize_mod(i, None),
+                            ))
+                        }
+                    });
                 }
             };
         }
         //Assert that m is under the limit defined by scalar_limit.
-        if input_cells[M_INDEX] >= &self.scalar_limit {
+        if input_cells[M_INDEX].as_ref() >= &self.scalar_limit {
             return Err(RunnerError::EcOpBuiltinScalarLimit(
                 self.scalar_limit.clone(),
             ));
@@ -148,8 +151,8 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..1] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0],
-                input_cells[pair.1],
+                input_cells[pair.0].as_ref(),
+                input_cells[pair.1].as_ref(),
                 &alpha,
                 &beta,
                 &field_prime,
@@ -158,9 +161,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             };
         }
         let result = EcOpBuiltinRunner::ec_op_impl(
-            (input_cells[0].clone(), input_cells[1].clone()),
-            (input_cells[2].clone(), input_cells[3].clone()),
-            input_cells[4],
+            (input_cells[0].into_owned(), input_cells[1].into_owned()),
+            (input_cells[2].into_owned(), input_cells[3].into_owned()),
+            input_cells[4].as_ref(),
             &alpha,
             &field_prime,
             self.scalar_height,
