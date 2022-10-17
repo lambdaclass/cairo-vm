@@ -95,8 +95,8 @@ pub fn compute_addr_from_reference(
         let addr = base_addr + hint_reference.offset1;
         let dereferenced_addr = vm
             .get_relocatable(&addr)
-            .map_err(|_| VirtualMachineError::FailedToGetIds)?
-            .as_ref();
+            .map_err(|_| VirtualMachineError::FailedToGetIds)?;
+        let dereferenced_addr = dereferenced_addr.as_ref();
         if let Some(imm) = &hint_reference.immediate {
             Ok(dereferenced_addr + bigint_to_usize(imm)?)
         } else {

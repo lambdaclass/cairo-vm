@@ -8,6 +8,7 @@ use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 //Inserts value into the address of the given ids variable
@@ -95,7 +96,7 @@ pub fn get_integer_from_var_name<'a>(
     vm: &'a VirtualMachine,
     ids_data: &'a HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Result<&'a BigInt, VirtualMachineError> {
+) -> Result<Cow<'a, BigInt>, VirtualMachineError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_integer_from_reference(vm, reference, ap_tracking)
 }

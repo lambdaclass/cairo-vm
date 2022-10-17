@@ -48,7 +48,7 @@ pub fn memcpy_enter_scope(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let len: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?.clone());
+        Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?.into_owned());
     exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), len)]));
     Ok(())
 }
@@ -109,8 +109,10 @@ mod tests {
         vm.memory = memory![((1, 0), 10)];
 
         assert_eq!(
-            get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
-            Ok(&bigint!(10))
+            get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
+                .unwrap()
+                .as_ref(),
+            &bigint!(10)
         );
     }
 

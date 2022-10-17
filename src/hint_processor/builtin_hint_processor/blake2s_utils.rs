@@ -137,8 +137,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.as_ref();
-    let high = vm.get_integer(&high_addr)?.as_ref();
+    let low = vm.get_integer(&low_addr)?.into_owned();
+    let high = vm.get_integer(&high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX;
@@ -148,7 +148,7 @@ pub fn blake2s_add_uint256(
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((low >> (B * i)) & &mask);
+        inner_data.push((&low >> (B * i)) & &mask);
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -157,7 +157,7 @@ pub fn blake2s_add_uint256(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((high >> (B * i)) & &mask);
+        inner_data.push((&high >> (B * i)) & &mask);
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -184,8 +184,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(&low_addr)?.as_ref();
-    let high = vm.get_integer(&high_addr)?.as_ref();
+    let low = vm.get_integer(&low_addr)?.into_owned();
+    let high = vm.get_integer(&high_addr)?.into_owned();
     //Main logic
     //Declare constant
     const MASK: u32 = u32::MAX as u32;
@@ -195,7 +195,7 @@ pub fn blake2s_add_uint256_bigend(
     //Build first batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((high >> (B * (3 - i))) & &mask);
+        inner_data.push((&high >> (B * (3 - i))) & &mask);
     }
     //Insert first batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);
@@ -204,7 +204,7 @@ pub fn blake2s_add_uint256_bigend(
     //Build second batch of data
     let mut inner_data = Vec::<BigInt>::new();
     for i in 0..4 {
-        inner_data.push((low >> (B * (3 - i))) & &mask);
+        inner_data.push((&low >> (B * (3 - i))) & &mask);
     }
     //Insert second batch of data
     let data = get_maybe_relocatable_array_from_bigint(&inner_data);

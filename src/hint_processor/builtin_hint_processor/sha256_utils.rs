@@ -28,6 +28,7 @@ pub fn sha256_input(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     insert_value_from_var_name(
         "full_word",

@@ -87,7 +87,7 @@ pub fn default_dict_new(
 ) -> Result<(), VirtualMachineError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
-        get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.clone();
+        get_integer_from_var_name("default_value", vm, ids_data, ap_tracking)?.into_owned();
     //Get initial dictionary from scope (defined by an earlier hint) if available
     let initial_dict = copy_initial_dict(exec_scopes_proxy);
     //Check if there is a dict manager in scope, create it if there isnt one
@@ -116,6 +116,7 @@ pub fn dict_read(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let key = key.as_ref();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
     let mut dict = dict_manager_ref.borrow_mut();
@@ -139,6 +140,8 @@ pub fn dict_write(
 ) -> Result<(), VirtualMachineError> {
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
     let new_value = get_integer_from_var_name("new_value", vm, ids_data, ap_tracking)?;
+    let key = key.as_ref();
+    let new_value = new_value.as_ref();
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
     //Get tracker for dictionary
     let dict_manager_ref = exec_scopes_proxy.get_dict_manager()?;
@@ -186,16 +189,16 @@ pub fn dict_update(
     let mut dict = dict_manager_ref.borrow_mut();
     let tracker = dict.get_tracker_mut(&dict_ptr)?;
     //Check that prev_value is equal to the current value at the given key
-    let current_value = tracker.get_value(key)?;
-    if current_value != prev_value {
+    let current_value = tracker.get_value(key.as_ref())?;
+    if current_value != prev_value.as_ref() {
         return Err(VirtualMachineError::WrongPrevValue(
-            prev_value.clone(),
+            prev_value.into_owned(),
             current_value.clone(),
-            key.clone(),
+            key.into_owned(),
         ));
     }
     //Update Value
-    tracker.insert_value(key, new_value);
+    tracker.insert_value(key.as_ref(), new_value.as_ref());
     tracker.current_ptr.offset += DICT_ACCESS_SIZE;
     Ok(())
 }

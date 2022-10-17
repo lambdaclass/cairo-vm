@@ -44,7 +44,7 @@ pub fn usort_body(
         if input_len_u64 > usort_max_size {
             return Err(VirtualMachineError::UsortOutOfRange(
                 usort_max_size,
-                input_len.clone(),
+                input_len.into_owned(),
             ));
         }
     }

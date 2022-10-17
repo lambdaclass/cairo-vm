@@ -48,6 +48,7 @@ pub fn is_nn_out_of_range(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a = a.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is not negative and within the expected range)
     let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
@@ -75,10 +76,15 @@ pub fn assert_le_felt(
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Assert a <= b
     if a.mod_floor(vm.get_prime()) > b.mod_floor(vm.get_prime()) {
-        return Err(VirtualMachineError::NonLeFelt(a.clone(), b.clone()));
+        return Err(VirtualMachineError::NonLeFelt(
+            a.into_owned(),
+            b.into_owned(),
+        ));
     }
     //Calculate value of small_inputs
-    let value = if *a < range_check_builtin._bound && (a - b) < range_check_builtin._bound {
+    let value = if *a < range_check_builtin._bound
+        && (a.as_ref() - b.as_ref()) < range_check_builtin._bound
+    {
         bigint!(1)
     } else {
         bigint!(0)
@@ -126,11 +132,11 @@ pub fn assert_not_equal(
             let maybe_rel_a = maybe_rel_a.into_owned();
             let maybe_rel_b = maybe_rel_b.into_owned();
             match (maybe_rel_a, maybe_rel_b) {
-                (MaybeRelocatable::Int(ref a), MaybeRelocatable::Int(ref b)) => {
-                    if (a - b).is_multiple_of(vm.get_prime()) {
+                (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
+                    if (&a - &b).is_multiple_of(vm.get_prime()) {
                         return Err(VirtualMachineError::AssertNotEqualFail(
-                            maybe_rel_a,
-                            maybe_rel_b,
+                            MaybeRelocatable::Int(a),
+                            MaybeRelocatable::Int(b),
                         ));
                     };
                     Ok(())
@@ -141,13 +147,13 @@ pub fn assert_not_equal(
                     };
                     if a.offset == b.offset {
                         return Err(VirtualMachineError::AssertNotEqualFail(
-                            maybe_rel_a,
-                            maybe_rel_b,
+                            MaybeRelocatable::RelocatableValue(a),
+                            MaybeRelocatable::RelocatableValue(b),
                         ));
                     };
                     Ok(())
                 }
-                _ => Err(VirtualMachineError::DiffTypeComparison(
+                (maybe_rel_a, maybe_rel_b) => Err(VirtualMachineError::DiffTypeComparison(
                     maybe_rel_a,
                     maybe_rel_b,
                 )),
@@ -173,7 +179,7 @@ pub fn assert_nn(
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
     if a.mod_floor(vm.get_prime()) >= range_check_builtin._bound {
-        return Err(VirtualMachineError::ValueOutOfRange(a.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(a.into_owned()));
     };
     Ok(())
 }
@@ -192,7 +198,7 @@ pub fn assert_not_zero(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     if value.is_multiple_of(vm.get_prime()) {
         return Err(VirtualMachineError::AssertNotZero(
-            value.clone(),
+            value.into_owned(),
             vm.get_prime().clone(),
         ));
     };
@@ -223,10 +229,12 @@ pub fn split_int(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let base = get_integer_from_var_name("base", vm, ids_data, ap_tracking)?;
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
+    let base = base.as_ref();
+    let bound = bound.as_ref();
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     //Main Logic
     let res = (value.mod_floor(vm.get_prime())).mod_floor(base);
-    if res > *bound {
+    if &res > bound {
         return Err(VirtualMachineError::SplitIntLimbOutOfRange(res));
     }
     vm.insert_value(&output, res)
@@ -241,6 +249,7 @@ pub fn is_positive(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = value.as_ref();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
     let int_value = as_int(value, vm.get_prime());
@@ -270,6 +279,7 @@ pub fn split_felt(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = value.as_ref();
     //Main logic
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
@@ -306,29 +316,30 @@ pub fn signed_div_rem(
 ) -> Result<(), VirtualMachineError> {
     let div = get_integer_from_var_name("div", vm, ids_data, ap_tracking)?;
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = value.as_ref();
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
     // Main logic
-    if !div.is_positive() || div > &(vm.get_prime() / &builtin._bound) {
+    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
-            div.clone(),
+            div.into_owned(),
             vm.get_prime() / &builtin._bound,
         ));
     }
     // Divide by 2
-    if bound > &(&builtin._bound).shr(1_i32) {
+    if bound.as_ref() > &(&builtin._bound).shr(1_i32) {
         return Err(VirtualMachineError::OutOfValidRange(
-            bound.clone(),
+            bound.into_owned(),
             (&builtin._bound).shr(1_i32),
         ));
     }
 
     let int_value = &as_int(value, vm.get_prime());
-    let (q, r) = int_value.div_mod_floor(div);
-    if bound.neg() > q || &q >= bound {
-        return Err(VirtualMachineError::OutOfValidRange(q, bound.clone()));
+    let (q, r) = int_value.div_mod_floor(div.as_ref());
+    if bound.as_ref().neg() > q || &q >= bound.as_ref() {
+        return Err(VirtualMachineError::OutOfValidRange(q, bound.into_owned()));
     }
-    let biased_q = q + bound;
+    let biased_q = q + bound.as_ref();
     insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("biased_q", biased_q, vm, ids_data, ap_tracking)
 }
@@ -351,13 +362,13 @@ pub fn unsigned_div_rem(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
     // Main logic
-    if !div.is_positive() || div > &(vm.get_prime() / &builtin._bound) {
+    if !div.is_positive() || div.as_ref() > &(vm.get_prime() / &builtin._bound) {
         return Err(VirtualMachineError::OutOfValidRange(
-            div.clone(),
+            div.into_owned(),
             vm.get_prime() / &builtin._bound,
         ));
     }
-    let (q, r) = value.div_mod_floor(div);
+    let (q, r) = value.div_mod_floor(div.as_ref());
     insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
 }
@@ -378,7 +389,7 @@ pub fn assert_250_bit(
     let shift = bigint!(1).shl(128_i32);
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
-    let int_value = as_int(value, vm.get_prime()).mod_floor(vm.get_prime());
+    let int_value = as_int(value.as_ref(), vm.get_prime()).mod_floor(vm.get_prime());
     if int_value > upper_bound {
         return Err(VirtualMachineError::ValueOutside250BitRange(int_value));
     }
@@ -410,7 +421,10 @@ pub fn assert_lt_felt(
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     if a.mod_floor(vm.get_prime()) >= b.mod_floor(vm.get_prime()) {
-        return Err(VirtualMachineError::AssertLtFelt(a.clone(), b.clone()));
+        return Err(VirtualMachineError::AssertLtFelt(
+            a.into_owned(),
+            b.into_owned(),
+        ));
     };
     Ok(())
 }

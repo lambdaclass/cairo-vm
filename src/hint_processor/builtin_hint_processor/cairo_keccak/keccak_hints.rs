@@ -36,6 +36,8 @@ pub fn keccak_write_args(
 
     let low = get_integer_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm, ids_data, ap_tracking)?;
+    let low = low.as_ref();
+    let high = high.as_ref();
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
@@ -63,6 +65,7 @@ pub fn compare_bytes_in_word_nondet(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
@@ -87,6 +90,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
     insert_value_into_ap(vm, value)
@@ -202,7 +206,7 @@ fn maybe_reloc_vec_to_u64_array(
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
             }
             _ => Err(VirtualMachineError::ExpectedIntAtRange(
-                n.map(Cow::into_owned),
+                n.as_ref().map(|x| x.to_owned().into_owned()),
             )),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?

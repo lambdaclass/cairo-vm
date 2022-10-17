@@ -14,7 +14,6 @@ use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
-use std::borrow::Cow;
 use std::{cmp, collections::HashMap, ops::Shl};
 
 /* Implements hint:
@@ -49,9 +48,9 @@ pub fn unsafe_keccak(
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
     if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
-        if length > &keccak_max_size {
+        if length.as_ref() > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
-                length.clone(),
+                length.into_owned(),
                 keccak_max_size,
             ));
         }
@@ -66,7 +65,7 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.clone()))?;
+        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.into_owned()))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
@@ -163,12 +162,9 @@ pub fn unsafe_keccak_finalize(
 
     check_no_nones_in_range(&range)?;
 
-    for maybe_reloc_word in range.iter() {
-        let word = maybe_reloc_word
-            .ok_or(VirtualMachineError::ExpectedIntAtRange(
-                maybe_reloc_word.map(Cow::into_owned),
-            ))?
-            .get_int_ref()?;
+    for maybe_reloc_word in range.into_iter() {
+        let word = maybe_reloc_word.ok_or(VirtualMachineError::ExpectedIntAtRange(None))?;
+        let word = word.get_int_ref()?;
 
         let (_, mut bytes) = word.to_bytes_be();
         let mut bytes = {

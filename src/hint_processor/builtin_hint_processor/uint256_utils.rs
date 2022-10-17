@@ -35,10 +35,14 @@ pub fn uint256_add(
 
     let a_relocatable = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_relocatable = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
-    let a_low = vm.get_integer(&a_relocatable)?.as_ref();
-    let a_high = vm.get_integer(&(a_relocatable + 1))?.as_ref();
-    let b_low = vm.get_integer(&b_relocatable)?.as_ref();
-    let b_high = vm.get_integer(&(b_relocatable + 1))?.as_ref();
+    let a_low = vm.get_integer(&a_relocatable)?;
+    let a_high = vm.get_integer(&(a_relocatable + 1))?;
+    let b_low = vm.get_integer(&b_relocatable)?;
+    let b_high = vm.get_integer(&(b_relocatable + 1))?;
+    let a_low = a_low.as_ref();
+    let a_high = a_high.as_ref();
+    let b_low = b_low.as_ref();
+    let b_high = b_high.as_ref();
 
     //Main logic
     //sum_low = ids.a.low + ids.b.low
@@ -79,7 +83,7 @@ pub fn split_64(
     let high = if digits.len() <= 1 {
         bigint!(digits.next().unwrap_or(0u64))
     } else {
-        a.shr(64_usize)
+        a.as_ref().shr(64_usize)
     };
     insert_value_from_var_name("high", bigint!(high), vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", bigint!(low), vm, ids_data, ap_tracking)
@@ -103,8 +107,10 @@ pub fn uint256_sqrt(
 ) -> Result<(), VirtualMachineError> {
     let n_addr = get_relocatable_from_var_name("n", vm, ids_data, ap_tracking)?;
     let root_addr = get_relocatable_from_var_name("root", vm, ids_data, ap_tracking)?;
-    let n_low = vm.get_integer(&n_addr)?.as_ref();
-    let n_high = vm.get_integer(&(n_addr + 1))?.as_ref();
+    let n_low = vm.get_integer(&n_addr)?;
+    let n_high = vm.get_integer(&(n_addr + 1))?;
+    let n_low = n_low.as_ref();
+    let n_high = n_high.as_ref();
 
     //Main logic
     //from starkware.python.math_utils import isqrt
@@ -171,10 +177,14 @@ pub fn uint256_unsigned_div_rem(
     let quotient_addr = get_relocatable_from_var_name("quotient", vm, ids_data, ap_tracking)?;
     let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
 
-    let a_low = vm.get_integer(&a_addr)?.as_ref();
-    let a_high = vm.get_integer(&(a_addr + 1))?.as_ref();
-    let div_low = vm.get_integer(&div_addr)?.as_ref();
-    let div_high = vm.get_integer(&(div_addr + 1))?.as_ref();
+    let a_low = vm.get_integer(&a_addr)?;
+    let a_high = vm.get_integer(&(a_addr + 1))?;
+    let div_low = vm.get_integer(&div_addr)?;
+    let div_high = vm.get_integer(&(div_addr + 1))?;
+    let a_low = a_low.as_ref();
+    let a_high = a_high.as_ref();
+    let div_low = div_low.as_ref();
+    let div_high = div_high.as_ref();
 
     //Main logic
     //a = (ids.a.high << 128) + ids.a.low
