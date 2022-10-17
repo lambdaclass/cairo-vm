@@ -45,10 +45,10 @@ pub fn get_ptr_from_var_name(
     if hint_reference.dereference {
         let value = vm.get_relocatable(&var_addr)?;
         if let Some(immediate) = &hint_reference.immediate {
-            let modified_value = value + bigint_to_usize(immediate)?;
+            let modified_value = value.as_ref() + bigint_to_usize(immediate)?;
             Ok(modified_value)
         } else {
-            Ok(value.clone())
+            Ok(value.into_owned())
         }
     } else {
         Ok(var_addr)
