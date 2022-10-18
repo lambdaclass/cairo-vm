@@ -324,7 +324,7 @@ impl<'a> CairoRunner<'a> {
         vm: &mut VirtualMachine,
         steps: usize,
     ) -> Result<(), VirtualMachineError> {
-        self.run_for_steps(vm, steps.checked_sub(vm.current_step).unwrap_or(0))
+        self.run_for_steps(vm, steps.saturating_sub(vm.current_step))
     }
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
