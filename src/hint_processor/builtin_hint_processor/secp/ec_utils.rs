@@ -4,9 +4,9 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 };
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -28,7 +28,7 @@ Implements hint:
 */
 pub fn ec_negate(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -36,7 +36,7 @@ pub fn ec_negate(
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3;
     let y = pack_from_relocatable(point_y, vm)?;
     let value = (-y).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", value);
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
@@ -54,7 +54,7 @@ Implements hint:
 */
 pub fn compute_doubling_slope(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -78,8 +78,8 @@ pub fn compute_doubling_slope(
         &bigint!(0),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("slope", value);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("slope", value);
     Ok(())
 }
 
@@ -99,7 +99,7 @@ Implements hint:
 */
 pub fn compute_slope(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -138,8 +138,8 @@ pub fn compute_slope(
         ),
         &SECP_P,
     );
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("slope", value);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("slope", value);
     Ok(())
 }
 
@@ -157,7 +157,7 @@ Implements hint:
 */
 pub fn ec_double_assign_new_x(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -189,11 +189,11 @@ pub fn ec_double_assign_new_x(
     let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.insert_value("slope", slope);
-    exec_scopes_proxy.insert_value("x", x);
-    exec_scopes_proxy.insert_value("y", y);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("new_x", value);
+    exec_scopes.insert_value("slope", slope);
+    exec_scopes.insert_value("x", x);
+    exec_scopes.insert_value("y", y);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_x", value);
     Ok(())
 }
 
@@ -202,19 +202,19 @@ Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
 pub fn ec_double_assign_new_y(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
-        exec_scopes_proxy.get_int("slope")?,
-        exec_scopes_proxy.get_int("x")?,
-        exec_scopes_proxy.get_int("new_x")?,
-        exec_scopes_proxy.get_int("y")?,
+        exec_scopes.get_int("slope")?,
+        exec_scopes.get_int("x")?,
+        exec_scopes.get_int("new_x")?,
+        exec_scopes.get_int("y")?,
     );
 
     let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("new_y", value);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_y", value);
     Ok(())
 }
 
@@ -233,7 +233,7 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_x(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -275,11 +275,11 @@ pub fn fast_ec_add_assign_new_x(
     let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
 
     //Assign variables to vm scope
-    exec_scopes_proxy.insert_value("slope", slope);
-    exec_scopes_proxy.insert_value("x0", x0);
-    exec_scopes_proxy.insert_value("y0", y0);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("new_x", value);
+    exec_scopes.insert_value("slope", slope);
+    exec_scopes.insert_value("x0", x0);
+    exec_scopes.insert_value("y0", y0);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_x", value);
 
     Ok(())
 }
@@ -289,18 +289,18 @@ Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
 pub fn fast_ec_add_assign_new_y(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
-        exec_scopes_proxy.get_int("slope")?,
-        exec_scopes_proxy.get_int("x0")?,
-        exec_scopes_proxy.get_int("new_x")?,
-        exec_scopes_proxy.get_int("y0")?,
+        exec_scopes.get_int("slope")?,
+        exec_scopes.get_int("x0")?,
+        exec_scopes.get_int("new_x")?,
+        exec_scopes.get_int("y0")?,
     );
     let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("new_y", value);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_y", value);
 
     Ok(())
 }
@@ -327,7 +327,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
@@ -352,14 +351,10 @@ mod tests {
         let ids_data = ids_data!["point"];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes_proxy.get_int("value"),
+            exec_scopes.get_int("value"),
             Ok(bigint_str!(
                 b"115792089237316195423569751828682367333329274433232027476421668138471189901786"
             ))
@@ -386,13 +381,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -440,13 +431,9 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -491,14 +478,10 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "slope",
@@ -557,14 +540,13 @@ mod tests {
             )
         ];
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -617,14 +599,10 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",
@@ -671,14 +649,13 @@ mod tests {
         ];
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [
                 (
                     "value",

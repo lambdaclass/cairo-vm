@@ -1,8 +1,6 @@
 use crate::{
     bigint,
-    hint_processor::{
-        hint_processor_definition::HintProcessor, proxies::exec_scopes_proxy::get_exec_scopes_proxy,
-    },
+    hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -12,8 +10,8 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::BuiltinRunner,
+        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
@@ -22,8 +20,6 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
-
-use super::{errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -459,9 +455,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for hint_data in hint_list.iter() {
-                //We create a new proxy with every hint as the current scope can change
-                let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data)?
+                hint_executor.execute_hint(self, exec_scopes, hint_data)?
             }
         }
         Ok(())

@@ -1,14 +1,17 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
-};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+    },
     serde::deserialize_program::ApTracking,
-    types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
-    vm::errors::vm_errors::VirtualMachineError,
+    types::{
+        exec_scope::ExecutionScopes,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
@@ -41,13 +44,13 @@ use std::{cmp, collections::HashMap, ops::Shl};
 */
 pub fn unsafe_keccak(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
-    if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
+    if let Ok(keccak_max_size) = exec_scopes.get_int("__keccak_max_size") {
         if length > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
                 length.clone(),
