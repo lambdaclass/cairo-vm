@@ -143,7 +143,7 @@ pub fn assert_not_equal(
                 }
                 (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
                     if a.segment_index != b.segment_index {
-                        return Err(VirtualMachineError::DiffIndexComp(a.clone(), b.clone()));
+                        return Err(VirtualMachineError::DiffIndexComp(a, b));
                     };
                     if a.offset == b.offset {
                         return Err(VirtualMachineError::AssertNotEqualFail(
