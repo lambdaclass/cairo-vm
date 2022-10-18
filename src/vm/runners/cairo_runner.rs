@@ -28,6 +28,7 @@ use std::{any::Any, collections::HashMap, io};
 
 pub struct CairoRunner<'a> {
     program: Program,
+    constants: HashMap<String, BigInt>,
     _layout: String,
     final_pc: Option<Relocatable>,
     program_base: Option<Relocatable>,
@@ -48,6 +49,20 @@ impl<'a> CairoRunner<'a> {
     ) -> Result<CairoRunner<'a>, RunnerError> {
         Ok(CairoRunner {
             program: program.clone(),
+            constants: {
+                let mut constants = HashMap::new();
+                for (key, value) in program.identifiers.iter() {
+                    if value.type_.as_deref() == Some("const") {
+                        let value = value
+                            .value
+                            .clone()
+                            .ok_or_else(|| RunnerError::ConstWithoutValue(key.to_owned()))?;
+                        constants.insert(key.to_owned(), value);
+                    }
+                }
+
+                constants
+            },
             _layout: String::from("plain"),
             final_pc: None,
             program_base: None,
@@ -289,6 +304,7 @@ impl<'a> CairoRunner<'a> {
                 self.hint_executor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
+                &self.constants,
             )?;
         }
         Ok(())

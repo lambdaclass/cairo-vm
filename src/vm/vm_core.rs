@@ -456,12 +456,13 @@ impl VirtualMachine {
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        constants: &HashMap<String, BigInt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for hint_data in hint_list.iter() {
                 //We create a new proxy with every hint as the current scope can change
                 let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data)?
+                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data, constants)?
             }
         }
         Ok(())
@@ -479,8 +480,9 @@ impl VirtualMachine {
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        constants: &HashMap<String, BigInt>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary)?;
+        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
         self.step_instruction()
     }
 
@@ -540,7 +542,7 @@ impl VirtualMachine {
         res: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let dst_op = match instruction.opcode {
-            Opcode::AssertEq if res.is_some() => res.clone(),
+            Opcode::AssertEq if res.is_some() => Option::clone(res),
             Opcode::Call => Some(MaybeRelocatable::from(self.run_context.get_fp())),
             _ => self.deduce_dst(instruction, res.as_ref()),
         };
@@ -2185,7 +2187,12 @@ mod tests {
         assert!(addresses == expected_addresses);
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, relocatable!(0, 4));
@@ -2384,7 +2391,12 @@ mod tests {
         ];
 
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         let trace = vm.trace.unwrap();
@@ -2460,7 +2472,12 @@ mod tests {
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(
-                vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+                vm.step(
+                    &hint_processor,
+                    exec_scopes_ref!(),
+                    &HashMap::new(),
+                    &HashMap::new()
+                ),
                 Ok(())
             );
         }
@@ -2556,7 +2573,12 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
@@ -2568,7 +2590,12 @@ mod tests {
         );
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
@@ -2581,7 +2608,12 @@ mod tests {
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
@@ -3088,7 +3120,12 @@ mod tests {
         //Run Steps
         for _ in 0..6 {
             assert_eq!(
-                vm.step(&hint_processor, exec_scopes_ref!(), &hint_data_dictionary),
+                vm.step(
+                    &hint_processor,
+                    exec_scopes_ref!(),
+                    &hint_data_dictionary,
+                    &HashMap::new()
+                ),
                 Ok(())
             );
         }

@@ -36,6 +36,7 @@ use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
+use num_bigint::BigInt;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -114,6 +115,7 @@ impl HintProcessor for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
         hint_data: &Box<dyn Any>,
+        _constants: &HashMap<String, BigInt>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()

@@ -47,7 +47,7 @@ pub enum RunnerError {
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
     IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
     #[error(
-        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {0:?} \n
     m = {1}\n
@@ -56,4 +56,6 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
+    #[error("Constant {0} has no value")]
+    ConstWithoutValue(String),
 }
