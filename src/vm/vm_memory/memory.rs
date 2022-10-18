@@ -12,6 +12,7 @@ pub struct ValidationRule(
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
+    pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     pub validation_rules: HashMap<usize, ValidationRule>,
 }
@@ -20,6 +21,7 @@ impl Memory {
     pub fn new() -> Memory {
         Memory {
             data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
             validated_addresses: HashSet::<MaybeRelocatable>::new(),
             validation_rules: HashMap::new(),
         }
@@ -37,7 +39,7 @@ impl Memory {
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
         let val = MaybeRelocatable::from(val);
-        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone());
+        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone())?;
         let data_len = self.data.len();
         let segment = self
             .data
@@ -72,7 +74,7 @@ impl Memory {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
-        let (i, j) = from_relocatable_to_indexes(relocatable);
+        let (i, j) = from_relocatable_to_indexes(relocatable)?;
         if self.data.len() > i && self.data[i].len() > j {
             if let Some(ref element) = self.data[i][j] {
                 return Ok(Some(Cow::Borrowed(element)));
@@ -124,7 +126,7 @@ impl Memory {
         if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
             if !self.validated_addresses.contains(address) {
                 for (index, validation_rule) in self.validation_rules.iter() {
-                    if &rel_addr.segment_index == index {
+                    if rel_addr.segment_index == *index as isize {
                         self.validated_addresses
                             .insert(validation_rule.0(self, address)?);
                     }
@@ -140,7 +142,7 @@ impl Memory {
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for i in 0..self.data.len() {
             for j in 0..self.data[i].len() {
-                self.validate_memory_cell(&MaybeRelocatable::from((i, j)))?;
+                self.validate_memory_cell(&MaybeRelocatable::from((i as isize, j)))?;
             }
         }
         Ok(())
@@ -341,7 +343,7 @@ mod memory_tests {
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         for _ in 0..3 {
             segments.add(&mut memory);
         }
@@ -371,7 +373,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(bigint!(-10)),
             )
             .unwrap();
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::NumOutOfBounds));
         assert_eq!(
@@ -394,7 +396,7 @@ mod memory_tests {
                 &MaybeRelocatable::from((1, 4)),
             )
             .unwrap();
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         let error = memory.validate_existing_memory();
         assert_eq!(error, Err(MemoryError::FoundNonInt));
         assert_eq!(
@@ -416,7 +418,7 @@ mod memory_tests {
                 &MaybeRelocatable::from(bigint!(-45)),
             )
             .unwrap();
-        builtin.add_validation_rule(&mut memory);
+        assert_eq!(builtin.add_validation_rule(&mut memory), Ok(()));
         assert_eq!(memory.validate_existing_memory(), Ok(()));
     }
 

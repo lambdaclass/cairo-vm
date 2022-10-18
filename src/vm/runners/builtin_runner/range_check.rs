@@ -15,7 +15,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
-    base: usize,
+    base: isize,
     _stop_ptr: Option<Relocatable>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
@@ -52,7 +52,7 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, memory: &mut Memory) {
+    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
@@ -70,7 +70,15 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                 }
             },
         ));
-        memory.add_validation_rule(self.base, rule);
+
+        let segment_index: usize = self
+            .base
+            .try_into()
+            .map_err(|_| RunnerError::RunnerInTemporarySegment(self.base))?;
+
+        memory.add_validation_rule(segment_index, rule);
+
+        Ok(())
     }
 
     fn deduce_memory_cell(
