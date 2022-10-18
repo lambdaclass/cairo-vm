@@ -331,10 +331,10 @@ mod memory_tests {
             2,
         )
         .unwrap();
-        assert_eq!(
-            matches!(mem.get(&MaybeRelocatable::from((1, 0))), _val_clone),
-            true
-        );
+        assert!(matches!(
+            mem.get(&MaybeRelocatable::from((1, 0))),
+            _val_clone
+        ));
     }
 
     #[test]
