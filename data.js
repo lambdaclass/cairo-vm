@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1666091630915,
+  "lastUpdate": 1666114743374,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -42492,6 +42492,56 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
             "value": 222079841,
             "range": "± 690704",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "committer": {
+            "name": "lambdaclass",
+            "username": "lambdaclass"
+          },
+          "id": "b39a09e28e65eb8b220148338af5bde0cf1116c0",
+          "message": "Extract constants from program and pass them to `HintProcessor::execute_hint`",
+          "timestamp": "2022-10-18T14:49:04Z",
+          "url": "https://github.com/lambdaclass/cairo-rs/pull/485/commits/b39a09e28e65eb8b220148338af5bde0cf1116c0"
+        },
+        "date": 1666114740521,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1653407161,
+            "range": "± 4955482",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 605210853,
+            "range": "± 1567814",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 305649560,
+            "range": "± 844706",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1469846997,
+            "range": "± 2837404",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 215999604,
+            "range": "± 755114",
             "unit": "ns/iter"
           }
         ]
