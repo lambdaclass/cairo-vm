@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1666216154167,
+  "lastUpdate": 1666219941638,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -43074,6 +43074,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 232273630,
             "range": "± 395451",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0910e73e41aa57d87cb94b38a85dbc4ed2dd85c0",
+          "message": "Add get builtin runners method (#486)\n\n* Add get builtin runners method\r\n\r\n* Update vm_core.rs",
+          "timestamp": "2022-10-19T19:07:24-03:00",
+          "tree_id": "9ab0783afd496bbbd7e373f1587ca8779a7a9b25",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/0910e73e41aa57d87cb94b38a85dbc4ed2dd85c0"
+        },
+        "date": 1666219935874,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1837876990,
+            "range": "± 29799112",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 674066200,
+            "range": "± 12320631",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 328225510,
+            "range": "± 5553258",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1575656701,
+            "range": "± 58353967",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 214418230,
+            "range": "± 11791020",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2355436186,
+            "range": "± 92450915",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2692466903,
+            "range": "± 100329093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2164094076,
+            "range": "± 65196586",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1735862161,
+            "range": "± 45567175",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 966210942,
+            "range": "± 37311178",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1180714268,
+            "range": "± 13954189",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 38529989,
+            "range": "± 879936",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 3867726143,
+            "range": "± 55347802",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2452093288,
+            "range": "± 35095009",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 264132038,
+            "range": "± 6239014",
             "unit": "ns/iter"
           }
         ]
