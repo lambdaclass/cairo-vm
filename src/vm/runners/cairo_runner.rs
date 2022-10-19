@@ -109,7 +109,10 @@ impl<'a> CairoRunner<'a> {
                 builtin_runners.push((builtin_name.clone(), Box::new(EcOpBuiltinRunner::new(256))));
             }
             if builtin_name == "ecdsa" {
-                builtin_runners.push((builtin_name.clone(), Box::new(SignatureBuiltinRunner::new(256))));
+                builtin_runners.push((
+                    builtin_name.clone(),
+                    Box::new(SignatureBuiltinRunner::new(256)),
+                ));
             }
         }
         vm.builtin_runners = builtin_runners;

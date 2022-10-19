@@ -1,7 +1,7 @@
-use std::any::Any;
-
+use std::{any::Any, collections::HashMap};
+use ecdsa::signature::Verifier;
+use nom::combinator::verify;
 use num_integer::Integer;
-
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
@@ -23,6 +23,7 @@ pub struct SignatureBuiltinRunner {
     cells_per_instance: usize,
     _n_input_cells: usize,
     _total_n_bits: u32,
+    signatures: HashMap<Relocatable, Relocatable>
 }
 
 impl SignatureBuiltinRunner {
@@ -35,6 +36,7 @@ impl SignatureBuiltinRunner {
             cells_per_instance: 5,
             _n_input_cells: 2,
             _total_n_bits: 251,
+            signatures: HashMap::new()
         }
     }
 }
@@ -81,8 +83,12 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     } else {
                         return Ok(Vec::new());
                     }
+                } else {
+                    Err(MemoryError::AddressNotRelocatable)
                 }
-                Err(MemoryError::AddressNotRelocatable)
+                let signature = self.signatures.get(&pubkey);
+                verify(msg, signature);
+                Ok(Vec::new())
             },
         ));
         memory.add_validation_rule(self.base, rule);
