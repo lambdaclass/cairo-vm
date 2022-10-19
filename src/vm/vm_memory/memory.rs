@@ -7,7 +7,7 @@ use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_ind
 use num_bigint::BigInt;
 
 pub struct ValidationRule(
-    pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<MaybeRelocatable, MemoryError>>,
+    pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
@@ -124,7 +124,7 @@ impl Memory {
                 for (index, validation_rule) in self.validation_rules.iter() {
                     if &rel_addr.segment_index == index {
                         self.validated_addresses
-                            .insert(validation_rule.0(self, address)?);
+                            .extend(validation_rule.0(self, address)?);
                     }
                 }
             }

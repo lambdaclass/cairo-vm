@@ -16,7 +16,7 @@ use crate::{
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
-                OutputBuiltinRunner, RangeCheckBuiltinRunner,
+                OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
             },
             trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
             vm_core::VirtualMachine,
@@ -107,6 +107,9 @@ impl<'a> CairoRunner<'a> {
             }
             if builtin_name == "ec_op" {
                 builtin_runners.push((builtin_name.clone(), Box::new(EcOpBuiltinRunner::new(256))));
+            }
+            if builtin_name == "ecdsa" {
+                builtin_runners.push((builtin_name.clone(), Box::new(SignatureBuiltinRunner::new(256))));
             }
         }
         vm.builtin_runners = builtin_runners;

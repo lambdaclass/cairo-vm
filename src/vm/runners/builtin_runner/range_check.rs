@@ -55,10 +55,10 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
-             -> Result<MaybeRelocatable, MemoryError> {
+             -> Result<Vec<MaybeRelocatable>, MemoryError> {
                 if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
                     if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
-                        Ok(address.to_owned())
+                        Ok(vec![address.to_owned()])
                     } else {
                         Err(MemoryError::NumOutOfBounds)
                     }
