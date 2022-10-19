@@ -275,6 +275,20 @@ pub fn deserialize_program(path: &Path, entrypoint: &str) -> Result<Program, Pro
         builtins: program_json.builtins,
         prime: program_json.prime,
         data: program_json.data,
+        constants: {
+            let mut constants = HashMap::new();
+            for (key, value) in program_json.identifiers.iter() {
+                if value.type_.as_deref() == Some("const") {
+                    let value = value
+                        .value
+                        .clone()
+                        .ok_or_else(|| ProgramError::ConstWithoutValue(key.to_owned()))?;
+                    constants.insert(key.to_owned(), value);
+                }
+            }
+
+            constants
+        },
         main: entrypoint_pc,
         hints: program_json.hints,
         reference_manager: program_json.reference_manager,

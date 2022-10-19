@@ -11,6 +11,7 @@ pub struct Program {
     pub builtins: Vec<String>,
     pub prime: BigInt,
     pub data: Vec<MaybeRelocatable>,
+    pub constants: HashMap<String, BigInt>,
     pub main: Option<usize>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
