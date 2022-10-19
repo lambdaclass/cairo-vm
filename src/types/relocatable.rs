@@ -9,7 +9,7 @@ use std::ops::Add;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Relocatable {
-    pub segment_index: usize,
+    pub segment_index: isize,
     pub offset: usize,
 }
 
@@ -19,8 +19,8 @@ pub enum MaybeRelocatable {
     Int(BigInt),
 }
 
-impl From<(usize, usize)> for Relocatable {
-    fn from(index_offset: (usize, usize)) -> Self {
+impl From<(isize, usize)> for Relocatable {
+    fn from(index_offset: (isize, usize)) -> Self {
         Relocatable {
             segment_index: index_offset.0,
             offset: index_offset.1,
@@ -28,8 +28,8 @@ impl From<(usize, usize)> for Relocatable {
     }
 }
 
-impl From<(usize, usize)> for MaybeRelocatable {
-    fn from(index_offset: (usize, usize)) -> Self {
+impl From<(isize, usize)> for MaybeRelocatable {
+    fn from(index_offset: (isize, usize)) -> Self {
         MaybeRelocatable::RelocatableValue(Relocatable::from(index_offset))
     }
 }
@@ -363,12 +363,15 @@ pub fn relocate_value(
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
         MaybeRelocatable::RelocatableValue(relocatable) => {
-            if relocation_table.len() <= relocatable.segment_index {
+            let segment_index: usize = relocatable
+                .segment_index
+                .try_into()
+                .map_err(|_| MemoryError::AddressInTemporarySegment(relocatable.segment_index))?;
+
+            if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);
             }
-            match BigInt::from_usize(
-                relocation_table[relocatable.segment_index] + relocatable.offset,
-            ) {
+            match BigInt::from_usize(relocation_table[segment_index] + relocatable.offset) {
                 None => Err(MemoryError::Relocation),
                 Some(relocated_value) => Ok(relocated_value),
             }

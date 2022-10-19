@@ -109,9 +109,9 @@ pub enum VirtualMachineError {
     #[error("Variable {0} not present in current execution scope")]
     VariableNotInScopeError(String),
     #[error("DictManagerError: Tried to create tracker for a dictionary on segment: {0} when there is already a tracker for a dictionary on this segment")]
-    CantCreateDictionaryOnTakenSegment(usize),
+    CantCreateDictionaryOnTakenSegment(isize),
     #[error("Dict Error: No dict tracker found for segment {0}")]
-    NoDictTracker(usize),
+    NoDictTracker(isize),
     #[error("ict Error: No value found for key: {0}")]
     NoValueForKey(BigInt),
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]

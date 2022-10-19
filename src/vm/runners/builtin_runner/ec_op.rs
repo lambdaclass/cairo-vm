@@ -13,7 +13,7 @@ use crate::{bigint, bigint_str};
 
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
-    pub base: usize,
+    pub base: isize,
     cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,
@@ -93,7 +93,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
     fn base(&self) -> Relocatable {
         Relocatable::from((self.base, 0))
     }
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
 
     fn deduce_memory_cell(
         &mut self,

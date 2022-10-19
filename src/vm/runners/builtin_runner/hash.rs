@@ -11,7 +11,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
-    pub base: usize,
+    pub base: isize,
     _ratio: usize,
     cells_per_instance: usize,
     _n_input_cells: usize,
@@ -46,7 +46,9 @@ impl BuiltinRunner for HashBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
 
     fn deduce_memory_cell(
         &mut self,
