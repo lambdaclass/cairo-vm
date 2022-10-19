@@ -57,7 +57,9 @@ impl MemorySegmentManager {
     ///Returns the number of used segments when they are already computed.
     ///Returns None otherwise.
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
-        self.segment_used_sizes.as_ref().map(|used_sizes| used_sizes[index])
+        self.segment_used_sizes
+            .as_ref()
+            .map(|used_sizes| used_sizes[index])
     }
 
     ///Returns a vector that contains the first relocated address of each memory segment
