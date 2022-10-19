@@ -671,7 +671,7 @@ impl VirtualMachine {
         self.memory.get(key)
     }
 
-    /// Returns an iterator to all builtins present in the virtual machine
+    /// Returns a reference to the vector with all builtins present in the virtual machine
     pub fn get_builtin_runners(&self) -> &Vec<(String, Box<dyn BuiltinRunner>)> {
         &self.builtin_runners
     }
