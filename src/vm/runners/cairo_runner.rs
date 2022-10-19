@@ -38,7 +38,7 @@ pub struct CairoRunner<'a> {
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
-    hint_executor: &'a dyn HintProcessor,
+    pub hint_executor: &'a dyn HintProcessor,
 }
 
 impl<'a> CairoRunner<'a> {
@@ -219,14 +219,14 @@ impl<'a> CairoRunner<'a> {
             self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
         ));
         for (_, builtin) in vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut vm.memory);
+            builtin.add_validation_rule(&mut vm.memory)?;
         }
         vm.memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)
     }
 
-    fn get_reference_list(&self) -> HashMap<usize, HintReference> {
+    pub fn get_reference_list(&self) -> HashMap<usize, HintReference> {
         let mut references = HashMap::<usize, HintReference>::new();
 
         for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
@@ -252,7 +252,7 @@ impl<'a> CairoRunner<'a> {
     }
 
     /// Gets the data used by the HintProcessor to execute each hint
-    fn get_hint_data_dictionary(
+    pub fn get_hint_data_dictionary(
         &self,
         references: &HashMap<usize, HintReference>,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
@@ -389,8 +389,13 @@ impl<'a> CairoRunner<'a> {
             if vm.segments.segment_used_sizes == None {
                 vm.segments.compute_effective_sizes(&vm.memory);
             }
+
+            let segment_index: usize = base
+                .segment_index
+                .try_into()
+                .map_err(|_| RunnerError::RunnerInTemporarySegment(base.segment_index))?;
             // See previous comment, the unwrap below is safe.
-            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
+            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[segment_index] {
                 let value = vm.memory.get_integer(&(base.clone() + i)).map_err(|_| {
                     RunnerError::MemoryGet(MaybeRelocatable::from(base.clone() + i))
                 })?;

@@ -4,14 +4,17 @@ use num_bigint::BigInt;
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
-    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+    vm::{
+        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        vm_core::VirtualMachine,
+    },
 };
 
 #[derive(PartialEq, Debug, Clone)]
 ///Manages dictionaries in a Cairo program.
 ///Uses the segment index to associate the corresponding python dict with the Cairo dict.
 pub struct DictManager {
-    pub trackers: HashMap<usize, DictTracker>,
+    pub trackers: HashMap<isize, DictTracker>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -61,7 +64,7 @@ impl Dictionary {
 impl DictManager {
     pub fn new() -> Self {
         DictManager {
-            trackers: HashMap::<usize, DictTracker>::new(),
+            trackers: HashMap::<isize, DictTracker>::new(),
         }
     }
     //Creates a new Cairo dictionary. The values of initial_dict can be integers, tuples or
@@ -78,6 +81,13 @@ impl DictManager {
                 base.segment_index,
             ));
         }
+
+        if base.segment_index < 0 {
+            return Err(VirtualMachineError::MemoryError(
+                MemoryError::AddressInTemporarySegment(base.segment_index),
+            ));
+        };
+
         self.trackers.insert(
             base.segment_index,
             DictTracker::new_with_initial(&base, initial_dict),

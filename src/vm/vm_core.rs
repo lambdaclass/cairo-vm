@@ -1,8 +1,6 @@
 use crate::{
     bigint,
-    hint_processor::{
-        hint_processor_definition::HintProcessor, proxies::exec_scopes_proxy::get_exec_scopes_proxy,
-    },
+    hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -12,8 +10,8 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::BuiltinRunner,
+        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
@@ -22,8 +20,6 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
 use std::{any::Any, collections::HashMap};
-
-use super::{errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -459,9 +455,7 @@ impl VirtualMachine {
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for hint_data in hint_list.iter() {
-                //We create a new proxy with every hint as the current scope can change
-                let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data)?
+                hint_executor.execute_hint(self, exec_scopes, hint_data)?
             }
         }
         Ok(())
@@ -618,10 +612,12 @@ impl VirtualMachine {
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter_mut() {
-            let index = builtin.base().segment_index;
+            let index: usize = builtin.base().segment_index.try_into().map_err(|_| {
+                MemoryError::AddressInTemporarySegment(builtin.base().segment_index)
+            })?;
             for (offset, value) in self.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(&Relocatable::from((index, offset)), &self.memory)
+                    .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
                     .map_err(VirtualMachineError::RunnerError)?
                 {
                     if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
@@ -647,6 +643,10 @@ impl VirtualMachine {
 
     pub fn get_fp(&self) -> Relocatable {
         self.run_context.get_fp()
+    }
+
+    pub fn get_pc(&self) -> &Relocatable {
+        self.run_context.get_pc()
     }
 
     pub fn get_prime(&self) -> &BigInt {
@@ -729,6 +729,21 @@ impl VirtualMachine {
             }
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
+    }
+
+    #[doc(hidden)]
+    pub fn set_ap(&mut self, ap: usize) {
+        self.run_context.set_ap(ap)
+    }
+
+    #[doc(hidden)]
+    pub fn set_fp(&mut self, fp: usize) {
+        self.run_context.set_fp(fp)
+    }
+
+    #[doc(hidden)]
+    pub fn set_pc(&mut self, pc: Relocatable) {
+        self.run_context.set_pc(pc)
     }
 }
 
