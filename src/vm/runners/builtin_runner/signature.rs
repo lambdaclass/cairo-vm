@@ -38,6 +38,10 @@ impl SignatureBuiltinRunner {
             signatures: HashMap::new(),
         }
     }
+
+    pub fn add_signature(&mut self, relocatable: Relocatable, signature: Signature) {
+        self.signatures.entry(relocatable).or_insert(signature);
+    }
 }
 
 impl BuiltinRunner for SignatureBuiltinRunner {
@@ -55,7 +59,7 @@ impl BuiltinRunner for SignatureBuiltinRunner {
 
     fn add_validation_rule(&self, memory: &mut Memory) {
         let cells_per_instance = self.cells_per_instance;
-
+        let signatures = self.signatures.clone();
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory,
                   address: &MaybeRelocatable|
@@ -75,7 +79,7 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     println!("primer caso");
                     let pubkey_addr = address.clone();
                     let msg_addr = address + 1_i32;
-                    (Some(pubkey_addr), Some(msg_addr))
+                    (pubkey_addr, Some(msg_addr))
                 } else if address.offset > 0 {
                     if let (1, Ok(Some(_element))) = (
                         address.offset.mod_floor(&cells_per_instance),
@@ -84,7 +88,7 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                         println!("segundo caso");
                         let pubkey_addr = address.sub(1).unwrap().clone();
                         let msg_addr = address.clone();
-                        (Some(pubkey_addr), Some(msg_addr))
+                        (pubkey_addr, Some(msg_addr))
                     } else {
                         return Ok(Vec::new());
                     }
@@ -98,14 +102,14 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     .unwrap()
                     .to_bytes_be();
                 let (_sign, pubkey) = memory
-                    .get_integer(&pubkey_addr.unwrap())
+                    .get_integer(&pubkey_addr)
                     .unwrap()
                     .to_bytes_be();
                 println!("{:?}", pubkey);
                 println!("{:?}", msg);
                 let signing_key = SigningKey::from_bytes(&pubkey).unwrap();
                 let verify_key = VerifyingKey::from(&signing_key);
-                let signature = self.signatures.get(&pubkey_addr.unwrap()).unwrap();
+                let signature = signatures.get(&pubkey_addr).ok_or_else(|| MemoryError::AddressNotRelocatable)?;
                 verify_key.verify(&msg, signature).unwrap();
                 Ok(Vec::new())
             },
