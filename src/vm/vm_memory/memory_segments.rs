@@ -68,6 +68,14 @@ impl MemorySegmentManager {
         self.segment_used_sizes = Some(segment_used_sizes);
     }
 
+    ///Returns the number of used segments when they are already computed.
+    ///Returns None otherwise.
+    pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
+        self.segment_used_sizes
+            .as_ref()
+            .map(|used_sizes| used_sizes[index])
+    }
+
     ///Returns a vector that contains the first relocated address of each memory segment
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         let first_addr = 1;
@@ -300,6 +308,28 @@ mod tests {
         ];
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![8, 2, 8]), segments.segment_used_sizes);
+    }
+
+    #[test]
+    fn get_segment_used_size_after_computing_used() {
+        let mut segments = MemorySegmentManager::new();
+        let memory = memory![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        segments.compute_effective_sizes(&memory);
+        assert_eq!(Some(8), segments.get_segment_used_size(2));
+    }
+
+    #[test]
+    fn get_segment_used_size_before_computing_used() {
+        let segments = MemorySegmentManager::new();
+        assert_eq!(None, segments.get_segment_used_size(2));
     }
 
     #[test]

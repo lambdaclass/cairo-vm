@@ -6,10 +6,10 @@ use crate::vm::errors::vm_errors::VirtualMachineError;
 use num_bigint::BigInt;
 
 pub struct RunContext {
-    pub pc: Relocatable,
-    pub ap: usize,
-    pub fp: usize,
-    pub prime: BigInt,
+    pub(crate) pc: Relocatable,
+    pub(crate) ap: usize,
+    pub(crate) fp: usize,
+    pub(crate) prime: BigInt,
 }
 
 impl RunContext {
@@ -19,6 +19,10 @@ impl RunContext {
     pub fn get_fp(&self) -> Relocatable {
         Relocatable::from((1, self.fp))
     }
+    pub fn get_pc(&self) -> &Relocatable {
+        &self.pc
+    }
+
     pub fn compute_dst_addr(
         &self,
         instruction: &Instruction,
@@ -60,6 +64,21 @@ impl RunContext {
             },
         };
         base_addr.add_int_mod(&instruction.off2, &self.prime)
+    }
+
+    #[doc(hidden)]
+    pub(crate) fn set_ap(&mut self, ap: usize) {
+        self.ap = ap;
+    }
+
+    #[doc(hidden)]
+    pub(crate) fn set_fp(&mut self, fp: usize) {
+        self.fp = fp;
+    }
+
+    #[doc(hidden)]
+    pub(crate) fn set_pc(&mut self, pc: Relocatable) {
+        self.pc = pc;
     }
 }
 

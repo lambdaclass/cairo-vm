@@ -25,17 +25,16 @@ pub fn cairo_run<'a>(
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
-    if let Err(error) = cairo_runner.run_until_pc(end, &mut vm) {
-        return Err(CairoRunError::VirtualMachine(error));
-    }
+    cairo_runner
+        .run_until_pc(end, &mut vm)
+        .map_err(CairoRunError::VirtualMachine)?;
 
-    if let Err(error) = vm.verify_auto_deductions() {
-        return Err(CairoRunError::VirtualMachine(error));
-    }
+    vm.verify_auto_deductions()
+        .map_err(CairoRunError::VirtualMachine)?;
 
-    if let Err(error) = cairo_runner.relocate(&mut vm) {
-        return Err(CairoRunError::Trace(error));
-    }
+    cairo_runner
+        .relocate(&mut vm)
+        .map_err(CairoRunError::Trace)?;
 
     if print_output {
         write_output(&mut cairo_runner, &mut vm)?;
@@ -69,11 +68,12 @@ pub fn write_binary_trace(
     let mut buffer = BufWriter::new(file);
 
     for (i, entry) in relocated_trace.iter().enumerate() {
-        if let Err(e) = bincode::serialize_into(&mut buffer, entry) {
-            let error_string =
-                format!("Failed to dump trace at position {i}, serialize error: {e}");
-            return Err(Error::new(ErrorKind::Other, error_string));
-        }
+        bincode::serialize_into(&mut buffer, entry).map_err(|e| {
+            Error::new(
+                ErrorKind::Other,
+                format!("Failed to dump trace at position {i}, serialize error: {e}"),
+            )
+        })?;
     }
 
     buffer.flush()
@@ -137,17 +137,14 @@ mod tests {
         program_path: &Path,
         hint_processor: &'a dyn HintProcessor,
     ) -> Result<(CairoRunner<'a>, VirtualMachine), CairoRunError> {
-        let program = match Program::new(program_path, "main") {
-            Ok(program) => program,
-            Err(e) => return Err(CairoRunError::Program(e)),
-        };
+        let program = Program::new(program_path, "main").map_err(CairoRunError::Program)?;
 
         let mut cairo_runner = CairoRunner::new(&program, hint_processor).unwrap();
         let mut vm = vm!(true);
-        let end = match cairo_runner.initialize(&mut vm) {
-            Ok(end) => end,
-            Err(e) => return Err(CairoRunError::Runner(e)),
-        };
+        let end = cairo_runner
+            .initialize(&mut vm)
+            .map_err(CairoRunError::Runner)?;
+
         assert!(cairo_runner.run_until_pc(end, &mut vm).is_ok());
 
         Ok((cairo_runner, vm))
@@ -212,6 +209,15 @@ mod tests {
         let invalid_memory = Path::new("cairo_programs/invalid_memory.json");
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert!(cairo_run(invalid_memory, "main", false, false, &hint_processor).is_err());
+    }
+
+    #[test]
+    fn write_output_program() {
+        let program_path = Path::new("cairo_programs/bitwise_output.json");
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let (mut cairo_runner, mut vm) = run_test_program(program_path, &hint_processor)
+            .expect("Couldn't initialize cairo runner");
+        assert!(write_output(&mut cairo_runner, &mut vm).is_ok());
     }
 
     #[test]
