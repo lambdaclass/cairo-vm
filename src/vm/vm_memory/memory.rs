@@ -182,9 +182,11 @@ impl Default for Memory {
 #[cfg(test)]
 mod memory_tests {
     use crate::{
-        bigint,
+        bigint, bigint_str,
         vm::{
-            runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
+            runners::builtin_runner::{
+                BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
+            },
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
@@ -376,6 +378,47 @@ mod memory_tests {
             error.unwrap_err().to_string(),
             "Range-check validation failed, number is out of valid range"
         );
+    }
+
+    #[test]
+    fn validate_existing_memory_for_signature() {
+        let mut builtin = SignatureBuiltinRunner::new(8);
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory);
+        builtin.initialize_segments(&mut segments, &mut memory);
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint!(1_i32)),
+            )
+            .unwrap();
+        builtin.add_validation_rule(&mut memory);
+        let _error = memory.validate_existing_memory();
+    }
+
+    #[test]
+    fn validate_existing_memory_for_signature_two() {
+        let mut builtin = SignatureBuiltinRunner::new(8);
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        segments.add(&mut memory);
+        builtin.initialize_segments(&mut segments, &mut memory);
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 0)),
+                &MaybeRelocatable::from(bigint_str!(
+                    b"1628448741648245036800002906075225705100596136133912895015035902954123957052"
+                )),
+            )
+            .unwrap();
+        memory
+            .insert(
+                &MaybeRelocatable::from((1, 1)),
+                &MaybeRelocatable::from(bigint_str!(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248")),
+            ).unwrap();
+        builtin.add_validation_rule(&mut memory);
+        let _error = memory.validate_existing_memory();
     }
 
     #[test]

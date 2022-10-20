@@ -10,9 +10,7 @@ use crate::{
 };
 
 use super::BuiltinRunner;
-use ecdsa::signature::Verifier;
-use ecdsa::Signature;
-use k256::ecdsa::{SigningKey, VerifyingKey};
+use k256::ecdsa::{signature::Verifier, Signature, SigningKey, VerifyingKey};
 use num_integer::Integer;
 use std::{any::Any, collections::HashMap};
 
@@ -70,26 +68,30 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     unreachable!()
                 };
 
-                let (pubkey_addr, msg_addr) = if let (0, Ok(_element)) = (
+                let (pubkey_addr, msg_addr) = if let (0, Ok(Some(_element))) = (
                     address.offset.mod_floor(&cells_per_instance),
                     memory.get(&(address + 1_i32)),
                 ) {
+                    println!("primer caso");
                     let pubkey_addr = address.clone();
                     let msg_addr = address + 1_i32;
                     (Some(pubkey_addr), Some(msg_addr))
-                } else if let (1, Ok(_element)) = (
-                    address.offset.mod_floor(&cells_per_instance),
-                    memory.get(&address.sub(1).unwrap()),
-                ) {
-                    let pubkey_addr = address.sub(1).unwrap().clone();
-                    let msg_addr = address.clone();
-                    (Some(pubkey_addr), Some(msg_addr))
+                } else if address.offset > 0 {
+                    if let (1, Ok(Some(_element))) = (
+                        address.offset.mod_floor(&cells_per_instance),
+                        memory.get(&address.sub(1).unwrap()),
+                    ) {
+                        println!("segundo caso");
+                        let pubkey_addr = address.sub(1).unwrap().clone();
+                        let msg_addr = address.clone();
+                        (Some(pubkey_addr), Some(msg_addr))
+                    } else {
+                        return Ok(Vec::new());
+                    }
                 } else {
-                    (None, None)
+                    println!("tercer caso");
+                    return Ok(Vec::new());
                 };
-                if pubkey_addr.is_none() && msg_addr.is_none() {
-                    return Err(MemoryError::AddressNotRelocatable);
-                }
 
                 let (_sign, msg) = memory
                     .get_integer(&msg_addr.unwrap())
@@ -99,11 +101,12 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     .get_integer(&pubkey_addr.unwrap())
                     .unwrap()
                     .to_bytes_be();
+                println!("{:?}", pubkey);
+                println!("{:?}", msg);
                 let signing_key = SigningKey::from_bytes(&pubkey).unwrap();
                 let verify_key = VerifyingKey::from(&signing_key);
-                verify_key
-                    .verify(&msg, &(Signature::from_der(&pubkey)).unwrap())
-                    .unwrap();
+                let signature = Signature(&pubkey).unwrap();
+                verify_key.verify(&msg, &signature).unwrap();
                 Ok(Vec::new())
             },
         ));
