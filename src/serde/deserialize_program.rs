@@ -473,6 +473,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "todo".to_string(),
                     },
                 },
                 Reference {
@@ -488,6 +489,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "todo".to_string(),
                     },
                 },
                 Reference {
@@ -503,6 +505,7 @@ mod tests {
                         immediate: Some(bigint!(2)),
                         dereference: false,
                         inner_dereference: true,
+                        value_type: "todo".to_string(),
                     },
                 },
                 Reference {
@@ -518,6 +521,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
+                        value_type: "todo".to_string(),
                     },
                 },
             ],

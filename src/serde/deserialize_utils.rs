@@ -301,7 +301,8 @@ mod tests {
                     offset2: 2,
                     immediate: None,
                     dereference: true,
-                    inner_dereference: true
+                    inner_dereference: true,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -322,7 +323,8 @@ mod tests {
                     offset2: 0,
                     immediate: Some(bigint!(0)),
                     dereference: false,
-                    inner_dereference: false
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -342,7 +344,8 @@ mod tests {
                     offset2: 0,
                     immediate: Some(bigint!(825323)),
                     dereference: false,
-                    inner_dereference: false
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -363,7 +366,8 @@ mod tests {
                     offset2: -1,
                     immediate: None,
                     dereference: true,
-                    inner_dereference: false
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -384,7 +388,8 @@ mod tests {
                     offset2: 1,
                     immediate: None,
                     dereference: true,
-                    inner_dereference: true
+                    inner_dereference: true,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
