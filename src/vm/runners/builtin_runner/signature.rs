@@ -22,7 +22,7 @@ pub struct SignatureBuiltinRunner {
     cells_per_instance: usize,
     _n_input_cells: usize,
     _total_n_bits: u32,
-    _signatures: HashMap<Relocatable, Relocatable>,
+    signatures: HashMap<Relocatable, Signature>,
 }
 
 impl SignatureBuiltinRunner {
@@ -35,7 +35,7 @@ impl SignatureBuiltinRunner {
             cells_per_instance: 5,
             _n_input_cells: 2,
             _total_n_bits: 251,
-            _signatures: HashMap::new(),
+            signatures: HashMap::new(),
         }
     }
 }
@@ -105,8 +105,8 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                 println!("{:?}", msg);
                 let signing_key = SigningKey::from_bytes(&pubkey).unwrap();
                 let verify_key = VerifyingKey::from(&signing_key);
-                let signature = Signature(&pubkey).unwrap();
-                verify_key.verify(&msg, &signature).unwrap();
+                let signature = self.signatures.get(&pubkey_addr.unwrap()).unwrap();
+                verify_key.verify(&msg, signature).unwrap();
                 Ok(Vec::new())
             },
         ));
