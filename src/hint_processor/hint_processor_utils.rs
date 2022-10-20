@@ -147,11 +147,12 @@ mod tests {
         let mut vm = vm!();
         vm.memory = memory![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.register = None;
         hint_ref.immediate = Some(bigint!(2));
 
         assert_eq!(
             get_integer_from_reference(&mut vm, &hint_ref, &ApTracking::new()),
-            Ok(&bigint!(0))
+            Ok(&bigint!(2))
         );
     }
 
