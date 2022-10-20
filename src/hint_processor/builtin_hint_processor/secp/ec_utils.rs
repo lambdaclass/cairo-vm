@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
 };
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_REM};
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::math_utils::{ec_double_slope, line_slope};
@@ -12,7 +12,7 @@ use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
-use std::ops::BitAnd;
+use std::ops::{BitAnd, Shl};
 
 use super::secp_utils::pack_from_relocatable;
 
@@ -31,11 +31,17 @@ pub fn ec_negate(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3;
     let y = pack_from_relocatable(point_y, vm)?;
-    let value = (-y).mod_floor(&SECP_P);
+    let value = (-y).mod_floor(&secp_p);
     exec_scopes_proxy.insert_value("value", value);
     Ok(())
 }
@@ -57,7 +63,13 @@ pub fn compute_doubling_slope(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
 
@@ -76,7 +88,7 @@ pub fn compute_doubling_slope(
             pack(y_d0, y_d1, y_d2, vm.get_prime()),
         ),
         &bigint!(0),
-        &SECP_P,
+        &secp_p,
     );
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("slope", value);
@@ -102,7 +114,13 @@ pub fn compute_slope(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
 
@@ -136,7 +154,7 @@ pub fn compute_slope(
             pack(point1_x_d0, point1_x_d1, point1_x_d2, vm.get_prime()),
             pack(point1_y_d0, point1_y_d1, point1_y_d2, vm.get_prime()),
         ),
-        &SECP_P,
+        &secp_p,
     );
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("slope", value);
@@ -160,7 +178,13 @@ pub fn ec_double_assign_new_x(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
@@ -186,7 +210,7 @@ pub fn ec_double_assign_new_x(
     let x = pack(x_d0, x_d1, x_d2, vm.get_prime());
     let y = pack(y_d0, y_d1, y_d2, vm.get_prime());
 
-    let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
+    let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes_proxy.insert_value("slope", slope);
@@ -203,7 +227,13 @@ Implements hint:
 */
 pub fn ec_double_assign_new_y(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
         exec_scopes_proxy.get_int("slope")?,
@@ -212,7 +242,7 @@ pub fn ec_double_assign_new_y(
         exec_scopes_proxy.get_int("y")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
+    let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("new_y", value);
     Ok(())
@@ -236,7 +266,13 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
@@ -272,7 +308,7 @@ pub fn fast_ec_add_assign_new_x(
     let x1 = pack(point1_x_d0, point1_x_d1, point1_x_d2, vm.get_prime());
     let y0 = pack(point0_y_d0, point0_y_d1, point0_y_d2, vm.get_prime());
 
-    let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
+    let value = (slope.modpow(&bigint!(2), &secp_p) - &x0 - x1).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes_proxy.insert_value("slope", slope);
@@ -290,7 +326,13 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_y(
     exec_scopes_proxy: &mut ExecutionScopesProxy,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
         exec_scopes_proxy.get_int("slope")?,
@@ -298,7 +340,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes_proxy.get_int("new_x")?,
         exec_scopes_proxy.get_int("y0")?,
     );
-    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
     exec_scopes_proxy.insert_value("value", value.clone());
     exec_scopes_proxy.insert_value("new_y", value);
 
@@ -354,7 +396,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
         //Check 'value' is defined in the vm scope
@@ -388,7 +448,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
         check_scope!(
@@ -442,7 +520,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
         check_scope!(
@@ -493,7 +589,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 
@@ -559,7 +673,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                HashMap::new(),
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 
@@ -619,7 +751,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 
@@ -673,7 +823,25 @@ mod tests {
         //Execute the hint
         let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(
+                vm,
+                HashMap::new(),
+                hint_code,
+                exec_scopes_proxy,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 

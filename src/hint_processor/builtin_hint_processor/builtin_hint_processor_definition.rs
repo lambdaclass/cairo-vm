@@ -115,7 +115,7 @@ impl HintProcessor for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes_proxy: &mut ExecutionScopesProxy,
         hint_data: &Box<dyn Any>,
-        _constants: &HashMap<String, BigInt>,
+        constants: &HashMap<String, BigInt>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
@@ -255,18 +255,22 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::BLAKE2S_COMPUTE => {
                 compute_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::VERIFY_ZERO => verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::VERIFY_ZERO => {
+                verify_zero(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
             hint_code::NONDET_BIGINT3 => nondet_bigint3(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::REDUCE => reduce(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::BLAKE2S_FINALIZE => {
                 finalize_blake2s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -363,62 +367,74 @@ impl HintProcessor for BuiltinHintProcessor {
                 uint256_unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::BIGINT_TO_UINT256 => {
-                bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                bigint_to_uint256(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_ZERO_PACK => is_zero_pack(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::IS_ZERO_NONDET => is_zero_nondet(vm, exec_scopes_proxy),
             hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => {
-                is_zero_assign_scope_variables(exec_scopes_proxy)
+                is_zero_assign_scope_variables(exec_scopes_proxy, constants)
             }
             hint_code::DIV_MOD_N_PACKED_DIVMOD => div_mod_n_packed_divmod(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
-            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes_proxy),
+            hint_code::DIV_MOD_N_SAFE_DIV => div_mod_n_safe_div(exec_scopes_proxy, constants),
             hint_code::GET_POINT_FROM_X => get_point_from_x(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::EC_NEGATE => ec_negate(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::EC_DOUBLE_SCOPE => compute_doubling_slope(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::COMPUTE_SLOPE => compute_slope(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X => ec_double_assign_new_x(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes_proxy),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => {
+                ec_double_assign_new_y(exec_scopes_proxy, constants)
+            }
             hint_code::KECCAK_WRITE_ARGS => {
                 keccak_write_args(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::COMPARE_BYTES_IN_WORD_NONDET => {
-                compare_bytes_in_word_nondet(vm, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::COMPARE_BYTES_IN_WORD_NONDET => compare_bytes_in_word_nondet(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
             hint_code::SHA256_MAIN => sha256_main(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::SHA256_INPUT => {
                 sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -431,21 +447,25 @@ impl HintProcessor for BuiltinHintProcessor {
                     vm,
                     &hint_data.ids_data,
                     &hint_data.ap_tracking,
+                    constants,
                 )
             }
             hint_code::BLOCK_PERMUTATION => {
-                block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                block_permutation(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::CAIRO_KECCAK_FINALIZE => {
-                cairo_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                cairo_keccak_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::FAST_EC_ADD_ASSIGN_NEW_X => fast_ec_add_assign_new_x(
                 vm,
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             ),
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => fast_ec_add_assign_new_y(exec_scopes_proxy),
+            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => {
+                fast_ec_add_assign_new_y(exec_scopes_proxy, constants)
+            }
             hint_code::EC_MUL_INNER => {
                 ec_mul_inner(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
