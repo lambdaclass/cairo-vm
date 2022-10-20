@@ -748,4 +748,26 @@ mod tests {
 
         assert_eq!(program_json.identifiers, identifiers);
     }
+
+    #[test]
+    fn deserialize_value_type() {
+        let file = File::open("cairo_programs/manually_compiled/deserialize_value_type_test.json")
+            .unwrap();
+        let mut reader = BufReader::new(file);
+
+        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+            },
+        );
+
+        println!("reference_manager: {:?}", program_json.reference_manager);
+        todo!()
+    }
 }
