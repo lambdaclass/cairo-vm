@@ -2303,7 +2303,7 @@ mod tests {
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
-        // Program runs in 10 steps.
+        // Full takes 10 steps.
         assert_eq!(cairo_runner.run_for_steps(&mut vm, 8), Ok(()));
         assert_eq!(
             cairo_runner.run_for_steps(&mut vm, 8),
@@ -2372,7 +2372,7 @@ mod tests {
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
 
-        // Program runs in 10 steps.
+        // Full takes 10 steps.
         assert_eq!(cairo_runner.run_until_steps(&mut vm, 8), Ok(()));
         assert_eq!(cairo_runner.run_until_steps(&mut vm, 10), Ok(()));
         assert_eq!(
