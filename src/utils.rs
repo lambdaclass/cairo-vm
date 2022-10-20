@@ -1,4 +1,4 @@
-use crate::{types::relocatable::Relocatable, vm::errors::memory_errors::MemoryError};
+use crate::types::relocatable::Relocatable;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::ops::Shr;
