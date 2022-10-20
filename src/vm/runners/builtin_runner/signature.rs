@@ -1,7 +1,3 @@
-use std::{any::Any, collections::HashMap};
-use ecdsa::signature::Verifier;
-use nom::combinator::verify;
-use num_integer::Integer;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
@@ -14,6 +10,11 @@ use crate::{
 };
 
 use super::BuiltinRunner;
+use ecdsa::signature::Verifier;
+use ecdsa::Signature;
+use k256::ecdsa::{SigningKey, VerifyingKey};
+use num_integer::Integer;
+use std::{any::Any, collections::HashMap};
 
 pub struct SignatureBuiltinRunner {
     _name: String,
@@ -23,7 +24,7 @@ pub struct SignatureBuiltinRunner {
     cells_per_instance: usize,
     _n_input_cells: usize,
     _total_n_bits: u32,
-    signatures: HashMap<Relocatable, Relocatable>
+    _signatures: HashMap<Relocatable, Relocatable>,
 }
 
 impl SignatureBuiltinRunner {
@@ -36,7 +37,7 @@ impl SignatureBuiltinRunner {
             cells_per_instance: 5,
             _n_input_cells: 2,
             _total_n_bits: 251,
-            signatures: HashMap::new()
+            _signatures: HashMap::new(),
         }
     }
 }
@@ -61,33 +62,48 @@ impl BuiltinRunner for SignatureBuiltinRunner {
             move |memory: &Memory,
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                let pubkey: Relocatable;
-                let msg;
-
-                if let MaybeRelocatable::RelocatableValue(address) = address {
-                    if let (0, Ok(_element)) = (
-                        address.offset.mod_floor(&cells_per_instance),
-                        memory.get(&(address + 1_i32)),
-                    ) {
-                        pubkey = address.clone();
-                        msg = address + 1_i32;
-                        return Ok(vec![pubkey.into(), msg.into()]);
-                    }
-                    if let (0, Ok(_element)) = (
-                        address.offset.mod_floor(&cells_per_instance),
-                        memory.get(&address.sub(1).unwrap()),
-                    ) {
-                        pubkey = address.sub(1).unwrap().clone();
-                        msg = address.clone();
-                        return Ok(vec![pubkey.into(), msg.into()]);
-                    } else {
-                        return Ok(Vec::new());
-                    }
+                let address = if let MaybeRelocatable::Int(_address) = address {
+                    return Err(MemoryError::AddressNotRelocatable);
+                } else if let MaybeRelocatable::RelocatableValue(address) = address {
+                    address
                 } else {
-                    Err(MemoryError::AddressNotRelocatable)
+                    unreachable!()
+                };
+
+                let (pubkey_addr, msg_addr) = if let (0, Ok(_element)) = (
+                    address.offset.mod_floor(&cells_per_instance),
+                    memory.get(&(address + 1_i32)),
+                ) {
+                    let pubkey_addr = address.clone();
+                    let msg_addr = address + 1_i32;
+                    (Some(pubkey_addr), Some(msg_addr))
+                } else if let (1, Ok(_element)) = (
+                    address.offset.mod_floor(&cells_per_instance),
+                    memory.get(&address.sub(1).unwrap()),
+                ) {
+                    let pubkey_addr = address.sub(1).unwrap().clone();
+                    let msg_addr = address.clone();
+                    (Some(pubkey_addr), Some(msg_addr))
+                } else {
+                    (None, None)
+                };
+                if pubkey_addr.is_none() && msg_addr.is_none() {
+                    return Err(MemoryError::AddressNotRelocatable);
                 }
-                let signature = self.signatures.get(&pubkey);
-                verify(msg, signature);
+
+                let (_sign, msg) = memory
+                    .get_integer(&msg_addr.unwrap())
+                    .unwrap()
+                    .to_bytes_be();
+                let (_sign, pubkey) = memory
+                    .get_integer(&pubkey_addr.unwrap())
+                    .unwrap()
+                    .to_bytes_be();
+                let signing_key = SigningKey::from_bytes(&pubkey).unwrap();
+                let verify_key = VerifyingKey::from(&signing_key);
+                verify_key
+                    .verify(&msg, &(Signature::from_der(&pubkey)).unwrap())
+                    .unwrap();
                 Ok(Vec::new())
             },
         ));
