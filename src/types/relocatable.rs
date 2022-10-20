@@ -371,10 +371,8 @@ pub fn relocate_value(
             if relocation_table.len() <= segment_index {
                 return Err(MemoryError::Relocation);
             }
-            match BigInt::from_usize(relocation_table[segment_index] + relocatable.offset) {
-                None => Err(MemoryError::Relocation),
-                Some(relocated_value) => Ok(relocated_value),
-            }
+            BigInt::from_usize(relocation_table[segment_index] + relocatable.offset)
+                .ok_or(MemoryError::Relocation)
         }
     }
 }
