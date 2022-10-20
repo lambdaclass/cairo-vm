@@ -101,15 +101,14 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     .get_integer(&msg_addr.unwrap())
                     .unwrap()
                     .to_bytes_be();
-                let (_sign, pubkey) = memory
-                    .get_integer(&pubkey_addr)
-                    .unwrap()
-                    .to_bytes_be();
+                let (_sign, pubkey) = memory.get_integer(&pubkey_addr).unwrap().to_bytes_be();
                 println!("{:?}", pubkey);
                 println!("{:?}", msg);
                 let signing_key = SigningKey::from_bytes(&pubkey).unwrap();
                 let verify_key = VerifyingKey::from(&signing_key);
-                let signature = signatures.get(&pubkey_addr).ok_or_else(|| MemoryError::AddressNotRelocatable)?;
+                let signature = signatures
+                    .get(&pubkey_addr)
+                    .ok_or_else(|| MemoryError::AddressNotRelocatable)?;
                 verify_key.verify(&msg, signature).unwrap();
                 Ok(Vec::new())
             },

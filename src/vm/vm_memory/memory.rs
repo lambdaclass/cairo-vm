@@ -192,7 +192,7 @@ mod memory_tests {
     };
 
     use super::*;
-    use k256::ecdsa::{Signature, SigningKey, signature::Signer};
+    use k256::ecdsa::{signature::Signer, Signature, SigningKey};
     use num_bigint::BigInt;
 
     pub fn memory_from(
@@ -426,8 +426,13 @@ mod memory_tests {
     #[test]
     fn validate_existing_memory_for_valid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(8);
-        let signing_key = SigningKey::from_bytes("1628448741648245036800002906075225705100596136133912895015035902954123957052".as_bytes()).unwrap();
-        let signature: Signature = signing_key.sign(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248");
+        let signing_key = SigningKey::from_bytes(
+            "1628448741648245036800002906075225705100596136133912895015035902954123957052"
+                .as_bytes(),
+        )
+        .unwrap();
+        let signature: Signature = signing_key
+            .sign(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248");
 
         builtin.add_signature(Relocatable::from((1, 0)), signature);
         let mut segments = MemorySegmentManager::new();
