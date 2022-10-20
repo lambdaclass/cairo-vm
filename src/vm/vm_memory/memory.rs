@@ -13,6 +13,7 @@ pub struct ValidationRule(
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
+    pub relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     pub validation_rules: HashMap<usize, ValidationRule>,
 }
@@ -22,6 +23,7 @@ impl Memory {
         Memory {
             data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
             temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            relocation_rules: HashMap::new(),
             validated_addresses: HashSet::<MaybeRelocatable>::new(),
             validation_rules: HashMap::new(),
         }
@@ -41,10 +43,19 @@ impl Memory {
         let val = MaybeRelocatable::from(val);
         let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone())?;
         let data_len = self.data.len();
-        let segment = self
-            .data
-            .get_mut(value_index)
-            .ok_or(MemoryError::UnallocatedSegment(value_index, data_len))?;
+        let segment = if value_index >= 0 {
+            self.data
+                .get_mut(value_index as usize)
+                .ok_or(MemoryError::UnallocatedSegment(
+                    value_index as usize,
+                    data_len,
+                ))?
+        } else {
+            self.temp_data.get_mut((-value_index as usize) - 1).ok_or(
+                MemoryError::UnallocatedSegment(value_index as usize, data_len),
+            )?
+        };
+
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index
         if segment.len() <= value_offset {
@@ -67,20 +78,84 @@ impl Memory {
         self.validate_memory_cell(&MaybeRelocatable::from(key))
     }
 
-    pub fn get<'a, K: 'a>(&self, key: &'a K) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
+    pub fn get<'a, 'b: 'a, K: 'a>(
+        &'b self,
+        key: &'a K,
+    ) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
     where
         Relocatable: TryFrom<&'a K>,
     {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
-        let (i, j) = from_relocatable_to_indexes(relocatable)?;
-        if self.data.len() > i && self.data[i].len() > j {
-            if let Some(ref element) = self.data[i][j] {
-                return Ok(Some(Cow::Borrowed(element)));
+
+        if let Ok((segment, offset)) = from_relocatable_to_indexes(relocatable) {
+            if segment >= 0 {
+                let segment = segment as usize;
+                if self.data.len() > segment && self.data[segment].len() > offset {
+                    if let Some(x) = &self.data[segment][offset] {
+                        return self.relocate_value(Some(Cow::Borrowed(x)));
+                    }
+                }
+            } else {
+                let segment = (-segment as usize) - 1;
+                if self.temp_data.len() > segment && self.temp_data[segment].len() > offset {
+                    if let Some(x) = &self.temp_data[segment][offset] {
+                        return self.relocate_value(Some(Cow::Borrowed(x)));
+                    }
+                }
             }
         }
-        Ok(None)
+
+        self.relocate_value(None)
+    }
+
+    pub fn relocate_value<'a>(
+        &self,
+        value: Option<Cow<'a, MaybeRelocatable>>,
+    ) -> Result<Option<Cow<'a, MaybeRelocatable>>, MemoryError> {
+        let value_relocation = match value {
+            Some(Cow::Owned(MaybeRelocatable::RelocatableValue(ref x)))
+            | Some(Cow::Borrowed(MaybeRelocatable::RelocatableValue(ref x))) => x,
+            value => return Ok(value),
+        };
+
+        let segment_idx = value_relocation.segment_index;
+        if segment_idx >= 0 {
+            return Ok(value);
+        }
+
+        let relocation = match self.relocation_rules.get(&(-segment_idx as usize)) {
+            Some(x) => x,
+            None => return Ok(value),
+        };
+
+        Ok(self
+            .relocate_value(Some(Cow::Owned(relocation.into())))?
+            .map(|x| Cow::Owned(x.add_usize_mod(value_relocation.offset, None))))
+    }
+
+    pub fn add_relocation_rule(
+        &mut self,
+        src_ptr: Relocatable,
+        dst_ptr: Relocatable,
+    ) -> Result<(), MemoryError> {
+        if src_ptr.segment_index >= 0 {
+            return Err(MemoryError::AddressNotInTemporarySegment(
+                src_ptr.segment_index,
+            ));
+        }
+        if src_ptr.offset != 0 {
+            return Err(MemoryError::NonZeroOffset(src_ptr.offset));
+        }
+
+        let segment_index = -src_ptr.segment_index as usize;
+        if self.relocation_rules.contains_key(&segment_index) {
+            return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
+        }
+
+        self.relocation_rules.insert(segment_index, dst_ptr);
+        Ok(())
     }
 
     //Gets the value from memory address.

@@ -674,8 +674,8 @@ impl VirtualMachine {
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get_maybe<'a, K: 'a>(
-        &self,
+    pub fn get_maybe<'a, 'b: 'a, K: 'a>(
+        &'b self,
         key: &'a K,
     ) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
     where

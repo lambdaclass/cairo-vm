@@ -50,13 +50,8 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
 
 pub fn from_relocatable_to_indexes(
     relocatable: Relocatable,
-) -> Result<(usize, usize), MemoryError> {
-    let segment_index: usize = relocatable
-        .segment_index
-        .try_into()
-        .map_err(|_| MemoryError::AddressInTemporarySegment(relocatable.segment_index))?;
-
-    Ok((segment_index, relocatable.offset))
+) -> Result<(isize, usize), MemoryError> {
+    Ok((relocatable.segment_index, relocatable.offset))
 }
 
 ///Converts val to an integer in the range (-prime/2, prime/2) which is
