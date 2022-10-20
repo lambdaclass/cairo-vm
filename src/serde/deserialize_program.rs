@@ -96,6 +96,7 @@ pub struct ValueAddress {
     pub immediate: Option<BigInt>,
     pub dereference: bool,
     pub inner_dereference: bool,
+    pub value_type: String,
 }
 
 impl ValueAddress {
@@ -114,6 +115,7 @@ impl ValueAddress {
             immediate: Some(bigint!(99)),
             dereference: false,
             inner_dereference: false,
+            value_type: String::from("felt"),
         }
     }
 }
