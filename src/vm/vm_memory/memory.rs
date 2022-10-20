@@ -78,6 +78,7 @@ impl Memory {
         self.validate_memory_cell(&MaybeRelocatable::from(key))
     }
 
+    /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
     pub fn get<'a, 'b: 'a, K: 'a>(
         &'b self,
         key: &'a K,
@@ -110,6 +111,7 @@ impl Memory {
         self.relocate_value(None)
     }
 
+    /// Relocate a value according to the relocation rules.
     pub fn relocate_value<'a>(
         &self,
         value: Option<Cow<'a, MaybeRelocatable>>,
@@ -135,6 +137,12 @@ impl Memory {
             .map(|x| Cow::Owned(x.add_usize_mod(value_relocation.offset, None))))
     }
 
+    /// Add a new relocation rule.
+    ///
+    /// Will return an error if any of the following conditions are not met:
+    ///   - Source address's segment must be negative (temporary).
+    ///   - Source address's offset must be zero.
+    ///   - There shouldn't already be relocation at the source segment.
     pub fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
