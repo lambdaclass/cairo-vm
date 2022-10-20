@@ -5,8 +5,8 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::split;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE_86;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 
@@ -23,12 +23,12 @@ Implements hint:
 */
 pub fn nondet_bigint3(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-    let value = exec_scopes_proxy.get_int_ref("value")?;
+    let value = exec_scopes.get_int_ref("value")?;
     let arg: Vec<BigInt> = split(value)?.to_vec();
     vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
@@ -59,7 +59,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -83,11 +82,7 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check hint memory inserts
         check_memory![
             &vm.memory,
@@ -123,9 +118,8 @@ mod tests {
         let mut exec_scopes = scope![("value", bigint!(-1))];
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::SecpSplitNegative(bigint!(-1)))
         );
     }

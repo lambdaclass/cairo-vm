@@ -12,6 +12,16 @@ const BENCH_NAMES: &[&str] = &[
     "fibonacci_1000_multirun",
     "integration_builtins",
     "linear_search",
+    "keccak_integration_benchmark",
+    "secp_integration_benchmark",
+    "blake2s_integration_benchmark",
+    "dict_integration_benchmark",
+    "math_integration_benchmark",
+    "memory_integration_benchmark",
+    "math_cmp_and_pow_integration_benchmark",
+    "operations_with_data_structures_benchmarks",
+    "uint256_integration_benchmark",
+    "set_integration_benchmark",
 ];
 const BENCH_PATH: &str = "cairo_programs/benchmarks/";
 

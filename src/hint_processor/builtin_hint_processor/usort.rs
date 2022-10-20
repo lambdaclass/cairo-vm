@@ -1,7 +1,7 @@
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint, serde::deserialize_program::ApTracking, vm::errors::vm_errors::VirtualMachineError,
@@ -12,29 +12,27 @@ use std::{any::Any, collections::HashMap};
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 
-pub fn usort_enter_scope(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
-) -> Result<(), VirtualMachineError> {
-    if let Ok(usort_max_size) = exec_scopes_proxy.get_int("usort_max_size") {
+pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
+    if let Ok(usort_max_size) = exec_scopes.get_int("usort_max_size") {
         let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
-        exec_scopes_proxy.enter_scope(HashMap::from([(
+        exec_scopes.enter_scope(HashMap::from([(
             "usort_max_size".to_string(),
             boxed_max_size,
         )]));
     } else {
-        exec_scopes_proxy.enter_scope(HashMap::new());
+        exec_scopes.enter_scope(HashMap::new());
     }
     Ok(())
 }
 
 pub fn usort_body(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let input_ptr = get_ptr_from_var_name("input", vm, ids_data, ap_tracking)?;
-    let usort_max_size = exec_scopes_proxy.get_u64("usort_max_size");
+    let usort_max_size = exec_scopes.get_u64("usort_max_size");
     let input_len = get_integer_from_var_name("input_len", vm, ids_data, ap_tracking)?;
     let input_len_u64 = input_len
         .to_u64()
@@ -62,7 +60,7 @@ pub fn usort_body(
     for k in output.iter() {
         multiplicities.push(positions_dict[k].len());
     }
-    exec_scopes_proxy.insert_value("positions_dict", positions_dict);
+    exec_scopes.insert_value("positions_dict", positions_dict);
     let output_base = vm.add_memory_segment();
     let multiplicities_base = vm.add_memory_segment();
     let output_len = output.len();
@@ -88,25 +86,25 @@ pub fn usort_body(
 
 pub fn verify_usort(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
-    let mut positions = exec_scopes_proxy
+    let mut positions = exec_scopes
         .get_mut_dict_int_list_u64_ref("positions_dict")?
         .remove(&value)
         .ok_or(VirtualMachineError::UnexpectedPositionsDictFail)?;
     positions.reverse();
-    exec_scopes_proxy.insert_value("positions", positions);
-    exec_scopes_proxy.insert_value("last_pos", bigint!(0));
+    exec_scopes.insert_value("positions", positions);
+    exec_scopes.insert_value("last_pos", bigint!(0));
     Ok(())
 }
 
 pub fn verify_multiplicity_assert(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
-    let positions_len = exec_scopes_proxy.get_listu64_ref("positions")?.len();
+    let positions_len = exec_scopes.get_listu64_ref("positions")?.len();
     if positions_len == 0 {
         Ok(())
     } else {
@@ -116,17 +114,17 @@ pub fn verify_multiplicity_assert(
 
 pub fn verify_multiplicity_body(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let current_pos = exec_scopes_proxy
+    let current_pos = exec_scopes
         .get_mut_listu64_ref("positions")?
         .pop()
         .ok_or(VirtualMachineError::CouldntPopPositions)?;
-    let pos_diff = bigint!(current_pos) - exec_scopes_proxy.get_int("last_pos")?;
+    let pos_diff = bigint!(current_pos) - exec_scopes.get_int("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
-    exec_scopes_proxy.insert_value("last_pos", bigint!(current_pos + 1));
+    exec_scopes.insert_value("last_pos", bigint!(current_pos + 1));
     Ok(())
 }
 
@@ -138,7 +136,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
@@ -159,9 +156,8 @@ mod tests {
         //Create hint_data
         let ids_data = ids_data!["input", "input_len"];
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::UsortOutOfRange(1, bigint!(5)))
         );
     }

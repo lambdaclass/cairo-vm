@@ -1,28 +1,30 @@
-use crate::bigint;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
+use crate::{
+    bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, insert_value_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+    },
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
+};
 use num_bigint::BigInt;
 use num_traits::Signed;
-use std::any::Any;
-use std::collections::HashMap;
-
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
-use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from_var_name;
-use crate::hint_processor::hint_processor_definition::HintReference;
+use std::{any::Any, collections::HashMap};
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let n: Box<dyn Any> =
         Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?.into_owned());
-    exec_scopes_proxy.enter_scope(HashMap::from([(String::from("n"), n)]));
+    exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
 
@@ -34,12 +36,12 @@ pub fn memset_enter_scope(
 */
 pub fn memset_continue_loop(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     // get `n` variable from vm scope
-    let n = exec_scopes_proxy.get_int_ref("n")?;
+    let n = exec_scopes.get_int_ref("n")?;
     // this variable will hold the value of `n - 1`
     let new_n = n - 1_i32;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
@@ -48,9 +50,10 @@ pub fn memset_continue_loop(
     insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    exec_scopes_proxy.insert_value("n", new_n);
+    exec_scopes.insert_value("n", new_n);
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,7 +61,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::vm_memory::memory::Memory;
@@ -110,8 +112,7 @@ mod tests {
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
         vm.memory = memory![((1, 1), 5)];
         let ids_data = ids_data!["continue_loop"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
         // assert ids.continue_loop = 0
         check_memory![vm.memory, ((1, 0), 0)];
     }
@@ -128,8 +129,7 @@ mod tests {
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.memory = memory![((1, 2), 5)];
         let ids_data = ids_data!["continue_loop"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_proxy).is_ok());
+        assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
 
         // assert ids.continue_loop = 1
         check_memory![vm.memory, ((1, 0), 1)];
@@ -170,9 +170,8 @@ mod tests {
         // a value is written in the address so the hint cant insert value there
         vm.memory = memory![((1, 0), 5)];
         let ids_data = ids_data!["continue_loop"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from((1, 0)),
