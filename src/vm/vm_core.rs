@@ -671,6 +671,11 @@ impl VirtualMachine {
         self.memory.get(key)
     }
 
+    /// Returns a reference to the vector with all builtins present in the virtual machine
+    pub fn get_builtin_runners(&self) -> &Vec<(String, Box<dyn BuiltinRunner>)> {
+        &self.builtin_runners
+    }
+
     ///Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
@@ -3111,5 +3116,21 @@ mod tests {
             vm.memory.data[2],
             vec![Some(MaybeRelocatable::from(bigint!(1)))]
         );
+    }
+
+    #[test]
+    fn test_get_builtin_runners() {
+        let mut vm = vm!();
+        let hash_builtin = HashBuiltinRunner::new(8);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(8);
+        vm.builtin_runners
+            .push((String::from("pedersen"), Box::new(hash_builtin)));
+        vm.builtin_runners
+            .push((String::from("bitwise"), Box::new(bitwise_builtin)));
+
+        let builtins = vm.get_builtin_runners();
+
+        assert_eq!(builtins[0].0, "pedersen");
+        assert_eq!(builtins[1].0, "bitwise");
     }
 }
