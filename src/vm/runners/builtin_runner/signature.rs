@@ -57,7 +57,6 @@ impl BuiltinRunner for SignatureBuiltinRunner {
     fn base(&self) -> Relocatable {
         Relocatable::from((self.base, 0))
     }
-
     fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let cells_per_instance = self.cells_per_instance;
         let signatures = self.signatures.clone();
@@ -65,34 +64,30 @@ impl BuiltinRunner for SignatureBuiltinRunner {
             move |memory: &Memory,
                   address: &MaybeRelocatable|
                   -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                let address = if let MaybeRelocatable::Int(_address) = address {
-                    return Err(MemoryError::AddressNotRelocatable);
-                } else if let MaybeRelocatable::RelocatableValue(address) = address {
-                    address
-                } else {
-                    unreachable!()
+                let address = match address {
+                    MaybeRelocatable::RelocatableValue(address) => address,
+                    _ => return Err(MemoryError::AddressNotRelocatable),
                 };
 
-                let (pubkey_addr, msg_addr) = if let (0, Ok(Some(_element))) = (
-                    address.offset.mod_floor(&cells_per_instance),
-                    memory.get(&(address + 1_i32)),
-                ) {
-                    let pubkey_addr = address.clone();
-                    let msg_addr = address + 1_i32;
-                    (pubkey_addr, Some(msg_addr))
-                } else if address.offset > 0 {
-                    if let (1, Ok(Some(_element))) = (
-                        address.offset.mod_floor(&cells_per_instance),
-                        memory.get(&address.sub(1).unwrap()),
-                    ) {
+                let address_offset = address.offset.mod_floor(&cells_per_instance);
+                let mem_addr_sum = memory.get(&(address + 1_i32));
+                let mem_addr_less = if address.offset > 0 {
+                    memory.get(&address.sub(1).unwrap())
+                } else {
+                    Ok(None)
+                };
+                let (pubkey_addr, msg_addr) = match (address_offset, mem_addr_sum, mem_addr_less) {
+                    (0, Ok(Some(_element)), _) => {
+                        let pubkey_addr = address.clone();
+                        let msg_addr = address + 1_i32;
+                        (pubkey_addr, Some(msg_addr))
+                    }
+                    (1, _, Ok(Some(_element))) if address.offset > 0 => {
                         let pubkey_addr = address.sub(1).unwrap();
                         let msg_addr = address.clone();
                         (pubkey_addr, Some(msg_addr))
-                    } else {
-                        return Ok(Vec::new());
                     }
-                } else {
-                    return Ok(Vec::new());
+                    _ => return Ok(Vec::new()),
                 };
 
                 let (_sign, msg) = memory
