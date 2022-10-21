@@ -347,7 +347,7 @@ mod tests {
             Ok(Some(&MaybeRelocatable::from(bigint!(12))))
         );
         //Check that the tracker's current_ptr has moved accordingly
-        check_dict_ptr!(&mut exec_scopes, 2, (2, 3));
+        check_dict_ptr!(&exec_scopes, 2, (2, 3));
     }
 
     #[test]
