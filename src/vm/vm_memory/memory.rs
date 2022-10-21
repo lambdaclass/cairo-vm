@@ -77,7 +77,7 @@ impl Memory {
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub fn get<'a, 'b: 'a, K: 'a>(
+    pub(crate) fn get<'a, 'b: 'a, K: 'a>(
         &'b self,
         key: &'a K,
     ) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
