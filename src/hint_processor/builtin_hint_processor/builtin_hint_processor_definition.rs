@@ -87,6 +87,7 @@ pub struct HintFunc(
             &mut ExecutionScopesProxy,
             &HashMap<String, HintReference>,
             &ApTracking,
+            &HashMap<String, BigInt>,
         ) -> Result<(), VirtualMachineError>,
     >,
 );
@@ -127,6 +128,7 @@ impl HintProcessor for BuiltinHintProcessor {
                 exec_scopes_proxy,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                constants,
             );
         }
 
