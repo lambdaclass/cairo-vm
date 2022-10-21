@@ -129,8 +129,8 @@ pub fn assert_not_equal(
     //Check that the ids are in memory
     match (vm.get_maybe(&a_addr), vm.get_maybe(&b_addr)) {
         (Ok(Some(maybe_rel_a)), Ok(Some(maybe_rel_b))) => {
-            let maybe_rel_a = maybe_rel_a.into_owned();
-            let maybe_rel_b = maybe_rel_b.into_owned();
+            let maybe_rel_a = maybe_rel_a;
+            let maybe_rel_b = maybe_rel_b;
             match (maybe_rel_a, maybe_rel_b) {
                 (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
                     if (&a - &b).is_multiple_of(vm.get_prime()) {

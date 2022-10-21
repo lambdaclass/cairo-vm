@@ -671,11 +671,15 @@ impl VirtualMachine {
     pub fn get_maybe<'a, 'b: 'a, K: 'a>(
         &'b self,
         key: &'a K,
-    ) -> Result<Option<Cow<MaybeRelocatable>>, MemoryError>
+    ) -> Result<Option<MaybeRelocatable>, MemoryError>
     where
         Relocatable: TryFrom<&'a K>,
     {
-        self.memory.get(key)
+        match self.memory.get(key) {
+            Ok(Some(cow)) => Ok(Some(cow.into_owned())),
+            Ok(None) => Ok(None),
+            Err(error) => Err(error),
+        }
     }
 
     /// Returns a reference to the vector with all builtins present in the virtual machine
