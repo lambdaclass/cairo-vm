@@ -8,7 +8,8 @@ use crate::{types::relocatable::MaybeRelocatable, utils::from_relocatable_to_ind
 use num_bigint::BigInt;
 
 pub struct ValidationRule(
-    pub Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
+    #[allow(clippy::type_complexity)]
+    pub  Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,

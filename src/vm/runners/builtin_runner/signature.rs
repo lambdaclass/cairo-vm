@@ -77,7 +77,6 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     address.offset.mod_floor(&cells_per_instance),
                     memory.get(&(address + 1_i32)),
                 ) {
-                    println!("primer caso");
                     let pubkey_addr = address.clone();
                     let msg_addr = address + 1_i32;
                     (pubkey_addr, Some(msg_addr))
@@ -86,15 +85,13 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                         address.offset.mod_floor(&cells_per_instance),
                         memory.get(&address.sub(1).unwrap()),
                     ) {
-                        println!("segundo caso");
-                        let pubkey_addr = address.sub(1).unwrap().clone();
+                        let pubkey_addr = address.sub(1).unwrap();
                         let msg_addr = address.clone();
                         (pubkey_addr, Some(msg_addr))
                     } else {
                         return Ok(Vec::new());
                     }
                 } else {
-                    println!("tercer caso");
                     return Ok(Vec::new());
                 };
 
@@ -103,18 +100,12 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     .unwrap()
                     .to_bytes_be();
                 let (_sign, pubkey) = memory.get_integer(&pubkey_addr).unwrap().to_bytes_be();
-                println!("pub");
-                println!("{:?}", pubkey);
-                println!("msg");
-                println!("{:?}", msg);
 
                 let verify_key = VerifyingKey::from_sec1_bytes(&pubkey).unwrap();
-                println!("verify_key");
-                println!("{:?}", verify_key);
 
                 let signature = signatures
                     .get(&pubkey_addr)
-                    .ok_or_else(|| MemoryError::AddressNotRelocatable)?;
+                    .ok_or(MemoryError::AddressNotRelocatable)?;
 
                 verify_key.verify(&msg, signature).unwrap();
                 Ok(Vec::new())
