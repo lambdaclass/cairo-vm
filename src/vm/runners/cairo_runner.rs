@@ -33,7 +33,7 @@ pub struct CairoRunner<'a> {
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
-    initial_fp: Option<Relocatable>,
+    pub initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
