@@ -68,7 +68,12 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                 }
             },
         ));
-        memory.add_validation_rule(self.base.to_usize().unwrap(), rule);
+        memory.add_validation_rule(
+            self.base
+                .to_usize()
+                .ok_or(RunnerError::RunnerInTemporarySegment(self.base))?,
+            rule,
+        );
         Ok(())
     }
 

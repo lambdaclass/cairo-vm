@@ -72,7 +72,11 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                 let address_offset = address.offset.mod_floor(&cells_per_instance);
                 let mem_addr_sum = memory.get(&(address + 1_i32));
                 let mem_addr_less = if address.offset > 0 {
-                    memory.get(&address.sub(1).unwrap())
+                    memory.get(
+                        &address
+                            .sub(1)
+                            .map_err(|_| MemoryError::AddressNotRelocatable)?,
+                    )
                 } else {
                     Ok(None)
                 };
@@ -80,33 +84,46 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     (0, Ok(Some(_element)), _) => {
                         let pubkey_addr = address.clone();
                         let msg_addr = address + 1_i32;
-                        (pubkey_addr, Some(msg_addr))
+                        (pubkey_addr, msg_addr)
                     }
                     (1, _, Ok(Some(_element))) if address.offset > 0 => {
-                        let pubkey_addr = address.sub(1).unwrap();
+                        let pubkey_addr = address
+                            .sub(1)
+                            .map_err(|_| MemoryError::AddressNotRelocatable)?;
                         let msg_addr = address.clone();
-                        (pubkey_addr, Some(msg_addr))
+                        (pubkey_addr, msg_addr)
                     }
                     _ => return Ok(Vec::new()),
                 };
 
                 let (_sign, msg) = memory
-                    .get_integer(&msg_addr.unwrap())
-                    .unwrap()
+                    .get_integer(&msg_addr)
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?
                     .to_bytes_be();
-                let (_sign, pubkey) = memory.get_integer(&pubkey_addr).unwrap().to_bytes_be();
+                let (_sign, pubkey) = memory
+                    .get_integer(&pubkey_addr)
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?
+                    .to_bytes_be();
 
-                let verify_key = VerifyingKey::from_sec1_bytes(&pubkey).unwrap();
+                let verify_key = VerifyingKey::from_sec1_bytes(&pubkey)
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
 
                 let signature = signatures
                     .get(&pubkey_addr)
                     .ok_or(MemoryError::AddressNotRelocatable)?;
 
-                verify_key.verify(&msg, signature).unwrap();
+                verify_key
+                    .verify(&msg, signature)
+                    .map_err(|_| MemoryError::AddressNotRelocatable)?;
                 Ok(Vec::new())
             },
         ));
-        memory.add_validation_rule(self.base.to_usize().unwrap(), rule);
+        memory.add_validation_rule(
+            self.base
+                .to_usize()
+                .ok_or(RunnerError::RunnerInTemporarySegment(self.base))?,
+            rule,
+        );
         Ok(())
     }
 
