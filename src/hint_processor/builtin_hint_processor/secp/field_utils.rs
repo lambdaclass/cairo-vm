@@ -4,9 +4,9 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
 };
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_REM;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
@@ -58,7 +58,7 @@ Implements hint:
 */
 pub fn reduce(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
@@ -69,7 +69,7 @@ pub fn reduce(
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     let value = pack_from_var_name("x", vm, ids_data, ap_tracking)?.mod_floor(&secp_p);
-    exec_scopes_proxy.insert_value("value", value);
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
@@ -83,7 +83,7 @@ Implements hint:
 */
 pub fn is_zero_pack(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
@@ -95,7 +95,7 @@ pub fn is_zero_pack(
 
     let x_packed = pack_from_var_name("x", vm, ids_data, ap_tracking)?;
     let x = x_packed.mod_floor(&secp_p);
-    exec_scopes_proxy.insert_value("x", x);
+    exec_scopes.insert_value("x", x);
     Ok(())
 }
 
@@ -109,10 +109,10 @@ On .json compiled program
 */
 pub fn is_zero_nondet(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), VirtualMachineError> {
     //Get `x` variable from vm scope
-    let x = exec_scopes_proxy.get_int("x")?;
+    let x = exec_scopes.get_int("x")?;
 
     let value = bigint!(x.is_zero() as usize);
     insert_value_into_ap(vm, value)
@@ -128,7 +128,7 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let secp_p = bigint!(1).shl(256usize)
@@ -137,11 +137,11 @@ pub fn is_zero_assign_scope_variables(
             .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
 
     //Get `x` variable from vm scope
-    let x = exec_scopes_proxy.get_int("x")?;
+    let x = exec_scopes.get_int("x")?;
 
     let value = div_mod(&bigint!(1), &x, &secp_p);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("x_inv", value);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("x_inv", value);
     Ok(())
 }
 
@@ -154,7 +154,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::types::relocatable::Relocatable;
@@ -183,7 +182,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -221,7 +220,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -260,7 +259,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -304,14 +303,13 @@ mod tests {
         ];
 
         let mut exec_scopes = ExecutionScopes::new();
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         //Execute the hint
         assert_eq!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy,
+                &mut exec_scopes,
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -331,7 +329,7 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes_proxy.get_int("value"),
+            exec_scopes.get_int("value"),
             Ok(bigint_str!(
                 b"59863107065205964761754162760883789350782881856141750"
             ))
@@ -356,7 +354,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -397,13 +395,12 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy,
+                &mut exec_scopes,
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -423,7 +420,7 @@ mod tests {
 
         //Check 'x' is defined in the vm scope
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [(
                 "x",
                 bigint_str!(
@@ -452,7 +449,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -489,9 +486,8 @@ mod tests {
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0i32)));
         //Create hint data
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -516,9 +512,8 @@ mod tests {
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(123890i32)));
 
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Ok(())
         );
 
@@ -564,9 +559,8 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("x", any_box!(bigint!(0)));
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, exec_scopes_proxy),
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(VirtualMachineError::MemoryError(
                 MemoryError::InconsistentMemory(
                     MaybeRelocatable::from(vm.run_context.get_ap()),
@@ -591,13 +585,12 @@ mod tests {
             )),
         );
         //Execute the hint
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(
                 vm,
                 HashMap::new(),
                 hint_code,
-                exec_scopes_proxy,
+                &mut exec_scopes,
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)
@@ -617,7 +610,7 @@ mod tests {
 
         //Check 'value' is defined in the vm scope
         assert_eq!(
-            exec_scopes_proxy.get_int("value"),
+            exec_scopes.get_int("value"),
             Ok(bigint_str!(
                 b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
@@ -625,7 +618,7 @@ mod tests {
 
         //Check 'x_inv' is defined in the vm scope
         assert_eq!(
-            exec_scopes_proxy.get_int("x_inv"),
+            exec_scopes.get_int("x_inv"),
             Ok(bigint_str!(
                 b"19429627790501903254364315669614485084365347064625983303617500144471999752609"
             ))
@@ -643,7 +636,7 @@ mod tests {
                 vm,
                 HashMap::new(),
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(
                     SECP_REM,
                     bigint!(1).shl(32)

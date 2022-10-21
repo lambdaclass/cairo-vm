@@ -14,6 +14,7 @@ pub struct Memory {
     pub temp_data: Vec<Vec<Option<MaybeRelocatable>>>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     pub validation_rules: HashMap<usize, ValidationRule>,
+    pub relocation_rules: HashMap<isize, Relocatable>,
 }
 
 impl Memory {
@@ -23,6 +24,7 @@ impl Memory {
             temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
             validated_addresses: HashSet::<MaybeRelocatable>::new(),
             validation_rules: HashMap::new(),
+            relocation_rules: HashMap::new(),
         }
     }
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
@@ -38,10 +40,16 @@ impl Memory {
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
         let val = MaybeRelocatable::from(val);
-        let (value_index, value_offset) = from_relocatable_to_indexes(relocatable.clone())?;
-        let data_len = self.data.len();
-        let segment = self
-            .data
+        let (value_index, value_offset) = from_relocatable_to_indexes(&relocatable);
+
+        let data = if relocatable.segment_index.is_negative() {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+
+        let data_len = data.len();
+        let segment = data
             .get_mut(value_index)
             .ok_or(MemoryError::UnallocatedSegment(value_index, data_len))?;
         //Check if the element is inserted next to the last one on the segment
@@ -73,9 +81,14 @@ impl Memory {
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
-        let (i, j) = from_relocatable_to_indexes(relocatable)?;
-        if self.data.len() > i && self.data[i].len() > j {
-            if let Some(ref element) = self.data[i][j] {
+        let data = if relocatable.segment_index.is_negative() {
+            &self.temp_data
+        } else {
+            &self.data
+        };
+        let (i, j) = from_relocatable_to_indexes(&relocatable);
+        if data.len() > i && data[i].len() > j {
+            if let Some(ref element) = data[i][j] {
                 return Ok(Some(element));
             }
         }
@@ -185,6 +198,7 @@ impl Default for Memory {
 mod memory_tests {
     use crate::{
         bigint,
+        utils::test_utils::mayberelocatable,
         vm::{
             runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
             vm_memory::memory_segments::MemorySegmentManager,
@@ -218,6 +232,57 @@ mod memory_tests {
         assert_eq!(
             memory.get(&key).unwrap(),
             Some(&MaybeRelocatable::from(bigint!(5)))
+        );
+    }
+
+    #[test]
+    fn get_valuef_from_temp_segment() {
+        let mut memory = Memory::new();
+        memory.temp_data = vec![vec![None, None, Some(mayberelocatable!(8))]];
+        assert_eq!(
+            memory.get(&mayberelocatable!(-1, 2)),
+            Ok(Some(&mayberelocatable!(8)))
+        );
+    }
+
+    #[test]
+    fn insert_value_in_temp_segment() {
+        let key = MaybeRelocatable::from((-1, 3));
+        let val = MaybeRelocatable::from(bigint!(8));
+        let mut memory = Memory::new();
+        memory.temp_data.push(Vec::new());
+        memory.insert(&key, &val).unwrap();
+        assert_eq!(
+            memory.temp_data[0][3],
+            Some(MaybeRelocatable::from(bigint!(8)))
+        );
+    }
+
+    #[test]
+    fn insert_and_get_from_temp_segment_succesful() {
+        let key = MaybeRelocatable::from((-1, 0));
+        let val = MaybeRelocatable::from(bigint!(5));
+        let mut memory = Memory::new();
+        memory.temp_data.push(Vec::new());
+        memory.insert(&key, &val).unwrap();
+        assert_eq!(
+            memory.get(&key).unwrap(),
+            Some(&MaybeRelocatable::from(bigint!(5)))
+        );
+    }
+
+    #[test]
+    fn insert_and_get_from_temp_segment_failed() {
+        let key = mayberelocatable!(-1, 1);
+        let mut memory = Memory::new();
+        memory.temp_data = vec![vec![None, Some(mayberelocatable!(8))]];
+        assert_eq!(
+            memory.insert(&key, &mayberelocatable!(5)),
+            Err(MemoryError::InconsistentMemory(
+                mayberelocatable!(-1, 1),
+                mayberelocatable!(8),
+                mayberelocatable!(5)
+            ))
         );
     }
 

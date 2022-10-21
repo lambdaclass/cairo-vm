@@ -255,7 +255,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -312,7 +311,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
@@ -340,7 +339,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
@@ -367,7 +366,7 @@ mod tests {
                 vm,
                 ids_data,
                 hint_code,
-                exec_scopes_proxy_ref!(),
+                exec_scopes_ref!(),
                 &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
