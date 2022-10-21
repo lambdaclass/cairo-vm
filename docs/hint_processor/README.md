@@ -24,7 +24,7 @@ The purpose of this method is to organize the data related to hints in the way i
 ### `execute_hint`
 
 This method is called at the start of each VM step when there is a hint to execute.
-It receives the dynamic structure created by `compile_hint` along with a set of proxies containing a limited access to the VM's Internals:
+It receives the dynamic structure created by `compile_hint` along with the program constants and a set of proxies containing a limited access to the VM's Internals:
 
 * `exec_scopes_proxy` is the hint's gateaway to interact with the execution_scopes in the VM and share data bewteen hints without inserting them into the cairo execution. It provides methods to create and remove scopes and to modify the current scope, along with several helper methods to allow inserting and retrieving variables of specific types. This proxy only allows modifying the current scope, which is the last available scope before the hint's execution (Note that calling enter_scope and exit_scope wont change the current scope for the duration of the hint´s execution)
 * `vm_proxy` is the hint's gateway to the internal values of the VM, it provides mutable references to the memory segment manager and the run context, and immutable references to the builtin runners and the program's prime, it also contains a memory proxy:
@@ -34,7 +34,7 @@ The purpose of this method is to carry out the execution of the hint, given the 
 
 ## Managing Cairo variables inside hint execution
 
-Each variable's addresse and value can be computed with the information provided by the data in the HintReference structure + the hint's ap tracking data.
+Each variable's address and value can be computed with the information provided by the data in the HintReference structure + the hint's ap tracking data.
 The following helper functions are provided in hint_processor_utils.rs to simplify variable management:
 
 * get_integer_from_reference
