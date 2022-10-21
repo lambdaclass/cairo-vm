@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::BuiltinRunner;
-use k256::ecdsa::{signature::Verifier, Signature, SigningKey, VerifyingKey};
+use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use num_integer::Integer;
 use std::{any::Any, collections::HashMap};
 
@@ -102,13 +102,19 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                     .unwrap()
                     .to_bytes_be();
                 let (_sign, pubkey) = memory.get_integer(&pubkey_addr).unwrap().to_bytes_be();
+                println!("pub");
                 println!("{:?}", pubkey);
+                println!("msg");
                 println!("{:?}", msg);
-                let signing_key = SigningKey::from_bytes(&pubkey).unwrap();
-                let verify_key = VerifyingKey::from(&signing_key);
+
+                let verify_key = VerifyingKey::from_sec1_bytes(&pubkey).unwrap();
+                println!("verify_key");
+                println!("{:?}", verify_key);
+
                 let signature = signatures
                     .get(&pubkey_addr)
                     .ok_or_else(|| MemoryError::AddressNotRelocatable)?;
+
                 verify_key.verify(&msg, signature).unwrap();
                 Ok(Vec::new())
             },

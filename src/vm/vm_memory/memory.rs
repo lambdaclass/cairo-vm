@@ -192,8 +192,9 @@ mod memory_tests {
     };
 
     use super::*;
-    use k256::ecdsa::{signature::Signer, Signature, SigningKey};
-    use num_bigint::BigInt;
+    use k256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+    use num_bigint::{BigInt, Sign};
+    use rand_core::OsRng;
 
     pub fn memory_from(
         key_val_list: Vec<(MaybeRelocatable, MaybeRelocatable)>,
@@ -401,6 +402,11 @@ mod memory_tests {
     #[test]
     fn validate_existing_memory_for_signature_two() {
         let mut builtin = SignatureBuiltinRunner::new(8);
+
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let verifying_key = VerifyingKey::from(&signing_key);
+
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         segments.add(&mut memory);
@@ -408,8 +414,9 @@ mod memory_tests {
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"1628448741648245036800002906075225705100596136133912895015035902954123957052"
+                &MaybeRelocatable::from(BigInt::from_bytes_be(
+                    Sign::Plus,
+                    verifying_key.to_bytes().as_slice(),
                 )),
             )
             .unwrap();
@@ -425,35 +432,46 @@ mod memory_tests {
 
     #[test]
     fn validate_existing_memory_for_valid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(8);
-        let signing_key = SigningKey::from_bytes(
-            "1628448741648245036800002906075225705100596136133912895015035902954123957052"
-                .as_bytes(),
-        )
-        .unwrap();
-        let signature: Signature = signing_key
-            .sign(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248");
+        let mut builtin = SignatureBuiltinRunner::new(80);
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let verifying_key = VerifyingKey::from(&signing_key);
+
+        let (_sign, msg) = bigint!(1_i32).to_bytes_be();
+
+        let signature: Signature = signing_key.sign(&msg);
 
         builtin.add_signature(Relocatable::from((1, 0)), signature);
+
         let mut segments = MemorySegmentManager::new();
+
         let mut memory = Memory::new();
+
         segments.add(&mut memory);
+
         builtin.initialize_segments(&mut segments, &mut memory);
+
         memory
             .insert(
                 &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint_str!(
-                    b"1628448741648245036800002906075225705100596136133912895015035902954123957052"
+                &MaybeRelocatable::from(BigInt::from_bytes_be(
+                    Sign::Plus,
+                    verifying_key.to_bytes().as_slice(),
                 )),
             )
             .unwrap();
+
         memory
             .insert(
                 &MaybeRelocatable::from((1, 1)),
-                &MaybeRelocatable::from(bigint_str!(b"-1472574760335685482768423018116732869320670550222259018541069375211356613248")),
-            ).unwrap();
+                &MaybeRelocatable::from(bigint!(1_i32)),
+            )
+            .unwrap();
+
         builtin.add_validation_rule(&mut memory);
+
         let result = memory.validate_existing_memory();
+
         assert!(result.is_ok())
     }
 
