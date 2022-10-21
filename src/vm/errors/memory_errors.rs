@@ -22,4 +22,10 @@ pub enum MemoryError {
     WriteArg,
     #[error("Memory addresses mustn't be in a TemporarySegment, segment: {0}")]
     AddressInTemporarySegment(isize),
+    #[error("Memory addresses must be in a TemporarySegment, segment: {0}")]
+    AddressNotInTemporarySegment(isize),
+    #[error("Non-zero offset found where zero is required, offset: {0}")]
+    NonZeroOffset(usize),
+    #[error("Attempt to overwrite a relocation rule, segment: {0}")]
+    DuplicatedRelocation(isize),
 }
