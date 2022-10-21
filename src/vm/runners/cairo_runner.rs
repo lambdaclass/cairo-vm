@@ -225,7 +225,7 @@ impl<'a> CairoRunner<'a> {
             self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?,
         ));
         for (_, builtin) in vm.builtin_runners.iter() {
-            builtin.add_validation_rule(&mut vm.memory);
+            builtin.add_validation_rule(&mut vm.memory)?;
         }
         vm.memory
             .validate_existing_memory()
@@ -395,15 +395,20 @@ impl<'a> CairoRunner<'a> {
             if vm.segments.segment_used_sizes == None {
                 vm.segments.compute_effective_sizes(&vm.memory);
             }
+
+            let segment_index: usize = base
+                .segment_index
+                .try_into()
+                .map_err(|_| RunnerError::RunnerInTemporarySegment(base.segment_index))?;
             // See previous comment, the unwrap below is safe.
-            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[base.segment_index] {
+            for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[segment_index] {
                 let value = vm.memory.get_integer(&(base.clone() + i)).map_err(|_| {
                     RunnerError::MemoryGet(MaybeRelocatable::from(base.clone() + i))
                 })?;
                 writeln!(
                     stdout,
                     "{}",
-                    to_field_element(value.clone(), vm.prime.clone())
+                    to_field_element(value.into_owned(), vm.prime.clone())
                 )
                 .map_err(|_| RunnerError::WriteFail)?;
             }

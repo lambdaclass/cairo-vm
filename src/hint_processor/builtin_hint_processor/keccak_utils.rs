@@ -1,14 +1,17 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
-};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+    },
     serde::deserialize_program::ApTracking,
-    types::{relocatable::MaybeRelocatable, relocatable::Relocatable},
-    vm::errors::vm_errors::VirtualMachineError,
+    types::{
+        exec_scope::ExecutionScopes,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, Sign};
 use num_traits::Signed;
@@ -41,16 +44,16 @@ use std::{cmp, collections::HashMap, ops::Shl};
 */
 pub fn unsafe_keccak(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
-    if let Ok(keccak_max_size) = exec_scopes_proxy.get_int("__keccak_max_size") {
-        if length > &keccak_max_size {
+    if let Ok(keccak_max_size) = exec_scopes.get_int("__keccak_max_size") {
+        if length.as_ref() > &keccak_max_size {
             return Err(VirtualMachineError::KeccakMaxSize(
-                length.clone(),
+                length.into_owned(),
                 keccak_max_size,
             ));
         }
@@ -65,7 +68,7 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.clone()))?;
+        .ok_or_else(|| VirtualMachineError::InvalidKeccakInputLength(length.into_owned()))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
@@ -77,8 +80,8 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(&word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word >= &bigint!(1).shl(8 * (n_bytes as u32)) {
-            return Err(VirtualMachineError::InvalidWordSize(word.clone()));
+        if word.is_negative() || word.as_ref() >= &bigint!(1).shl(8 * (n_bytes as u32)) {
+            return Err(VirtualMachineError::InvalidWordSize(word.into_owned()));
         }
 
         let (_, mut bytes) = word.to_bytes_be();
@@ -147,7 +150,7 @@ pub fn unsafe_keccak_finalize(
 
     // this is not very nice code, we should consider adding the sub() method for Relocatable's
     let maybe_rel_start_ptr = MaybeRelocatable::RelocatableValue(start_ptr);
-    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.clone());
+    let maybe_rel_end_ptr = MaybeRelocatable::RelocatableValue(end_ptr.into_owned());
 
     let n_elems = maybe_rel_end_ptr
         .sub(&maybe_rel_start_ptr, vm.get_prime())?
@@ -162,12 +165,9 @@ pub fn unsafe_keccak_finalize(
 
     check_no_nones_in_range(&range)?;
 
-    for maybe_reloc_word in range.iter() {
-        let word = maybe_reloc_word
-            .ok_or(VirtualMachineError::ExpectedIntAtRange(
-                maybe_reloc_word.cloned(),
-            ))?
-            .get_int_ref()?;
+    for maybe_reloc_word in range.into_iter() {
+        let word = maybe_reloc_word.ok_or(VirtualMachineError::ExpectedIntAtRange(None))?;
+        let word = word.get_int_ref()?;
 
         let (_, mut bytes) = word.to_bytes_be();
         let mut bytes = {

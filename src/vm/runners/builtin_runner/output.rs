@@ -7,7 +7,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct OutputBuiltinRunner {
-    base: usize,
+    base: isize,
     _stop_ptr: Option<Relocatable>,
 }
 
@@ -33,7 +33,9 @@ impl BuiltinRunner for OutputBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
 
     fn deduce_memory_cell(
         &mut self,

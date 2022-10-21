@@ -12,13 +12,14 @@ use crate::{
 use super::BuiltinRunner;
 use k256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use num_integer::Integer;
+use num_traits::ToPrimitive;
 use std::{any::Any, collections::HashMap};
 
 pub struct SignatureBuiltinRunner {
     _name: String,
     _included: bool,
     _ratio: usize,
-    pub base: usize,
+    base: isize,
     cells_per_instance: usize,
     _n_input_cells: usize,
     _total_n_bits: u32,
@@ -57,7 +58,7 @@ impl BuiltinRunner for SignatureBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, memory: &mut Memory) {
+    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let cells_per_instance = self.cells_per_instance;
         let signatures = self.signatures.clone();
         let rule: ValidationRule = ValidationRule(Box::new(
@@ -119,7 +120,8 @@ impl BuiltinRunner for SignatureBuiltinRunner {
                 Ok(Vec::new())
             },
         ));
-        memory.add_validation_rule(self.base, rule);
+        memory.add_validation_rule(self.base.to_usize().unwrap(), rule);
+        Ok(())
     }
 
     fn deduce_memory_cell(

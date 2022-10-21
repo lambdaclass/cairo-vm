@@ -1,8 +1,9 @@
 use std::any::Any;
+use std::borrow::Cow;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -14,7 +15,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
-    base: usize,
+    base: isize,
     _stop_ptr: Option<Relocatable>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
@@ -51,12 +52,12 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, memory: &mut Memory) {
+    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
              -> Result<Vec<MaybeRelocatable>, MemoryError> {
-                if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
+                if let Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) = memory.get(address)? {
                     if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
                         Ok(vec![address.to_owned()])
                     } else {
@@ -67,7 +68,8 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
                 }
             },
         ));
-        memory.add_validation_rule(self.base, rule);
+        memory.add_validation_rule(self.base.to_usize().unwrap(), rule);
+        Ok(())
     }
 
     fn deduce_memory_cell(

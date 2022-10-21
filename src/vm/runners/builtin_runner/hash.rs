@@ -11,7 +11,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
-    pub base: usize,
+    pub base: isize,
     _ratio: usize,
     cells_per_instance: usize,
     _n_input_cells: usize,
@@ -46,7 +46,9 @@ impl BuiltinRunner for HashBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
 
     fn deduce_memory_cell(
         &mut self,
@@ -58,15 +60,18 @@ impl BuiltinRunner for HashBuiltinRunner {
         {
             return Ok(None);
         };
+
+        let num_a = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: address.segment_index,
+            offset: address.offset - 1,
+        }));
+        let num_b = memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: address.segment_index,
+            offset: address.offset - 2,
+        }));
         if let (Ok(Some(MaybeRelocatable::Int(num_a))), Ok(Some(MaybeRelocatable::Int(num_b)))) = (
-            memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: address.segment_index,
-                offset: address.offset - 1,
-            })),
-            memory.get(&MaybeRelocatable::RelocatableValue(Relocatable {
-                segment_index: address.segment_index,
-                offset: address.offset - 2,
-            })),
+            num_a.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+            num_b.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
         ) {
             self.verified_addresses.push(address.clone());
 

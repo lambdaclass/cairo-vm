@@ -1,12 +1,12 @@
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::pack_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
 use crate::vm::vm_core::VirtualMachine;
 use crate::{
     bigint,
     math_utils::{div_mod, safe_div},
     serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
     vm::errors::vm_errors::VirtualMachineError,
 };
 use num_bigint::BigInt;
@@ -25,7 +25,7 @@ value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed_divmod(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -33,31 +33,29 @@ pub fn div_mod_n_packed_divmod(
     let b = pack_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     let value = div_mod(&a, &b, &N);
-    exec_scopes_proxy.insert_value("a", a);
-    exec_scopes_proxy.insert_value("b", b);
-    exec_scopes_proxy.insert_value("value", value.clone());
-    exec_scopes_proxy.insert_value("res", value);
+    exec_scopes.insert_value("a", a);
+    exec_scopes.insert_value("b", b);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("res", value);
     Ok(())
 }
 
 // Implements hint:
 // value = k = safe_div(res * b - a, N)
-pub fn div_mod_n_safe_div(
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
-) -> Result<(), VirtualMachineError> {
-    let a = exec_scopes_proxy.get_int_ref("a")?;
-    let b = exec_scopes_proxy.get_int_ref("b")?;
-    let res = exec_scopes_proxy.get_int_ref("res")?;
+pub fn div_mod_n_safe_div(exec_scopes: &mut ExecutionScopes) -> Result<(), VirtualMachineError> {
+    let a = exec_scopes.get_int_ref("a")?;
+    let b = exec_scopes.get_int_ref("b")?;
+    let res = exec_scopes.get_int_ref("res")?;
 
     let value = safe_div(&(res * b - a), &N)?;
 
-    exec_scopes_proxy.insert_value("value", value);
+    exec_scopes.insert_value("value", value);
     Ok(())
 }
 
 pub fn get_point_from_x(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -69,7 +67,7 @@ pub fn get_point_from_x(
     if v.mod_floor(&bigint!(2)) != y.mod_floor(&bigint!(2)) {
         y = (-y).mod_floor(&SECP_P);
     }
-    exec_scopes_proxy.insert_value("value", y);
+    exec_scopes.insert_value("value", y);
     Ok(())
 }
 
@@ -81,7 +79,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::{
         bigint, bigint_str,
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
@@ -110,19 +107,14 @@ mod tests {
         vm.run_context.fp = 3;
         let ids_data = non_continuous_ids_data![("a", -3), ("b", 0)];
         let mut exec_scopes = ExecutionScopes::new();
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
-        assert_eq!(div_mod_n_safe_div(exec_scopes_proxy), Ok(()));
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(div_mod_n_safe_div(&mut exec_scopes), Ok(()));
     }
 
     #[test]
     fn safe_div_fail() {
         let mut exec_scopes = scope![("a", bigint!(0)), ("b", bigint!(1)), ("res", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(exec_scopes_proxy));
+        assert_eq!(Err(VirtualMachineError::SafeDivFail(bigint!(1_usize), bigint_str!(b"115792089237316195423570985008687907852837564279074904382605163141518161494337"))), div_mod_n_safe_div(&mut exec_scopes));
     }
 
     #[test]
@@ -154,14 +146,10 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
-        assert_eq!(
-            run_hint!(vm, ids_data, hint_code, exec_scopes_proxy),
-            Ok(())
-        );
+        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
         check_scope!(
-            exec_scopes_proxy,
+            &exec_scopes,
             [(
                 "value",
                 bigint_str!(

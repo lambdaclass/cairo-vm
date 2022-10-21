@@ -8,6 +8,7 @@ use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
     pub num_segments: usize,
+    pub num_temp_segments: usize,
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
@@ -18,10 +19,22 @@ impl MemorySegmentManager {
         self.num_segments += 1;
         memory.data.push(Vec::new());
         Relocatable {
-            segment_index,
+            segment_index: segment_index as isize,
             offset: 0,
         }
     }
+
+    ///Adds a new temporary segment and returns its starting location as a RelocatableValue.
+    ///Negative segment_index indicates its refer to a temporary segment
+    pub fn add_temporary_segment(&mut self, memory: &mut Memory) -> Relocatable {
+        self.num_temp_segments += 1;
+        memory.temp_data.push(Vec::new());
+        Relocatable {
+            segment_index: -(self.num_temp_segments as isize),
+            offset: 0,
+        }
+    }
+
     ///Writes data into the memory at address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
@@ -38,6 +51,7 @@ impl MemorySegmentManager {
     pub fn new() -> MemorySegmentManager {
         MemorySegmentManager {
             num_segments: 0,
+            num_temp_segments: 0,
             segment_used_sizes: None,
         }
     }
@@ -52,6 +66,14 @@ impl MemorySegmentManager {
             segment_used_sizes.push(segment.len());
         }
         self.segment_used_sizes = Some(segment_used_sizes);
+    }
+
+    ///Returns the number of used segments when they are already computed.
+    ///Returns None otherwise.
+    pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
+        self.segment_used_sizes
+            .as_ref()
+            .map(|used_sizes| used_sizes[index])
     }
 
     ///Returns a vector that contains the first relocated address of each memory segment
@@ -147,6 +169,31 @@ mod tests {
     }
 
     #[test]
+    fn add_one_temporary_segment() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let base = segments.add_temporary_segment(&mut memory);
+        assert_eq!(base, relocatable!(-1, 0));
+        assert_eq!(segments.num_temp_segments, 1);
+    }
+
+    #[test]
+    fn add_two_temporary_segments() {
+        let mut segments = MemorySegmentManager::new();
+        let mut memory = Memory::new();
+        let mut _base = segments.add_temporary_segment(&mut memory);
+        _base = segments.add_temporary_segment(&mut memory);
+        assert_eq!(
+            _base,
+            Relocatable {
+                segment_index: -2,
+                offset: 0
+            }
+        );
+        assert_eq!(segments.num_temp_segments, 2);
+    }
+
+    #[test]
     fn load_data_empty() {
         let data = Vec::new();
         let ptr = MaybeRelocatable::from((0, 3));
@@ -166,8 +213,8 @@ mod tests {
         let current_ptr = segments.load_data(&mut memory, &ptr, data).unwrap();
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 1)));
         assert_eq!(
-            memory.get(&ptr).unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(4)))
+            memory.get(&ptr).unwrap().unwrap().as_ref(),
+            &MaybeRelocatable::from(bigint!(4))
         );
     }
 
@@ -186,16 +233,24 @@ mod tests {
         assert_eq!(current_ptr, MaybeRelocatable::from((0, 3)));
 
         assert_eq!(
-            memory.get(&ptr).unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(4)))
+            memory.get(&ptr).unwrap().unwrap().as_ref(),
+            &MaybeRelocatable::from(bigint!(4))
         );
         assert_eq!(
-            memory.get(&MaybeRelocatable::from((0, 1))).unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(5)))
+            memory
+                .get(&MaybeRelocatable::from((0, 1)))
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::from(bigint!(5))
         );
         assert_eq!(
-            memory.get(&MaybeRelocatable::from((0, 2))).unwrap(),
-            Some(&MaybeRelocatable::from(bigint!(6)))
+            memory
+                .get(&MaybeRelocatable::from((0, 2)))
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::from(bigint!(6))
         );
     }
     #[test]
@@ -261,6 +316,28 @@ mod tests {
         ];
         segments.compute_effective_sizes(&memory);
         assert_eq!(Some(vec![8, 2, 8]), segments.segment_used_sizes);
+    }
+
+    #[test]
+    fn get_segment_used_size_after_computing_used() {
+        let mut segments = MemorySegmentManager::new();
+        let memory = memory![
+            ((0, 2), 1),
+            ((0, 5), 1),
+            ((0, 7), 1),
+            ((1, 1), 1),
+            ((2, 2), 1),
+            ((2, 4), 1),
+            ((2, 7), 1)
+        ];
+        segments.compute_effective_sizes(&memory);
+        assert_eq!(Some(8), segments.get_segment_used_size(2));
+    }
+
+    #[test]
+    fn get_segment_used_size_before_computing_used() {
+        let segments = MemorySegmentManager::new();
+        assert_eq!(None, segments.get_segment_used_size(2));
     }
 
     #[test]
