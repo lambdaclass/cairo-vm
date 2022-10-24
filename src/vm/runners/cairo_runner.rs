@@ -53,7 +53,6 @@ impl CairoRunner {
             initial_pc: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
-            // hint_executor,
             exec_scopes: ExecutionScopes::new(),
         })
     }
