@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1666634911580,
+  "lastUpdate": 1666644238955,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -45624,6 +45624,120 @@ window.BENCHMARK_DATA = {
             "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
             "value": 292740693,
             "range": "± 599291",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "azteca1998@users.noreply.github.com",
+            "name": "MrAzteca",
+            "username": "azteca1998"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "237755a94465ab01b1a00688865868b14247e798",
+          "message": "Extract constants from program and pass them to `HintProcessor::execute_hint` (#485)\n\n* Extract constants from program and pass them to `HintProcessor::execute_hint`.\r\n\r\n* Move the constants storage to `Program`.\r\n\r\n* Add test for program constant extraction.\r\n\r\n* Modify hints to use the program constants. Fix related tests.\r\n\r\n* Fix custom hint function signature.\r\n\r\n* Update docs with hint constants.\r\n\r\n* Fix clippy warning.\r\n\r\nCo-authored-by: Esteve Soler Arderiu <estve.soler@fratilia.com>",
+          "timestamp": "2022-10-24T16:58:46-03:00",
+          "tree_id": "423658b317a61fab480b4cd66447ae6cbf6576a3",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/237755a94465ab01b1a00688865868b14247e798"
+        },
+        "date": 1666644235679,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/compare_arrays_200000.json",
+            "value": 1869353383,
+            "range": "± 4266375",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/factorial_multirun.json",
+            "value": 676801695,
+            "range": "± 1419103",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/fibonacci_1000_multirun.json",
+            "value": 350480567,
+            "range": "± 549848",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/integration_builtins.json",
+            "value": 1646279539,
+            "range": "± 3694495",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/linear_search.json",
+            "value": 247584602,
+            "range": "± 624813",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/keccak_integration_benchmark.json",
+            "value": 2437232702,
+            "range": "± 12098129",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/secp_integration_benchmark.json",
+            "value": 2698548835,
+            "range": "± 14414998",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/blake2s_integration_benchmark.json",
+            "value": 2295073873,
+            "range": "± 11164460",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/dict_integration_benchmark.json",
+            "value": 1793672292,
+            "range": "± 1895883",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_integration_benchmark.json",
+            "value": 1023419679,
+            "range": "± 1546827",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/memory_integration_benchmark.json",
+            "value": 1199874986,
+            "range": "± 1474453",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/math_cmp_and_pow_integration_benchmark.json",
+            "value": 38140493,
+            "range": "± 162911",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/operations_with_data_structures_benchmarks.json",
+            "value": 3840799401,
+            "range": "± 20171218",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/uint256_integration_benchmark.json",
+            "value": 2467525867,
+            "range": "± 3241146",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "cairo_run(cairo_programs/benchmarks/set_integration_benchmark.json",
+            "value": 293456787,
+            "range": "± 335466",
             "unit": "ns/iter"
           }
         ]
