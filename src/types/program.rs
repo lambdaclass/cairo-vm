@@ -11,6 +11,7 @@ pub struct Program {
     pub builtins: Vec<String>,
     pub prime: BigInt,
     pub data: Vec<MaybeRelocatable>,
+    pub constants: HashMap<String, BigInt>,
     pub main: Option<usize>,
     pub hints: HashMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
@@ -26,7 +27,7 @@ impl Program {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint;
+    use crate::{bigint, bigint_str};
     use num_traits::FromPrimitive;
 
     #[test]
@@ -102,5 +103,44 @@ mod tests {
         assert_eq!(program.data, data);
         assert_eq!(program.main, Some(0));
         assert_eq!(program.identifiers, identifiers);
+    }
+
+    #[test]
+    fn deserialize_program_constants_test() {
+        let program = Program::new(
+            Path::new("cairo_programs/manually_compiled/deserialize_constant_test.json"),
+            "main",
+        )
+        .expect("Failed to deserialize program");
+
+        let constants = [
+            (
+                "__main__.compare_abs_arrays.SIZEOF_LOCALS",
+                bigint_str!(
+                    b"-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                ),
+            ),
+            (
+                "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
+                bigint_str!(b"-106710729501573572985208420194530329073740042555888586719234"),
+            ),
+            (
+                "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
+                bigint!(3),
+            ),
+            (
+                "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
+                bigint!(0),
+            ),
+            (
+                "starkware.cairo.common.uint256.SHIFT",
+                bigint_str!(b"340282366920938463463374607431768211456"),
+            ),
+        ]
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), value))
+        .collect::<HashMap<_, _>>();
+
+        assert_eq!(program.constants, constants);
     }
 }

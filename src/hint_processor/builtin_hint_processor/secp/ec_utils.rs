@@ -2,7 +2,7 @@ use crate::bigint;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_relocatable_from_var_name, insert_value_into_ap,
 };
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_P};
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{pack, SECP_REM};
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::{ec_double_slope, line_slope};
 use crate::serde::deserialize_program::ApTracking;
@@ -12,7 +12,7 @@ use crate::vm::vm_core::VirtualMachine;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::collections::HashMap;
-use std::ops::BitAnd;
+use std::ops::{BitAnd, Shl};
 
 use super::secp_utils::pack_from_relocatable;
 
@@ -31,11 +31,17 @@ pub fn ec_negate(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.point
     let point_y = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)? + 3;
     let y = pack_from_relocatable(point_y, vm)?;
-    let value = (-y).mod_floor(&SECP_P);
+    let value = (-y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value);
     Ok(())
 }
@@ -57,7 +63,13 @@ pub fn compute_doubling_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.point
     let point_reloc = get_relocatable_from_var_name("point", vm, ids_data, ap_tracking)?;
 
@@ -76,7 +88,7 @@ pub fn compute_doubling_slope(
             pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref(), vm.get_prime()),
         ),
         &bigint!(0),
-        &SECP_P,
+        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -102,7 +114,13 @@ pub fn compute_slope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.point0
     let point0_reloc = get_relocatable_from_var_name("point0", vm, ids_data, ap_tracking)?;
 
@@ -156,7 +174,7 @@ pub fn compute_slope(
                 vm.get_prime(),
             ),
         ),
-        &SECP_P,
+        &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
@@ -180,7 +198,13 @@ pub fn ec_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
@@ -211,7 +235,7 @@ pub fn ec_double_assign_new_x(
     let x = pack(x_d0.as_ref(), x_d1.as_ref(), x_d2.as_ref(), vm.get_prime());
     let y = pack(y_d0.as_ref(), y_d1.as_ref(), y_d2.as_ref(), vm.get_prime());
 
-    let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&SECP_P);
+    let value = (slope.pow(2) - (&x << 1_usize)).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -228,7 +252,13 @@ Implements hint:
 */
 pub fn ec_double_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //Get variables from vm scope
     let (slope, x, new_x, y) = (
         exec_scopes.get_int("slope")?,
@@ -237,7 +267,7 @@ pub fn ec_double_assign_new_y(
         exec_scopes.get_int("y")?,
     );
 
-    let value = (slope * (x - new_x) - y).mod_floor(&SECP_P);
+    let value = (slope * (x - new_x) - y).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
     Ok(())
@@ -261,7 +291,13 @@ pub fn fast_ec_add_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //ids.slope
     let slope_reloc = get_relocatable_from_var_name("slope", vm, ids_data, ap_tracking)?;
 
@@ -317,7 +353,7 @@ pub fn fast_ec_add_assign_new_x(
         vm.get_prime(),
     );
 
-    let value = (slope.modpow(&bigint!(2), &SECP_P) - &x0 - x1).mod_floor(&SECP_P);
+    let value = (slope.modpow(&bigint!(2), &secp_p) - &x0 - x1).mod_floor(&secp_p);
 
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
@@ -335,7 +371,13 @@ Implements hint:
 */
 pub fn fast_ec_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
+    let secp_p = bigint!(1).shl(256usize)
+        - constants
+            .get(SECP_REM)
+            .ok_or(VirtualMachineError::MissingConstant(SECP_REM))?;
+
     //Get variables from vm scope
     let (slope, x0, new_x, y0) = (
         exec_scopes.get_int("slope")?,
@@ -343,7 +385,7 @@ pub fn fast_ec_add_assign_new_y(
         exec_scopes.get_int("new_x")?,
         exec_scopes.get_int("y0")?,
     );
-    let value = (slope * (x0 - new_x) - y0).mod_floor(&SECP_P);
+    let value = (slope * (x0 - new_x) - y0).mod_floor(&secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_y", value);
 
@@ -396,7 +438,28 @@ mod tests {
         let ids_data = ids_data!["point"];
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
         //Check 'value' is defined in the vm scope
         assert_eq!(
             exec_scopes.get_int("value"),
@@ -426,7 +489,28 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
         check_scope!(
             &exec_scopes,
             [
@@ -476,7 +560,28 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
         check_scope!(
             &exec_scopes,
             [
@@ -523,7 +628,28 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
 
         check_scope!(
             &exec_scopes,
@@ -586,7 +712,25 @@ mod tests {
         ];
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            run_hint!(
+                vm,
+                HashMap::new(),
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 
@@ -644,7 +788,28 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
+            Ok(())
+        );
 
         check_scope!(
             &exec_scopes,
@@ -695,7 +860,25 @@ mod tests {
 
         //Execute the hint
         assert_eq!(
-            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            run_hint!(
+                vm,
+                HashMap::new(),
+                hint_code,
+                &mut exec_scopes,
+                &[(
+                    SECP_REM,
+                    bigint!(1).shl(32)
+                        + bigint!(1).shl(9)
+                        + bigint!(1).shl(8)
+                        + bigint!(1).shl(7)
+                        + bigint!(1).shl(6)
+                        + bigint!(1).shl(4)
+                        + bigint!(1)
+                )]
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+            ),
             Ok(())
         );
 

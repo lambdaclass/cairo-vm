@@ -27,26 +27,27 @@ For this step, you will have to code your hint implementation as a Rust function
 The hint implementation must also follow a specific structure in terms of variable input and output:
 ```rust
 fn hint_func(
-  vm_proxy: &mut VMProxy,
-  _exec_scopes_proxy: &mut ExecutionScopesProxy,
-  ids_data: &HashMap<String, HintReference>,
-  ap_tracking: &ApTracking)
-  -> Result<(), VirtualMachineError> {
+    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
+) -> Result<(), VirtualMachineError> {
     // Your implementation
-  }
+}
 
 let hint = HintFunc(Box::new(hint_func));
-
 ```
 
 For example, this function implements the hint "print(ids.a)":
 
 ```rust
 fn print_a_hint(
-  vm_proxy: &mut VMProxy,
-  _exec_scopes_proxy: &mut ExecutionScopesProxy,
-  ids_data: &HashMap<String, HintReference>,
-  ap_tracking: &ApTracking
+    vm_proxy: &mut VMProxy,
+    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
     println!("{}", a);
@@ -96,8 +97,9 @@ In order to cdoe your custom hints you need to take into account the accessible 
 
 * ids_data: A dictionary maping ids names to their references
 * ap_tracking: Ap tracking data of the hint
+* constants: A dictionary mapping constant's paths to its values
 
-These last two structures are used by helper functions to manage variables from the cairo scope, and can be overlooked when coding your custom hints.
+These last three structures are used by helper functions to retrieve constant values and manage variables from the cairo scope, and can be overlooked when coding your custom hints.
 
 
 ### Helper functions
