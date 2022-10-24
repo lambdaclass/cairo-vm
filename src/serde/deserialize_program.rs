@@ -793,7 +793,6 @@ mod tests {
             },
         );
 
-        println!("reference_manager: {:?}", program_json.reference_manager);
-        todo!()
+        assert_eq!(program_json.identifiers, identifiers);
     }
 }
