@@ -29,10 +29,10 @@ pub fn find_element(
     let find_element_index = exec_scopes.get_int("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
-        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
+        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.as_ref().clone()))?;
     if elm_size == 0 {
         return Err(VirtualMachineError::ValueOutOfRange(
-            elm_size_bigint.clone(),
+            elm_size_bigint.into_owned(),
         ));
     }
 
@@ -42,11 +42,11 @@ pub fn find_element(
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-        if found_key != key {
+        if found_key.as_ref() != key.as_ref() {
             return Err(VirtualMachineError::InvalidIndex(
                 find_element_index_value,
-                key.clone(),
-                found_key.clone(),
+                key.into_owned(),
+                found_key.into_owned(),
             ));
         }
         insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
@@ -54,32 +54,32 @@ pub fn find_element(
         Ok(())
     } else {
         if n_elms.is_negative() {
-            return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+            return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
         }
 
         if let Ok(find_element_max_size) = exec_scopes.get_int_ref("find_element_max_size") {
-            if n_elms > find_element_max_size {
+            if n_elms.as_ref() > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
                     find_element_max_size.clone(),
-                    n_elms.clone(),
+                    n_elms.into_owned(),
                 ));
             }
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
+            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.into_owned()))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-            if iter_key == key {
+            if iter_key.as_ref() == key.as_ref() {
                 return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
             }
         }
 
-        Err(VirtualMachineError::NoValueForKey(key.clone()))
+        Err(VirtualMachineError::NoValueForKey(key.into_owned()))
     }
 }
 
@@ -96,23 +96,23 @@ pub fn search_sorted_lower(
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
-        return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(elm_size.into_owned()));
     }
 
     if n_elms.is_negative() {
-        return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
-        if n_elms > &find_element_max_size {
+        if n_elms.as_ref() > &find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
                 find_element_max_size,
-                n_elms.clone(),
+                n_elms.into_owned(),
             ));
         }
     }
 
-    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.clone();
+    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.into_owned();
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
@@ -120,12 +120,12 @@ pub fn search_sorted_lower(
 
     for i in 0..n_elms_usize {
         let value = vm.get_integer(&array_iter)?;
-        if value >= key {
+        if value.as_ref() >= key.as_ref() {
             return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_value_from_var_name("index", n_elms.clone(), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("index", n_elms.into_owned(), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]

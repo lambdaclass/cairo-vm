@@ -402,7 +402,7 @@ impl<'a> CairoRunner<'a> {
                 writeln!(
                     stdout,
                     "{}",
-                    to_field_element(value.clone(), vm.prime.clone())
+                    to_field_element(value.into_owned(), vm.prime.clone())
                 )
                 .map_err(|_| RunnerError::WriteFail)?;
             }

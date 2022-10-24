@@ -124,8 +124,12 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, None, None);
         assert_eq!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         assert_eq!(
-            vm.memory.get(&MaybeRelocatable::from((1, 0))),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0))))
+            vm.memory
+                .get(&MaybeRelocatable::from((1, 0)))
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::Int(bigint!(0))
         )
     }
 

@@ -45,6 +45,8 @@ pub fn bigint_to_uint256(
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;
     let d1 = vm.get_integer(&(&x_struct + 1))?;
+    let d0 = d0.as_ref();
+    let d1 = d1.as_ref();
     let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
