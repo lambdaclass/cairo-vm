@@ -64,6 +64,16 @@ pub struct Identifier {
     #[serde(default)]
     #[serde(deserialize_with = "bigint_from_number")]
     pub value: Option<BigInt>,
+
+    pub full_name: Option<String>,
+    pub members: Option<HashMap<String, Member>>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Member {
+    pub cairo_type: Option<String>,
+    #[serde(deserialize_with = "bigint_from_number")]
+    pub offset: Option<BigInt>,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
@@ -473,7 +483,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
-                        value_type: "todo".to_string(),
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -489,7 +499,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
-                        value_type: "todo".to_string(),
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -505,7 +515,7 @@ mod tests {
                         immediate: Some(bigint!(2)),
                         dereference: false,
                         inner_dereference: true,
-                        value_type: "todo".to_string(),
+                        value_type: "felt".to_string(),
                     },
                 },
                 Reference {
@@ -521,7 +531,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
-                        value_type: "todo".to_string(),
+                        value_type: "felt".to_string(),
                     },
                 },
             ],
@@ -693,6 +703,8 @@ mod tests {
                 pc: Some(0),
                 type_: Some(String::from("function")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -701,6 +713,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"-3618502788666131213697322783095070105623107215331596699973092056135872020481")),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -709,6 +723,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("alias")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -719,6 +735,8 @@ mod tests {
                 value: Some(bigint_str!(
                     b"-106710729501573572985208420194530329073740042555888586719234"
                 )),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -727,6 +745,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(3)),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -735,6 +755,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(0)),
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -743,6 +765,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
+                full_name: None,
+                members: None,
             },
         );
 
@@ -764,6 +788,8 @@ mod tests {
                 pc: Some(0),
                 type_: Some(String::from("function")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
 

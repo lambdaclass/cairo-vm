@@ -230,6 +230,13 @@ impl<'a> CairoRunner<'a> {
         let mut references = HashMap::<usize, HintReference>::new();
 
         for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
+            let members = self
+                .program
+                .identifiers
+                .get(&reference.value_address.value_type)
+                .map(|x| x.members.as_ref().unwrap())
+                .cloned();
+
             references.insert(
                 i,
                 HintReference {
@@ -245,6 +252,7 @@ impl<'a> CairoRunner<'a> {
                     } else {
                         Some(reference.ap_tracking_data.clone())
                     },
+                    members,
                 },
             );
         }
