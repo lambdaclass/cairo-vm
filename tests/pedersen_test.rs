@@ -13,13 +13,16 @@ fn pedersen_integration_test() {
     let program = Program::new(Path::new("cairo_programs/pedersen_test.json"), "main")
         .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+    let mut cairo_runner = CairoRunner::new(&program).unwrap();
     let mut vm = VirtualMachine::new(
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         true,
     );
     let end = cairo_runner.initialize(&mut vm).unwrap();
-    assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+    assert_eq!(
+        cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+        Ok(())
+    );
     assert!(cairo_runner.relocate(&mut vm) == Ok(()), "Execution failed");
 
     let python_vm_relocated_trace: Vec<RelocatedTraceEntry> = vec![
