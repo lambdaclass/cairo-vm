@@ -1,4 +1,4 @@
-use crate::serde::deserialize_program::{ApTracking, Member};
+use crate::serde::deserialize_program::ApTracking;
 use crate::types::{exec_scope::ExecutionScopes, instruction::Register};
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
@@ -44,7 +44,7 @@ pub struct HintReference {
     pub inner_dereference: bool,
     pub ap_tracking_data: Option<ApTracking>,
     pub immediate: Option<BigInt>,
-    pub members: Option<HashMap<String, Member>>,
+    pub cairo_type: Option<String>,
 }
 
 impl HintReference {
@@ -57,7 +57,7 @@ impl HintReference {
             ap_tracking_data: None,
             immediate: None,
             dereference: true,
-            members: None,
+            cairo_type: None,
         }
     }
 
@@ -70,7 +70,7 @@ impl HintReference {
             ap_tracking_data: None,
             immediate: None,
             dereference,
-            members: None,
+            cairo_type: None,
         }
     }
 }
