@@ -80,7 +80,7 @@ pub fn pack_from_var_name(
     let d1 = vm.get_integer(&(&to_pack + 1))?;
     let d2 = vm.get_integer(&(&to_pack + 2))?;
 
-    Ok(pack(d0, d1, d2, vm.get_prime()))
+    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref(), vm.get_prime()))
 }
 
 pub fn pack_from_relocatable(
@@ -91,7 +91,7 @@ pub fn pack_from_relocatable(
     let d1 = vm.get_integer(&(&rel + 1))?;
     let d2 = vm.get_integer(&(&rel + 2))?;
 
-    Ok(pack(d0, d1, d2, vm.get_prime()))
+    Ok(pack(d0.as_ref(), d1.as_ref(), d2.as_ref(), vm.get_prime()))
 }
 
 #[cfg(test)]

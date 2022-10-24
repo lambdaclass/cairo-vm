@@ -51,7 +51,7 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
 pub fn from_relocatable_to_indexes(relocatable: &Relocatable) -> (usize, usize) {
     if relocatable.segment_index.is_negative() {
         (
-            (relocatable.segment_index.abs() - 1) as usize,
+            -(relocatable.segment_index + 1) as usize,
             relocatable.offset,
         )
     } else {
@@ -138,14 +138,20 @@ pub mod test_utils {
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
-                Ok(Some(&mayberelocatable!($sival, $offval)))
+                $mem.get(&mayberelocatable!($si, $off))
+                    .unwrap()
+                    .unwrap()
+                    .as_ref(),
+                &mayberelocatable!($sival, $offval)
             )
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)),
-                Ok(Some(&mayberelocatable!($val)))
+                $mem.get(&mayberelocatable!($si, $off))
+                    .unwrap()
+                    .unwrap()
+                    .as_ref(),
+                &mayberelocatable!($val)
             )
         };
     }

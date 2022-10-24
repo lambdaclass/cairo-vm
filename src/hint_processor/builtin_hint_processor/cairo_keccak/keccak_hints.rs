@@ -9,6 +9,7 @@ use crate::{
 };
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
@@ -37,6 +38,8 @@ pub fn keccak_write_args(
 
     let low = get_integer_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm, ids_data, ap_tracking)?;
+    let low = low.as_ref();
+    let high = high.as_ref();
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
@@ -65,6 +68,7 @@ pub fn compare_bytes_in_word_nondet(
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
@@ -93,6 +97,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     let keccak_full_rate_in_bytes =
         constants
@@ -227,16 +232,18 @@ pub fn cairo_keccak_finalize(
 // Helper function to transform a vector of MaybeRelocatables into a vector
 // of u64. Raises error if there are None's or if MaybeRelocatables are not Bigints.
 fn maybe_reloc_vec_to_u64_array(
-    vec: &[Option<&MaybeRelocatable>],
+    vec: &[Option<Cow<MaybeRelocatable>>],
 ) -> Result<Vec<u64>, VirtualMachineError> {
     let array = vec
         .iter()
-        .map(|n| {
-            if let Some(MaybeRelocatable::Int(num)) = n {
+        .map(|n| match n {
+            Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
+            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-            } else {
-                Err(VirtualMachineError::ExpectedIntAtRange(n.cloned()))
             }
+            _ => Err(VirtualMachineError::ExpectedIntAtRange(
+                n.as_ref().map(|x| x.to_owned().into_owned()),
+            )),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?;
 
