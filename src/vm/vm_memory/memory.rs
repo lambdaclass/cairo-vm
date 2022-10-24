@@ -519,24 +519,7 @@ mod memory_tests {
     }
 
     #[test]
-    fn validate_existing_memory_for_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(8);
-        let mut segments = MemorySegmentManager::new();
-        let mut memory = Memory::new();
-        segments.add(&mut memory);
-        builtin.initialize_segments(&mut segments, &mut memory);
-        memory
-            .insert(
-                &MaybeRelocatable::from((1, 0)),
-                &MaybeRelocatable::from(bigint!(1_i32)),
-            )
-            .unwrap();
-        builtin.add_validation_rule(&mut memory).unwrap();
-        let _error = memory.validate_existing_memory();
-    }
-
-    #[test]
-    fn validate_existing_memory_for_signature_two() {
+    fn validate_existing_memory_for_invalid_signature() {
         let mut builtin = SignatureBuiltinRunner::new(8);
 
         let signing_key = SigningKey::random(&mut OsRng);
