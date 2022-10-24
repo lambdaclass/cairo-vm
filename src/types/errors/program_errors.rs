@@ -9,6 +9,8 @@ pub enum ProgramError {
     Parse(#[from] serde_json::Error),
     #[error("Entrypoint {0} not found")]
     EntrypointNotFound(String),
+    #[error("Constant {0} has no value")]
+    ConstWithoutValue(String),
 }
 
 #[cfg(test)]

@@ -289,6 +289,7 @@ impl<'a> CairoRunner<'a> {
                 self.hint_executor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
+                &self.program.constants,
             )?;
         }
         Ok(())
@@ -432,6 +433,7 @@ mod tests {
             builtins: vec![String::from("range_check"), String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -452,6 +454,7 @@ mod tests {
             builtins: vec![String::from("output"), String::from("ecdsa")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -471,6 +474,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -515,6 +519,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -554,6 +559,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -585,6 +591,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: vec_data!((4), (6)),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -615,6 +622,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -642,6 +650,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -674,6 +683,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -702,6 +712,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -734,6 +745,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -767,6 +779,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -792,6 +805,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -812,6 +826,7 @@ mod tests {
             builtins: Vec::new(),
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: Some(1),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -835,6 +850,7 @@ mod tests {
             builtins: Vec::new(),
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: Some(1),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -863,6 +879,7 @@ mod tests {
             builtins: vec![String::from("range_check")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: Some(1),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -900,6 +917,7 @@ mod tests {
             builtins: vec![String::from("range_check")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: Some(1),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -958,6 +976,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(3),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1037,6 +1056,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1131,6 +1151,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1222,6 +1243,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(3),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1306,6 +1328,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1415,6 +1438,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1552,6 +1576,7 @@ mod tests {
                 (5193354029882638336_i64),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(13),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1653,6 +1678,7 @@ mod tests {
             builtins: Vec::new(),
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1796,6 +1822,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -1934,6 +1961,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2061,6 +2089,7 @@ mod tests {
             builtins: vec![String::from("output")],
             prime: bigint!(17),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2121,6 +2150,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(4),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2150,6 +2180,7 @@ mod tests {
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
             ),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
@@ -2196,6 +2227,7 @@ mod tests {
                 b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
             ),
             data: Vec::new(),
+            constants: HashMap::new(),
             main: None,
             hints: HashMap::new(),
             reference_manager: ReferenceManager {

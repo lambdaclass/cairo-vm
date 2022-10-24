@@ -295,15 +295,30 @@ pub mod test_utils {
     pub(crate) use exec_scopes_ref;
 
     macro_rules! run_hint {
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
+            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let hint_processor = BuiltinHintProcessor::new_empty();
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
+        }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
+            hint_processor.execute_hint(
+                &mut $vm,
+                $exec_scopes,
+                &any_box!(hint_data),
+                &HashMap::new(),
+            )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(hint_data))
+            hint_processor.execute_hint(
+                &mut $vm,
+                exec_scopes_ref!(),
+                &any_box!(hint_data),
+                &HashMap::new(),
+            )
         }};
     }
     pub(crate) use run_hint;

@@ -1,47 +1,49 @@
-use crate::bigint;
-use crate::bigint_str;
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::as_int;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
-use lazy_static::lazy_static;
+use crate::{
+    bigint, hint_processor::builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
+};
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};
 use std::collections::HashMap;
 
-lazy_static! {
-    pub static ref BASE_86: BigInt = bigint!(1) << 86_usize;
-    pub static ref BASE_86_MAX: BigInt = &*BASE_86 - bigint!(1);
-    pub static ref SECP_P: BigInt = (bigint!(1) << (256))
-        - (1_i64 << 32)
-        - (1 << 9)
-        - (1 << 8)
-        - (1 << 7)
-        - (1 << 6)
-        - (1 << 4)
-        - 1;
-    pub static ref N: BigInt = bigint_str!(
-        b"115792089237316195423570985008687907852837564279074904382605163141518161494337"
-    );
-    pub static ref BETA: BigInt = bigint!(7);
-}
+// Constants in package "starkware.cairo.common.cairo_secp.constants".
+pub const BASE_86: &str = "starkware.cairo.common.cairo_secp.constants.BASE";
+pub const BETA: &str = "starkware.cairo.common.cairo_secp.constants.BETA";
+pub const N0: &str = "starkware.cairo.common.cairo_secp.constants.N0";
+pub const N1: &str = "starkware.cairo.common.cairo_secp.constants.N1";
+pub const N2: &str = "starkware.cairo.common.cairo_secp.constants.N2";
+pub const P0: &str = "starkware.cairo.common.cairo_secp.constants.P0";
+pub const P1: &str = "starkware.cairo.common.cairo_secp.constants.P1";
+pub const P2: &str = "starkware.cairo.common.cairo_secp.constants.P2";
+pub const SECP_REM: &str = "starkware.cairo.common.cairo_secp.constants.SECP_REM";
+
 /*
 Takes a 256-bit integer and returns its canonical representation as:
 d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
-pub fn split(integer: &BigInt) -> Result<[BigInt; 3], VirtualMachineError> {
+pub fn split(
+    integer: &BigInt,
+    constants: &HashMap<String, BigInt>,
+) -> Result<[BigInt; 3], VirtualMachineError> {
     if integer.is_negative() {
         return Err(VirtualMachineError::SecpSplitNegative(integer.clone()));
     }
 
+    let base_86_max = constants
+        .get(BASE_86)
+        .ok_or(VirtualMachineError::MissingConstant(BASE_86))?
+        - &bigint!(1);
+
     let mut num = integer.clone();
     let mut canonical_repr: [BigInt; 3] = Default::default();
     for item in &mut canonical_repr {
-        *item = (&num & &*BASE_86_MAX).to_owned();
+        *item = (&num & &base_86_max).to_owned();
         num >>= 86_usize;
     }
     if !num.is_zero() {
@@ -99,16 +101,23 @@ mod tests {
 
     #[test]
     fn secp_split() {
-        let array_1 = split(&bigint!(0));
-        let array_2 = split(&bigint!(999992));
-        let array_3 = split(&bigint_str!(
-            b"7737125245533626718119526477371252455336267181195264773712524553362"
-        ));
-        let array_4 = split(&bigint!(-1));
+        let mut constants = HashMap::new();
+        constants.insert(BASE_86.to_string(), bigint!(1) << 86_usize);
+
+        let array_1 = split(&bigint!(0), &constants);
+        let array_2 = split(&bigint!(999992), &constants);
+        let array_3 = split(
+            &bigint_str!(b"7737125245533626718119526477371252455336267181195264773712524553362"),
+            &constants,
+        );
+        let array_4 = split(&bigint!(-1), &constants);
         //TODO, Check SecpSplitutOfRange limit
-        let array_5 = split(&bigint_str!(
-            b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
-        ));
+        let array_5 = split(
+            &bigint_str!(
+                b"773712524553362671811952647737125245533626718119526477371252455336267181195264"
+            ),
+            &constants,
+        );
 
         assert_eq!(array_1, Ok([bigint!(0), bigint!(0), bigint!(0)]));
         assert_eq!(array_2, Ok([bigint!(999992), bigint!(0), bigint!(0)]));
