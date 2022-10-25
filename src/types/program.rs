@@ -56,6 +56,8 @@ mod tests {
                 pc: Some(0),
                 type_: Some(String::from("function")),
                 value: None,
+                full_name: None,
+                members: None,
             },
         );
         identifiers.insert(
@@ -64,6 +66,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("struct")),
                 value: None,
+                full_name: Some("__main__.main.Args".to_string()),
+                members: Some(HashMap::new()),
             },
         );
         identifiers.insert(
@@ -72,6 +76,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("struct")),
                 value: None,
+                full_name: Some("__main__.main.ImplicitArgs".to_string()),
+                members: Some(HashMap::new()),
             },
         );
         identifiers.insert(
@@ -80,6 +86,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("struct")),
                 value: None,
+                full_name: Some("__main__.main.Return".to_string()),
+                members: Some(HashMap::new()),
             },
         );
         identifiers.insert(
@@ -88,6 +96,8 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint!(0)),
+                full_name: None,
+                members: None,
             },
         );
 

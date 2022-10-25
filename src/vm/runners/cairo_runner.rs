@@ -240,6 +240,7 @@ impl CairoRunner {
                     } else {
                         Some(reference.ap_tracking_data.clone())
                     },
+                    cairo_type: Some(reference.value_address.value_type.clone()),
                 },
             );
         }
