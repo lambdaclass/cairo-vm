@@ -277,6 +277,10 @@ impl<'a> CairoRunner<'a> {
         Ok(hint_data_dictionary)
     }
 
+    pub fn get_constants(&self) -> &HashMap<String, BigInt> {
+        &self.program.constants
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
