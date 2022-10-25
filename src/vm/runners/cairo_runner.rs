@@ -273,6 +273,10 @@ impl CairoRunner {
         Ok(hint_data_dictionary)
     }
 
+    pub fn get_constants(&self) -> &HashMap<String, BigInt> {
+        &self.program.constants
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
@@ -2238,5 +2242,29 @@ mod tests {
         assert_eq!(vm.builtin_runners[2].0, String::from("range_check"));
         assert_eq!(vm.builtin_runners[3].0, String::from("bitwise"));
         assert_eq!(vm.builtin_runners[4].0, String::from("ec_op"));
+    }
+
+    #[test]
+    fn get_constants() {
+        let program_constants = HashMap::from([
+            ("MAX".to_string(), bigint!(300)),
+            ("MIN".to_string(), bigint!(20)),
+        ]);
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: program_constants.clone(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let cairo_runner = CairoRunner::new(&program).unwrap();
+        assert_eq!(cairo_runner.get_constants(), &program_constants);
     }
 }
