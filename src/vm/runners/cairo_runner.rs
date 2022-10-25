@@ -2249,4 +2249,29 @@ mod tests {
         assert_eq!(vm.builtin_runners[3].0, String::from("bitwise"));
         assert_eq!(vm.builtin_runners[4].0, String::from("ec_op"));
     }
+
+    #[test]
+    fn get_constants() {
+        let program_constants = HashMap::from([
+            ("MAX".to_string(), bigint!(300)),
+            ("MIN".to_string(), bigint!(20)),
+        ]);
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: program_constants.clone(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        let cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        assert_eq!(cairo_runner.get_constants(), &program_constants);
+    }
 }
