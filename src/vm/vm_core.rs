@@ -748,6 +748,9 @@ impl VirtualMachine {
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
     }
+    pub fn disable_trace(&mut self) {
+        self.trace = None
+    }
 
     #[doc(hidden)]
     pub fn set_ap(&mut self, ap: usize) {
@@ -3198,5 +3201,16 @@ mod tests {
 
         assert_eq!(builtins[0].0, "pedersen");
         assert_eq!(builtins[1].0, "bitwise");
+    }
+
+    #[test]
+    fn disable_trace() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            true,
+        );
+        assert!(vm.trace.is_some());
+        vm.disable_trace();
+        assert!(vm.trace.is_none());
     }
 }
