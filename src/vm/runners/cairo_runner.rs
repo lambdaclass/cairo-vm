@@ -2264,8 +2264,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let cairo_runner = CairoRunner::new(&program).unwrap();
         assert_eq!(cairo_runner.get_constants(), &program_constants);
     }
 }
