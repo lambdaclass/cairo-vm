@@ -26,7 +26,7 @@ use crate::{
 use num_bigint::BigInt;
 use std::{any::Any, collections::HashMap, io};
 
-pub struct CairoRunner<'a> {
+pub struct CairoRunner {
     program: Program,
     _layout: String,
     final_pc: Option<Relocatable>,
@@ -38,14 +38,10 @@ pub struct CairoRunner<'a> {
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
-    pub hint_executor: &'a dyn HintProcessor,
 }
 
-impl<'a> CairoRunner<'a> {
-    pub fn new(
-        program: &Program,
-        hint_executor: &'a dyn HintProcessor,
-    ) -> Result<CairoRunner<'a>, RunnerError> {
+impl CairoRunner {
+    pub fn new(program: &Program) -> Result<CairoRunner, RunnerError> {
         Ok(CairoRunner {
             program: program.clone(),
             _layout: String::from("plain"),
@@ -57,7 +53,6 @@ impl<'a> CairoRunner<'a> {
             initial_pc: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
-            hint_executor,
             exec_scopes: ExecutionScopes::new(),
         })
     }
@@ -255,11 +250,12 @@ impl<'a> CairoRunner<'a> {
     pub fn get_hint_data_dictionary(
         &self,
         references: &HashMap<usize, HintReference>,
+        hint_executor: &dyn HintProcessor,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
         for (hint_index, hints) in self.program.hints.iter() {
             for hint in hints {
-                let hint_data = self.hint_executor.compile_hint(
+                let hint_data = hint_executor.compile_hint(
                     &hint.code,
                     &hint.flow_tracking_data.ap_tracking,
                     &hint.flow_tracking_data.reference_ids,
@@ -281,12 +277,13 @@ impl<'a> CairoRunner<'a> {
         &mut self,
         address: Relocatable,
         vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
-        let hint_data_dictionary = self.get_hint_data_dictionary(&references)?;
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
         while vm.run_context.pc != address {
             vm.step(
-                self.hint_executor,
+                hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
@@ -441,8 +438,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         assert!(cairo_runner.initialize_builtins(&mut vm).is_err());
     }
@@ -462,9 +458,8 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
         //We only check that the creation doesnt panic
-        let _cairo_runner = CairoRunner::new(&program, &hint_processor);
+        let _cairo_runner = CairoRunner::new(&program);
     }
 
     #[test]
@@ -482,8 +477,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         let program_base = Some(Relocatable {
             segment_index: 5,
@@ -527,8 +521,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -567,8 +560,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
@@ -599,8 +591,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -630,8 +621,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory);
@@ -658,8 +648,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -691,8 +680,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -720,8 +708,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -753,8 +740,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -787,8 +773,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         let stack = vec![MaybeRelocatable::from(bigint!(7))];
         let return_fp = MaybeRelocatable::from(bigint!(9));
@@ -813,8 +798,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
     }
@@ -834,8 +818,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(0, 0));
@@ -858,8 +841,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -887,8 +869,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
@@ -925,8 +906,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
@@ -984,8 +964,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_segments(&mut vm, None);
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
@@ -1064,8 +1043,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1160,8 +1138,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1252,14 +1229,17 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         assert_eq!(end, Relocatable::from((3, 0)));
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         //Check final values against Python VM
         //Check final register values
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
@@ -1337,14 +1317,17 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         //Check final values against Python VM
         //Check final register values
         assert_eq!(vm.run_context.pc, Relocatable::from((4, 0)));
@@ -1447,14 +1430,17 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         //Check final values against Python VM
         //Check final register values
         //todo
@@ -1585,14 +1571,17 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         //Check final values against Python VM
         //Check final register values
         assert_eq!(vm.run_context.pc, Relocatable::from((5, 0)));
@@ -1686,8 +1675,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         for _ in 0..4 {
             vm.segments.add(&mut vm.memory);
@@ -1831,13 +1819,16 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         vm.segments.compute_effective_sizes(&vm.memory);
         let rel_table = vm
             .segments
@@ -1970,13 +1961,16 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         vm.segments.compute_effective_sizes(&vm.memory);
         let rel_table = vm
             .segments
@@ -2097,8 +2091,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -2158,15 +2151,18 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
-        assert_eq!(cairo_runner.run_until_pc(end, &mut vm), Ok(()));
+        let hint_processor = BuiltinHintProcessor::new_empty();
+        assert_eq!(
+            cairo_runner.run_until_pc(end, &mut vm, &hint_processor),
+            Ok(())
+        );
         let mut stdout = Vec::<u8>::new();
         cairo_runner.write_output(&mut vm, &mut stdout).unwrap();
         assert_eq!(String::from_utf8(stdout), Ok(String::from("1\n17\n")));
@@ -2188,8 +2184,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -2235,8 +2230,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+        let cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
