@@ -47,7 +47,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
-    accessed_addresses: Option<Vec<Relocatable>>,
+    pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,

@@ -8,6 +8,7 @@ use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
+use crate::vm::runners::cairo_runner::CairoRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -95,6 +96,10 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_memory_accesses(&self, _runner: &CairoRunner) -> std::collections::HashSet<Relocatable> {
+        todo!()
     }
 }
 

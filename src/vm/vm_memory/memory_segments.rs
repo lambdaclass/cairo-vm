@@ -1,14 +1,17 @@
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::any::Any;
+use std::collections::{HashMap, HashSet};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::utils::from_relocatable_to_indexes;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
     pub num_segments: usize,
     pub num_temp_segments: usize,
+    pub segment_sizes: Vec<usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
@@ -52,6 +55,7 @@ impl MemorySegmentManager {
         MemorySegmentManager {
             num_segments: 0,
             num_temp_segments: 0,
+            segment_sizes: Vec::new(),
             segment_used_sizes: None,
         }
     }
@@ -127,6 +131,59 @@ impl MemorySegmentManager {
         } else {
             Err(MemoryError::WriteArg)
         }
+    }
+
+    pub fn get_memory_holes(
+        &self,
+        accessed_addresses: &HashSet<Relocatable>,
+    ) -> Result<usize, MemoryError> {
+        let segment_used_sizes = self
+            .segment_used_sizes
+            .as_ref()
+            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+
+        let mut accessed_offsets_sets = HashMap::new();
+        for addr in accessed_addresses {
+            if addr.segment_index < 0 {
+                return Err(MemoryError::AddressInTemporarySegment(addr.segment_index));
+            }
+
+            let (index, offset) = from_relocatable_to_indexes(addr);
+            let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
+                Some(x) => x,
+                None => {
+                    let segment_size = self
+                        .get_segment_size(index)
+                        .ok_or(MemoryError::SegmentNotFinalized(index))?;
+
+                    accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
+                    accessed_offsets_sets.get_mut(&index).unwrap()
+                }
+            };
+            if offset > *segment_size {
+                return Err(MemoryError::NumOutOfBounds);
+            }
+
+            offset_set.insert(offset);
+        }
+
+        Ok(self
+            .segment_sizes
+            .iter()
+            .enumerate()
+            .chain(segment_used_sizes.iter().enumerate())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .map(|(index, _)| accessed_offsets_sets.get(&index).unwrap())
+            .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
+            .sum())
+    }
+
+    pub fn get_segment_size(&self, index: usize) -> Option<usize> {
+        self.segment_sizes
+            .get(index)
+            .copied()
+            .or_else(|| self.get_segment_used_size(index))
     }
 }
 

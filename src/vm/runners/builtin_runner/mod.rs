@@ -1,9 +1,10 @@
-use std::any::Any;
-
+use super::cairo_runner::CairoRunner;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use std::any::Any;
+use std::collections::HashSet;
 
 mod bitwise;
 mod ec_op;
@@ -30,4 +31,6 @@ pub trait BuiltinRunner {
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
+
+    fn get_memory_accesses(&self, runner: &CairoRunner) -> HashSet<Relocatable>;
 }

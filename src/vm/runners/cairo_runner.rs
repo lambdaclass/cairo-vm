@@ -24,7 +24,11 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use std::{any::Any, collections::HashMap, io};
+use std::{
+    any::Any,
+    collections::{HashMap, HashSet},
+    io,
+};
 
 pub struct CairoRunner {
     program: Program,
@@ -295,6 +299,22 @@ impl CairoRunner {
             )?;
         }
         Ok(())
+    }
+
+    pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let accessed_addresses = vm
+            .accessed_addresses
+            .as_ref()
+            .ok_or(MemoryError::MissingAccessedAddresses)?;
+
+        let mut builtin_accessed_addresses = vm
+            .builtin_runners
+            .iter()
+            .flat_map(|(_, x)| x.get_memory_accesses(self).into_iter())
+            .collect::<HashSet<_>>();
+
+        builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
+        vm.segments.get_memory_holes(&builtin_accessed_addresses)
     }
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
