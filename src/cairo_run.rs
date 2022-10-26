@@ -135,9 +135,9 @@ mod tests {
     use num_bigint::Sign;
     use std::io::Read;
 
-    fn run_test_program<'a>(
+    fn run_test_program(
         program_path: &Path,
-        hint_processor: &'a dyn HintProcessor,
+        hint_processor: &dyn HintProcessor,
     ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
         let program = Program::new(program_path, "main").map_err(CairoRunError::Program)?;
 
