@@ -20,7 +20,11 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, borrow::Cow, collections::HashMap};
+use std::{
+    any::Any,
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -48,7 +52,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
-    pub(crate) accessed_addresses: Option<Vec<Relocatable>>,
+    accessed_addresses: Option<Vec<Relocatable>>,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     current_step: usize,
     skip_instruction_execution: bool,
@@ -419,13 +423,13 @@ impl VirtualMachine {
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs =
                 operands_mem_addresses.ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
-            let addresses = &[
+            let addresses = [
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
                 self.run_context.pc.clone(),
             ];
-            accessed_addresses.extend_from_slice(addresses);
+            accessed_addresses.extend(addresses.into_iter());
         }
 
         self.update_registers(instruction, operands)?;
@@ -2088,7 +2092,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
         }
@@ -2143,7 +2147,7 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
         }
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
         vm.memory.data.push(Vec::new());
         let dst_addr = mayberelocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
@@ -2191,7 +2195,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
         vm.memory = memory![
             ((0, 0), 0x206800180018001_i64),
             ((1, 1), 0x4),
@@ -2407,7 +2411,7 @@ mod tests {
     /// PC 0:0
     fn test_step_for_preset_memory() {
         let mut vm = vm!(true);
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -2474,7 +2478,7 @@ mod tests {
     */
     fn test_step_for_preset_memory_function_call() {
         let mut vm = vm!(true);
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
 
         run_context!(vm, 3, 2, 2);
 
@@ -2729,7 +2733,7 @@ mod tests {
         let mut builtin = HashBuiltinRunner::new(8);
         builtin.base = 3;
         let mut vm = vm!();
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         run_context!(vm, 0, 13, 12);
@@ -2822,7 +2826,7 @@ mod tests {
         builtin.base = 2;
         let mut vm = vm!();
 
-        vm.accessed_addresses = Some(Vec::new());
+        vm.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         run_context!(vm, 0, 9, 8);

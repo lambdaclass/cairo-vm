@@ -304,6 +304,22 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Mark a memory address as accesed.
+    pub fn mark_as_accessed(
+        &mut self,
+        address: Relocatable,
+        size: usize,
+        vm: &mut VirtualMachine,
+    ) -> Result<(), VirtualMachineError> {
+        let accessed_addressess = match &mut vm.accessed_addresses {
+            Some(x) => x,
+            None => return Err(VirtualMachineError::RunIsNotEnded),
+        };
+
+        accessed_addressess.extend((0..size).map(|i| &address + i));
+        Ok(())
+    }
+
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let accessed_addresses = vm
             .accessed_addresses
@@ -507,7 +523,7 @@ mod tests {
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
     use num_bigint::Sign;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn initialize_builtins_with_disordered_builtins() {
@@ -2348,5 +2364,51 @@ mod tests {
         };
         let cairo_runner = CairoRunner::new(&program).unwrap();
         assert_eq!(cairo_runner.get_constants(), &program_constants);
+    }
+
+    #[test]
+    fn mark_as_accessed() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        vm.accessed_addresses = Some(HashSet::new());
+        cairo_runner
+            .mark_as_accessed((0, 0).into(), 3, &mut vm)
+            .unwrap();
+        cairo_runner
+            .mark_as_accessed((0, 10).into(), 2, &mut vm)
+            .unwrap();
+        cairo_runner
+            .mark_as_accessed((1, 1).into(), 1, &mut vm)
+            .unwrap();
+        println!("{:?}", vm.accessed_addresses);
+        assert_eq!(
+            vm.accessed_addresses.unwrap(),
+            [
+                (0, 0).into(),
+                (0, 1).into(),
+                (0, 2).into(),
+                (0, 10).into(),
+                (0, 11).into(),
+                (1, 1).into(),
+            ]
+            .into_iter()
+            .collect(),
+        );
     }
 }

@@ -220,4 +220,6 @@ pub enum VirtualMachineError {
     MissingConstant(&'static str),
     #[error(transparent)]
     TracerError(#[from] TraceError),
+    #[error("Current run is not ended")]
+    RunIsNotEnded,
 }
