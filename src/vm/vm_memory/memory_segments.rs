@@ -1,14 +1,17 @@
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::any::Any;
+use std::collections::{HashMap, HashSet};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::utils::from_relocatable_to_indexes;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::vm_memory::memory::Memory;
 
 pub struct MemorySegmentManager {
     pub num_segments: usize,
     pub num_temp_segments: usize,
+    pub segment_sizes: Option<HashMap<usize, usize>>,
     pub segment_used_sizes: Option<Vec<usize>>,
 }
 
@@ -66,6 +69,43 @@ impl MemorySegmentManager {
             segment_used_sizes.push(segment.len());
         }
         self.segment_used_sizes = Some(segment_used_sizes);
+    }
+
+    pub fn get_memory_holes(
+        &self,
+        accessed_addresses: &HashSet<Relocatable>,
+    ) -> Result<usize, MemoryError> {
+        // TODO: Make an error variant.
+        let segment_used_sizes = self.segment_used_sizes.ok_or_else(|| todo!())?;
+
+        let mut accessed_offsets_sets = HashMap::with_capacity(accessed_addresses.len());
+        for addr in accessed_addresses {
+            if addr.segment_index < 0 {
+                return Err(MemoryError::AddressInTemporarySegment(addr.segment_index));
+            }
+
+            let (index, offset) = from_relocatable_to_indexes(addr);
+            let (segment_size, offset_set) =
+                accessed_offsets_sets.get_mut(&index).unwrap_or_else(|| {
+                    let segment_size = self.get_segment_size(index);
+                    accessed_offsets_sets.insert(index, (segment_size, HashSet::new()));
+                    accessed_offsets_sets.get_mut(&index).unwrap()
+                });
+            if offset > *segment_size {
+                return Err(MemoryError::NumOutOfBounds);
+            }
+
+            offset_set.insert(offset);
+        }
+
+        let mut visited_keys = HashSet::new();
+        let mut memory_holes = 0;
+        for index in 0..segment_used_sizes.len() {
+            let (segment_size, offset_set) = accessed_offsets_sets.get(&index).unwrap();
+            memory_holes += segment_size - offset_set.len()
+        }
+
+        Ok(memory_holes)
     }
 
     ///Returns the number of used segments when they are already computed.

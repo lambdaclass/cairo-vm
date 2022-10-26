@@ -24,7 +24,12 @@ use crate::{
     },
 };
 use num_bigint::BigInt;
-use std::{any::Any, collections::HashMap, io};
+use std::{
+    any::Any,
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+    io,
+};
 
 pub struct CairoRunner {
     program: Program,
@@ -35,6 +40,9 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    accessed_addresses: Option<HashSet<Relocatable>>,
+    run_ended: bool,
+    proof_mode: bool,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
@@ -51,6 +59,9 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            accessed_addresses: None,
+            run_ended: false,
+            proof_mode: false,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
@@ -287,14 +298,52 @@ impl CairoRunner {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
         while vm.run_context.pc != address {
-            vm.step(
-                hint_processor,
-                &mut self.exec_scopes,
-                &hint_data_dictionary,
-                &self.program.constants,
-            )?;
+            self.vm_step(vm, hint_processor, &hint_data_dictionary)?;
         }
         Ok(())
+    }
+
+    pub fn vm_step(
+        &mut self,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+    ) -> Result<(), VirtualMachineError> {
+        // TODO
+        // if vm.run_context.pc == self.final_pc {
+        //     return Err(VirtualMachineError)
+        // }
+
+        vm.step(
+            hint_processor,
+            &mut self.exec_scopes,
+            hint_data_dictionary,
+            &self.program.constants,
+        )
+    }
+
+    pub fn run_for_steps(
+        &mut self,
+        steps: usize,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let references = self.get_reference_list();
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+
+        for _ in 0..steps {
+            self.vm_step(vm, hint_processor, &hint_data_dictionary)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn run_until_next_power_of_2(
+        &mut self,
+        vm: &mut VirtualMachine,
+        hint_processor: &dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        self.run_for_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
     }
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
@@ -410,6 +459,82 @@ impl CairoRunner {
                 .map_err(|_| RunnerError::WriteFail)?;
             }
         }
+        Ok(())
+    }
+
+    pub fn mark_as_accessed(
+        &mut self,
+        address: Relocatable,
+        size: usize,
+    ) -> Result<(), RunnerError> {
+        let accessed_addresses = self
+            .accessed_addresses
+            .as_mut()
+            .ok_or(RunnerError::RunNotEnded)?;
+
+        for i in 0..size {
+            accessed_addresses.insert(&address + i);
+        }
+
+        Ok(())
+    }
+
+    pub fn end_run(
+        &mut self,
+        vm: &mut VirtualMachine,
+        _disable_trace_padding: Option<bool>,
+        disable_finalize_all: Option<bool>,
+    ) -> Result<(), RunnerError> {
+        // let disable_trace_padding = disable_trace_padding.unwrap_or(true);
+        let disable_finalize_all = disable_finalize_all.unwrap_or(false);
+
+        if self.run_ended {
+            return Err(RunnerError::RunAlreadyEnded);
+        }
+
+        // Process accessed_addresses.
+        {
+            let accessed_addresses = self
+                .accessed_addresses
+                .as_ref()
+                .ok_or(RunnerError::MissingAccessedAddresses)?;
+            let mut new_accessed_addresses = HashSet::with_capacity(accessed_addresses.len());
+
+            for addr in accessed_addresses {
+                let relocated_addr = vm
+                    .memory
+                    .relocate_value(Some(Cow::Owned(addr.into())))
+                    .map_err(RunnerError::FailedMemoryGet)?
+                    .unwrap()
+                    .into_owned();
+
+                new_accessed_addresses.insert(relocated_addr.try_into().unwrap());
+            }
+
+            self.accessed_addresses = Some(new_accessed_addresses);
+        }
+
+        vm.memory
+            .relocate_memory()
+            .map_err(RunnerError::FailedMemoryGet)?;
+        // TODO: vm.end_run();
+
+        if !disable_finalize_all {
+            vm.memory.freeze();
+            // TODO: vm.segments.compute_effective_sizes();
+
+            // TODO: ↓
+            // if self.proof_mode && !disable_trace_padding {
+            //     self.run_until_next_power_of_2();
+            //     while !self.check_used_cells() {
+            //         self.run_for_steps(1);
+            //         self.run_until_next_power_of_2();
+            //     }
+            // }
+
+            self.run_ended = true;
+        }
+
         Ok(())
     }
 }

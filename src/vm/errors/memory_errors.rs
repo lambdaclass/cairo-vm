@@ -28,4 +28,6 @@ pub enum MemoryError {
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),
+    #[error("The memory is frozen and cannot be modified")]
+    Frozen,
 }

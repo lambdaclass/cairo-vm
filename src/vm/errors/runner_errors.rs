@@ -56,4 +56,10 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
+    #[error("Run has not ended.")]
+    RunNotEnded,
+    #[error("Run has already ended.")]
+    RunAlreadyEnded,
+    #[error("Field accessed_addresses is None")]
+    MissingAccessedAddresses,
 }

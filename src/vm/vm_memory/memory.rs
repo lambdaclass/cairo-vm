@@ -16,6 +16,7 @@ pub struct Memory {
     pub relocation_rules: HashMap<usize, Relocatable>,
     pub validated_addresses: HashSet<MaybeRelocatable>,
     pub validation_rules: HashMap<usize, ValidationRule>,
+    frozen: bool,
 }
 
 impl Memory {
@@ -26,8 +27,10 @@ impl Memory {
             relocation_rules: HashMap::new(),
             validated_addresses: HashSet::<MaybeRelocatable>::new(),
             validation_rules: HashMap::new(),
+            frozen: false,
         }
     }
+
     ///Inserts an MaybeRelocatable value into an address given by a MaybeRelocatable::Relocatable
     /// Will panic if the segment index given by the address corresponds to a non-allocated segment
     /// If the address isnt contiguous with previously inserted data, memory gaps will be represented by inserting None values
@@ -37,6 +40,10 @@ impl Memory {
         MaybeRelocatable: From<&'a K>,
         MaybeRelocatable: From<&'a V>,
     {
+        if self.frozen {
+            return Err(MemoryError::Frozen);
+        }
+
         let relocatable: Relocatable = key
             .try_into()
             .map_err(|_| MemoryError::AddressNotRelocatable)?;
@@ -129,6 +136,19 @@ impl Memory {
             .map(|x| Cow::Owned(x.add_usize_mod(value_relocation.offset, None))))
     }
 
+    pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
+        if self.frozen {
+            return Err(MemoryError::Frozen);
+        }
+
+        if !self.relocation_rules.is_empty() {
+            // TODO: Reference implementation has a different data structure.
+            self.relocation_rules.clear();
+        }
+
+        Ok(())
+    }
+
     /// Add a new relocation rule.
     ///
     /// Will return an error if any of the following conditions are not met:
@@ -156,6 +176,10 @@ impl Memory {
 
         self.relocation_rules.insert(segment_index, dst_ptr);
         Ok(())
+    }
+
+    pub fn freeze(&mut self) {
+        self.frozen = true;
     }
 
     //Gets the value from memory address.
@@ -189,6 +213,10 @@ impl Memory {
         key: &Relocatable,
         val: T,
     ) -> Result<(), VirtualMachineError> {
+        if self.frozen {
+            return Err(MemoryError::Frozen.into());
+        }
+
         self.insert(key, &val.into())
             .map_err(VirtualMachineError::MemoryError)
     }
