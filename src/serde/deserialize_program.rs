@@ -72,8 +72,7 @@ pub struct Identifier {
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Member {
     pub cairo_type: Option<String>,
-    #[serde(deserialize_with = "bigint_from_number")]
-    pub offset: Option<BigInt>,
+    pub offset: Option<usize>,
 }
 
 fn bigint_from_number<'de, D>(deserializer: D) -> Result<Option<BigInt>, D::Error>
