@@ -1,8 +1,5 @@
-use std::any::Any;
-
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -18,35 +15,33 @@ impl OutputBuiltinRunner {
             _stop_ptr: None,
         }
     }
-}
 
-impl BuiltinRunner for OutputBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
+    pub fn base(&self) -> Relocatable {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
     }
 
-    fn deduce_memory_cell(
+    pub fn deduce_memory_cell(
         &mut self,
         _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 

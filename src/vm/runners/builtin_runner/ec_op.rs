@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::borrow::Cow;
 
 use num_bigint::BigInt;
@@ -7,7 +6,6 @@ use num_integer::Integer;
 use crate::math_utils::{ec_add, ec_double};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
@@ -80,25 +78,27 @@ impl EcOpBuiltinRunner {
         }
         Ok(partial_sum)
     }
-}
 
-impl BuiltinRunner for EcOpBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
+    pub fn base(&self) -> Relocatable {
         Relocatable::from((self.base, 0))
     }
-    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
     }
 
-    fn deduce_memory_cell(
+    pub fn deduce_memory_cell(
         &mut self,
         address: &Relocatable,
         memory: &Memory,
@@ -181,10 +181,6 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             _ => Ok(Some(MaybeRelocatable::Int(result.1))),
             //Default case corresponds to 1, as there are no other possible cases
         }
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 

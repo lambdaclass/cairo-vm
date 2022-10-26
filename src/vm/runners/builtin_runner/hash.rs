@@ -1,12 +1,9 @@
-use std::any::Any;
-
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
 use starknet_crypto::{pedersen_hash, FieldElement};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -31,26 +28,28 @@ impl HashBuiltinRunner {
             verified_addresses: Vec::new(),
         }
     }
-}
 
-impl BuiltinRunner for HashBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
+    pub fn base(&self) -> Relocatable {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
     }
 
-    fn deduce_memory_cell(
+    pub fn deduce_memory_cell(
         &mut self,
         address: &Relocatable,
         memory: &Memory,
@@ -93,10 +92,6 @@ impl BuiltinRunner for HashBuiltinRunner {
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 
