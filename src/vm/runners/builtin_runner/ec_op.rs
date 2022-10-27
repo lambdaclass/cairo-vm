@@ -191,6 +191,10 @@ impl BuiltinRunner for EcOpBuiltinRunner {
     fn get_memory_accesses(&self, _runner: &CairoRunner) -> std::collections::HashSet<Relocatable> {
         todo!()
     }
+
+    fn get_used_instances(&self, _runner: &CairoRunner) -> usize {
+        todo!()
+    }
 }
 
 #[cfg(test)]

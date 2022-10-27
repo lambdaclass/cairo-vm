@@ -33,4 +33,5 @@ pub trait BuiltinRunner {
     fn as_any(&self) -> &dyn Any;
 
     fn get_memory_accesses(&self, runner: &CairoRunner) -> HashSet<Relocatable>;
+    fn get_used_instances(&self, runner: &CairoRunner) -> usize;
 }

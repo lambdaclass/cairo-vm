@@ -39,6 +39,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
@@ -55,6 +56,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
@@ -386,6 +388,29 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_execution_resources(
+        &self,
+        vm: &mut VirtualMachine,
+    ) -> Result<ExecutionResources, TraceError> {
+        let n_steps = match self.original_steps {
+            Some(x) => x,
+            None => vm.trace.as_ref().ok_or(TraceError::TraceNotEnabled)?.len(),
+        };
+        let n_memory_holes = self.get_memory_holes(vm)?;
+
+        let builtin_instance_counter = vm
+            .builtin_runners
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.get_used_instances(self)))
+            .collect::<Vec<_>>();
+
+        Ok(ExecutionResources {
+            n_steps,
+            n_memory_holes,
+            builtin_instance_counter,
+        })
+    }
+
     pub fn get_output(&mut self, vm: &mut VirtualMachine) -> Result<Option<String>, RunnerError> {
         let mut output = Vec::<u8>::new();
         self.write_output(vm, &mut output)?;
@@ -432,6 +457,12 @@ impl CairoRunner {
         }
         Ok(())
     }
+}
+
+pub struct ExecutionResources {
+    pub n_steps: usize,
+    pub n_memory_holes: usize,
+    pub builtin_instance_counter: Vec<(String, usize)>,
 }
 
 #[cfg(test)]
