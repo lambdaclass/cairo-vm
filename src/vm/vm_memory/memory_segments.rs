@@ -75,9 +75,13 @@ impl MemorySegmentManager {
     ///Returns the number of used segments when they are already computed.
     ///Returns None otherwise.
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
-        self.segment_used_sizes
-            .as_ref()
-            .map(|used_sizes| used_sizes[index])
+        self.segment_used_sizes.as_ref().and_then(|used_sizes| {
+            if used_sizes.len() > index {
+                Some(used_sizes[index])
+            } else {
+                None
+            }
+        })
     }
 
     ///Returns a vector that contains the first relocated address of each memory segment
@@ -167,14 +171,11 @@ impl MemorySegmentManager {
             offset_set.insert(offset);
         }
 
-        Ok(self
-            .segment_sizes
-            .iter()
-            .enumerate()
-            .chain(segment_used_sizes.iter().enumerate())
+        Ok((0..self.segment_sizes.len())
+            .chain(0..segment_used_sizes.len())
             .collect::<HashSet<_>>()
             .into_iter()
-            .map(|(index, _)| accessed_offsets_sets.get(&index).unwrap())
+            .map(|index| accessed_offsets_sets.get(&index).unwrap())
             .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
             .sum())
     }
@@ -472,6 +473,60 @@ mod tests {
         assert_eq!(
             segment_mng_new.segment_used_sizes,
             segment_mng_def.segment_used_sizes
+        );
+    }
+
+    #[test]
+    fn get_memory_holes() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut accessed_addresses = HashSet::new();
+
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+
+        memory_segment_manager.segment_used_sizes = Some(Vec::new());
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Ok(0),
+        );
+
+        accessed_addresses.insert((0, 0).into());
+        accessed_addresses.insert((0, 1).into());
+        accessed_addresses.insert((0, 2).into());
+        accessed_addresses.insert((0, 3).into());
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Err(MemoryError::SegmentNotFinalized(0)),
+        );
+
+        memory_segment_manager.segment_used_sizes = Some(vec![2]);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Err(MemoryError::NumOutOfBounds),
+        );
+
+        memory_segment_manager.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Ok(0),
+        );
+
+        memory_segment_manager.segment_used_sizes = Some(vec![10]);
+        accessed_addresses.insert((0, 6).into());
+        accessed_addresses.insert((0, 7).into());
+        accessed_addresses.insert((0, 8).into());
+        accessed_addresses.insert((0, 9).into());
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Ok(2),
+        );
+
+        memory_segment_manager.segment_sizes = vec![15];
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Ok(7),
         );
     }
 }
