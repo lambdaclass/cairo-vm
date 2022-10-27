@@ -129,5 +129,12 @@ mod tests {
             take_until_unbalanced('€', 'ü')("€uü€€üürlüabc"),
             Ok(("üabc", "€uü€€üürl"))
         );
+        assert_eq!(
+            take_until_unbalanced('(', ')')("u(())r()labc\\"),
+            Err(nom::Err::Error(nom::error::Error::new(
+                "u(())r()labc\\",
+                ErrorKind::TakeUntil
+            )))
+        )
     }
 }

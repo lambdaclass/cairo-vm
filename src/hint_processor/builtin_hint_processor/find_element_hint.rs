@@ -1,15 +1,16 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_ptr_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
-};
-use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::hint_processor::hint_processor_utils::bigint_to_usize;
-use crate::hint_processor::proxies::exec_scopes_proxy::ExecutionScopesProxy;
-
-use crate::serde::deserialize_program::ApTracking;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::{
-    bigint, hint_processor::builtin_hint_processor::hint_utils::get_integer_from_var_name,
+    bigint,
+    hint_processor::{
+        builtin_hint_processor::hint_utils::{
+            get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+            insert_value_from_var_name,
+        },
+        hint_processor_definition::HintReference,
+        hint_processor_utils::bigint_to_usize,
+    },
+    serde::deserialize_program::ApTracking,
+    types::exec_scope::ExecutionScopes,
+    vm::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
@@ -17,7 +18,7 @@ use std::collections::HashMap;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
@@ -25,13 +26,13 @@ pub fn find_element(
     let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let find_element_index = exec_scopes_proxy.get_int("find_element_index").ok();
+    let find_element_index = exec_scopes.get_int("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
-        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.clone()))?;
+        .ok_or_else(|| VirtualMachineError::ValueOutOfRange(elm_size_bigint.as_ref().clone()))?;
     if elm_size == 0 {
         return Err(VirtualMachineError::ValueOutOfRange(
-            elm_size_bigint.clone(),
+            elm_size_bigint.into_owned(),
         ));
     }
 
@@ -41,77 +42,77 @@ pub fn find_element(
             .get_integer(&(array_start + (elm_size * find_element_index_usize)))
             .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-        if found_key != key {
+        if found_key.as_ref() != key.as_ref() {
             return Err(VirtualMachineError::InvalidIndex(
                 find_element_index_value,
-                key.clone(),
-                found_key.clone(),
+                key.into_owned(),
+                found_key.into_owned(),
             ));
         }
         insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
-        exec_scopes_proxy.delete_variable("find_element_index");
+        exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
         if n_elms.is_negative() {
-            return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+            return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
         }
 
-        if let Ok(find_element_max_size) = exec_scopes_proxy.get_int_ref("find_element_max_size") {
-            if n_elms > find_element_max_size {
+        if let Ok(find_element_max_size) = exec_scopes.get_int_ref("find_element_max_size") {
+            if n_elms.as_ref() > find_element_max_size {
                 return Err(VirtualMachineError::FindElemMaxSize(
                     find_element_max_size.clone(),
-                    n_elms.clone(),
+                    n_elms.into_owned(),
                 ));
             }
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.clone()))?;
+            .ok_or_else(|| VirtualMachineError::OffsetExceeded(n_elms.into_owned()))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
                 .get_integer(&(array_start.clone() + (elm_size * i as usize)))
                 .map_err(|_| VirtualMachineError::KeyNotFound)?;
 
-            if iter_key == key {
+            if iter_key.as_ref() == key.as_ref() {
                 return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
             }
         }
 
-        Err(VirtualMachineError::NoValueForKey(key.clone()))
+        Err(VirtualMachineError::NoValueForKey(key.into_owned()))
     }
 }
 
 pub fn search_sorted_lower(
     vm: &mut VirtualMachine,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let find_element_max_size = exec_scopes_proxy.get_int("find_element_max_size");
+    let find_element_max_size = exec_scopes.get_int("find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
     if !elm_size.is_positive() {
-        return Err(VirtualMachineError::ValueOutOfRange(elm_size.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(elm_size.into_owned()));
     }
 
     if n_elms.is_negative() {
-        return Err(VirtualMachineError::ValueOutOfRange(n_elms.clone()));
+        return Err(VirtualMachineError::ValueOutOfRange(n_elms.into_owned()));
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
-        if n_elms > &find_element_max_size {
+        if n_elms.as_ref() > &find_element_max_size {
             return Err(VirtualMachineError::FindElemMaxSize(
                 find_element_max_size,
-                n_elms.clone(),
+                n_elms.into_owned(),
             ));
         }
     }
 
-    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.clone();
+    let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.into_owned();
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
@@ -119,12 +120,12 @@ pub fn search_sorted_lower(
 
     for i in 0..n_elms_usize {
         let value = vm.get_integer(&array_iter)?;
-        if value >= key {
+        if value.as_ref() >= key.as_ref() {
             return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_value_from_var_name("index", n_elms.clone(), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("index", n_elms.into_owned(), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -135,7 +136,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::utils::test_utils::vm;
@@ -224,9 +224,8 @@ mod tests {
     fn element_found_by_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_index", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Ok(())
         );
         check_memory![vm.memory, ((1, 3), 1)];
@@ -248,9 +247,8 @@ mod tests {
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_index", bigint!(2))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Err(VirtualMachineError::KeyNotFound)
         );
     }
@@ -339,9 +337,8 @@ mod tests {
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
-            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, exec_scopes_proxy),
+            run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );
     }
@@ -458,13 +455,12 @@ mod tests {
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
         let mut exec_scopes = scope![("find_element_max_size", bigint!(1))];
-        let exec_scopes_proxy = &mut get_exec_scopes_proxy(&mut exec_scopes);
         assert_eq!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code::SEARCH_SORTED_LOWER,
-                exec_scopes_proxy
+                &mut exec_scopes
             ),
             Err(VirtualMachineError::FindElemMaxSize(bigint!(1), bigint!(2)))
         );

@@ -30,6 +30,8 @@ pub enum RunnerError {
     MemoryInitializationError(MemoryError),
     #[error("Memory addresses must be relocatable")]
     NonRelocatableAddress,
+    #[error("Runner base mustn't be in a TemporarySegment, segment: {0}")]
+    RunnerInTemporarySegment(isize),
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
     #[error("Expected integer at address {0:?}")]
@@ -45,7 +47,7 @@ pub enum RunnerError {
     #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
     IntegerBiggerThanPowerOfTwo(MaybeRelocatable, u32, BigInt),
     #[error(
-        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n 
+        "Cannot apply EC operation: computation reched two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {0:?} \n
     m = {1}\n

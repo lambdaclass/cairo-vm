@@ -1,8 +1,6 @@
 use crate::{
     bigint,
-    hint_processor::{
-        hint_processor_definition::HintProcessor, proxies::exec_scopes_proxy::get_exec_scopes_proxy,
-    },
+    hint_processor::hint_processor_definition::HintProcessor,
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -12,8 +10,8 @@ use crate::{
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
-        errors::vm_errors::VirtualMachineError,
-        runners::builtin_runner::BuiltinRunner,
+        errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError},
+        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner},
         trace::trace_entry::TraceEntry,
         vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
@@ -21,9 +19,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
-use std::{any::Any, collections::HashMap};
-
-use super::{errors::memory_errors::MemoryError, runners::builtin_runner::RangeCheckBuiltinRunner};
+use std::{any::Any, borrow::Cow, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -103,9 +99,10 @@ impl VirtualMachine {
     ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
     fn get_instruction_encoding(
         &self,
-    ) -> Result<(&BigInt, Option<&MaybeRelocatable>), VirtualMachineError> {
-        let encoding_ref: &BigInt = match self.memory.get(&self.run_context.pc) {
-            Ok(Some(MaybeRelocatable::Int(ref encoding))) => encoding,
+    ) -> Result<(Cow<BigInt>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
+        let encoding_ref = match self.memory.get(&self.run_context.pc) {
+            Ok(Some(Cow::Owned(MaybeRelocatable::Int(encoding)))) => Cow::Owned(encoding),
+            Ok(Some(Cow::Borrowed(MaybeRelocatable::Int(encoding)))) => Cow::Borrowed(encoding),
             _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
         };
 
@@ -439,7 +436,7 @@ impl VirtualMachine {
         let (instruction_ref, imm) = self.get_instruction_encoding()?;
         match instruction_ref.to_i64() {
             Some(instruction) => {
-                if let Some(MaybeRelocatable::Int(imm_ref)) = imm {
+                if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
                     let decoded_instruction =
                         decode_instruction(instruction, Some(imm_ref.clone()))?;
                     return Ok(decoded_instruction);
@@ -456,12 +453,11 @@ impl VirtualMachine {
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        constants: &HashMap<String, BigInt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for hint_data in hint_list.iter() {
-                //We create a new proxy with every hint as the current scope can change
-                let mut exec_scopes_proxy = get_exec_scopes_proxy(exec_scopes);
-                hint_executor.execute_hint(self, &mut exec_scopes_proxy, hint_data)?
+                hint_executor.execute_hint(self, exec_scopes, hint_data, constants)?
             }
         }
         Ok(())
@@ -479,8 +475,9 @@ impl VirtualMachine {
         hint_executor: &dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        constants: &HashMap<String, BigInt>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary)?;
+        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
         self.step_instruction()
     }
 
@@ -540,7 +537,7 @@ impl VirtualMachine {
         res: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let dst_op = match instruction.opcode {
-            Opcode::AssertEq if res.is_some() => res.clone(),
+            Opcode::AssertEq if res.is_some() => Option::clone(res),
             Opcode::Call => Some(MaybeRelocatable::from(self.run_context.get_fp())),
             _ => self.deduce_dst(instruction, res.as_ref()),
         };
@@ -563,14 +560,14 @@ impl VirtualMachine {
             .memory
             .get(&dst_addr)
             .map_err(VirtualMachineError::MemoryError)?
-            .cloned();
+            .map(Cow::into_owned);
 
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
         let op0_op = self
             .memory
             .get(&op0_addr)
             .map_err(VirtualMachineError::MemoryError)?
-            .cloned();
+            .map(Cow::into_owned);
 
         let op1_addr = self
             .run_context
@@ -579,7 +576,7 @@ impl VirtualMachine {
             .memory
             .get(&op1_addr)
             .map_err(VirtualMachineError::MemoryError)?
-            .cloned();
+            .map(Cow::into_owned);
 
         let mut res: Option<MaybeRelocatable> = None;
 
@@ -618,10 +615,12 @@ impl VirtualMachine {
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter_mut() {
-            let index = builtin.base().segment_index;
+            let index: usize = builtin.base().segment_index.try_into().map_err(|_| {
+                MemoryError::AddressInTemporarySegment(builtin.base().segment_index)
+            })?;
             for (offset, value) in self.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
-                    .deduce_memory_cell(&Relocatable::from((index, offset)), &self.memory)
+                    .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)
                     .map_err(VirtualMachineError::RunnerError)?
                 {
                     if Some(&deduced_memory_cell) != value.as_ref() && value != &None {
@@ -658,21 +657,36 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: &Relocatable) -> Result<&BigInt, VirtualMachineError> {
+    pub fn get_integer(&self, key: &Relocatable) -> Result<Cow<BigInt>, VirtualMachineError> {
         self.memory.get_integer(key)
     }
 
     ///Gets the relocatable value corresponding to the Relocatable address
-    pub fn get_relocatable(&self, key: &Relocatable) -> Result<&Relocatable, VirtualMachineError> {
+    pub fn get_relocatable(
+        &self,
+        key: &Relocatable,
+    ) -> Result<Cow<Relocatable>, VirtualMachineError> {
         self.memory.get_relocatable(key)
     }
 
     ///Gets a MaybeRelocatable value from memory indicated by a generic address
-    pub fn get_maybe<'a, K: 'a>(&self, key: &'a K) -> Result<Option<&MaybeRelocatable>, MemoryError>
+    pub fn get_maybe<'a, 'b: 'a, K: 'a>(
+        &'b self,
+        key: &'a K,
+    ) -> Result<Option<MaybeRelocatable>, MemoryError>
     where
         Relocatable: TryFrom<&'a K>,
     {
-        self.memory.get(key)
+        match self.memory.get(key) {
+            Ok(Some(cow)) => Ok(Some(cow.into_owned())),
+            Ok(None) => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Returns a reference to the vector with all builtins present in the virtual machine
+    pub fn get_builtin_runners(&self) -> &Vec<(String, Box<dyn BuiltinRunner>)> {
+        &self.builtin_runners
     }
 
     ///Inserts a value into a memory address given by a Relocatable value
@@ -709,7 +723,7 @@ impl VirtualMachine {
         &self,
         addr: &MaybeRelocatable,
         size: usize,
-    ) -> Result<Vec<Option<&MaybeRelocatable>>, MemoryError> {
+    ) -> Result<Vec<Option<Cow<MaybeRelocatable>>>, MemoryError> {
         self.memory.get_range(addr, size)
     }
 
@@ -718,7 +732,7 @@ impl VirtualMachine {
         &self,
         addr: &Relocatable,
         size: usize,
-    ) -> Result<Vec<&BigInt>, VirtualMachineError> {
+    ) -> Result<Vec<Cow<BigInt>>, VirtualMachineError> {
         self.memory.get_integer_range(addr, size)
     }
 
@@ -733,6 +747,9 @@ impl VirtualMachine {
             }
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)
+    }
+    pub fn disable_trace(&mut self) {
+        self.trace = None
     }
 
     #[doc(hidden)]
@@ -781,7 +798,10 @@ mod tests {
     fn get_instruction_encoding_successful_without_imm() {
         let mut vm = vm!();
         vm.memory = memory![((0, 0), 5)];
-        assert_eq!(Ok((&bigint!(5), None)), vm.get_instruction_encoding());
+        assert_eq!((bigint!(5), None), {
+            let value = vm.get_instruction_encoding().unwrap();
+            (value.0.into_owned(), value.1)
+        });
     }
 
     #[test]
@@ -793,8 +813,11 @@ mod tests {
         let (num, imm) = vm
             .get_instruction_encoding()
             .expect("Unexpected error on get_instruction_encoding");
-        assert_eq!(num, &bigint!(5));
-        assert_eq!(imm, Some(&MaybeRelocatable::Int(bigint!(6))));
+        assert_eq!(num.as_ref(), &bigint!(5));
+        assert_eq!(
+            imm.map(Cow::into_owned),
+            Some(MaybeRelocatable::Int(bigint!(6)))
+        );
     }
 
     #[test]
@@ -2183,7 +2206,12 @@ mod tests {
         assert!(addresses == expected_addresses);
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, relocatable!(0, 4));
@@ -2382,7 +2410,12 @@ mod tests {
         ];
 
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         let trace = vm.trace.unwrap();
@@ -2458,7 +2491,12 @@ mod tests {
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_eq!(
-                vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+                vm.step(
+                    &hint_processor,
+                    exec_scopes_ref!(),
+                    &HashMap::new(),
+                    &HashMap::new()
+                ),
                 Ok(())
             );
         }
@@ -2554,40 +2592,67 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
         assert_eq!(vm.run_context.ap, 2);
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.get_ap()),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0x4)))),
+            vm.memory
+                .get(&vm.run_context.get_ap())
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::Int(bigint!(0x4)),
         );
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
         assert_eq!(vm.run_context.ap, 3);
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.get_ap()),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0x5))))
+            vm.memory
+                .get(&vm.run_context.get_ap())
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::Int(bigint!(0x5))
         );
 
         let hint_processor = BuiltinHintProcessor::new_empty();
         assert_eq!(
-            vm.step(&hint_processor, exec_scopes_ref!(), &HashMap::new()),
+            vm.step(
+                &hint_processor,
+                exec_scopes_ref!(),
+                &HashMap::new(),
+                &HashMap::new()
+            ),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
         assert_eq!(vm.run_context.ap, 4);
 
         assert_eq!(
-            vm.memory.get(&vm.run_context.get_ap()),
-            Ok(Some(&MaybeRelocatable::Int(bigint!(0x14)))),
+            vm.memory
+                .get(&vm.run_context.get_ap())
+                .unwrap()
+                .unwrap()
+                .as_ref(),
+            &MaybeRelocatable::Int(bigint!(0x14)),
         );
     }
 
@@ -3086,7 +3151,12 @@ mod tests {
         //Run Steps
         for _ in 0..6 {
             assert_eq!(
-                vm.step(&hint_processor, exec_scopes_ref!(), &hint_data_dictionary),
+                vm.step(
+                    &hint_processor,
+                    exec_scopes_ref!(),
+                    &hint_data_dictionary,
+                    &HashMap::new()
+                ),
                 Ok(())
             );
         }
@@ -3115,5 +3185,32 @@ mod tests {
             vm.memory.data[2],
             vec![Some(MaybeRelocatable::from(bigint!(1)))]
         );
+    }
+
+    #[test]
+    fn test_get_builtin_runners() {
+        let mut vm = vm!();
+        let hash_builtin = HashBuiltinRunner::new(8);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(8);
+        vm.builtin_runners
+            .push((String::from("pedersen"), Box::new(hash_builtin)));
+        vm.builtin_runners
+            .push((String::from("bitwise"), Box::new(bitwise_builtin)));
+
+        let builtins = vm.get_builtin_runners();
+
+        assert_eq!(builtins[0].0, "pedersen");
+        assert_eq!(builtins[1].0, "bitwise");
+    }
+
+    #[test]
+    fn disable_trace() {
+        let mut vm = VirtualMachine::new(
+            BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
+            true,
+        );
+        assert!(vm.trace.is_some());
+        vm.disable_trace();
+        assert!(vm.trace.is_none());
     }
 }

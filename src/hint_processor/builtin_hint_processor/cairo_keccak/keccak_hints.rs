@@ -7,17 +7,20 @@ use crate::{
     serde::deserialize_program::ApTracking, types::relocatable::MaybeRelocatable,
     vm::errors::vm_errors::VirtualMachineError,
 };
-use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
-lazy_static! {
-    pub static ref BYTES_IN_WORD: BigInt = bigint!(8);
-    pub static ref KECCAK_FULL_RATE_IN_BYTES: BigInt = bigint!(136);
-}
-const KECCAK_STATE_SIZE_FELTS: usize = 25;
-const BLOCK_SIZE: usize = 3;
+// Constants in package "starkware.cairo.common.cairo_keccak.keccak".
+const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
+const KECCAK_FULL_RATE_IN_BYTES: &str =
+    "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
+const KECCAK_STATE_SIZE_FELTS: &str =
+    "starkware.cairo.common.cairo_keccak.keccak.KECCAK_STATE_SIZE_FELTS";
+
+// Constants in package "starkware.cairo.common.cairo_keccak.packed_keccak".
+const BLOCK_SIZE: &str = "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE";
 
 /*
 Implements hint:
@@ -35,6 +38,8 @@ pub fn keccak_write_args(
 
     let low = get_integer_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm, ids_data, ap_tracking)?;
+    let low = low.as_ref();
+    let high = high.as_ref();
 
     let low_args = [low & bigint!(u64::MAX), low >> 64];
     let high_args = [high & bigint!(u64::MAX), high >> 64];
@@ -60,15 +65,20 @@ pub fn compare_bytes_in_word_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
     // This works fine, but it should be checked for a performance improvement.
     // One option is to try to convert n_bytes into usize, with failure to do so simply
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // bigint!(BYTES_INTO_WORD) into a lazy_static!
-    let value = bigint!((n_bytes < &BYTES_IN_WORD) as usize);
+    let bytes_in_word = constants
+        .get(BYTES_IN_WORD)
+        .ok_or(VirtualMachineError::MissingConstant(BYTES_IN_WORD))?;
+    let value = bigint!((n_bytes < bytes_in_word) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -84,10 +94,18 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
+    let n_bytes = n_bytes.as_ref();
 
-    let value = bigint!((n_bytes >= &KECCAK_FULL_RATE_IN_BYTES) as usize);
+    let keccak_full_rate_in_bytes =
+        constants
+            .get(KECCAK_FULL_RATE_IN_BYTES)
+            .ok_or(VirtualMachineError::MissingConstant(
+                KECCAK_FULL_RATE_IN_BYTES,
+            ))?;
+    let value = bigint!((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -107,25 +125,34 @@ pub fn block_permutation(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    // these checks may not make sense now, but will when constants are
-    // deserialized from the compiled JSON programs.
-    if KECCAK_STATE_SIZE_FELTS >= 100 {
+    let keccak_state_size_felts =
+        constants
+            .get(KECCAK_STATE_SIZE_FELTS)
+            .ok_or(VirtualMachineError::MissingConstant(
+                KECCAK_STATE_SIZE_FELTS,
+            ))?;
+
+    if keccak_state_size_felts >= &bigint!(100) {
         return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
-            KECCAK_STATE_SIZE_FELTS,
+            keccak_state_size_felts.clone(),
         ));
     }
 
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm, ids_data, ap_tracking)?;
 
+    let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
     let values = vm
         .get_range(
-            &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(KECCAK_STATE_SIZE_FELTS)?),
-            KECCAK_STATE_SIZE_FELTS,
+            &MaybeRelocatable::RelocatableValue(keccak_ptr.sub(keccak_state_size_felts)?),
+            keccak_state_size_felts,
         )
         .map_err(VirtualMachineError::MemoryError)?;
 
-    let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?;
+    let mut u64_values = maybe_reloc_vec_to_u64_array(&values)?
+        .try_into()
+        .map_err(|_| VirtualMachineError::SliceToArrayError)?;
 
     // this function of the keccak crate is the one used instead of keccak_func from
     // keccak_utils.py
@@ -155,28 +182,42 @@ pub fn cairo_keccak_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    // these checks may not make sense now, but will when constants are
-    // deserialized from the compiled JSON programs.
-    if KECCAK_STATE_SIZE_FELTS >= 100 {
+    let keccak_state_size_felts =
+        constants
+            .get(KECCAK_STATE_SIZE_FELTS)
+            .ok_or(VirtualMachineError::MissingConstant(
+                KECCAK_STATE_SIZE_FELTS,
+            ))?;
+    let block_size = constants
+        .get(BLOCK_SIZE)
+        .ok_or(VirtualMachineError::MissingConstant(BLOCK_SIZE))?;
+
+    if keccak_state_size_felts >= &bigint!(100) {
         return Err(VirtualMachineError::InvalidKeccakStateSizeFelts(
-            KECCAK_STATE_SIZE_FELTS,
+            keccak_state_size_felts.clone(),
         ));
     }
 
-    if BLOCK_SIZE >= 10 {
-        return Err(VirtualMachineError::InvalidBlockSize(BLOCK_SIZE));
+    if block_size >= &bigint!(10) {
+        return Err(VirtualMachineError::InvalidBlockSize(block_size.clone()));
     }
 
-    let mut inp = [0u64; KECCAK_STATE_SIZE_FELTS];
+    let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
+    let block_size = block_size.to_usize().unwrap();
+
+    let mut inp = vec![0; keccak_state_size_felts]
+        .try_into()
+        .map_err(|_| VirtualMachineError::SliceToArrayError)?;
     keccak::f1600(&mut inp);
 
-    let mut padding = vec![bigint!(0_u64); KECCAK_STATE_SIZE_FELTS];
+    let mut padding = vec![bigint!(0_u64); keccak_state_size_felts];
     padding.extend(u64_array_to_bigint_vec(&inp));
 
     let base_padding = padding.clone();
 
-    for _ in 0..(BLOCK_SIZE - 1) {
+    for _ in 0..(block_size - 1) {
         padding.extend_from_slice(base_padding.as_slice());
     }
 
@@ -191,25 +232,25 @@ pub fn cairo_keccak_finalize(
 // Helper function to transform a vector of MaybeRelocatables into a vector
 // of u64. Raises error if there are None's or if MaybeRelocatables are not Bigints.
 fn maybe_reloc_vec_to_u64_array(
-    vec: &[Option<&MaybeRelocatable>],
-) -> Result<[u64; KECCAK_STATE_SIZE_FELTS], VirtualMachineError> {
-    let array: [u64; KECCAK_STATE_SIZE_FELTS] = vec
+    vec: &[Option<Cow<MaybeRelocatable>>],
+) -> Result<Vec<u64>, VirtualMachineError> {
+    let array = vec
         .iter()
-        .map(|n| {
-            if let Some(MaybeRelocatable::Int(num)) = n {
+        .map(|n| match n {
+            Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
+            | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
                 num.to_u64().ok_or(VirtualMachineError::BigintToU64Fail)
-            } else {
-                Err(VirtualMachineError::ExpectedIntAtRange(n.cloned()))
             }
+            _ => Err(VirtualMachineError::ExpectedIntAtRange(
+                n.as_ref().map(|x| x.to_owned().into_owned()),
+            )),
         })
-        .collect::<Result<Vec<u64>, VirtualMachineError>>()?
-        .try_into()
-        .map_err(|_| VirtualMachineError::BigintToU32Fail)?;
+        .collect::<Result<Vec<u64>, VirtualMachineError>>()?;
 
     Ok(array)
 }
 
-fn u64_array_to_bigint_vec(array: &[u64; KECCAK_STATE_SIZE_FELTS]) -> Vec<BigInt> {
+fn u64_array_to_bigint_vec(array: &[u64]) -> Vec<BigInt> {
     array.iter().map(|n| bigint!(*n)).collect()
 }
 
@@ -221,7 +262,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::hint_processor::proxies::exec_scopes_proxy::get_exec_scopes_proxy;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -273,7 +313,19 @@ mod tests {
 
         run_context!(vm, 0, 1, 1);
         let ids_data = ids_data!["n_bytes"];
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
     }
 
     #[test]
@@ -289,7 +341,19 @@ mod tests {
         run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
     }
 
     #[test]
@@ -304,6 +368,18 @@ mod tests {
         run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
-        assert_eq!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &[(KECCAK_FULL_RATE_IN_BYTES, bigint!(136))]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
     }
 }

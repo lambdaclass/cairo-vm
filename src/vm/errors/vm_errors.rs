@@ -109,9 +109,9 @@ pub enum VirtualMachineError {
     #[error("Variable {0} not present in current execution scope")]
     VariableNotInScopeError(String),
     #[error("DictManagerError: Tried to create tracker for a dictionary on segment: {0} when there is already a tracker for a dictionary on this segment")]
-    CantCreateDictionaryOnTakenSegment(usize),
+    CantCreateDictionaryOnTakenSegment(isize),
     #[error("Dict Error: No dict tracker found for segment {0}")]
-    NoDictTracker(usize),
+    NoDictTracker(isize),
     #[error("ict Error: No value found for key: {0}")]
     NoValueForKey(BigInt),
     #[error("Assertion failed, a = {0} % PRIME is not less than b = {1} % PRIME")]
@@ -199,9 +199,9 @@ pub enum VirtualMachineError {
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     #[error("Expected size to be in the range from [0, 100), got: {0}")]
-    InvalidKeccakStateSizeFelts(usize),
+    InvalidKeccakStateSizeFelts(BigInt),
     #[error("Expected size to be in range from [0, 10), got: {0}")]
-    InvalidBlockSize(usize),
+    InvalidBlockSize(BigInt),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
@@ -218,4 +218,6 @@ pub enum VirtualMachineError {
     CustomHint(String),
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
+    #[error("Missing constant: {0}")]
+    MissingConstant(&'static str),
 }

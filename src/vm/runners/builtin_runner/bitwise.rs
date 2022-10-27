@@ -13,7 +13,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct BitwiseBuiltinRunner {
     _ratio: usize,
-    pub base: usize,
+    pub base: isize,
     cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,
@@ -45,7 +45,9 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) {}
+    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+        Ok(())
+    }
 
     fn deduce_memory_cell(
         &mut self,
@@ -58,9 +60,13 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         }
         let x_addr = MaybeRelocatable::from((address.segment_index, address.offset - index));
         let y_addr = x_addr.add_usize_mod(1, None);
-        if let (Ok(Some(MaybeRelocatable::Int(num_x))), Ok(Some(MaybeRelocatable::Int(num_y)))) =
-            (memory.get(&x_addr), memory.get(&y_addr))
-        {
+
+        let num_x = memory.get(&x_addr);
+        let num_y = memory.get(&y_addr);
+        if let (Ok(Some(MaybeRelocatable::Int(num_x))), Ok(Some(MaybeRelocatable::Int(num_y)))) = (
+            num_x.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+            num_y.as_ref().map(|x| x.as_ref().map(|x| x.as_ref())),
+        ) {
             let _2_pow_bits = bigint!(1).shl(self.total_n_bits);
             if num_x >= &_2_pow_bits {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(

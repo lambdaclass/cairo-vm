@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::borrow::Cow;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -14,7 +15,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
-    base: usize,
+    base: isize,
     _stop_ptr: Option<Relocatable>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
@@ -51,23 +52,33 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         Relocatable::from((self.base, 0))
     }
 
-    fn add_validation_rule(&self, memory: &mut Memory) {
+    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
              -> Result<MaybeRelocatable, MemoryError> {
-                if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
-                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
-                        Ok(address.to_owned())
-                    } else {
-                        Err(MemoryError::NumOutOfBounds)
+                match memory.get(address)? {
+                    Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
+                    | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
+                        if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
+                            Ok(address.to_owned())
+                        } else {
+                            Err(MemoryError::NumOutOfBounds)
+                        }
                     }
-                } else {
-                    Err(MemoryError::FoundNonInt)
+                    _ => Err(MemoryError::FoundNonInt),
                 }
             },
         ));
-        memory.add_validation_rule(self.base, rule);
+
+        let segment_index: usize = self
+            .base
+            .try_into()
+            .map_err(|_| RunnerError::RunnerInTemporarySegment(self.base))?;
+
+        memory.add_validation_rule(segment_index, rule);
+
+        Ok(())
     }
 
     fn deduce_memory_cell(
