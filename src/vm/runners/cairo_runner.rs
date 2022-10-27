@@ -2308,15 +2308,18 @@ mod tests {
         };
 
         let mut cairo_runner = CairoRunner::new(&program).unwrap();
-        let mut vm = vm!();
 
-        vm.accessed_addresses = Some(HashSet::new());
+        assert_eq!(
+            cairo_runner.mark_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
         cairo_runner.mark_as_accessed((0, 0).into(), 3).unwrap();
         cairo_runner.mark_as_accessed((0, 10).into(), 2).unwrap();
         cairo_runner.mark_as_accessed((1, 1).into(), 1).unwrap();
-        println!("{:?}", vm.accessed_addresses);
         assert_eq!(
-            vm.accessed_addresses.unwrap(),
+            cairo_runner.accessed_addresses.unwrap(),
             [
                 (0, 0).into(),
                 (0, 1).into(),
