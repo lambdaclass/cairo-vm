@@ -1,4 +1,4 @@
-pub struct CairoLayout {
+pub(crate) struct CairoLayout {
     name: String,
     cpu_component_step: i32,
     rc_units: i32,
@@ -110,7 +110,7 @@ impl CairoLayout {
     }
 }
 
-pub struct BuiltinInstanceDef {
+pub(crate) struct BuiltinInstanceDef {
     output: bool,
     pedersen: Option<PedersenInstanceDef>,
     range_check: Option<RangeCheckInstanceDef>,
