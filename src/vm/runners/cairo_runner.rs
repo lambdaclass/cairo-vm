@@ -2418,7 +2418,7 @@ mod tests {
         );
     }
 
-    #[test]   
+    #[test]
     fn get_constants() {
         let program_constants = HashMap::from([
             ("MAX".to_string(), bigint!(300)),
