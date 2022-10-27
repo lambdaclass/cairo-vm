@@ -170,7 +170,7 @@ impl MemorySegmentManager {
 
         let max = cmp::max(self.segment_sizes.len(), segment_used_sizes.len());
         Ok((0..max)
-            .filter_map(|index| accessed_offsets_sets.get(&index).map(Some).unwrap_or(None))
+            .filter_map(|index| accessed_offsets_sets.get(&index))
             .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
             .sum())
     }
