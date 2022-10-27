@@ -54,7 +54,11 @@ impl BuiltinRunner for OutputBuiltinRunner {
     fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
         let segment_size = vm
             .segments
-            .get_segment_size(self.base as _)
+            .get_segment_size(
+                self.base
+                    .try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
+            )
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
         Ok((0..segment_size).map(|i| (self.base, i).into()).collect())
@@ -70,6 +74,8 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::test_utils::vm;
+    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn initialize_segments_for_output() {
@@ -90,5 +96,30 @@ mod tests {
             MaybeRelocatable::RelocatableValue(builtin.base())
         );
         assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = OutputBuiltinRunner::new();
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base, 0).into(),
+                (builtin.base, 1).into(),
+                (builtin.base, 2).into(),
+                (builtin.base, 3).into(),
+            ]),
+        );
     }
 }

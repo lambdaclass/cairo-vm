@@ -192,7 +192,11 @@ impl BuiltinRunner for EcOpBuiltinRunner {
     fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
         let segment_size = vm
             .segments
-            .get_segment_size(self.base as _)
+            .get_segment_size(
+                self.base
+                    .try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
+            )
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
         Ok((0..segment_size).map(|i| (self.base, i).into()).collect())
@@ -205,6 +209,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::errors::runner_errors::RunnerError;
+    use num_bigint::Sign;
 
     #[test]
     fn point_is_on_curve_a() {
@@ -613,6 +618,31 @@ mod tests {
             Err(RunnerError::EcOpBuiltinScalarLimit(
                 builtin.scalar_limit.clone()
             ))
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base, 0).into(),
+                (builtin.base, 1).into(),
+                (builtin.base, 2).into(),
+                (builtin.base, 3).into(),
+            ]),
         );
     }
 }

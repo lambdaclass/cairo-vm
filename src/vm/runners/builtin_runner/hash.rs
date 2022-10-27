@@ -104,7 +104,11 @@ impl BuiltinRunner for HashBuiltinRunner {
     fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
         let segment_size = vm
             .segments
-            .get_segment_size(self.base as _)
+            .get_segment_size(
+                self.base
+                    .try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
+            )
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
 
         Ok((0..segment_size).map(|i| (self.base, i).into()).collect())
@@ -116,6 +120,7 @@ mod tests {
     use super::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::{bigint, bigint_str, utils::test_utils::*};
+    use num_bigint::Sign;
 
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
@@ -155,5 +160,30 @@ mod tests {
         builtin.verified_addresses = vec![Relocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = HashBuiltinRunner::new(256);
+        let mut vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base, 0).into(),
+                (builtin.base, 1).into(),
+                (builtin.base, 2).into(),
+                (builtin.base, 3).into(),
+            ]),
+        );
     }
 }
