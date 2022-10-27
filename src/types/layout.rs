@@ -109,26 +109,3 @@ impl CairoLayout {
         }
     }
 }
-
-pub(crate) struct BuiltinInstanceDef {
-    output: bool,
-    pedersen: Option<PedersenInstanceDef>,
-    range_check: Option<RangeCheckInstanceDef>,
-    ecdsa: Option<EcdsaInstanceDef>,
-    bitwise: Option<BitwiseInstanceDef>,
-    ec_op: Option<EcOpInstanceDef>,
-}
-
-impl BuiltinInstanceDef {
-    pub(crate) fn plain() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
-            output: false,
-            pedersen: None,
-            range_check: None,
-            ecdsa: None,
-            bitwise: None,
-            ec_op: None,
-        }
-    }
-
-}
