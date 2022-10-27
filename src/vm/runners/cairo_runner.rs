@@ -40,6 +40,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -57,6 +58,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            accessed_addresses: None,
             run_ended: false,
             relocated_memory: Vec::new(),
             relocated_trace: None,
@@ -309,11 +311,10 @@ impl CairoRunner {
         &mut self,
         address: Relocatable,
         size: usize,
-        vm: &mut VirtualMachine,
     ) -> Result<(), VirtualMachineError> {
-        let accessed_addressess = match &mut vm.accessed_addresses {
+        let accessed_addressess = match &mut self.accessed_addresses {
             Some(x) => x,
-            None => return Err(VirtualMachineError::MissingAccessedAddresses),
+            None => return Err(VirtualMachineError::RunNotFinished),
         };
 
         accessed_addressess.extend((0..size).map(|i| &address + i));
@@ -2387,15 +2388,9 @@ mod tests {
         let mut vm = vm!();
 
         vm.accessed_addresses = Some(HashSet::new());
-        cairo_runner
-            .mark_as_accessed((0, 0).into(), 3, &mut vm)
-            .unwrap();
-        cairo_runner
-            .mark_as_accessed((0, 10).into(), 2, &mut vm)
-            .unwrap();
-        cairo_runner
-            .mark_as_accessed((1, 1).into(), 1, &mut vm)
-            .unwrap();
+        cairo_runner.mark_as_accessed((0, 0).into(), 3).unwrap();
+        cairo_runner.mark_as_accessed((0, 10).into(), 2).unwrap();
+        cairo_runner.mark_as_accessed((1, 1).into(), 1).unwrap();
         println!("{:?}", vm.accessed_addresses);
         assert_eq!(
             vm.accessed_addresses.unwrap(),

@@ -220,6 +220,6 @@ pub enum VirtualMachineError {
     MissingConstant(&'static str),
     #[error(transparent)]
     TracerError(#[from] TraceError),
-    #[error("accessed_addresses is None")]
-    MissingAccessedAddresses,
+    #[error("Current run is not finished")]
+    RunNotFinished,
 }
