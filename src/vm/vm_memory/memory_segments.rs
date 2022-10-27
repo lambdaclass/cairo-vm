@@ -1,6 +1,7 @@
 use num_bigint::BigInt;
 use num_integer::Integer;
 use std::any::Any;
+use std::cmp;
 use std::collections::{HashMap, HashSet};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -75,13 +76,9 @@ impl MemorySegmentManager {
     ///Returns the number of used segments when they are already computed.
     ///Returns None otherwise.
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
-        self.segment_used_sizes.as_ref().and_then(|used_sizes| {
-            if used_sizes.len() > index {
-                Some(used_sizes[index])
-            } else {
-                None
-            }
-        })
+        self.segment_used_sizes
+            .as_ref()
+            .and_then(|used_sizes| used_sizes.get(index).copied())
     }
 
     ///Returns a vector that contains the first relocated address of each memory segment
@@ -171,11 +168,9 @@ impl MemorySegmentManager {
             offset_set.insert(offset);
         }
 
-        Ok((0..self.segment_sizes.len())
-            .chain(0..segment_used_sizes.len())
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .map(|index| accessed_offsets_sets.get(&index).unwrap())
+        let max = cmp::max(self.segment_sizes.len(), segment_used_sizes.len());
+        Ok((0..max)
+            .filter_map(|index| accessed_offsets_sets.get(&index).map(Some).unwrap_or(None))
             .map(|(segment_size, offsets_set)| segment_size - offsets_set.len())
             .sum())
     }
@@ -477,21 +472,22 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_holes() {
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut accessed_addresses = HashSet::new();
+    fn get_memory_holes_missing_segment_used_sizes() {
+        let memory_segment_manager = MemorySegmentManager::new();
+        let accessed_addresses = HashSet::new();
 
         assert_eq!(
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
+    }
+
+    #[test]
+    fn get_memory_holes_segment_not_finalized() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut accessed_addresses = HashSet::new();
 
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-        assert_eq!(
-            memory_segment_manager.get_memory_holes(&accessed_addresses),
-            Ok(0),
-        );
-
         accessed_addresses.insert((0, 0).into());
         accessed_addresses.insert((0, 1).into());
         accessed_addresses.insert((0, 2).into());
@@ -500,11 +496,35 @@ mod tests {
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Err(MemoryError::SegmentNotFinalized(0)),
         );
+    }
+
+    #[test]
+    fn get_memory_holes_out_of_bounds() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut accessed_addresses = HashSet::new();
+
+        memory_segment_manager.segment_used_sizes = Some(Vec::new());
+        accessed_addresses.insert((0, 0).into());
+        accessed_addresses.insert((0, 1).into());
+        accessed_addresses.insert((0, 2).into());
+        accessed_addresses.insert((0, 3).into());
 
         memory_segment_manager.segment_used_sizes = Some(vec![2]);
         assert_eq!(
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Err(MemoryError::NumOutOfBounds),
+        );
+    }
+
+    #[test]
+    fn get_memory_holes() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut accessed_addresses = HashSet::new();
+
+        memory_segment_manager.segment_used_sizes = Some(Vec::new());
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(&accessed_addresses),
+            Ok(0),
         );
 
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
@@ -514,6 +534,10 @@ mod tests {
         );
 
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
+        accessed_addresses.insert((0, 0).into());
+        accessed_addresses.insert((0, 1).into());
+        accessed_addresses.insert((0, 2).into());
+        accessed_addresses.insert((0, 3).into());
         accessed_addresses.insert((0, 6).into());
         accessed_addresses.insert((0, 7).into());
         accessed_addresses.insert((0, 8).into());
