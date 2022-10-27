@@ -26,6 +26,7 @@ use crate::{
 use num_bigint::BigInt;
 use std::{
     any::Any,
+    borrow::Cow,
     collections::{HashMap, HashSet},
     io,
 };
@@ -39,6 +40,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    run_ended: bool,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
@@ -55,6 +57,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            run_ended: false,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
@@ -315,6 +318,64 @@ impl CairoRunner {
 
         builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
         vm.segments.get_memory_holes(&builtin_accessed_addresses)
+    }
+
+    pub fn end_run(
+        &mut self,
+        _disable_trace_padding: Option<bool>,
+        disable_finalize_all: Option<bool>,
+        vm: &mut VirtualMachine,
+    ) -> Result<(), VirtualMachineError> {
+        // let disable_trace_padding = disable_trace_padding.unwrap_or(true);
+        let disable_finalize_all = disable_finalize_all.unwrap_or(false);
+
+        if self.run_ended {
+            return Err(RunnerError::RunAlreadyEnded.into());
+        }
+
+        // Process accessed_addresses.
+        {
+            let accessed_addresses = vm
+                .accessed_addresses
+                .as_ref()
+                .ok_or_else::<VirtualMachineError, _>(|| {
+                    MemoryError::MissingAccessedAddresses.into()
+                })?;
+            let mut new_accessed_addresses = Vec::with_capacity(accessed_addresses.len());
+
+            for addr in accessed_addresses {
+                let relocated_addr = vm
+                    .memory
+                    .relocate_value(Some(Cow::Owned(addr.into())))?
+                    .unwrap()
+                    .into_owned();
+
+                new_accessed_addresses.push(relocated_addr.try_into().unwrap());
+            }
+
+            vm.accessed_addresses = Some(new_accessed_addresses);
+        }
+
+        self.relocate(vm)
+            .map_err(VirtualMachineError::TracerError)?;
+        vm.end_run(&self.exec_scopes)?;
+
+        if !disable_finalize_all {
+            // vm.memory.freeze();
+            vm.segments.compute_effective_sizes(&vm.memory);
+
+            // if self.proof_mode && !disable_trace_padding {
+            //     self.run_until_next_power_of_2();
+            //     while !self.check_used_cells() {
+            //         self.run_for_steps(1);
+            //         self.run_until_next_power_of_2();
+            //     }
+            // }
+
+            self.run_ended = true;
+        }
+
+        Ok(())
     }
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts

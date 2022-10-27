@@ -1,10 +1,10 @@
+use super::exec_scope_errors::ExecScopeError;
+use super::trace_errors::TraceError;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use num_bigint::BigInt;
 use thiserror::Error;
-
-use super::exec_scope_errors::ExecScopeError;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum VirtualMachineError {
@@ -218,4 +218,6 @@ pub enum VirtualMachineError {
     CustomHint(String),
     #[error("Missing constant: {0}")]
     MissingConstant(&'static str),
+    #[error(transparent)]
+    TracerError(#[from] TraceError),
 }
