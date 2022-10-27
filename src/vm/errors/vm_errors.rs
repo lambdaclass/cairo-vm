@@ -220,4 +220,6 @@ pub enum VirtualMachineError {
     MissingConstant(&'static str),
     #[error("Fail to get constants for hint execution")]
     FailedToGetConstant,
+    #[error("Current run is not finished")]
+    RunNotFinished,
 }

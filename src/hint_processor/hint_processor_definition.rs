@@ -46,6 +46,7 @@ pub struct HintReference {
     pub inner_dereference: bool,
     pub ap_tracking_data: Option<ApTracking>,
     pub immediate: Option<BigInt>,
+    pub cairo_type: Option<String>,
 }
 
 impl HintReference {
@@ -58,6 +59,7 @@ impl HintReference {
             ap_tracking_data: None,
             immediate: None,
             dereference: true,
+            cairo_type: None,
         }
     }
 
@@ -70,6 +72,7 @@ impl HintReference {
             ap_tracking_data: None,
             immediate: None,
             dereference,
+            cairo_type: None,
         }
     }
 }
