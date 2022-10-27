@@ -206,6 +206,16 @@ pub mod test_utils {
     }
     pub(crate) use vm_with_range_check;
 
+    macro_rules! cairo_runner {
+        ($program:expr) => {
+            CairoRunner::new(&$program, Some("all".to_string())).unwrap()
+        };
+        ($program:expr, $layout:expr) => {
+            CairoRunner::new(&program, Some($layout.to_string())).unwrap()
+        };
+    }
+    pub(crate) use cairo_runner;
+
     macro_rules! vm {
         () => {{
             VirtualMachine::new(

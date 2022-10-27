@@ -39,6 +39,7 @@ fn main() -> Result<(), CairoRunError> {
         &args.entrypoint,
         trace_enabled,
         args.print_output,
+        args.layout,
     ) {
         Ok(runner) => runner,
         Err(error) => return Err(error),

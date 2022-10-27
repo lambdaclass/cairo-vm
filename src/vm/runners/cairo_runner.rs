@@ -28,7 +28,7 @@ use std::{any::Any, collections::HashMap, io};
 
 pub struct CairoRunner {
     program: Program,
-    _layout: String,
+    layout: String,
     final_pc: Option<Relocatable>,
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
@@ -41,10 +41,10 @@ pub struct CairoRunner {
 }
 
 impl CairoRunner {
-    pub fn new(program: &Program) -> Result<CairoRunner, RunnerError> {
+    pub fn new(program: &Program, layout: Option<String>) -> Result<CairoRunner, RunnerError> {
         Ok(CairoRunner {
             program: program.clone(),
-            _layout: String::from("plain"),
+            layout: layout.unwrap_or(String::from("plain")),
             final_pc: None,
             program_base: None,
             execution_base: None,
@@ -438,7 +438,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let cairo_runner = CairoRunner::new(&program).unwrap();
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         assert!(cairo_runner.initialize_builtins(&mut vm).is_err());
     }
@@ -459,7 +459,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         //We only check that the creation doesnt panic
-        let _cairo_runner = CairoRunner::new(&program);
+        let _cairo_runner = cairo_runner!(program);
     }
 
     #[test]
@@ -477,7 +477,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let program_base = Some(Relocatable {
             segment_index: 5,
@@ -521,7 +521,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -560,7 +560,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(1, 0));
         cairo_runner.execution_base = Some(relocatable!(2, 0));
@@ -591,7 +591,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -621,7 +621,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..3 {
             vm.segments.add(&mut vm.memory);
@@ -648,7 +648,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -680,7 +680,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -708,7 +708,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -740,7 +740,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
@@ -773,7 +773,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         let stack = vec![MaybeRelocatable::from(bigint!(7))];
         let return_fp = MaybeRelocatable::from(bigint!(9));
@@ -798,7 +798,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
     }
@@ -818,7 +818,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(0, 0));
@@ -841,7 +841,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
@@ -869,7 +869,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
@@ -906,7 +906,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initial_pc = Some(relocatable!(0, 1));
         cairo_runner.initial_ap = Some(relocatable!(1, 2));
@@ -964,7 +964,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_segments(&mut vm, None);
         cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
@@ -1043,7 +1043,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1138,7 +1138,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
         cairo_runner.initialize_builtins(&mut vm).unwrap();
@@ -1229,7 +1229,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_segments(&mut vm, None);
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
@@ -1317,7 +1317,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -1430,7 +1430,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -1571,7 +1571,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -1675,7 +1675,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         for _ in 0..4 {
             vm.segments.add(&mut vm.memory);
@@ -1819,7 +1819,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -1961,7 +1961,7 @@ mod tests {
             identifiers: HashMap::new(),
         };
         let hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -2091,7 +2091,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -2151,7 +2151,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -2184,7 +2184,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
@@ -2230,7 +2230,7 @@ mod tests {
             },
             identifiers: HashMap::new(),
         };
-        let cairo_runner = CairoRunner::new(&program).unwrap();
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
