@@ -321,6 +321,7 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let accessed_addresses = self
             .accessed_addresses
@@ -2417,6 +2418,176 @@ mod tests {
             .into_iter()
             .collect(),
         );
+    }
+
+    #[test]
+    fn get_memory_holes_missing_accessed_addresses() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = CairoRunner::new(&program).unwrap();
+        let vm = vm!();
+
+        assert_eq!(
+            cairo_runner.get_memory_holes(&vm),
+            Err(MemoryError::MissingAccessedAddresses),
+        );
+    }
+
+    #[test]
+    fn get_memory_holes_missing_segment_used_sizes() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.builtin_runners = Vec::new();
+        assert_eq!(
+            cairo_runner.get_memory_holes(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_holes_empty() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.builtin_runners = Vec::new();
+        vm.segments.segment_used_sizes = Some(Vec::new());
+        assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_memory_holes_empty_builtins() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses =
+            Some([(0, 0).into(), (0, 2).into()].into_iter().collect());
+        vm.builtin_runners = Vec::new();
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
+    }
+
+    #[test]
+    fn get_memory_holes_empty_accesses() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.builtin_runners = vec![{
+            let mut builtin_runner = OutputBuiltinRunner::new();
+            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+
+            ("output".to_string(), Box::new(builtin_runner))
+        }];
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_memory_holes() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses =
+            Some([(1, 0).into(), (1, 2).into()].into_iter().collect());
+        vm.builtin_runners = vec![{
+            let mut builtin_runner = OutputBuiltinRunner::new();
+            builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
+
+            ("output".to_string(), Box::new(builtin_runner))
+        }];
+        vm.segments.segment_used_sizes = Some(vec![4, 4]);
+        assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
     }
 
     #[test]
