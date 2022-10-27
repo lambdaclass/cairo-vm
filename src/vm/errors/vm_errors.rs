@@ -218,6 +218,6 @@ pub enum VirtualMachineError {
     CustomHint(String),
     #[error("Missing constant: {0}")]
     MissingConstant(&'static str),
-    #[error("accessed_addresses is None")]
-    MissingAccessedAddresses,
+    #[error("Current run is not finished")]
+    RunNotFinished,
 }
