@@ -327,11 +327,10 @@ impl CairoRunner {
             .as_ref()
             .ok_or(MemoryError::MissingAccessedAddresses)?;
 
-        let mut builtin_accessed_addresses = vm
-            .builtin_runners
-            .iter()
-            .flat_map(|(_, x)| x.get_memory_accesses(self).into_iter())
-            .collect::<HashSet<_>>();
+        let mut builtin_accessed_addresses = HashSet::new();
+        for (_, builtin_runner) in &vm.builtin_runners {
+            builtin_accessed_addresses.extend(builtin_runner.get_memory_accesses(vm)?.into_iter());
+        }
 
         builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
         vm.segments.get_memory_holes(&builtin_accessed_addresses)
