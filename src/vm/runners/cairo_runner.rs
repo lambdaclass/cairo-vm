@@ -347,18 +347,18 @@ impl CairoRunner {
         let disable_finalize_all = disable_finalize_all.unwrap_or(false);
 
         if self.run_ended {
-            return Err(RunnerError::RunAlreadyEnded.into());
+            return Err(RunnerError::RunAlreadyFinished.into());
         }
 
         // Process accessed_addresses.
-        {
+        self.accessed_addresses = Some({
             let accessed_addresses = vm
                 .accessed_addresses
                 .as_ref()
                 .ok_or_else::<VirtualMachineError, _>(|| {
                     MemoryError::MissingAccessedAddresses.into()
                 })?;
-            let mut new_accessed_addresses = Vec::with_capacity(accessed_addresses.len());
+            let mut new_accessed_addresses = HashSet::with_capacity(accessed_addresses.len());
 
             for addr in accessed_addresses {
                 let relocated_addr = vm
@@ -367,11 +367,11 @@ impl CairoRunner {
                     .unwrap()
                     .into_owned();
 
-                new_accessed_addresses.push(relocated_addr.try_into().unwrap());
+                new_accessed_addresses.insert(relocated_addr.try_into().unwrap());
             }
 
-            vm.accessed_addresses = Some(new_accessed_addresses);
-        }
+            new_accessed_addresses
+        });
 
         self.relocate(vm)
             .map_err(VirtualMachineError::TracerError)?;
@@ -2428,5 +2428,87 @@ mod tests {
             .into_iter()
             .collect(),
         );
+    }
+
+    #[test]
+    fn end_run_missing_accessed_addresses() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        assert_eq!(
+            cairo_runner.end_run(None, None, &mut vm),
+            Err(MemoryError::MissingAccessedAddresses.into()),
+        );
+    }
+
+    #[test]
+    fn end_run_run_already_finished() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.run_ended = true;
+        assert_eq!(
+            cairo_runner.end_run(None, None, &mut vm),
+            Err(RunnerError::RunAlreadyFinished.into()),
+        );
+    }
+
+    #[test]
+    fn end_run() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        vm.accessed_addresses = Some(Vec::new());
+        assert_eq!(cairo_runner.end_run(None, None, &mut vm), Ok(()));
+
+        cairo_runner.run_ended = false;
+        cairo_runner.relocated_memory.clear();
+        assert_eq!(cairo_runner.end_run(None, Some(true), &mut vm), Ok(()));
+        assert!(!cairo_runner.run_ended);
     }
 }
