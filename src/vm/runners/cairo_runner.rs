@@ -319,7 +319,7 @@ impl CairoRunner {
     }
 
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        let accessed_addresses = vm
+        let accessed_addresses = self
             .accessed_addresses
             .as_ref()
             .ok_or(MemoryError::MissingAccessedAddresses)?;
