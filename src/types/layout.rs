@@ -61,7 +61,7 @@ impl CairoLayout {
             builtins: BuiltinInstanceDef::perpetual_with_bitwise(),
             public_memory_fraction: 4,
             memory_units_per_step: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::perpetual_with_bitwise()),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2,4,16)),
             n_trace_colums: Some(10),
             cpu_instance_def: CpuInstanceDef::default()
         }
@@ -75,7 +75,7 @@ impl CairoLayout {
             builtins: BuiltinInstanceDef::bitwise(),
             public_memory_fraction: 8,
             memory_units_per_step: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::bitwise()),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             n_trace_colums: Some(10),
             cpu_instance_def: CpuInstanceDef::default()
         }
@@ -86,7 +86,7 @@ impl CairoLayout {
             name: "recursive",
             cpu_component_step: 1,
             rc_units: 4,
-            builtins: BuiltinInstanceDef::plain(),
+            builtins: BuiltinInstanceDef::default(),
             public_memory_fraction: 8,
             memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::recursive()),
@@ -103,7 +103,7 @@ impl CairoLayout {
             builtins: BuiltinInstanceDef::all(),
             public_memory_fraction: 8,
             memory_units_per_step: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::all()),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             n_trace_colums: Some(27),
             cpu_instance_def: CpuInstanceDef::default()
         }
