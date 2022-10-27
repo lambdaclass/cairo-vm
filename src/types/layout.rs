@@ -11,7 +11,7 @@ pub struct CairoLayout {
 }
 
 impl CairoLayout {
-    fn plain_instance() -> CairoLayout {
+    pub(crate) fn plain_instance() -> CairoLayout {
         CairoLayout {
             name: "plain",
             cpu_component_step: 1,
@@ -25,7 +25,7 @@ impl CairoLayout {
         }
     }
 
-    fn small_instance() -> CairoLayout {
+    pub(crate) fn small_instance() -> CairoLayout {
         CairoLayout {
             name: "small",
             cpu_component_step: 1,
@@ -39,7 +39,7 @@ impl CairoLayout {
         }
     }
 
-    fn dex_instance() -> CairoLayout {
+    pub(crate) fn dex_instance() -> CairoLayout {
         CairoLayout {
             name: "dex",
             cpu_component_step: 1,
@@ -53,7 +53,7 @@ impl CairoLayout {
         }
     }
 
-    fn perpetual_with_bitwise_instance() -> CairoLayout {
+    pub(crate) fn perpetual_with_bitwise_instance() -> CairoLayout {
         CairoLayout {
             name: "perpetual_with_bitwise",
             cpu_component_step: 1,
@@ -67,7 +67,7 @@ impl CairoLayout {
         }
     }
 
-    fn bitwise_instance() -> CairoLayout {
+    pub(crate) fn bitwise_instance() -> CairoLayout {
         CairoLayout {
             name: "bitwise",
             cpu_component_step: 1,
@@ -81,7 +81,7 @@ impl CairoLayout {
         }
     }
 
-    fn recursive_instance() -> CairoLayout {
+    pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
             name: "recursive",
             cpu_component_step: 1,
@@ -95,7 +95,7 @@ impl CairoLayout {
         }
     }
 
-    fn all_instance() -> CairoLayout {
+    pub(crate) fn all_instance() -> CairoLayout {
         CairoLayout {
             name: "all",
             cpu_component_step: 1,
@@ -117,4 +117,18 @@ pub struct BuiltinInstanceDef {
     ecdsa: Option<EcdsaInstanceDef>,
     bitwise: Option<BitwiseInstanceDef>,
     ec_op: Option<EcOpInstanceDef>,
+}
+
+impl BuiltinInstanceDef {
+    pub(crate) fn plain() -> BuiltinsInstanceDef {
+        BitwiseInstanceDef {
+            output: false,
+            pedersen: None,
+            range_check: None,
+            ecdsa: None,
+            bitwise: None,
+            ec_op: None,
+        }
+    }
+
 }
