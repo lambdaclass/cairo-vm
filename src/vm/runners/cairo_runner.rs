@@ -2390,6 +2390,26 @@ mod tests {
             cairo_runner.mark_as_accessed((0, 0).into(), 3),
             Err(VirtualMachineError::RunNotFinished),
         );
+    }
+
+    #[test]
+    fn mark_as_accessed_missing_accessed_addresses() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
 
         cairo_runner.accessed_addresses = Some(HashSet::new());
         cairo_runner.mark_as_accessed((0, 0).into(), 3).unwrap();
