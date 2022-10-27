@@ -20,11 +20,7 @@ use crate::{
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{ToPrimitive, Zero};
-use std::{
-    any::Any,
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-};
+use std::{any::Any, borrow::Cow, collections::HashMap};
 
 #[derive(PartialEq, Debug)]
 pub struct Operands {
@@ -2092,7 +2088,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
         }
@@ -2147,7 +2143,7 @@ mod tests {
         for _ in 0..2 {
             vm.segments.add(&mut vm.memory);
         }
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.memory.data.push(Vec::new());
         let dst_addr = mayberelocatable!(1, 0);
         let dst_addr_value = mayberelocatable!(6);
@@ -2195,7 +2191,7 @@ mod tests {
         };
 
         let mut vm = vm!();
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.memory = memory![
             ((0, 0), 0x206800180018001_i64),
             ((1, 1), 0x4),
@@ -2411,7 +2407,7 @@ mod tests {
     /// PC 0:0
     fn test_step_for_preset_memory() {
         let mut vm = vm!(true);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
 
         let hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -2478,7 +2474,7 @@ mod tests {
     */
     fn test_step_for_preset_memory_function_call() {
         let mut vm = vm!(true);
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
 
         run_context!(vm, 3, 2, 2);
 
@@ -2733,7 +2729,7 @@ mod tests {
         let mut builtin = HashBuiltinRunner::new(8);
         builtin.base = 3;
         let mut vm = vm!();
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         run_context!(vm, 0, 13, 12);
@@ -2826,7 +2822,7 @@ mod tests {
         builtin.base = 2;
         let mut vm = vm!();
 
-        vm.accessed_addresses = Some(HashSet::new());
+        vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         run_context!(vm, 0, 9, 8);
