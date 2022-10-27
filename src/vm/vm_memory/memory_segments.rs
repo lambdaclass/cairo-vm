@@ -517,21 +517,33 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_holes() {
+    fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
-        let mut accessed_addresses = HashSet::new();
+        let accessed_addresses = HashSet::new();
 
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
         assert_eq!(
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Ok(0),
         );
+    }
+
+    #[test]
+    fn get_memory_holes_empty2() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let accessed_addresses = HashSet::new();
 
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Ok(0),
         );
+    }
+
+    #[test]
+    fn get_memory_holes() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut accessed_addresses = HashSet::new();
 
         memory_segment_manager.segment_used_sizes = Some(vec![10]);
         accessed_addresses.insert((0, 0).into());
@@ -546,11 +558,58 @@ mod tests {
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Ok(2),
         );
+    }
+
+    #[test]
+    fn get_memory_holes2() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let mut accessed_addresses = HashSet::new();
 
         memory_segment_manager.segment_sizes = vec![15];
+        memory_segment_manager.segment_used_sizes = Some(vec![10]);
+        accessed_addresses.insert((0, 0).into());
+        accessed_addresses.insert((0, 1).into());
+        accessed_addresses.insert((0, 2).into());
+        accessed_addresses.insert((0, 3).into());
+        accessed_addresses.insert((0, 6).into());
+        accessed_addresses.insert((0, 7).into());
+        accessed_addresses.insert((0, 8).into());
+        accessed_addresses.insert((0, 9).into());
         assert_eq!(
             memory_segment_manager.get_memory_holes(&accessed_addresses),
             Ok(7),
         );
+    }
+
+    #[test]
+    fn get_memory_size_missing_segment() {
+        let memory_segment_manager = MemorySegmentManager::new();
+
+        assert_eq!(memory_segment_manager.get_segment_size(0), None);
+    }
+
+    #[test]
+    fn get_memory_size_used() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.segment_used_sizes = Some(vec![5]);
+
+        assert_eq!(memory_segment_manager.get_segment_size(0), Some(5));
+    }
+
+    #[test]
+    fn get_memory_size() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.segment_sizes = vec![5];
+
+        assert_eq!(memory_segment_manager.get_segment_size(0), Some(5));
+    }
+
+    #[test]
+    fn get_memory_size2() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.segment_sizes = vec![5];
+        memory_segment_manager.segment_used_sizes = Some(vec![3]);
+
+        assert_eq!(memory_segment_manager.get_segment_size(0), Some(5));
     }
 }
