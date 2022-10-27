@@ -38,6 +38,76 @@ impl CairoLayout {
             cpu_instance_def: CpuInstanceDef::default()
         }
     }
+
+    fn dex_instance() -> CairoLayout {
+        CairoLayout {
+            name: "dex",
+            cpu_component_step: 1,
+            rc_units: 4,
+            builtins: BuiltinInstanceDef::dex(),
+            public_memory_fraction: 4,
+            memory_units_per_step: 8,
+            diluted_pool_instance_def: None,
+            n_trace_colums: Some(22),
+            cpu_instance_def: CpuInstanceDef::default()
+        }
+    }
+
+    fn perpetual_with_bitwise_instance() -> CairoLayout {
+        CairoLayout {
+            name: "perpetual_with_bitwise",
+            cpu_component_step: 1,
+            rc_units: 4,
+            builtins: BuiltinInstanceDef::perpetual_with_bitwise(),
+            public_memory_fraction: 4,
+            memory_units_per_step: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::perpetual_with_bitwise()),
+            n_trace_colums: Some(10),
+            cpu_instance_def: CpuInstanceDef::default()
+        }
+    }
+
+    fn bitwise_instance() -> CairoLayout {
+        CairoLayout {
+            name: "bitwise",
+            cpu_component_step: 1,
+            rc_units: 4,
+            builtins: BuiltinInstanceDef::bitwise(),
+            public_memory_fraction: 8,
+            memory_units_per_step: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::bitwise()),
+            n_trace_colums: Some(10),
+            cpu_instance_def: CpuInstanceDef::default()
+        }
+    }
+
+    fn recursive_instance() -> CairoLayout {
+        CairoLayout {
+            name: "recursive",
+            cpu_component_step: 1,
+            rc_units: 4,
+            builtins: BuiltinInstanceDef::plain(),
+            public_memory_fraction: 8,
+            memory_units_per_step: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::recursive()),
+            n_trace_colums: Some(11),
+            cpu_instance_def: CpuInstanceDef::default()
+        }
+    }
+
+    fn all_instance() -> CairoLayout {
+        CairoLayout {
+            name: "all",
+            cpu_component_step: 1,
+            rc_units: 8,
+            builtins: BuiltinInstanceDef::all(),
+            public_memory_fraction: 8,
+            memory_units_per_step: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::all()),
+            n_trace_colums: Some(27),
+            cpu_instance_def: CpuInstanceDef::default()
+        }
+    }
 }
 
 pub struct BuiltinInstanceDef {
