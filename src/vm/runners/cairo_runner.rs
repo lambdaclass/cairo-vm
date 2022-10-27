@@ -39,6 +39,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    accessed_addresses: Option<HashSet<Relocatable>>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
@@ -55,6 +56,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            accessed_addresses: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
@@ -301,6 +303,21 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Mark a memory address as accesed.
+    pub fn mark_as_accessed(
+        &mut self,
+        address: Relocatable,
+        size: usize,
+    ) -> Result<(), VirtualMachineError> {
+        let accessed_addressess = match &mut self.accessed_addresses {
+            Some(x) => x,
+            None => return Err(VirtualMachineError::RunNotFinished),
+        };
+
+        accessed_addressess.extend((0..size).map(|i| &address + i));
+        Ok(())
+    }
+
     pub fn get_memory_holes(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let accessed_addresses = vm
             .accessed_addresses
@@ -445,7 +462,7 @@ mod tests {
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
     use num_bigint::Sign;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn initialize_builtins_with_disordered_builtins() {
@@ -2286,5 +2303,68 @@ mod tests {
         };
         let cairo_runner = CairoRunner::new(&program).unwrap();
         assert_eq!(cairo_runner.get_constants(), &program_constants);
+    }
+
+    #[test]
+    fn mark_as_accessed() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+
+        assert_eq!(
+            cairo_runner.mark_as_accessed((0, 0).into(), 3),
+            Err(VirtualMachineError::RunNotFinished),
+        );
+    }
+
+    #[test]
+    fn mark_as_accessed_missing_accessed_addresses() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        cairo_runner.mark_as_accessed((0, 0).into(), 3).unwrap();
+        cairo_runner.mark_as_accessed((0, 10).into(), 2).unwrap();
+        cairo_runner.mark_as_accessed((1, 1).into(), 1).unwrap();
+        assert_eq!(
+            cairo_runner.accessed_addresses.unwrap(),
+            [
+                (0, 0).into(),
+                (0, 1).into(),
+                (0, 2).into(),
+                (0, 10).into(),
+                (0, 11).into(),
+                (1, 1).into(),
+            ]
+            .into_iter()
+            .collect(),
+        );
     }
 }
