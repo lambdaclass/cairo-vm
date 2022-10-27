@@ -1,9 +1,9 @@
-const CELLS_PER_BITWISE: i32 = 2;
-const INPUT_CELLS_PER_BITWISE: i32 = 5;
+pub(crate) const CELLS_PER_BITWISE: i32 = 2;
+pub(crate) const INPUT_CELLS_PER_BITWISE: i32 = 5;
 
 pub(crate) struct BitwiseInstanceDef {
-    ratio: i32,
-    total_n_bits: i32,
+    pub(crate) ratio: i32,
+    pub(crate) total_n_bits: i32,
 }
 
 impl BitwiseInstanceDef {

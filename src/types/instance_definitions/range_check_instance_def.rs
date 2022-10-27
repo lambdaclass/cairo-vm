@@ -1,8 +1,8 @@
-const CELLS_PER_RANGE_CHECK: i32 = 1;
+pub(crate) const CELLS_PER_RANGE_CHECK: i32 = 1;
 
 pub(crate) struct RangeCheckInstanceDef {
-    ratio: i32,
-    n_parts: i32,
+    pub(crate) ratio: i32,
+    pub(crate) n_parts: i32,
 }
 
 impl RangeCheckInstanceDef {

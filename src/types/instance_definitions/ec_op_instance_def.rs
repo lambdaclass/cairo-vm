@@ -4,10 +4,10 @@ const CELLS_PER_EC_OP: i32 = 7;
 const INPUT_CELLS_PER_EC_OP: i32 = 5;
 
 pub(crate) struct EcOpInstanceDef {
-    ratio: i32,
-    scalar_height: i32,
-    scalar_bits: i32,
-    scalar_limit: BigInt,
+    pub(crate) ratio: i32,
+    pub(crate) scalar_height: i32,
+    pub(crate) scalar_bits: i32,
+    pub(crate) scalar_limit: BigInt,
 }
 
 impl EcOpInstanceDef {
