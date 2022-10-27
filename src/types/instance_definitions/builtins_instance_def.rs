@@ -1,4 +1,10 @@
-pub(crate) struct BuiltinInstanceDef {
+use super::{
+    bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+    ecdsa_instance_def::EcdsaInstanceDef, pedersen_instance_def::PedersenInstanceDef,
+    range_check_instance_def::RangeCheckInstanceDef,
+};
+
+pub(crate) struct BuiltinsInstanceDef {
     output: bool,
     pedersen: Option<PedersenInstanceDef>,
     range_check: Option<RangeCheckInstanceDef>,
@@ -7,9 +13,9 @@ pub(crate) struct BuiltinInstanceDef {
     ec_op: Option<EcOpInstanceDef>,
 }
 
-impl BuiltinInstanceDef {
+impl BuiltinsInstanceDef {
     pub(crate) fn plain() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: false,
             pedersen: None,
             range_check: None,
@@ -20,7 +26,7 @@ impl BuiltinInstanceDef {
     }
 
     pub(crate) fn small() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::default()),
             range_check: Some(RangeCheckInstanceDef::default()),
@@ -31,7 +37,7 @@ impl BuiltinInstanceDef {
     }
 
     pub(crate) fn dex() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::default()),
             range_check: Some(RangeCheckInstanceDef::default()),
@@ -42,10 +48,10 @@ impl BuiltinInstanceDef {
     }
 
     pub(crate) fn perpetual_with_bitwise() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(32, 1)),
-            range_check: Some(RangeCheckInstanceDef::new(16,8)),
+            range_check: Some(RangeCheckInstanceDef::new(16, 8)),
             ecdsa: Some(EcdsaInstanceDef::new(2048)),
             bitwise: Some(BitwiseInstanceDef::new(64)),
             ec_op: Some(EcOpInstanceDef::new(1024)),
@@ -53,7 +59,7 @@ impl BuiltinInstanceDef {
     }
 
     pub(crate) fn bitwise() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(256, 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
@@ -64,7 +70,7 @@ impl BuiltinInstanceDef {
     }
 
     pub(crate) fn recursive() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(256, 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
@@ -75,7 +81,7 @@ impl BuiltinInstanceDef {
     }
 
     pub(crate) fn all() -> BuiltinsInstanceDef {
-        BitwiseInstanceDef {
+        BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::default()),
             range_check: Some(RangeCheckInstanceDef::default()),
