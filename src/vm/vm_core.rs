@@ -418,13 +418,13 @@ impl VirtualMachine {
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs =
                 operands_mem_addresses.ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
-            let addresses = &[
+            let addresses = [
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
                 self.run_context.pc.clone(),
             ];
-            accessed_addresses.extend_from_slice(addresses);
+            accessed_addresses.extend(addresses.into_iter());
         }
 
         self.update_registers(instruction, operands)?;
