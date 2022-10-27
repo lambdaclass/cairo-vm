@@ -2390,6 +2390,7 @@ mod tests {
                 )),
                 (2345108766317314046_i64)
             ),
+            constants: HashMap::new(),
             main: Some(8),
             hints: HashMap::new(),
             reference_manager: ReferenceManager {
