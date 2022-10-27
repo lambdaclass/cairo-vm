@@ -1,4 +1,5 @@
 const CELLS_PER_RANGE_SIGNATURE: i32 = 2;
+const INPUT_CELLS_PER_RANGE_SIGNATURE: i32 = 2;
 
 pub(crate) struct EcdsaInstanceDef {
     ratio: i32,

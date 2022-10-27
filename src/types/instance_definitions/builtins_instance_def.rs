@@ -47,7 +47,7 @@ impl BuiltinInstanceDef {
             pedersen: PedersenInstanceDef::new(32, 1),
             range_check: RangeCheckInstanceDef::new(16,8),
             ecdsa: EcdsaInstanceDef::new(2048),
-            bitwise: None,
+            bitwise: BitwiseInstanceDef::new(64),
             ec_op: None,
         }
     }
@@ -58,7 +58,7 @@ impl BuiltinInstanceDef {
             pedersen: PedersenInstanceDef::new(256, 1),
             range_check: RangeCheckInstanceDef::default(),
             ecdsa: EcdsaInstanceDef::new(1024),
-            bitwise: None,
+            bitwise: BitwiseInstanceDef::new(8),
             ec_op: None,
         }
     }
@@ -69,7 +69,7 @@ impl BuiltinInstanceDef {
             pedersen: PedersenInstanceDef::new(256, 1),
             range_check: RangeCheckInstanceDef::default(),
             ecdsa: None,
-            bitwise: None,
+            bitwise: BitwiseInstanceDef::new(16),
             ec_op: None,
         }
     }
@@ -80,7 +80,7 @@ impl BuiltinInstanceDef {
             pedersen: PedersenInstanceDef::default(),
             range_check: RangeCheckInstanceDef::default(),
             ecdsa: EcdsaInstanceDef::default(),
-            bitwise: None,
+            bitwise: BitwiseInstanceDef::default(),
             ec_op: None,
         }
     }
