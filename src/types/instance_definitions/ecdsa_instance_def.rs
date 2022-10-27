@@ -1,5 +1,5 @@
-const CELLS_PER_RANGE_SIGNATURE: i32 = 2;
-const INPUT_CELLS_PER_RANGE_SIGNATURE: i32 = 2;
+const CELLS_PER_SIGNATURE: i32 = 2;
+const INPUT_CELLS_PER_SIGNATURE: i32 = 2;
 
 pub(crate) struct EcdsaInstanceDef {
     ratio: i32,
@@ -28,7 +28,7 @@ impl EcdsaInstanceDef {
     }
 
     pub(crate) fn cells_per_builtin(&self) -> i32 {
-        CELLS_PER_RANGE_SIGNATURE
+        CELLS_PER_SIGNATURE
     }
 
     pub(crate) fn range_check_units_per_builtin(&self) -> i32 {

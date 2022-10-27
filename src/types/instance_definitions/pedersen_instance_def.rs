@@ -8,7 +8,7 @@ pub(crate) struct PedersenInstanceDef {
     element_height: i32,
     element_bits: i32,
     n_inputs: i32,
-    hash_limit: Option<BigInt>,
+    hash_limit: BigInt,
 }
 
 impl PedersenInstanceDef {
@@ -19,10 +19,7 @@ impl PedersenInstanceDef {
             element_height: 256,
             element_bits: 252,
             n_inputs: 2,
-            hash_limit: Some(BigInt::new(
-                Sign::Plus,
-                vec![1, 0, 0, 0, 0, 0, 17, 134217728],
-            )),
+            hash_limit: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         }
     }
 
@@ -33,10 +30,7 @@ impl PedersenInstanceDef {
             element_height: 256,
             element_bits: 252,
             n_inputs: 2,
-            hash_limit: Some(BigInt::new(
-                Sign::Plus,
-                vec![1, 0, 0, 0, 0, 0, 17, 134217728],
-            )),
+            hash_limit: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         }
     }
 
