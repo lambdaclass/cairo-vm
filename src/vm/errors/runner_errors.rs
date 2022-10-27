@@ -57,5 +57,5 @@ pub enum RunnerError {
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
     #[error("Run has already ended.")]
-    RunAlreadyEnded,
+    RunAlreadyFinished,
 }
