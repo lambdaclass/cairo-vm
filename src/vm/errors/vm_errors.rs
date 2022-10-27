@@ -222,4 +222,6 @@ pub enum VirtualMachineError {
     TracerError(#[from] TraceError),
     #[error("Current run is not finished")]
     RunNotFinished,
+    #[error(transparent)]
+    TracerError(#[from] TraceError),
 }
