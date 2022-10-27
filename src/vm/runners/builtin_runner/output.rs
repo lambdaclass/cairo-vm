@@ -99,14 +99,20 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_accesses() {
+    fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = OutputBuiltinRunner::new();
-        let mut vm = vm!();
+        let vm = vm!();
 
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = OutputBuiltinRunner::new();
+        let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
