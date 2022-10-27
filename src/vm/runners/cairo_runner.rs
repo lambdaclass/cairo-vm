@@ -306,7 +306,7 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let accessed_addressess = match &mut vm.accessed_addresses {
             Some(x) => x,
-            None => return Err(VirtualMachineError::RunIsNotEnded),
+            None => return Err(VirtualMachineError::MissingAccessedAddresses),
         };
 
         accessed_addressess.extend((0..size).map(|i| &address + i));
