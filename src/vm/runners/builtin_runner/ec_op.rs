@@ -633,12 +633,18 @@ mod tests {
     }
 
     #[test]
-    fn get_memory_accesses() {
+    fn get_memory_accesses_empty() {
         let builtin = EcOpBuiltinRunner::new(256);
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
