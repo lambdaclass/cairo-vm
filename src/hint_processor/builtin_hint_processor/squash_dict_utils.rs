@@ -167,9 +167,9 @@ pub fn squash_dict_inner_used_accesses_assert(
         .get(&key)
         .ok_or_else(|| VirtualMachineError::NoKeyInAccessIndices(key.clone()))?;
 
-    if n_used_accesses != &bigint!(access_indices_at_key.len()) {
+    if n_used_accesses.as_ref() != &bigint!(access_indices_at_key.len()) {
         return Err(VirtualMachineError::NumUsedAccessesAssertFail(
-            n_used_accesses.clone(),
+            n_used_accesses.into_owned(),
             access_indices_at_key.len(),
             key,
         ));
@@ -248,16 +248,16 @@ pub fn squash_dict(
     }
     let squash_dict_max_size = exec_scopes.get_int("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
-        if n_accesses > &max_size {
+        if n_accesses.as_ref() > &max_size {
             return Err(VirtualMachineError::SquashDictMaxSizeExceeded(
                 max_size,
-                n_accesses.clone(),
+                n_accesses.into_owned(),
             ));
         };
     };
     let n_accesses_usize = n_accesses
         .to_usize()
-        .ok_or_else(|| VirtualMachineError::NAccessesTooBig(n_accesses.clone()))?;
+        .ok_or_else(|| VirtualMachineError::NAccessesTooBig(n_accesses.into_owned()))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<BigInt, Vec<BigInt>>::new();
     for i in 0..n_accesses_usize {
@@ -266,7 +266,7 @@ pub fn squash_dict(
             .get_integer(&key_addr)
             .map_err(|_| VirtualMachineError::ExpectedInteger(MaybeRelocatable::from(key_addr)))?;
         access_indices
-            .entry(key.clone())
+            .entry(key.into_owned())
             .or_insert(Vec::<BigInt>::new())
             .push(bigint!(i));
     }

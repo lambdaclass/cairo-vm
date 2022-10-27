@@ -3,7 +3,10 @@ use crate::serde::deserialize_program::ValueAddress;
 use crate::types::instruction::Register;
 use nom::{
     branch::alt,
-    bytes::{complete::take_until, streaming::tag},
+    bytes::{
+        complete::{take_till, take_until},
+        streaming::tag,
+    },
     character::complete::digit1,
     combinator::{map_res, opt, value},
     error::{ErrorKind, ParseError},
@@ -149,12 +152,17 @@ fn no_inner_dereference(input: &str) -> IResult<&str, (bool, Register, i32)> {
 }
 
 pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
-    let (rem_input, (dereference, _, inner_deref, offs_or_imm)) = tuple((
+    let (rem_input, (dereference, second_arg, inner_deref, offs_or_imm)) = tuple((
         outer_brackets,
         take_cast_first_arg,
         opt(alt((inner_dereference, no_inner_dereference))),
         opt(offset),
     ))(input)?;
+
+    let (_, (_, type_)) = tuple((
+        take_till(|c: char| c.is_alphanumeric()),
+        take_till(|c: char| c == '*'),
+    ))(second_arg)?;
 
     // check if there was any register and offset to be parsed
     let (inner_deref, reg, offs1) = if let Some((inner_deref, reg, offs1)) = inner_deref {
@@ -178,6 +186,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             immediate: None,
             dereference,
             inner_dereference: inner_deref,
+            value_type: type_.to_string(),
         }
     } else {
         ValueAddress {
@@ -187,6 +196,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             immediate: Some(bigint!(offset_or_immediate)),
             dereference,
             inner_dereference: inner_deref,
+            value_type: type_.to_string(),
         }
     };
 
@@ -291,7 +301,8 @@ mod tests {
                     offset2: 2,
                     immediate: None,
                     dereference: true,
-                    inner_dereference: true
+                    inner_dereference: true,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -312,7 +323,8 @@ mod tests {
                     offset2: 0,
                     immediate: Some(bigint!(0)),
                     dereference: false,
-                    inner_dereference: false
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -332,7 +344,8 @@ mod tests {
                     offset2: 0,
                     immediate: Some(bigint!(825323)),
                     dereference: false,
-                    inner_dereference: false
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -353,7 +366,8 @@ mod tests {
                     offset2: -1,
                     immediate: None,
                     dereference: true,
-                    inner_dereference: false
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
                 }
             ))
         );
@@ -374,7 +388,8 @@ mod tests {
                     offset2: 1,
                     immediate: None,
                     dereference: true,
-                    inner_dereference: true
+                    inner_dereference: true,
+                    value_type: "felt".to_string(),
                 }
             ))
         );

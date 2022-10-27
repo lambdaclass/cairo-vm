@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::borrow::Cow;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -56,14 +57,16 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
             |memory: &Memory,
              address: &MaybeRelocatable|
              -> Result<MaybeRelocatable, MemoryError> {
-                if let Some(MaybeRelocatable::Int(ref num)) = memory.get(address)? {
-                    if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
-                        Ok(address.to_owned())
-                    } else {
-                        Err(MemoryError::NumOutOfBounds)
+                match memory.get(address)? {
+                    Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
+                    | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => {
+                        if &BigInt::zero() <= num && num < &BigInt::one().shl(128u8) {
+                            Ok(address.to_owned())
+                        } else {
+                            Err(MemoryError::NumOutOfBounds)
+                        }
                     }
-                } else {
-                    Err(MemoryError::FoundNonInt)
+                    _ => Err(MemoryError::FoundNonInt),
                 }
             },
         ));

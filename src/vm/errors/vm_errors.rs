@@ -199,9 +199,9 @@ pub enum VirtualMachineError {
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Option<MaybeRelocatable>),
     #[error("Expected size to be in the range from [0, 100), got: {0}")]
-    InvalidKeccakStateSizeFelts(usize),
+    InvalidKeccakStateSizeFelts(BigInt),
     #[error("Expected size to be in range from [0, 10), got: {0}")]
-    InvalidBlockSize(usize),
+    InvalidBlockSize(BigInt),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
@@ -216,4 +216,6 @@ pub enum VirtualMachineError {
     FailedToComputeOperands,
     #[error("Custom Hint Error: {0}")]
     CustomHint(String),
+    #[error("Missing constant: {0}")]
+    MissingConstant(&'static str),
 }

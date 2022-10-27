@@ -26,10 +26,11 @@ pub fn nondet_bigint3(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
     let value = exec_scopes.get_int_ref("value")?;
-    let arg: Vec<BigInt> = split(value)?.to_vec();
+    let arg: Vec<BigInt> = split(value, constants)?.to_vec();
     vm.write_arg(&res_reloc, &arg)
         .map_err(VirtualMachineError::MemoryError)?;
     Ok(())
@@ -41,11 +42,17 @@ pub fn bigint_to_uint256(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(&x_struct)?;
     let d1 = vm.get_integer(&(&x_struct + 1))?;
-    let low = (d0 + d1 * &*BASE_86) & bigint!(u128::MAX);
+    let d0 = d0.as_ref();
+    let d1 = d1.as_ref();
+    let base_86 = constants
+        .get(BASE_86)
+        .ok_or(VirtualMachineError::MissingConstant(BASE_86))?;
+    let low = (d0 + d1 * &*base_86) & bigint!(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -65,6 +72,7 @@ mod tests {
     use crate::{bigint, bigint_str, types::relocatable::MaybeRelocatable};
     use num_bigint::Sign;
     use std::any::Any;
+    use std::ops::Shl;
 
     #[test]
     fn run_nondet_bigint3_ok() {
@@ -80,7 +88,19 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
-        assert_eq!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        assert_eq!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes,
+                &[(BASE_86, bigint!(1).shl(86))]
+                    .into_iter()
+                    .map(|(k, v)| (k.to_string(), v))
+                    .collect()
+            ),
+            Ok(())
+        );
         //Check hint memory inserts
         check_memory![
             &vm.memory,

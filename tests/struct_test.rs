@@ -15,7 +15,7 @@ fn struct_integration_test() {
     let program = Program::new(Path::new("cairo_programs/struct.json"), "main")
         .expect("Failed to deserialize program");
     let hint_processor = BuiltinHintProcessor::new_empty();
-    let mut cairo_runner = CairoRunner::new(&program, &hint_processor).unwrap();
+    let mut cairo_runner = CairoRunner::new(&program).unwrap();
     let mut vm = VirtualMachine::new(
         BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         true,
@@ -23,7 +23,7 @@ fn struct_integration_test() {
     let end = cairo_runner.initialize(&mut vm).unwrap();
 
     assert!(
-        cairo_runner.run_until_pc(end, &mut vm) == Ok(()),
+        cairo_runner.run_until_pc(end, &mut vm, &hint_processor) == Ok(()),
         "Execution failed"
     );
     assert!(cairo_runner.relocate(&mut vm) == Ok(()), "Execution failed");
