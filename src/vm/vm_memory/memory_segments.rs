@@ -434,4 +434,47 @@ mod tests {
             segment_mng_def.segment_used_sizes
         );
     }
+
+    #[test]
+    fn is_valid_memory_value_missing_effective_sizes() {
+        let segment_manager = MemorySegmentManager::new();
+
+        assert_eq!(
+            segment_manager.is_valid_memory_value(&mayberelocatable!(0)),
+            Err(MemoryError::EffectiveSizesNotCalled),
+        );
+    }
+
+    #[test]
+    fn is_valid_memory_value_temporary_segment() {
+        let mut segment_manager = MemorySegmentManager::new();
+
+        segment_manager.segment_used_sizes = Some(vec![10]);
+        assert_eq!(
+            segment_manager.is_valid_memory_value(&mayberelocatable!(-1, 0)),
+            Err(MemoryError::AddressInTemporarySegment(-1)),
+        );
+    }
+
+    #[test]
+    fn is_valid_memory_value_invalid_segment() {
+        let mut segment_manager = MemorySegmentManager::new();
+
+        segment_manager.segment_used_sizes = Some(vec![10]);
+        assert_eq!(
+            segment_manager.is_valid_memory_value(&mayberelocatable!(1, 0)),
+            Ok(false),
+        );
+    }
+
+    #[test]
+    fn is_valid_memory_value() {
+        let mut segment_manager = MemorySegmentManager::new();
+
+        segment_manager.segment_used_sizes = Some(vec![10]);
+        assert_eq!(
+            segment_manager.is_valid_memory_value(&mayberelocatable!(0, 5)),
+            Ok(true),
+        );
+    }
 }
