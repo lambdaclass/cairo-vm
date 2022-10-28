@@ -775,6 +775,9 @@ mod tests {
         },
         relocatable,
         types::{
+            instance_definitions::{
+                bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+            },
             instruction::{Op1Addr, Register},
             relocatable::Relocatable,
         },
@@ -2766,7 +2769,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
-        let builtin = BitwiseBuiltinRunner::new(8);
+        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
         vm.builtin_runners
             .push((String::from("bitwise"), Box::new(builtin)));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
@@ -2805,7 +2808,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut builtin = BitwiseBuiltinRunner::new(256);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
         builtin.base = 2;
         let mut vm = vm!();
 
@@ -2848,7 +2851,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
-        let builtin = EcOpBuiltinRunner::new(256);
+        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
         vm.builtin_runners
             .push((String::from("ec_op"), Box::new(builtin)));
 
@@ -2918,7 +2921,7 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
@@ -2966,7 +2969,7 @@ mod tests {
 
     #[test]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
@@ -3039,7 +3042,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(256);
+        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners
@@ -3188,7 +3191,7 @@ mod tests {
     fn test_get_builtin_runners() {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(8);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(8);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default());
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(hash_builtin)));
         vm.builtin_runners

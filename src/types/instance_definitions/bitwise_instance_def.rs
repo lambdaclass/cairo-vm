@@ -22,11 +22,11 @@ impl BitwiseInstanceDef {
         }
     }
 
-    pub(crate) fn cells_per_builtin(&self) -> u32 {
+    pub(crate) fn _cells_per_builtin(&self) -> u32 {
         CELLS_PER_BITWISE
     }
 
-    pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
+    pub(crate) fn _range_check_units_per_builtin(&self) -> u32 {
         0
     }
 }

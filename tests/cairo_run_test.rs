@@ -9,6 +9,7 @@ fn cairo_run_test() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -20,6 +21,7 @@ fn cairo_run_array_sum() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -31,6 +33,7 @@ fn cairo_run_big_struct() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -42,6 +45,7 @@ fn cairo_run_call_function_assign_param_by_name() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -53,6 +57,7 @@ fn cairo_run_function_return() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -64,6 +69,7 @@ fn cairo_run_function_return_if_print() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -75,6 +81,7 @@ fn cairo_run_function_return_to_variable() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -86,6 +93,7 @@ fn cairo_run_if_and_prime() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -97,6 +105,7 @@ fn cairo_run_if_in_function() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -108,14 +117,21 @@ fn cairo_run_if_list() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_jmp() {
-    cairo_run::cairo_run(Path::new("cairo_programs/jmp.json"), "main", false, false)
-        .expect("Couldn't run program");
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/jmp.json"),
+        "main",
+        false,
+        false,
+        None,
+    )
+    .expect("Couldn't run program");
 }
 
 #[test]
@@ -125,6 +141,7 @@ fn cairo_run_jmp_if_condition() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
@@ -136,14 +153,21 @@ fn cairo_run_pointers() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }
 
 #[test]
 fn cairo_run_print() {
-    cairo_run::cairo_run(Path::new("cairo_programs/print.json"), "main", false, false)
-        .expect("Couldn't run program");
+    cairo_run::cairo_run(
+        Path::new("cairo_programs/print.json"),
+        "main",
+        false,
+        false,
+        None,
+    )
+    .expect("Couldn't run program");
 }
 
 #[test]
@@ -153,6 +177,7 @@ fn cairo_run_return() {
         "main",
         false,
         false,
+        None,
     )
     .expect("Couldn't run program");
 }

@@ -17,11 +17,11 @@ impl RangeCheckInstanceDef {
         RangeCheckInstanceDef { ratio, n_parts }
     }
 
-    pub(crate) fn cells_per_builtin(&self) -> u32 {
+    pub(crate) fn _cells_per_builtin(&self) -> u32 {
         CELLS_PER_RANGE_CHECK
     }
 
-    pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
+    pub(crate) fn _range_check_units_per_builtin(&self) -> u32 {
         self.n_parts
     }
 }

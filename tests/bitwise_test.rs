@@ -1,3 +1,4 @@
+use cairo_rs::utils::test_utils::cairo_runner;
 use cairo_rs::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,

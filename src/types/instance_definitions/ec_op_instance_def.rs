@@ -7,7 +7,7 @@ pub(crate) const INPUT_CELLS_PER_EC_OP: u32 = 5;
 pub(crate) struct EcOpInstanceDef {
     pub(crate) ratio: u32,
     pub(crate) scalar_height: u32,
-    pub(crate) scalar_bits: u32,
+    pub(crate) _scalar_bits: u32,
     pub(crate) scalar_limit: BigInt,
 }
 
@@ -16,7 +16,7 @@ impl EcOpInstanceDef {
         EcOpInstanceDef {
             ratio: 256,
             scalar_height: 256,
-            scalar_bits: 252,
+            _scalar_bits: 252,
             scalar_limit: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         }
     }
@@ -25,16 +25,16 @@ impl EcOpInstanceDef {
         EcOpInstanceDef {
             ratio,
             scalar_height: 256,
-            scalar_bits: 252,
+            _scalar_bits: 252,
             scalar_limit: BigInt::new(Sign::Plus, vec![1, 0, 0, 0, 0, 0, 17, 134217728]),
         }
     }
 
-    pub(crate) fn cells_per_builtin(&self) -> u32 {
+    pub(crate) fn _cells_per_builtin(&self) -> u32 {
         CELLS_PER_EC_OP
     }
 
-    pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
+    pub(crate) fn _range_check_units_per_builtin(&self) -> u32 {
         0
     }
 }

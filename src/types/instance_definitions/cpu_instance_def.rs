@@ -1,9 +1,9 @@
 pub(crate) struct CpuInstanceDef {
-    pub(crate) safe_call: bool,
+    pub(crate) _safe_call: bool,
 }
 
 impl CpuInstanceDef {
     pub(crate) fn default() -> Self {
-        CpuInstanceDef { safe_call: true }
+        CpuInstanceDef { _safe_call: true }
     }
 }

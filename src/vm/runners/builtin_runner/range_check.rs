@@ -6,6 +6,7 @@ use num_bigint::BigInt;
 use num_traits::{One, Zero};
 
 use crate::bigint;
+use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -31,8 +32,8 @@ impl RangeCheckBuiltinRunner {
             _ratio: ratio,
             base: 0,
             _stop_ptr: None,
-            _cells_per_instance: 1,
-            _n_input_cells: 1,
+            _cells_per_instance: CELLS_PER_RANGE_CHECK,
+            _n_input_cells: CELLS_PER_RANGE_CHECK,
             _inner_rc_bound: inner_rc_bound.clone(),
             _bound: inner_rc_bound.pow(n_parts),
             _n_parts: n_parts,
