@@ -352,7 +352,7 @@ impl CairoRunner {
 
         // Process accessed_addresses.
         self.accessed_addresses = Some({
-            let accessed_addresses = vm
+            let accessed_addresses = self
                 .accessed_addresses
                 .as_ref()
                 .ok_or_else::<VirtualMachineError, _>(|| {
@@ -2663,7 +2663,7 @@ mod tests {
         let mut cairo_runner = CairoRunner::new(&program).unwrap();
         let mut vm = vm!();
 
-        vm.accessed_addresses = Some(Vec::new());
+        cairo_runner.accessed_addresses = Some(HashSet::new());
         assert_eq!(cairo_runner.end_run(None, None, &mut vm), Ok(()));
 
         cairo_runner.run_ended = false;
