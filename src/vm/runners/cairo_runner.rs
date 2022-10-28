@@ -312,10 +312,10 @@ impl CairoRunner {
         address: Relocatable,
         size: usize,
     ) -> Result<(), VirtualMachineError> {
-        let accessed_addressess = match &mut self.accessed_addresses {
-            Some(x) => x,
-            None => return Err(VirtualMachineError::RunNotFinished),
-        };
+        let accessed_addressess = self
+            .accessed_addresses
+            .as_mut()
+            .ok_or(VirtualMachineError::RunNotFinished)?;
 
         accessed_addressess.extend((0..size).map(|i| &address + i));
         Ok(())
