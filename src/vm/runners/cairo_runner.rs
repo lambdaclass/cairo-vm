@@ -387,6 +387,28 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_builtin_segments_info(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<String, SegmentInfo>, RunnerError> {
+        let mut builtin_segments = HashMap::new();
+
+        for (_, builtin) in &vm.builtin_runners {
+            for (name, segment_address) in builtin.get_memory_segment_addresses() {
+                if builtin_segments.contains_key(&name) {
+                    return Err(RunnerError::BuiltinSegmentNameCollision(name));
+                }
+
+                let index = segment_address.0;
+                let size = segment_address.1.ok_or(RunnerError::BaseNotFinished)?;
+
+                builtin_segments.insert(name, SegmentInfo { index, size });
+            }
+        }
+
+        Ok(builtin_segments)
+    }
+
     pub fn get_output(&mut self, vm: &mut VirtualMachine) -> Result<Option<String>, RunnerError> {
         let mut output = Vec::<u8>::new();
         self.write_output(vm, &mut output)?;
@@ -433,6 +455,12 @@ impl CairoRunner {
         }
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SegmentInfo {
+    pub index: isize,
+    pub size: usize,
 }
 
 #[cfg(test)]
@@ -2350,6 +2378,59 @@ mod tests {
             ]
             .into_iter()
             .collect(),
+        );
+    }
+
+    #[test]
+    fn get_builtin_segments_info_empty() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = CairoRunner::new(&program).unwrap();
+        let vm = vm!();
+
+        assert_eq!(
+            cairo_runner.get_builtin_segments_info(&vm),
+            Ok(HashMap::new()),
+        );
+    }
+
+    #[test]
+    fn get_builtin_segments_info_base_not_finished() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        vm.builtin_runners = vec![("output".to_string(), Box::new(OutputBuiltinRunner::new()))];
+        assert_eq!(
+            cairo_runner.get_builtin_segments_info(&vm),
+            Err(RunnerError::BaseNotFinished),
         );
     }
 }

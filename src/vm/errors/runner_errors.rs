@@ -16,6 +16,8 @@ pub enum RunnerError {
     MissingMain,
     #[error("Uninitialized base for builtin")]
     UninitializedBase,
+    #[error("Base for builtin is not finished")]
+    BaseNotFinished,
     #[error("Failed to write program output")]
     WriteFail,
     #[error("Found None PC during VM initialization")]
@@ -56,4 +58,6 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
+    #[error("Builtin segment name collision on '{0}'")]
+    BuiltinSegmentNameCollision(String),
 }
