@@ -77,10 +77,6 @@ impl BuiltinRunner for OutputBuiltinRunner {
     fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         self.get_used_cells(vm)
     }
-
-    fn get_used_instances(&self, _runner: &CairoRunner) -> usize {
-        todo!()
-    }
 }
 
 impl Default for OutputBuiltinRunner {

@@ -127,10 +127,6 @@ impl BuiltinRunner for HashBuiltinRunner {
     fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         Ok(div_ceil(self.get_used_cells(vm)?, self.cells_per_instance))
     }
-
-    fn get_used_instances(&self, _runner: &CairoRunner) -> usize {
-        todo!()
-    }
 }
 
 #[cfg(test)]
