@@ -415,11 +415,11 @@ impl CairoRunner {
         };
         let n_memory_holes = self.get_memory_holes(vm)?;
 
-        let builtin_instance_counter = vm
-            .builtin_runners
-            .iter()
-            .map(|(key, value)| (key.to_string(), value.get_used_instances(self)))
-            .collect::<Vec<_>>();
+        let mut builtin_instance_counter = Vec::with_capacity(vm.builtin_runners.len());
+        for (key, builtin_runner) in &vm.builtin_runners {
+            builtin_instance_counter
+                .push((key.to_string(), builtin_runner.get_used_instances(vm)?));
+        }
 
         Ok(ExecutionResources {
             n_steps,
