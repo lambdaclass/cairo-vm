@@ -25,8 +25,6 @@ pub fn cairo_run<'a>(
     let mut vm = VirtualMachine::new(program.prime, trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
 
-    // let hint_executor = BuiltinHintProcessor::new_empty();
-
     cairo_runner
         .run_until_pc(end, &mut vm, hint_executor)
         .map_err(CairoRunError::VirtualMachine)?;
