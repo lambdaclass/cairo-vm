@@ -1,7 +1,7 @@
 pub(crate) struct DilutedPoolInstanceDef {
-    units_per_step: i32,
-    spacing: i32,
-    n_bits: i32,
+    pub(crate) units_per_step: u32,
+    pub(crate) spacing: u32,
+    pub(crate) n_bits: u32,
 }
 
 impl DilutedPoolInstanceDef {
@@ -13,7 +13,7 @@ impl DilutedPoolInstanceDef {
         }
     }
 
-    pub(crate) fn new(units_per_step: i32, spacing: i32, n_bits: i32) -> Self {
+    pub(crate) fn new(units_per_step: u32, spacing: u32, n_bits: u32) -> Self {
         DilutedPoolInstanceDef {
             units_per_step,
             spacing,

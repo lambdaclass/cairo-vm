@@ -1,8 +1,8 @@
-pub(crate) const CELLS_PER_RANGE_CHECK: i32 = 1;
+pub(crate) const CELLS_PER_RANGE_CHECK: u32 = 1;
 
 pub(crate) struct RangeCheckInstanceDef {
-    pub(crate) ratio: i32,
-    pub(crate) n_parts: i32,
+    pub(crate) ratio: u32,
+    pub(crate) n_parts: u32,
 }
 
 impl RangeCheckInstanceDef {
@@ -13,15 +13,15 @@ impl RangeCheckInstanceDef {
         }
     }
 
-    pub(crate) fn new(ratio: i32, n_parts: i32) -> Self {
+    pub(crate) fn new(ratio: u32, n_parts: u32) -> Self {
         RangeCheckInstanceDef { ratio, n_parts }
     }
 
-    pub(crate) fn cells_per_builtin(&self) -> i32 {
+    pub(crate) fn cells_per_builtin(&self) -> u32 {
         CELLS_PER_RANGE_CHECK
     }
 
-    pub(crate) fn range_check_units_per_builtin(&self) -> i32 {
+    pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
         self.n_parts
     }
 }

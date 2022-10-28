@@ -14,18 +14,18 @@ use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct RangeCheckBuiltinRunner {
-    _ratio: BigInt,
+    _ratio: u32,
     base: isize,
     _stop_ptr: Option<Relocatable>,
-    _cells_per_instance: i32,
-    _n_input_cells: i32,
+    _cells_per_instance: u32,
+    _n_input_cells: u32,
     _inner_rc_bound: BigInt,
     pub _bound: BigInt,
     _n_parts: u32,
 }
 
 impl RangeCheckBuiltinRunner {
-    pub fn new(ratio: BigInt, n_parts: u32) -> RangeCheckBuiltinRunner {
+    pub fn new(ratio: u32, n_parts: u32) -> RangeCheckBuiltinRunner {
         let inner_rc_bound = bigint!(1i32 << 16);
         RangeCheckBuiltinRunner {
             _ratio: ratio,

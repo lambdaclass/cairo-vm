@@ -1,9 +1,9 @@
 use crate::{
-    bigint,
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     types::{
         exec_scope::ExecutionScopes,
         instruction::Register,
+        layout::CairoLayout,
         program::Program,
         relocatable::{relocate_value, MaybeRelocatable, Relocatable},
     },
@@ -28,7 +28,7 @@ use std::{any::Any, collections::HashMap, io};
 
 pub struct CairoRunner {
     program: Program,
-    layout: String,
+    layout: CairoLayout,
     final_pc: Option<Relocatable>,
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
@@ -42,9 +42,20 @@ pub struct CairoRunner {
 
 impl CairoRunner {
     pub fn new(program: &Program, layout: Option<String>) -> Result<CairoRunner, RunnerError> {
+        let layout = layout.unwrap_or(String::from("plain"));
+        let cairo_layout = match layout.as_str() {
+            "plain" => CairoLayout::plain_instance(),
+            "small" => CairoLayout::small_instance(),
+            "dex" => CairoLayout::dex_instance(),
+            "perpetual_with_bitwise" => CairoLayout::perpetual_with_bitwise_instance(),
+            "bitwise" => CairoLayout::bitwise_instance(),
+            "recursive" => CairoLayout::recursive_instance(),
+            "all" => CairoLayout::all_instance(),
+            name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
+        };
         Ok(CairoRunner {
             program: program.clone(),
-            layout: layout.unwrap_or(String::from("plain")),
+            layout: cairo_layout,
             final_pc: None,
             program_base: None,
             execution_base: None,
@@ -84,14 +95,36 @@ impl CairoRunner {
             }
 
             if builtin_name == "pedersen" {
-                builtin_runners.push((builtin_name.clone(), Box::new(HashBuiltinRunner::new(8))));
+                builtin_runners.push((
+                    builtin_name.clone(),
+                    Box::new(HashBuiltinRunner::new(
+                        self.layout
+                            .builtins
+                            .pedersen
+                            .as_ref()
+                            .unwrap_or(Err(RunnerError::NoBuiltinForInstance(
+                                self.layout.name.clone(),
+                                builtin_name.to_string(),
+                            ))?)
+                            .ratio
+                            .to_owned(),
+                    )),
+                ));
             }
 
             if builtin_name == "range_check" {
-                //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
+                let range_check_instance = self.layout.builtins.range_check.as_ref().unwrap_or(
+                    Err(RunnerError::NoBuiltinForInstance(
+                        self.layout.name.clone(),
+                        builtin_name.to_string(),
+                    ))?,
+                );
                 builtin_runners.push((
                     builtin_name.clone(),
-                    Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
+                    Box::new(RangeCheckBuiltinRunner::new(
+                        range_check_instance.ratio,
+                        range_check_instance.n_parts,
+                    )),
                 ));
             }
             if builtin_name == "bitwise" {

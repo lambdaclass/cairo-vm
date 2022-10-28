@@ -1,5 +1,6 @@
 use std::any::Any;
 
+use nom::ToUsize;
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
 use starknet_crypto::{pedersen_hash, FieldElement};
@@ -12,15 +13,15 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
     pub base: isize,
-    _ratio: usize,
-    cells_per_instance: usize,
-    _n_input_cells: usize,
+    _ratio: u32,
+    cells_per_instance: u32,
+    _n_input_cells: u32,
     _stop_ptr: Option<Relocatable>,
     verified_addresses: Vec<Relocatable>,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub fn new(ratio: u32) -> Self {
         HashBuiltinRunner {
             base: 0,
 
@@ -55,7 +56,10 @@ impl BuiltinRunner for HashBuiltinRunner {
         address: &Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if address.offset.mod_floor(&self.cells_per_instance) != 2
+        if address
+            .offset
+            .mod_floor(&self.cells_per_instance.to_usize())
+            != 2
             || self.verified_addresses.contains(address)
         {
             return Ok(None);

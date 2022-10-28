@@ -1,14 +1,14 @@
 use num_bigint::{BigInt, Sign};
 
-const CELLS_PER_HASH: i32 = 3;
-const INPUT_CELLS_PER_HASH: i32 = 2;
+pub(crate) const CELLS_PER_HASH: u32 = 3;
+pub(crate) const INPUT_CELLS_PER_HASH: u32 = 2;
 pub(crate) struct PedersenInstanceDef {
-    ratio: i32,
-    repetitions: i32,
-    element_height: i32,
-    element_bits: i32,
-    n_inputs: i32,
-    hash_limit: BigInt,
+    pub(crate) ratio: u32,
+    pub(crate) repetitions: u32,
+    pub(crate) element_height: u32,
+    pub(crate) element_bits: u32,
+    pub(crate) n_inputs: u32,
+    pub(crate) hash_limit: BigInt,
 }
 
 impl PedersenInstanceDef {
@@ -23,7 +23,7 @@ impl PedersenInstanceDef {
         }
     }
 
-    pub(crate) fn new(ratio: i32, repetitions: i32) -> Self {
+    pub(crate) fn new(ratio: u32, repetitions: u32) -> Self {
         PedersenInstanceDef {
             ratio,
             repetitions,
@@ -34,11 +34,11 @@ impl PedersenInstanceDef {
         }
     }
 
-    pub(crate) fn cells_per_builtin(&self) -> i32 {
+    pub(crate) fn cells_per_builtin(&self) -> u32 {
         CELLS_PER_HASH
     }
 
-    pub(crate) fn range_check_units_per_builtin(&self) -> i32 {
+    pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
         0
     }
 }

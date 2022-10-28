@@ -1,11 +1,11 @@
-const CELLS_PER_SIGNATURE: i32 = 2;
-const INPUT_CELLS_PER_SIGNATURE: i32 = 2;
+pub(crate) const CELLS_PER_SIGNATURE: u32 = 2;
+pub(crate) const INPUT_CELLS_PER_SIGNATURE: u32 = 2;
 
 pub(crate) struct EcdsaInstanceDef {
-    ratio: i32,
-    repetitions: i32,
-    height: i32,
-    n_hash_bits: i32,
+    pub(crate) ratio: u32,
+    pub(crate) repetitions: u32,
+    pub(crate) height: u32,
+    pub(crate) n_hash_bits: u32,
 }
 
 impl EcdsaInstanceDef {
@@ -18,7 +18,7 @@ impl EcdsaInstanceDef {
         }
     }
 
-    pub(crate) fn new(ratio: i32) -> Self {
+    pub(crate) fn new(ratio: u32) -> Self {
         EcdsaInstanceDef {
             ratio,
             repetitions: 1,
@@ -27,11 +27,11 @@ impl EcdsaInstanceDef {
         }
     }
 
-    pub(crate) fn cells_per_builtin(&self) -> i32 {
+    pub(crate) fn cells_per_builtin(&self) -> u32 {
         CELLS_PER_SIGNATURE
     }
 
-    pub(crate) fn range_check_units_per_builtin(&self) -> i32 {
+    pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
         0
     }
 }

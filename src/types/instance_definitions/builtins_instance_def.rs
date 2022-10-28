@@ -5,12 +5,12 @@ use super::{
 };
 
 pub(crate) struct BuiltinsInstanceDef {
-    output: bool,
-    pedersen: Option<PedersenInstanceDef>,
-    range_check: Option<RangeCheckInstanceDef>,
-    ecdsa: Option<EcdsaInstanceDef>,
-    bitwise: Option<BitwiseInstanceDef>,
-    ec_op: Option<EcOpInstanceDef>,
+    pub(crate) output: bool,
+    pub(crate) pedersen: Option<PedersenInstanceDef>,
+    pub(crate) range_check: Option<RangeCheckInstanceDef>,
+    pub(crate) ecdsa: Option<EcdsaInstanceDef>,
+    pub(crate) bitwise: Option<BitwiseInstanceDef>,
+    pub(crate) ec_op: Option<EcOpInstanceDef>,
 }
 
 impl BuiltinsInstanceDef {
