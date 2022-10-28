@@ -130,11 +130,28 @@ impl CairoRunner {
             if builtin_name == "bitwise" {
                 builtin_runners.push((
                     builtin_name.clone(),
-                    Box::new(BitwiseBuiltinRunner::new(256)),
+                    Box::new(BitwiseBuiltinRunner::new(
+                        self.layout.builtins.bitwise.as_ref().unwrap_or(Err(
+                            RunnerError::NoBuiltinForInstance(
+                                self.layout.name.clone(),
+                                builtin_name.to_string(),
+                            ),
+                        )?),
+                    )),
                 ));
             }
             if builtin_name == "ec_op" {
-                builtin_runners.push((builtin_name.clone(), Box::new(EcOpBuiltinRunner::new(256))));
+                builtin_runners.push((
+                    builtin_name.clone(),
+                    Box::new(EcOpBuiltinRunner::new(
+                        self.layout.builtins.ec_op.as_ref().unwrap_or(Err(
+                            RunnerError::NoBuiltinForInstance(
+                                self.layout.name.clone(),
+                                builtin_name.to_string(),
+                            ),
+                        )?),
+                    )),
+                ));
             }
         }
         vm.builtin_runners = builtin_runners;
@@ -446,7 +463,7 @@ impl CairoRunner {
 mod tests {
     use super::*;
     use crate::{
-        bigint_str,
+        bigint, bigint_str,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::ReferenceManager,

@@ -5,6 +5,9 @@ use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
 use starknet_crypto::{pedersen_hash, FieldElement};
 
+use crate::types::instance_definitions::pedersen_instance_def::{
+    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
@@ -24,10 +27,9 @@ impl HashBuiltinRunner {
     pub fn new(ratio: u32) -> Self {
         HashBuiltinRunner {
             base: 0,
-
             _ratio: ratio,
-            cells_per_instance: 3,
-            _n_input_cells: 2,
+            cells_per_instance: CELLS_PER_HASH,
+            _n_input_cells: INPUT_CELLS_PER_HASH,
             _stop_ptr: None,
             verified_addresses: Vec::new(),
         }

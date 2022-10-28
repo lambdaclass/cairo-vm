@@ -3,6 +3,7 @@ use num_bigint::{BigInt, Sign};
 pub(crate) const CELLS_PER_EC_OP: u32 = 7;
 pub(crate) const INPUT_CELLS_PER_EC_OP: u32 = 5;
 
+#[derive(Clone)]
 pub(crate) struct EcOpInstanceDef {
     pub(crate) ratio: u32,
     pub(crate) scalar_height: u32,

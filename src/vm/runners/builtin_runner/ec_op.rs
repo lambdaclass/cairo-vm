@@ -1,10 +1,14 @@
 use std::any::Any;
 use std::borrow::Cow;
 
+use nom::ToUsize;
 use num_bigint::BigInt;
 use num_integer::Integer;
 
 use crate::math_utils::{ec_add, ec_double};
+use crate::types::instance_definitions::ec_op_instance_def::{
+    EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
@@ -13,27 +17,21 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
 
 pub struct EcOpBuiltinRunner {
-    _ratio: usize,
+    _ratio: u32,
     pub base: isize,
-    cells_per_instance: usize,
-    n_input_cells: usize,
-    scalar_height: usize,
-    _scalar_bits: usize,
-    scalar_limit: BigInt,
+    cells_per_instance: u32,
+    n_input_cells: u32,
+    ec_op_builtin: EcOpInstanceDef,
 }
 
 impl EcOpBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub(crate) fn new(instance_def: &EcOpInstanceDef) -> Self {
         EcOpBuiltinRunner {
             base: 0,
-            _ratio: ratio,
-            n_input_cells: 5,
-            cells_per_instance: 7,
-            scalar_height: 256,
-            _scalar_bits: 252,
-            scalar_limit: bigint_str!(
-                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
-            ),
+            _ratio: instance_def.ratio,
+            n_input_cells: CELLS_PER_EC_OP,
+            cells_per_instance: INPUT_CELLS_PER_EC_OP,
+            ec_op_builtin: instance_def.clone(),
         }
     }
     ///Returns True if the point (x, y) is on the elliptic curve defined as
@@ -61,7 +59,7 @@ impl EcOpBuiltinRunner {
         m: &BigInt,
         alpha: &BigInt,
         prime: &BigInt,
-        height: usize,
+        height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
         let mut slope = m.clone();
         for _ in 0..height {
@@ -115,7 +113,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
         );
 
-        let index = address.offset.mod_floor(&self.cells_per_instance);
+        let index = address
+            .offset
+            .mod_floor(&self.cells_per_instance.to_usize());
         //Index should be an output cell
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
@@ -123,8 +123,8 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         let instance = MaybeRelocatable::from((address.segment_index, address.offset - index));
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells);
-        for i in 0..self.n_input_cells {
+        let mut input_cells = Vec::<Cow<BigInt>>::with_capacity(self.n_input_cells.to_usize());
+        for i in 0..self.n_input_cells.to_usize() {
             match memory
                 .get(&instance.add_usize_mod(i, None))
                 .map_err(RunnerError::FailedMemoryGet)?
@@ -144,9 +144,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             };
         }
         //Assert that m is under the limit defined by scalar_limit.
-        if input_cells[M_INDEX].as_ref() >= &self.scalar_limit {
+        if input_cells[M_INDEX].as_ref() >= &self.ec_op_builtin.scalar_limit {
             return Err(RunnerError::EcOpBuiltinScalarLimit(
-                self.scalar_limit.clone(),
+                self.ec_op_builtin.scalar_limit.clone(),
             ));
         }
 
@@ -174,9 +174,9 @@ impl BuiltinRunner for EcOpBuiltinRunner {
             input_cells[4].as_ref(),
             &alpha,
             &field_prime,
-            self.scalar_height,
+            self.ec_op_builtin.scalar_height,
         )?;
-        match index - self.n_input_cells {
+        match index - self.n_input_cells.to_usize() {
             0 => Ok(Some(MaybeRelocatable::Int(result.0))),
             _ => Ok(Some(MaybeRelocatable::Int(result.1))),
             //Default case corresponds to 1, as there are no other possible cases
@@ -409,7 +409,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -454,7 +454,7 @@ mod tests {
             )
         ];
 
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -499,7 +499,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
@@ -539,7 +539,7 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
 
         assert_eq!(
             builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory),
@@ -594,13 +594,13 @@ mod tests {
                 )
             )
         ];
-        let mut builtin = EcOpBuiltinRunner::new(256);
+        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default());
 
         let error = builtin.deduce_memory_cell(&Relocatable::from((3, 6)), &memory);
         assert_eq!(
             error,
             Err(RunnerError::EcOpBuiltinScalarLimit(
-                builtin.scalar_limit.clone()
+                builtin.ec_op_builtin.scalar_limit.clone()
             ))
         );
     }

@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn initialize_segments_for_range_check() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
         let mut segments = MemorySegmentManager::new();
         let mut memory = Memory::new();
         builtin.initialize_segments(&mut segments, &mut memory);
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn get_initial_stack_for_range_check_with_base() {
-        let mut builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+        let mut builtin = RangeCheckBuiltinRunner::new(8, 8);
         builtin.base = 1;
         let initial_stack = builtin.initial_stack();
         assert_eq!(
