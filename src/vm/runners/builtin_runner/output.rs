@@ -31,8 +31,8 @@ impl BuiltinRunner for OutputBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    fn base(&self) -> isize {
+        self.base
     }
 
     fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
@@ -88,7 +88,10 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::vm;
+    use crate::{
+        utils::test_utils::vm,
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+    };
     use num_bigint::{BigInt, Sign};
 
     #[test]
@@ -107,7 +110,7 @@ mod tests {
         let initial_stack = builtin.initial_stack();
         assert_eq!(
             initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue(builtin.base())
+            MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
     }

@@ -44,8 +44,8 @@ impl BuiltinRunner for HashBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    fn base(&self) -> isize {
+        self.base
     }
 
     fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
@@ -132,7 +132,7 @@ impl BuiltinRunner for HashBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
     use crate::{bigint, bigint_str, utils::test_utils::*};
     use num_bigint::Sign;
 

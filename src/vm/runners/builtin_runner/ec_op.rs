@@ -93,8 +93,8 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    fn base(&self) -> isize {
+        self.base
     }
     fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
@@ -221,8 +221,10 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::errors::runner_errors::RunnerError;
+    use crate::vm::{
+        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        vm_core::VirtualMachine,
+    };
     use num_bigint::Sign;
 
     #[test]

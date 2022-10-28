@@ -159,10 +159,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         opt(offset),
     ))(input)?;
 
-    let (_, (_, type_)) = tuple((
-        take_till(|c: char| c.is_alphanumeric()),
-        take_till(|c: char| c == '*'),
-    ))(second_arg)?;
+    let (_, (_, type_)) = tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
 
     // check if there was any register and offset to be parsed
     let (inner_deref, reg, offs1) = if let Some((inner_deref, reg, offs1)) = inner_deref {
@@ -375,7 +372,7 @@ mod tests {
 
     #[test]
     fn parse_value_with_inner_deref_and_offset2() {
-        let value = "[cast([ap] + 1, felt*)]";
+        let value = "[cast([ap] + 1, __main__.felt*)]";
         let parsed = parse_value(value);
 
         assert_eq!(
@@ -389,7 +386,7 @@ mod tests {
                     immediate: None,
                     dereference: true,
                     inner_dereference: true,
-                    value_type: "felt".to_string(),
+                    value_type: "__main__.felt".to_string(),
                 }
             ))
         );
