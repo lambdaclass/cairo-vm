@@ -143,10 +143,6 @@ impl MemorySegmentManager {
 
         let mut accessed_offsets_sets = HashMap::new();
         for addr in accessed_addresses {
-            if addr.segment_index < 0 {
-                return Err(MemoryError::AddressInTemporarySegment(addr.segment_index));
-            }
-
             let (index, offset) = from_relocatable_to_indexes(addr);
             let (segment_size, offset_set) = match accessed_offsets_sets.get_mut(&index) {
                 Some(x) => x,
