@@ -22,8 +22,8 @@ pub trait BuiltinRunner {
     ///Creates the necessary segments for the builtin in the MemorySegmentManager and stores the first address on the builtin's base
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory);
     fn initial_stack(&self) -> Vec<MaybeRelocatable>;
-    ///Returns the builtin's base
-    fn base(&self) -> Relocatable;
+    ///Returns the builtin's base segment (offset is always zero).
+    fn base(&self) -> isize;
     fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError>;
     fn deduce_memory_cell(
         &mut self,

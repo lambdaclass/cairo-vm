@@ -44,8 +44,8 @@ impl BuiltinRunner for HashBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    fn base(&self) -> isize {
+        self.base
     }
 
     fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {

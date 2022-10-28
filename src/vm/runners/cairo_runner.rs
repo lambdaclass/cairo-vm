@@ -482,14 +482,14 @@ impl CairoRunner {
             }
 
             let segment_index: usize = base
-                .segment_index
                 .try_into()
-                .map_err(|_| RunnerError::RunnerInTemporarySegment(base.segment_index))?;
+                .map_err(|_| RunnerError::RunnerInTemporarySegment(base))?;
             // See previous comment, the unwrap below is safe.
             for i in 0..vm.segments.segment_used_sizes.as_ref().unwrap()[segment_index] {
-                let value = vm.memory.get_integer(&(base.clone() + i)).map_err(|_| {
-                    RunnerError::MemoryGet(MaybeRelocatable::from(base.clone() + i))
-                })?;
+                let value = vm
+                    .memory
+                    .get_integer(&(base, i).into())
+                    .map_err(|_| RunnerError::MemoryGet((base, i).into()))?;
                 writeln!(
                     stdout,
                     "{}",
@@ -594,7 +594,7 @@ mod tests {
             })
         );
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
-        assert_eq!(vm.builtin_runners[0].1.base(), Relocatable::from((7, 0)));
+        assert_eq!(vm.builtin_runners[0].1.base(), 7);
 
         assert_eq!(vm.segments.num_segments, 8);
     }
@@ -633,7 +633,7 @@ mod tests {
             })
         );
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
-        assert_eq!(vm.builtin_runners[0].1.base(), Relocatable::from((2, 0)));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
         assert_eq!(vm.segments.num_segments, 3);
     }
@@ -971,7 +971,7 @@ mod tests {
         cairo_runner.initialize_segments(&mut vm, None);
         vm.memory = memory![((2, 0), 23), ((2, 1), 233)];
         assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[0].1.base(), relocatable!(2, 0));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert!(vm
             .memory
@@ -1449,7 +1449,7 @@ mod tests {
         );
         //Check the range_check builtin segment
         assert_eq!(vm.builtin_runners[0].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[0].1.base(), relocatable!(2, 0));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
         check_memory!(vm.memory, ((2, 0), 7), ((2, 1), 18446744073709551608_i128));
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 2))), Ok(None));
@@ -1565,7 +1565,7 @@ mod tests {
         );
         //Check that the output to be printed is correct
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
-        assert_eq!(vm.builtin_runners[0].1.base(), relocatable!(2, 0));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
         check_memory!(vm.memory, ((2, 0), 1), ((2, 1), 17));
         assert_eq!(vm.memory.get(&MaybeRelocatable::from((2, 2))), Ok(None));
     }
@@ -1711,7 +1711,7 @@ mod tests {
         );
         //Check the range_check builtin segment
         assert_eq!(vm.builtin_runners[1].0, String::from("range_check"));
-        assert_eq!(vm.builtin_runners[1].1.base(), relocatable!(3, 0));
+        assert_eq!(vm.builtin_runners[1].1.base(), 3);
 
         check_memory!(vm.memory, ((3, 0), 7), ((3, 1), 18446744073709551608_i128));
         assert_eq!(
@@ -1721,7 +1721,7 @@ mod tests {
 
         //Check the output segment
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
-        assert_eq!(vm.builtin_runners[0].1.base(), relocatable!(2, 0));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
         check_memory!(vm.memory, ((2, 0), 7));
         assert_eq!(
@@ -2189,7 +2189,7 @@ mod tests {
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
-        assert_eq!(vm.builtin_runners[0].1.base(), relocatable!(2, 0));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
 
         vm.memory = memory![((2, 0), 1), ((2, 1), 2)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 2]);
@@ -2282,7 +2282,7 @@ mod tests {
         cairo_runner.initialize_builtins(&mut vm).unwrap();
         cairo_runner.initialize_segments(&mut vm, None);
         assert_eq!(vm.builtin_runners[0].0, String::from("output"));
-        assert_eq!(vm.builtin_runners[0].1.base(), relocatable!(2, 0));
+        assert_eq!(vm.builtin_runners[0].1.base(), 2);
         vm.memory = memory![(
             (2, 0),
             (
