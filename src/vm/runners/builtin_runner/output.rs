@@ -90,4 +90,16 @@ mod tests {
         );
         assert_eq!(initial_stack.len(), 1);
     }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = OutputBuiltinRunner::new();
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            [("output".to_string(), ((0, 0).into(), None),)]
+                .into_iter()
+                .collect()
+        );
+    }
 }

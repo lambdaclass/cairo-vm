@@ -616,4 +616,16 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            [("ec_op".to_string(), ((0, 0).into(), None),)]
+                .into_iter()
+                .collect()
+        );
+    }
 }

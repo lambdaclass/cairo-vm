@@ -157,4 +157,16 @@ mod tests {
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = HashBuiltinRunner::new("pedersen", 256);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            [("pedersen".to_string(), ((0, 0).into(), None),)]
+                .into_iter()
+                .collect()
+        );
+    }
 }

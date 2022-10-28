@@ -129,4 +129,16 @@ mod tests {
         );
         assert_eq!(initial_stack.len(), 1);
     }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            [("range_check".to_string(), ((0, 0).into(), None),)]
+                .into_iter()
+                .collect()
+        );
+    }
 }
