@@ -16,7 +16,7 @@ use crate::{bigint, bigint_str};
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
     pub base: isize,
-    stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<usize>,
     cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,
@@ -190,13 +190,10 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
-        [(
-            "ec_op".to_string(),
-            ((self.base, 0).into(), self.stop_ptr.clone()),
-        )]
-        .into_iter()
-        .collect()
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
+        [("ec_op".to_string(), (self.base, self.stop_ptr))]
+            .into_iter()
+            .collect()
     }
 }
 
@@ -623,9 +620,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
-            [("ec_op".to_string(), ((0, 0).into(), None),)]
-                .into_iter()
-                .collect()
+            [("ec_op".to_string(), (0, None))].into_iter().collect(),
         );
     }
 }

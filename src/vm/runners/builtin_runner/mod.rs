@@ -32,5 +32,5 @@ pub trait BuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)>;
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)>;
 }

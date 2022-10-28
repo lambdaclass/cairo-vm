@@ -17,7 +17,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
     base: isize,
-    stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<usize>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
     _inner_rc_bound: BigInt,
@@ -95,13 +95,10 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
-        [(
-            "range_check".to_string(),
-            ((self.base, 0).into(), self.stop_ptr.clone()),
-        )]
-        .into_iter()
-        .collect()
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
+        [("range_check".to_string(), (self.base, self.stop_ptr))]
+            .into_iter()
+            .collect()
     }
 }
 
@@ -136,9 +133,9 @@ mod tests {
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
-            [("range_check".to_string(), ((0, 0).into(), None),)]
+            [("range_check".to_string(), (0, None))]
                 .into_iter()
-                .collect()
+                .collect(),
         );
     }
 }

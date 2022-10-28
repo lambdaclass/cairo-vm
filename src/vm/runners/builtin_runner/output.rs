@@ -9,7 +9,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct OutputBuiltinRunner {
     base: isize,
-    stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<usize>,
 }
 
 impl OutputBuiltinRunner {
@@ -50,13 +50,10 @@ impl BuiltinRunner for OutputBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
-        [(
-            "output".to_string(),
-            ((self.base, 0).into(), self.stop_ptr.clone()),
-        )]
-        .into_iter()
-        .collect()
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
+        [("output".to_string(), (self.base, self.stop_ptr))]
+            .into_iter()
+            .collect()
     }
 }
 
@@ -97,9 +94,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
-            [("output".to_string(), ((0, 0).into(), None),)]
-                .into_iter()
-                .collect()
+            [("output".to_string(), (0, None))].into_iter().collect(),
         );
     }
 }
