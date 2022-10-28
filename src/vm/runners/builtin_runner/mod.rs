@@ -5,7 +5,6 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use std::any::Any;
-use std::collections::HashMap;
 
 mod bitwise;
 mod ec_op;
@@ -46,5 +45,5 @@ pub trait BuiltinRunner {
         Ok((0..segment_size).map(|i| (base, i).into()).collect())
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)>;
+    fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>));
 }

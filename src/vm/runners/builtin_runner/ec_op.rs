@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::borrow::Cow;
-use std::collections::HashMap;
 
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -190,10 +189,8 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
-        [("ec_op".to_string(), (self.base, self.stop_ptr))]
-            .into_iter()
-            .collect()
+    fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("ec_op", (self.base, self.stop_ptr))
     }
 }
 
@@ -621,10 +618,7 @@ mod tests {
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(256);
 
-        assert_eq!(
-            builtin.get_memory_segment_addresses(),
-            [("ec_op".to_string(), (0, None))].into_iter().collect(),
-        );
+        assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
     }
 
     #[test]

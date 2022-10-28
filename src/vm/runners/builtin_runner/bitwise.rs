@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::collections::HashMap;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -100,10 +99,8 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
-        [("bitwise".to_string(), (self.base, self.stop_ptr))]
-            .into_iter()
-            .collect()
+    fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("bitwise", (self.base, self.stop_ptr))
     }
 }
 
@@ -160,7 +157,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
-            [("bitwise".to_string(), (0, None))].into_iter().collect(),
+            ("bitwise", (0, None)),
         );
     }
 

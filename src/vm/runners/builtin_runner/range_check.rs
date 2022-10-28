@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -95,10 +94,8 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
-        [("range_check".to_string(), (self.base, self.stop_ptr))]
-            .into_iter()
-            .collect()
+    fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("range_check", (self.base, self.stop_ptr))
     }
 }
 
@@ -135,9 +132,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
-            [("range_check".to_string(), (0, None))]
-                .into_iter()
-                .collect(),
+            ("range_check", (0, None)),
         );
     }
 

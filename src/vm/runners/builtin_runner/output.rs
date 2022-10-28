@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::collections::HashMap;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -50,10 +49,8 @@ impl BuiltinRunner for OutputBuiltinRunner {
         self
     }
 
-    fn get_memory_segment_addresses(&self) -> HashMap<String, (isize, Option<usize>)> {
-        [("output".to_string(), (self.base, self.stop_ptr))]
-            .into_iter()
-            .collect()
+    fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("output", (self.base, self.stop_ptr))
     }
 }
 
@@ -99,7 +96,7 @@ mod tests {
 
         assert_eq!(
             builtin.get_memory_segment_addresses(),
-            [("output".to_string(), (0, None))].into_iter().collect(),
+            ("output", (0, None)),
         );
     }
 
