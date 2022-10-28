@@ -398,4 +398,70 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn parse_value_with_no_reference() {
+        let value = "cast(825323, felt)";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: None,
+                    offset1: 0,
+                    offset2: 0,
+                    immediate: Some(bigint!(825323)),
+                    dereference: false,
+                    inner_dereference: false,
+                    value_type: "felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_one_reference() {
+        let value = "[cast([ap] + 1, starkware.cairo.common.cairo_secp.ec.EcPoint*)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: Some(Register::AP),
+                    offset1: 0,
+                    offset2: 1,
+                    immediate: None,
+                    dereference: true,
+                    inner_dereference: true,
+                    value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_doble_reference() {
+        let value = "[cast([ap] + 1, starkware.cairo.common.cairo_secp.ec.EcPoint**)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: Some(Register::AP),
+                    offset1: 0,
+                    offset2: 1,
+                    immediate: None,
+                    dereference: true,
+                    inner_dereference: true,
+                    value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint*".to_string(),
+                }
+            ))
+        );
+    }
 }
