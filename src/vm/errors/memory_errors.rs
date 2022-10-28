@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
 #[derive(Debug, PartialEq, Error)]
 pub enum MemoryError {
@@ -28,4 +28,6 @@ pub enum MemoryError {
     NonZeroOffset(usize),
     #[error("Attempt to overwrite a relocation rule, segment: {0}")]
     DuplicatedRelocation(isize),
+    #[error("Invalid memory value at address {0:?}: {1:?}")]
+    InvalidMemoryValue(Relocatable, MaybeRelocatable),
 }

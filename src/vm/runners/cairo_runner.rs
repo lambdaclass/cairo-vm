@@ -31,10 +31,10 @@ use std::{
 };
 
 pub struct CairoRunner {
-    program: Program,
+    pub(crate) program: Program,
     _layout: String,
     final_pc: Option<Relocatable>,
-    program_base: Option<Relocatable>,
+    pub(crate) program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,

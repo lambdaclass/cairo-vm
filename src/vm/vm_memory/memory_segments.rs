@@ -128,6 +128,23 @@ impl MemorySegmentManager {
             Err(MemoryError::WriteArg)
         }
     }
+
+    pub fn is_valid_memory_value(&self, value: &MaybeRelocatable) -> Result<bool, MemoryError> {
+        match &self.segment_used_sizes {
+            Some(segment_used_sizes) => match value {
+                MaybeRelocatable::Int(_) => Ok(true),
+                MaybeRelocatable::RelocatableValue(relocatable) => {
+                    let segment_index: usize =
+                        relocatable.segment_index.try_into().map_err(|_| {
+                            MemoryError::AddressInTemporarySegment(relocatable.segment_index)
+                        })?;
+
+                    Ok(segment_index < segment_used_sizes.len())
+                }
+            },
+            None => Err(MemoryError::EffectiveSizesNotCalled),
+        }
+    }
 }
 
 impl Default for MemorySegmentManager {
