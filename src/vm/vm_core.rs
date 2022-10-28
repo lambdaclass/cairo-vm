@@ -2665,7 +2665,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_builtin_valid() {
         let mut vm = vm!();
-        let builtin = HashBuiltinRunner::new("pedersen", 8);
+        let builtin = HashBuiltinRunner::new(8);
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(builtin)));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
@@ -2716,7 +2716,7 @@ mod tests {
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
         };
-        let mut builtin = HashBuiltinRunner::new("pedersen", 8);
+        let mut builtin = HashBuiltinRunner::new(8);
         builtin.base = 3;
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
@@ -3076,7 +3076,7 @@ mod tests {
     end
      */
     fn verify_auto_deductions_pedersen() {
-        let mut builtin = HashBuiltinRunner::new("pedersen", 8);
+        let mut builtin = HashBuiltinRunner::new(8);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
@@ -3190,7 +3190,7 @@ mod tests {
     #[test]
     fn test_get_builtin_runners() {
         let mut vm = vm!();
-        let hash_builtin = HashBuiltinRunner::new("pedersen", 8);
+        let hash_builtin = HashBuiltinRunner::new(8);
         let bitwise_builtin = BitwiseBuiltinRunner::new(8);
         vm.builtin_runners
             .push((String::from("pedersen"), Box::new(hash_builtin)));
