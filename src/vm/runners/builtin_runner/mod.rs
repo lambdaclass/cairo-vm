@@ -1,10 +1,10 @@
-use super::cairo_runner::CairoRunner;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use std::any::Any;
-use std::collections::HashSet;
 
 mod bitwise;
 mod ec_op;
@@ -32,6 +32,7 @@ pub trait BuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
 
-    fn get_memory_accesses(&self, runner: &CairoRunner) -> HashSet<Relocatable>;
-    fn get_used_instances(&self, runner: &CairoRunner) -> usize;
+    fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError>;
+    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>;
+    fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>;
 }

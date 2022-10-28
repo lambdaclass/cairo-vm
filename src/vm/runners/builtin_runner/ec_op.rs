@@ -2,13 +2,14 @@ use std::any::Any;
 use std::borrow::Cow;
 
 use num_bigint::BigInt;
-use num_integer::Integer;
+use num_integer::{div_ceil, Integer};
 
 use crate::math_utils::{ec_add, ec_double};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
-use crate::vm::runners::cairo_runner::CairoRunner;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::{bigint, bigint_str};
@@ -188,8 +189,31 @@ impl BuiltinRunner for EcOpBuiltinRunner {
         self
     }
 
-    fn get_memory_accesses(&self, _runner: &CairoRunner) -> std::collections::HashSet<Relocatable> {
-        todo!()
+    fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
+        let segment_size = vm
+            .segments
+            .get_segment_size(
+                self.base
+                    .try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+
+        Ok((0..segment_size).map(|i| (self.base, i).into()).collect())
+    }
+
+    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        vm.segments
+            .get_segment_used_size(
+                self.base
+                    .try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        Ok(div_ceil(self.get_used_cells(vm)?, self.cells_per_instance))
     }
 
     fn get_used_instances(&self, _runner: &CairoRunner) -> usize {
@@ -203,6 +227,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::errors::runner_errors::RunnerError;
+    use num_bigint::Sign;
 
     #[test]
     fn point_is_on_curve_a() {
@@ -612,5 +637,71 @@ mod tests {
                 builtin.scalar_limit.clone()
             ))
         );
+    }
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base, 0).into(),
+                (builtin.base, 1).into(),
+                (builtin.base, 2).into(),
+                (builtin.base, 3).into(),
+            ]),
+        );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = EcOpBuiltinRunner::new(256);
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }
