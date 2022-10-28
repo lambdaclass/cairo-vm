@@ -28,8 +28,8 @@ impl OutputBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    pub fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    pub fn base(&self) -> isize {
+        self.base
     }
 
     pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
@@ -71,7 +71,7 @@ mod tests {
         let initial_stack = builtin.initial_stack();
         assert_eq!(
             initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue(builtin.base())
+            MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
     }

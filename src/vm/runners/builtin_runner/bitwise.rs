@@ -41,8 +41,8 @@ impl BitwiseBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    pub fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    pub fn base(&self) -> isize {
+        self.base
     }
 
     pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {

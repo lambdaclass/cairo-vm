@@ -1,5 +1,7 @@
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -62,7 +64,7 @@ impl BuiltinRunner {
     }
 
     ///Returns the builtin's base
-    pub fn base(&self) -> Relocatable {
+    pub fn base(&self) -> isize {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.base(),
             BuiltinRunner::EcOp(ref ec) => ec.base(),
@@ -97,6 +99,22 @@ impl BuiltinRunner {
             }
         }
     }
+
+    pub fn get_memory_accesses(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<Vec<Relocatable>, MemoryError> {
+        let base = self.base();
+        let segment_size = vm
+            .segments
+            .get_segment_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+
+        Ok((0..segment_size).map(|i| (base, i).into()).collect())
+    }
 }
 
 impl From<BitwiseBuiltinRunner> for BuiltinRunner {
@@ -126,5 +144,49 @@ impl From<OutputBuiltinRunner> for BuiltinRunner {
 impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
     fn from(runner: RangeCheckBuiltinRunner) -> Self {
         BuiltinRunner::RangeCheck(runner)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{utils::test_utils::vm, vm::vm_core::VirtualMachine};
+    use num_bigint::{BigInt, Sign};
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(256).into();
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(256).into();
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(256).into();
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
+            ]),
+        );
     }
 }

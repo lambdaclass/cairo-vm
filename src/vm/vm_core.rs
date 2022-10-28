@@ -308,7 +308,7 @@ impl VirtualMachine {
         address: &Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         for (_, builtin) in self.builtin_runners.iter_mut() {
-            if builtin.base().segment_index == address.segment_index {
+            if builtin.base() == address.segment_index {
                 match builtin.deduce_memory_cell(address, &self.memory) {
                     Ok(maybe_reloc) => return Ok(maybe_reloc),
                     Err(error) => return Err(VirtualMachineError::RunnerError(error)),
@@ -418,13 +418,13 @@ impl VirtualMachine {
         if let Some(ref mut accessed_addresses) = self.accessed_addresses {
             let op_addrs =
                 operands_mem_addresses.ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
-            let addresses = &[
+            let addresses = [
                 op_addrs.0,
                 op_addrs.1,
                 op_addrs.2,
                 self.run_context.pc.clone(),
             ];
-            accessed_addresses.extend_from_slice(addresses);
+            accessed_addresses.extend(addresses.into_iter());
         }
 
         self.update_registers(instruction, operands)?;
@@ -615,9 +615,10 @@ impl VirtualMachine {
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
         for (name, builtin) in self.builtin_runners.iter_mut() {
-            let index: usize = builtin.base().segment_index.try_into().map_err(|_| {
-                MemoryError::AddressInTemporarySegment(builtin.base().segment_index)
-            })?;
+            let index: usize = builtin
+                .base()
+                .try_into()
+                .map_err(|_| MemoryError::AddressInTemporarySegment(builtin.base()))?;
             for (offset, value) in self.memory.data[index].iter().enumerate() {
                 if let Some(deduced_memory_cell) = builtin
                     .deduce_memory_cell(&Relocatable::from((index as isize, offset)), &self.memory)

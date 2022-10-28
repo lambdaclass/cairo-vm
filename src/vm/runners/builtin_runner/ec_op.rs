@@ -91,8 +91,8 @@ impl EcOpBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    pub fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    pub fn base(&self) -> isize {
+        self.base
     }
     pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
@@ -188,8 +188,7 @@ impl EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::errors::runner_errors::RunnerError;
+    use crate::vm::errors::{memory_errors::MemoryError, runner_errors::RunnerError};
 
     #[test]
     fn point_is_on_curve_a() {
