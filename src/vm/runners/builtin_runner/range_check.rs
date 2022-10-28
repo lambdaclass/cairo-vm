@@ -49,8 +49,8 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> Relocatable {
-        Relocatable::from((self.base, 0))
+    fn base(&self) -> isize {
+        self.base
     }
 
     fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
@@ -130,7 +130,7 @@ mod tests {
         let initial_stack = builtin.initial_stack();
         assert_eq!(
             initial_stack[0].clone(),
-            MaybeRelocatable::RelocatableValue(builtin.base())
+            MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
     }
