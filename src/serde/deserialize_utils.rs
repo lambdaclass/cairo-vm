@@ -159,7 +159,14 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         opt(offset),
     ))(input)?;
 
-    let (_, (_, type_)) = tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
+    let (reference_count, (_, struct_)) =
+        tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
+
+    let type_: String = if reference_count == "**" {
+        struct_.to_owned() + "*"
+    } else {
+        struct_.to_owned()
+    };
 
     // check if there was any register and offset to be parsed
     let (inner_deref, reg, offs1) = if let Some((inner_deref, reg, offs1)) = inner_deref {
@@ -183,7 +190,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             immediate: None,
             dereference,
             inner_dereference: inner_deref,
-            value_type: type_.to_string(),
+            value_type: type_,
         }
     } else {
         ValueAddress {
@@ -193,7 +200,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             immediate: Some(bigint!(offset_or_immediate)),
             dereference,
             inner_dereference: inner_deref,
-            value_type: type_.to_string(),
+            value_type: type_,
         }
     };
 
