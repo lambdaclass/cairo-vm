@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::collections::HashMap;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -14,6 +15,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 pub struct BitwiseBuiltinRunner {
     _ratio: usize,
     pub base: isize,
+    stop_ptr: Option<Relocatable>,
     cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,
@@ -23,6 +25,7 @@ impl BitwiseBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         BitwiseBuiltinRunner {
             base: 0,
+            stop_ptr: None,
 
             _ratio: ratio,
             cells_per_instance: 5,
@@ -95,6 +98,15 @@ impl BuiltinRunner for BitwiseBuiltinRunner {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
+        [(
+            "bitwise".to_string(),
+            ((self.base, 0).into(), self.stop_ptr.clone()),
+        )]
+        .into_iter()
+        .collect()
     }
 }
 

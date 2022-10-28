@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::ops::Shl;
 
 use num_bigint::BigInt;
@@ -16,7 +17,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
     base: isize,
-    _stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<Relocatable>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
     _inner_rc_bound: BigInt,
@@ -30,7 +31,7 @@ impl RangeCheckBuiltinRunner {
         RangeCheckBuiltinRunner {
             _ratio: ratio,
             base: 0,
-            _stop_ptr: None,
+            stop_ptr: None,
             _cells_per_instance: 1,
             _n_input_cells: 1,
             _inner_rc_bound: inner_rc_bound.clone(),
@@ -39,6 +40,7 @@ impl RangeCheckBuiltinRunner {
         }
     }
 }
+
 impl BuiltinRunner for RangeCheckBuiltinRunner {
     fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
         self.base = segments.add(memory).segment_index
@@ -91,6 +93,15 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
+        [(
+            "range_check".to_string(),
+            ((self.base, 0).into(), self.stop_ptr.clone()),
+        )]
+        .into_iter()
+        .collect()
     }
 }
 

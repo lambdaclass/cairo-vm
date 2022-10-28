@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::collections::HashMap;
 
 use num_bigint::{BigInt, Sign};
 use num_integer::Integer;
@@ -12,22 +13,24 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
     pub base: isize,
+    stop_ptr: Option<Relocatable>,
+    name: String,
     _ratio: usize,
     cells_per_instance: usize,
     _n_input_cells: usize,
-    _stop_ptr: Option<Relocatable>,
     verified_addresses: Vec<Relocatable>,
 }
 
 impl HashBuiltinRunner {
-    pub fn new(ratio: usize) -> Self {
+    pub fn new(name: impl Into<String>, ratio: usize) -> Self {
         HashBuiltinRunner {
             base: 0,
+            stop_ptr: None,
+            name: name.into(),
 
             _ratio: ratio,
             cells_per_instance: 3,
             _n_input_cells: 2,
-            _stop_ptr: None,
             verified_addresses: Vec::new(),
         }
     }
@@ -98,6 +101,15 @@ impl BuiltinRunner for HashBuiltinRunner {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
+        [(
+            self.name.to_string(),
+            ((self.base, 0).into(), self.stop_ptr.clone()),
+        )]
+        .into_iter()
+        .collect()
+    }
 }
 
 #[cfg(test)]
@@ -109,7 +121,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new("pedersen", 8);
 
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(
@@ -124,7 +136,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new("pedersen", 8);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -132,7 +144,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new("pedersen", 8);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -140,7 +152,7 @@ mod tests {
     #[test]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
-        let mut builtin = HashBuiltinRunner::new(8);
+        let mut builtin = HashBuiltinRunner::new("pedersen", 8);
         builtin.verified_addresses = vec![Relocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));

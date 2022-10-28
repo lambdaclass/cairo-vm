@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::collections::HashMap;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -8,14 +9,14 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct OutputBuiltinRunner {
     base: isize,
-    _stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<Relocatable>,
 }
 
 impl OutputBuiltinRunner {
     pub fn new() -> OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
-            _stop_ptr: None,
+            stop_ptr: None,
         }
     }
 }
@@ -47,6 +48,15 @@ impl BuiltinRunner for OutputBuiltinRunner {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
+        [(
+            "output".to_string(),
+            ((self.base, 0).into(), self.stop_ptr.clone()),
+        )]
+        .into_iter()
+        .collect()
     }
 }
 

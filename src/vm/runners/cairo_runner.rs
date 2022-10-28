@@ -90,7 +90,10 @@ impl CairoRunner {
             }
 
             if builtin_name == "pedersen" {
-                builtin_runners.push((builtin_name.clone(), Box::new(HashBuiltinRunner::new(8))));
+                builtin_runners.push((
+                    builtin_name.clone(),
+                    Box::new(HashBuiltinRunner::new("pedersen", 8)),
+                ));
             }
 
             if builtin_name == "range_check" {

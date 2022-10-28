@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::collections::HashMap;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -30,4 +31,6 @@ pub trait BuiltinRunner {
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
+
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)>;
 }

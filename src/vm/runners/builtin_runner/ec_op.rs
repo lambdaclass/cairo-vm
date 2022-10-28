@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::borrow::Cow;
+use std::collections::HashMap;
 
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -15,6 +16,7 @@ use crate::{bigint, bigint_str};
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
     pub base: isize,
+    stop_ptr: Option<Relocatable>,
     cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,
@@ -26,6 +28,7 @@ impl EcOpBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         EcOpBuiltinRunner {
             base: 0,
+            stop_ptr: None,
             _ratio: ratio,
             n_input_cells: 5,
             cells_per_instance: 7,
@@ -185,6 +188,15 @@ impl BuiltinRunner for EcOpBuiltinRunner {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_memory_segment_addresses(&self) -> HashMap<String, (Relocatable, Option<Relocatable>)> {
+        [(
+            "ec_op".to_string(),
+            ((self.base, 0).into(), self.stop_ptr.clone()),
+        )]
+        .into_iter()
+        .collect()
     }
 }
 
