@@ -5,10 +5,8 @@ use num_integer::Integer;
 use starknet_crypto::{pedersen_hash, FieldElement};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::builtin_runner::BuiltinRunner;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -100,25 +98,12 @@ impl BuiltinRunner for HashBuiltinRunner {
     fn as_any(&self) -> &dyn Any {
         self
     }
-
-    fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
-        let segment_size = vm
-            .segments
-            .get_segment_size(
-                self.base
-                    .try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
-            )
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        Ok((0..segment_size).map(|i| (self.base, i).into()).collect())
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine};
     use crate::{bigint, bigint_str, utils::test_utils::*};
     use num_bigint::Sign;
 
