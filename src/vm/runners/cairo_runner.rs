@@ -336,15 +336,7 @@ impl CairoRunner {
         vm.segments.get_memory_holes(&builtin_accessed_addresses)
     }
 
-    pub fn end_run(
-        &mut self,
-        _disable_trace_padding: Option<bool>,
-        disable_finalize_all: Option<bool>,
-        vm: &mut VirtualMachine,
-    ) -> Result<(), VirtualMachineError> {
-        // let disable_trace_padding = disable_trace_padding.unwrap_or(true);
-        let disable_finalize_all = disable_finalize_all.unwrap_or(false);
-
+    pub fn end_run(&mut self, vm: &mut VirtualMachine) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::RunAlreadyFinished.into());
         }
@@ -372,10 +364,8 @@ impl CairoRunner {
             .map_err(VirtualMachineError::TracerError)?;
         vm.end_run(&self.exec_scopes)?;
 
-        if !disable_finalize_all {
-            vm.segments.compute_effective_sizes(&vm.memory);
-            self.run_ended = true;
-        }
+        vm.segments.compute_effective_sizes(&vm.memory);
+        self.run_ended = true;
 
         Ok(())
     }
@@ -2606,7 +2596,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_eq!(
-            cairo_runner.end_run(None, None, &mut vm),
+            cairo_runner.end_run(&mut vm),
             Err(MemoryError::MissingAccessedAddresses.into()),
         );
     }
@@ -2633,7 +2623,7 @@ mod tests {
 
         cairo_runner.run_ended = true;
         assert_eq!(
-            cairo_runner.end_run(None, None, &mut vm),
+            cairo_runner.end_run(&mut vm),
             Err(RunnerError::RunAlreadyFinished.into()),
         );
     }
@@ -2659,11 +2649,6 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner.accessed_addresses = Some(HashSet::new());
-        assert_eq!(cairo_runner.end_run(None, None, &mut vm), Ok(()));
-
-        cairo_runner.run_ended = false;
-        cairo_runner.relocated_memory.clear();
-        assert_eq!(cairo_runner.end_run(None, Some(true), &mut vm), Ok(()));
-        assert!(!cairo_runner.run_ended);
+        assert_eq!(cairo_runner.end_run(&mut vm), Ok(()));
     }
 }
