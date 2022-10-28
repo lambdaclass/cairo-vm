@@ -378,17 +378,7 @@ impl CairoRunner {
         vm.end_run(&self.exec_scopes)?;
 
         if !disable_finalize_all {
-            // vm.memory.freeze();
             vm.segments.compute_effective_sizes(&vm.memory);
-
-            // if self.proof_mode && !disable_trace_padding {
-            //     self.run_until_next_power_of_2();
-            //     while !self.check_used_cells() {
-            //         self.run_for_steps(1);
-            //         self.run_until_next_power_of_2();
-            //     }
-            // }
-
             self.run_ended = true;
         }
 
