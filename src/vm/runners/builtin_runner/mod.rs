@@ -32,5 +32,16 @@ pub trait BuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError>;
     fn as_any(&self) -> &dyn Any;
 
-    fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError>;
+    fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
+        let base = self.base();
+        let segment_size = vm
+            .segments
+            .get_segment_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+
+        Ok((0..segment_size).map(|i| (base, i).into()).collect())
+    }
 }
