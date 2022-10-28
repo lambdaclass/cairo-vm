@@ -33,4 +33,6 @@ pub trait BuiltinRunner {
     fn as_any(&self) -> &dyn Any;
 
     fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError>;
+    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>;
+    fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>;
 }
