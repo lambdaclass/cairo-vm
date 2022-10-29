@@ -34,6 +34,7 @@ generic-array = "0.14.6"
 # https://github.com/Geal/nom/issues/1253
 keccak = "0.1.2"
 parse-hyperlinks = { path = "./deps/parse-hyperlinks" }
+regex = "1.6.0"
 
 [dev-dependencies.rusty-hook]
 version = "0.11"
