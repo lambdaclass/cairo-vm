@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod tests;
 use regex::Regex;
 use std::any::Any;
 use std::collections::HashMap;
@@ -59,7 +61,7 @@ impl HintProcessor for RegexHintProcessor {
         vm: &mut crate::vm::vm_core::VirtualMachine,
         exec_scopes: &mut crate::types::exec_scope::ExecutionScopes,
         hint_data: &Box<dyn std::any::Any>,
-        _constants: &std::collections::HashMap<String, num_bigint::BigInt>,
+        _constants: &HashMap<String, num_bigint::BigInt>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
@@ -72,6 +74,7 @@ impl HintProcessor for RegexHintProcessor {
                 for captures in hint_regex.captures_iter(&hint_data.code) {
                     let args: Vec<String> = captures
                         .iter()
+                        .skip(1) // skip the first capture, which is the whole match
                         .map(|x| x.unwrap().as_str().to_string())
                         .collect();
                     match self.hints.get(hint_regex_string) {
