@@ -13,6 +13,7 @@ use crate::{
 
 use super::hint_processor_definition::HintProcessor;
 
+#[allow(clippy::type_complexity)]
 pub struct HintFunc(
     pub  Box<
         dyn Fn(
@@ -32,10 +33,8 @@ pub struct RegexHintProcessor {
 }
 
 impl RegexHintProcessor {
-    pub fn new() -> Self {
-        Self {
-            hints: HashMap::new(),
-        }
+    pub fn new(hints: HashMap<String, HintFunc>) -> Self {
+        Self { hints }
     }
 
     pub fn add_hint(&mut self, hint_code_regex: String, func: HintFunc) {
@@ -85,5 +84,11 @@ impl HintProcessor for RegexHintProcessor {
             }
         }
         Ok(())
+    }
+}
+
+impl Default for RegexHintProcessor {
+    fn default() -> Self {
+        Self::new(HashMap::new())
     }
 }

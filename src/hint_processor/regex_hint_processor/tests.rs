@@ -22,7 +22,7 @@ fn test_hint_regex() {
 
 #[test]
 fn test_custom_regex_hints() {
-    let mut hint_processor = RegexHintProcessor::new();
+    let mut hint_processor = RegexHintProcessor::default();
     fn hint_func(
         _vm: &mut VirtualMachine,
         _exec_scopes: &mut ExecutionScopes,
