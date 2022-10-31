@@ -451,7 +451,7 @@ impl CairoRunner {
     ) -> Result<ExecutionResources, TraceError> {
         let n_steps = match self.original_steps {
             Some(x) => x,
-            None => vm.trace.as_ref().ok_or(TraceError::TraceNotEnabled)?.len(),
+            None => vm.trace.as_ref().map(|x| x.len()).unwrap_or(0),
         };
         let n_memory_holes = self.get_memory_holes(vm)?;
 
@@ -2710,12 +2710,18 @@ mod tests {
             identifiers: HashMap::new(),
         };
 
-        let cairo_runner = CairoRunner::new(&program).unwrap();
-        let vm = vm!();
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
 
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             cairo_runner.get_execution_resources(&vm),
-            Err(TraceError::TraceNotEnabled),
+            Ok(ExecutionResources {
+                n_steps: 0,
+                n_memory_holes: 0,
+                builtin_instance_counter: Vec::new(),
+            }),
         );
     }
 
