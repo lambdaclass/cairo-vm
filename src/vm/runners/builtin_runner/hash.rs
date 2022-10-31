@@ -9,10 +9,10 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct HashBuiltinRunner {
     pub base: isize,
+    stop_ptr: Option<usize>,
     _ratio: usize,
     pub(crate) cells_per_instance: usize,
     _n_input_cells: usize,
-    _stop_ptr: Option<Relocatable>,
     verified_addresses: Vec<Relocatable>,
 }
 
@@ -20,11 +20,11 @@ impl HashBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         HashBuiltinRunner {
             base: 0,
+            stop_ptr: None,
 
             _ratio: ratio,
             cells_per_instance: 3,
             _n_input_cells: 2,
-            _stop_ptr: None,
             verified_addresses: Vec::new(),
         }
     }
@@ -93,6 +93,10 @@ impl HashBuiltinRunner {
         }
         Ok(None)
     }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("pedersen", (self.base, self.stop_ptr))
+    }
 }
 
 #[cfg(test)]
@@ -142,6 +146,16 @@ mod tests {
         builtin.verified_addresses = vec![Relocatable::from((0, 5))];
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = HashBuiltinRunner::new(256);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            ("pedersen", (0, None)),
+        );
     }
 
     #[test]

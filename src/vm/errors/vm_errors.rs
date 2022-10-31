@@ -1,10 +1,10 @@
+use super::exec_scope_errors::ExecScopeError;
+use super::trace_errors::TraceError;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use num_bigint::BigInt;
 use thiserror::Error;
-
-use super::exec_scope_errors::ExecScopeError;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum VirtualMachineError {
@@ -220,6 +220,8 @@ pub enum VirtualMachineError {
     MissingConstant(&'static str),
     #[error("Fail to get constants for hint execution")]
     FailedToGetConstant,
+    #[error(transparent)]
+    TracerError(#[from] TraceError),
     #[error("Current run is not finished")]
     RunNotFinished,
 }

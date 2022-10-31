@@ -12,6 +12,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 pub struct BitwiseBuiltinRunner {
     _ratio: usize,
     pub base: isize,
+    stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,
@@ -21,6 +22,7 @@ impl BitwiseBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         BitwiseBuiltinRunner {
             base: 0,
+            stop_ptr: None,
 
             _ratio: ratio,
             cells_per_instance: 5,
@@ -92,6 +94,10 @@ impl BitwiseBuiltinRunner {
         }
         Ok(None)
     }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("bitwise", (self.base, self.stop_ptr))
+    }
 }
 
 #[cfg(test)]
@@ -142,6 +148,16 @@ mod tests {
         let mut builtin = BitwiseBuiltinRunner::new(256);
         let result = builtin.deduce_memory_cell(&Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = BitwiseBuiltinRunner::new(256);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            ("bitwise", (0, None)),
+        );
     }
 
     #[test]

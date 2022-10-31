@@ -5,14 +5,14 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct OutputBuiltinRunner {
     base: isize,
-    _stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<usize>,
 }
 
 impl OutputBuiltinRunner {
     pub fn new() -> OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
-            _stop_ptr: None,
+            stop_ptr: None,
         }
     }
 
@@ -42,6 +42,10 @@ impl OutputBuiltinRunner {
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("output", (self.base, self.stop_ptr))
     }
 }
 
@@ -82,6 +86,16 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = OutputBuiltinRunner::new();
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            ("output", (0, None)),
+        );
     }
 
     #[test]

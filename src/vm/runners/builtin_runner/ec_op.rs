@@ -13,6 +13,7 @@ use crate::{bigint, bigint_str};
 pub struct EcOpBuiltinRunner {
     _ratio: usize,
     pub base: isize,
+    stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: usize,
     n_input_cells: usize,
     scalar_height: usize,
@@ -24,6 +25,7 @@ impl EcOpBuiltinRunner {
     pub fn new(ratio: usize) -> Self {
         EcOpBuiltinRunner {
             base: 0,
+            stop_ptr: None,
             _ratio: ratio,
             n_input_cells: 5,
             cells_per_instance: 7,
@@ -181,6 +183,10 @@ impl EcOpBuiltinRunner {
             _ => Ok(Some(MaybeRelocatable::Int(result.1))),
             //Default case corresponds to 1, as there are no other possible cases
         }
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("ec_op", (self.base, self.stop_ptr))
     }
 }
 
@@ -603,6 +609,13 @@ mod tests {
                 builtin.scalar_limit.clone()
             ))
         );
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = EcOpBuiltinRunner::new(256);
+
+        assert_eq!(builtin.get_memory_segment_addresses(), ("ec_op", (0, None)));
     }
 
     #[test]

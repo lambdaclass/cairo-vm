@@ -14,7 +14,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 pub struct RangeCheckBuiltinRunner {
     _ratio: BigInt,
     base: isize,
-    _stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<usize>,
     _cells_per_instance: i32,
     _n_input_cells: i32,
     _inner_rc_bound: BigInt,
@@ -28,7 +28,7 @@ impl RangeCheckBuiltinRunner {
         RangeCheckBuiltinRunner {
             _ratio: ratio,
             base: 0,
-            _stop_ptr: None,
+            stop_ptr: None,
             _cells_per_instance: 1,
             _n_input_cells: 1,
             _inner_rc_bound: inner_rc_bound.clone(),
@@ -89,14 +89,18 @@ impl RangeCheckBuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
     }
+
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("range_check", (self.base, self.stop_ptr))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
-        utils::test_utils::vm,
-        vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine},
+        utils::test_utils::vm, vm::runners::builtin_runner::BuiltinRunner,
+        vm::vm_core::VirtualMachine,
     };
     use num_bigint::Sign;
 
@@ -119,6 +123,16 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = RangeCheckBuiltinRunner::new(bigint!(8), 8);
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            ("range_check", (0, None)),
+        );
     }
 
     #[test]
