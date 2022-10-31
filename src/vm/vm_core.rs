@@ -3231,4 +3231,72 @@ mod tests {
         vm.disable_trace();
         assert!(vm.trace.is_none());
     }
+
+    #[test]
+    fn get_range_for_continuos_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            vm.get_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_range_for_non_continuos_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![
+            Some(Cow::Borrowed(&value1)),
+            Some(Cow::Borrowed(&value2)),
+            None,
+            Some(Cow::Borrowed(&value3)),
+        ];
+        assert_eq!(
+            vm.get_range(&MaybeRelocatable::from((1, 0)), 4),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuos_range_for_continuos_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
+
+        let value1 = MaybeRelocatable::from(bigint!(2));
+        let value2 = MaybeRelocatable::from(bigint!(3));
+        let value3 = MaybeRelocatable::from(bigint!(4));
+
+        let expected_vec = vec![value1, value2, value3];
+        assert_eq!(
+            vm.get_continuos_range(&MaybeRelocatable::from((1, 0)), 3),
+            Ok(expected_vec)
+        );
+    }
+
+    #[test]
+    fn get_continuos_range_for_non_continuos_memory() {
+        let mut vm = vm!();
+        vm.memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
+
+        assert_eq!(
+            vm.get_continuos_range(&MaybeRelocatable::from((1, 0)), 3),
+            Err(MemoryError::GetRangeMemoryGap)
+        );
+    }
 }
