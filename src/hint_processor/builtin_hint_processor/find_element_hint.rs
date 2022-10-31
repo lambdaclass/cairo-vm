@@ -112,8 +112,8 @@ pub fn search_sorted_lower(
         }
     }
 
-    let initial_offset = array_iter.offset;
     let mut array_iter = vm.get_relocatable(&rel_array_ptr)?.into_owned();
+    let initial_offset = array_iter.offset;
     let n_elms_usize = n_elms.to_usize().ok_or(VirtualMachineError::KeyNotFound)?;
     let elm_size_usize = elm_size
         .to_usize()
@@ -133,7 +133,7 @@ pub fn search_sorted_lower(
             high = mid;
         }
         if value.as_ref() >= key.as_ref() {
-            return insert_value_from_var_name("index", bigint!(i), vm, ids_data, ap_tracking);
+            return insert_value_from_var_name("index", bigint!(mid), vm, ids_data, ap_tracking);
         }
     }
 
@@ -149,9 +149,8 @@ pub fn search_sorted_lower(
     } else if low < n_elms_usize && value_low? >= key {
         insert_value_from_var_name("index", bigint!(low), vm, ids_data, ap_tracking)
     } else {
-        insert_value_from_var_name("index", n_elms.clone(), vm, ids_data, ap_tracking)
+        insert_value_from_var_name("index", n_elms.into_owned(), vm, ids_data, ap_tracking)
     }
-    insert_value_from_var_name("index", n_elms.into_owned(), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
