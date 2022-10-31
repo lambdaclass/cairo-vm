@@ -13,7 +13,7 @@ pub struct BitwiseBuiltinRunner {
     _ratio: usize,
     pub base: isize,
     stop_ptr: Option<usize>,
-    cells_per_instance: usize,
+    pub(crate) cells_per_instance: usize,
     _n_input_cells: usize,
     total_n_bits: u32,
 }
@@ -195,5 +195,34 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }
