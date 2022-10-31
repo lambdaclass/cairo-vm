@@ -1,5 +1,5 @@
-pub(crate) const CELLS_PER_BITWISE: u32 = 2;
-pub(crate) const INPUT_CELLS_PER_BITWISE: u32 = 5;
+pub(crate) const CELLS_PER_BITWISE: u32 = 5;
+pub(crate) const INPUT_CELLS_PER_BITWISE: u32 = 2;
 
 #[derive(Clone, Debug)]
 pub(crate) struct BitwiseInstanceDef {
