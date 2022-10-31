@@ -45,6 +45,15 @@ pub trait BuiltinRunner {
         Ok((0..segment_size).map(|i| (base, i).into()).collect())
     }
 
-    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>;
+    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
+        let base = self.base();
+        vm.segments
+            .get_segment_used_size(
+                base.try_into()
+                    .map_err(|_| MemoryError::AddressInTemporarySegment(base))?,
+            )
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
     fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError>;
 }

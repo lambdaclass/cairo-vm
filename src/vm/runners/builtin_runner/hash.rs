@@ -101,29 +101,6 @@ impl BuiltinRunner for HashBuiltinRunner {
         self
     }
 
-    fn get_memory_accesses(&self, vm: &VirtualMachine) -> Result<Vec<Relocatable>, MemoryError> {
-        let segment_size = vm
-            .segments
-            .get_segment_size(
-                self.base
-                    .try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
-            )
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        Ok((0..segment_size).map(|i| (self.base, i).into()).collect())
-    }
-
-    fn get_used_cells(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        vm.segments
-            .get_segment_used_size(
-                self.base
-                    .try_into()
-                    .map_err(|_| MemoryError::AddressInTemporarySegment(self.base))?,
-            )
-            .ok_or(MemoryError::MissingSegmentUsedSizes)
-    }
-
     fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         Ok(div_ceil(self.get_used_cells(vm)?, self.cells_per_instance))
     }
