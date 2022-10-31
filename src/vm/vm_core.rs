@@ -1,3 +1,4 @@
+use super::errors::exec_scope_errors::ExecScopeError;
 use crate::{
     bigint,
     hint_processor::hint_processor_definition::HintProcessor,
@@ -636,6 +637,15 @@ impl VirtualMachine {
         }
         Ok(())
     }
+
+    pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
+        self.verify_auto_deductions()?;
+        match exec_scopes.data.len() {
+            1 => Ok(()),
+            _ => Err(ExecScopeError::NoScopeError.into()),
+        }
+    }
+
     ///Adds a new segment and to the VirtualMachine.memory returns its starting location as a RelocatableValue.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add(&mut self.memory)

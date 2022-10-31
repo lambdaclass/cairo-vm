@@ -40,6 +40,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
+    run_ended: bool,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
@@ -57,6 +58,7 @@ impl CairoRunner {
             initial_fp: None,
             initial_pc: None,
             accessed_addresses: None,
+            run_ended: false,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
@@ -329,6 +331,47 @@ impl CairoRunner {
 
         builtin_accessed_addresses.extend(accessed_addresses.iter().cloned());
         vm.segments.get_memory_holes(&builtin_accessed_addresses)
+    }
+
+    pub fn end_run(
+        &mut self,
+        _disable_trace_padding: bool,
+        disable_finalize_all: bool,
+        vm: &mut VirtualMachine,
+    ) -> Result<(), VirtualMachineError> {
+        if self.run_ended {
+            return Err(RunnerError::RunAlreadyFinished.into());
+        }
+
+        // Process accessed_addresses.
+        self.accessed_addresses = Some({
+            let accessed_addresses = self
+                .accessed_addresses
+                .as_ref()
+                .ok_or_else::<VirtualMachineError, _>(|| {
+                    MemoryError::MissingAccessedAddresses.into()
+                })?;
+            let mut new_accessed_addresses = HashSet::with_capacity(accessed_addresses.len());
+
+            for addr in accessed_addresses {
+                let relocated_addr = vm.memory.relocate_value(&addr.into())?.into_owned();
+
+                new_accessed_addresses.insert(relocated_addr.try_into().unwrap());
+            }
+
+            new_accessed_addresses
+        });
+
+        self.relocate(vm)
+            .map_err(VirtualMachineError::TracerError)?;
+        vm.end_run(&self.exec_scopes)?;
+
+        if !disable_finalize_all {
+            vm.segments.compute_effective_sizes(&vm.memory);
+            self.run_ended = true;
+        }
+
+        Ok(())
     }
 
     ///Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values into BigInts
@@ -2534,5 +2577,87 @@ mod tests {
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));
+    }
+
+    #[test]
+    fn end_run_missing_accessed_addresses() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm),
+            Err(MemoryError::MissingAccessedAddresses.into()),
+        );
+    }
+
+    #[test]
+    fn end_run_run_already_finished() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.run_ended = true;
+        assert_eq!(
+            cairo_runner.end_run(true, false, &mut vm),
+            Err(RunnerError::RunAlreadyFinished.into()),
+        );
+    }
+
+    #[test]
+    fn end_run() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        assert_eq!(cairo_runner.end_run(true, false, &mut vm), Ok(()));
+
+        cairo_runner.run_ended = false;
+        cairo_runner.relocated_memory.clear();
+        assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
+        assert!(!cairo_runner.run_ended);
     }
 }
