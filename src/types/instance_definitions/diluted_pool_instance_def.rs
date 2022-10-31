@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct DilutedPoolInstanceDef {
     pub(crate) _units_per_step: u32,
     pub(crate) _spacing: u32,

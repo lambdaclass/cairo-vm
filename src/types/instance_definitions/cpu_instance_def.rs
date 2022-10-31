@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct CpuInstanceDef {
     pub(crate) _safe_call: bool,
 }
