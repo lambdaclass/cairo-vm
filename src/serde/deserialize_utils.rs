@@ -162,8 +162,8 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let (indirection_level, (_, struct_)) =
         tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
 
-    let type_: String = if indirection_level.len() > 1 {
-        struct_.to_owned() + indirection_level.get(1..).unwrap()
+    let type_: String = if let Some(indirections) = indirection_level.get(1..) {
+        struct_.to_owned() + indirections
     } else {
         struct_.to_owned()
     };
