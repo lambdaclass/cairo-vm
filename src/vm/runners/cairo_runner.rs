@@ -41,6 +41,7 @@ pub struct CairoRunner {
     initial_pc: Option<Relocatable>,
     accessed_addresses: Option<HashSet<Relocatable>>,
     run_ended: bool,
+    pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<BigInt>>,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     pub exec_scopes: ExecutionScopes,
@@ -59,6 +60,7 @@ impl CairoRunner {
             initial_pc: None,
             accessed_addresses: None,
             run_ended: false,
+            original_steps: None,
             relocated_memory: Vec::new(),
             relocated_trace: None,
             exec_scopes: ExecutionScopes::new(),
@@ -443,6 +445,29 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn get_execution_resources(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<ExecutionResources, TraceError> {
+        let n_steps = match self.original_steps {
+            Some(x) => x,
+            None => vm.trace.as_ref().map(|x| x.len()).unwrap_or(0),
+        };
+        let n_memory_holes = self.get_memory_holes(vm)?;
+
+        let mut builtin_instance_counter = Vec::with_capacity(vm.builtin_runners.len());
+        for (key, builtin_runner) in &vm.builtin_runners {
+            builtin_instance_counter
+                .push((key.to_string(), builtin_runner.get_used_instances(vm)?));
+        }
+
+        Ok(ExecutionResources {
+            n_steps,
+            n_memory_holes,
+            builtin_instance_counter,
+        })
+    }
+
     pub fn get_output(&mut self, vm: &mut VirtualMachine) -> Result<String, RunnerError> {
         let mut output = Vec::<u8>::new();
         self.write_output(vm, &mut output)?;
@@ -489,6 +514,13 @@ impl CairoRunner {
         }
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExecutionResources {
+    pub n_steps: usize,
+    pub n_memory_holes: usize,
+    pub builtin_instance_counter: Vec<(String, usize)>,
 }
 
 #[cfg(test)]
@@ -2659,5 +2691,109 @@ mod tests {
         cairo_runner.relocated_memory.clear();
         assert_eq!(cairo_runner.end_run(true, true, &mut vm), Ok(()));
         assert!(!cairo_runner.run_ended);
+    }
+
+    #[test]
+    fn get_execution_resources_trace_not_enabled() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            cairo_runner.get_execution_resources(&vm),
+            Ok(ExecutionResources {
+                n_steps: 0,
+                n_memory_holes: 0,
+                builtin_instance_counter: Vec::new(),
+            }),
+        );
+    }
+
+    #[test]
+    fn get_execution_resources_empty_builtins() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.original_steps = Some(10);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            cairo_runner.get_execution_resources(&vm),
+            Ok(ExecutionResources {
+                n_steps: 10,
+                n_memory_holes: 0,
+                builtin_instance_counter: Vec::new(),
+            }),
+        );
+    }
+
+    #[test]
+    fn get_execution_resources() {
+        let program = Program {
+            builtins: Vec::new(),
+            prime: bigint_str!(
+                b"3618502788666131213697322783095070105623107215331596699973092056135872020481"
+            ),
+            data: Vec::new(),
+            constants: HashMap::new(),
+            main: None,
+            hints: HashMap::new(),
+            reference_manager: ReferenceManager {
+                references: Vec::new(),
+            },
+            identifiers: HashMap::new(),
+        };
+
+        let mut cairo_runner = CairoRunner::new(&program).unwrap();
+        let mut vm = vm!();
+
+        cairo_runner.original_steps = Some(10);
+        cairo_runner.accessed_addresses = Some(HashSet::new());
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        vm.builtin_runners = vec![{
+            let mut builtin = OutputBuiltinRunner::new();
+            builtin.initialize_segments(&mut vm.segments, &mut vm.memory);
+
+            ("output".to_string(), BuiltinRunner::Output(builtin))
+        }];
+        assert_eq!(
+            cairo_runner.get_execution_resources(&vm),
+            Ok(ExecutionResources {
+                n_steps: 10,
+                n_memory_holes: 0,
+                builtin_instance_counter: vec![("output".to_string(), 4)],
+            }),
+        );
     }
 }
