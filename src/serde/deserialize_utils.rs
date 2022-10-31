@@ -159,11 +159,11 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         opt(offset),
     ))(input)?;
 
-    let (reference_count, (_, struct_)) =
+    let (indirection_level, (_, struct_)) =
         tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
 
-    let type_: String = if reference_count == "**" {
-        struct_.to_owned() + "*"
+    let type_: String = if indirection_level.len() > 1 {
+        struct_.to_owned() + indirection_level.get(1..).unwrap()
     } else {
         struct_.to_owned()
     };
