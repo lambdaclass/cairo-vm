@@ -6,6 +6,17 @@ use super::{
 use crate::types::relocatable::Relocatable;
 use std::collections::HashMap;
 
+/// Verify that the complete run in a runner is safe to relocate and be ran by
+/// another Cairo program.
+///
+/// Checks include:
+///   - There mustn't be memory accesses to any temporary segment.
+///   - All accesses to the builtin segments must be within the range defined by
+///     the builtins themselves.
+///   - There mustn't be accesses to the program segment outside the program
+///     data range.
+///
+/// Note: Each builtin is responsible for checking its own segments' data.
 pub fn verify_secure_runner(
     runner: &CairoRunner,
     verify_builtins: Option<bool>,
@@ -41,18 +52,22 @@ pub fn verify_secure_runner(
             })
         });
     for (addr, value) in memory_iter {
+        // Check builtin segment bounds.
         if let Some((_, seg_info)) = builtin_segment_by_index.get(&addr.segment_index) {
             if addr.offset >= seg_info.size {
                 return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds));
             }
         }
 
+        // Check program segment bounds.
         if addr.segment_index == program_base.segment_index
             && addr.offset >= runner.program.data.len()
         {
             return Err(RunnerError::FailedMemoryGet(MemoryError::NumOutOfBounds));
         }
 
+        // Check value validity (when relocatable, that the segment exists and
+        // is not temporary).
         if !vm
             .segments
             .is_valid_memory_value(value)
