@@ -7,14 +7,14 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 pub struct OutputBuiltinRunner {
     base: isize,
-    _stop_ptr: Option<Relocatable>,
+    stop_ptr: Option<usize>,
 }
 
 impl OutputBuiltinRunner {
     pub fn new() -> OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
-            _stop_ptr: None,
+            stop_ptr: None,
         }
     }
 
@@ -48,6 +48,9 @@ impl OutputBuiltinRunner {
 
     pub fn get_allocated_memory_units(&self, _vm: &VirtualMachine) -> Result<usize, MemoryError> {
         return Ok(0);
+        
+    pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
+        ("output", (self.base, self.stop_ptr))
     }
 }
 
@@ -61,8 +64,14 @@ impl Default for OutputBuiltinRunner {
 mod tests {
     use super::*;
     use crate::utils::test_utils::*;
-    use num_bigint::BigInt;
-    use num_bigint::Sign;
+    use crate::{
+        utils::test_utils::vm,
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
+            vm_core::VirtualMachine,
+        },
+    };
+    use num_bigint::{BigInt, Sign};
 
     #[test]
     fn get_memory_segment_addresses() {
@@ -92,5 +101,81 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
+    }
+
+    #[test]
+    fn get_memory_segment_addresses() {
+        let builtin = OutputBuiltinRunner::new();
+
+        assert_eq!(
+            builtin.get_memory_segment_addresses(),
+            ("output", (0, None)),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes),
+        );
+    }
+
+    #[test]
+    fn get_memory_accesses_empty() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
+    }
+
+    #[test]
+    fn get_memory_accesses() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(
+            builtin.get_memory_accesses(&vm),
+            Ok(vec![
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
+            ]),
+        );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }
