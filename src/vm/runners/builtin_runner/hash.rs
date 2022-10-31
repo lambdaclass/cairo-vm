@@ -107,7 +107,8 @@ impl HashBuiltinRunner {
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         };
         return result;
-        
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("pedersen", (self.base, self.stop_ptr))
     }
@@ -130,7 +131,7 @@ mod tests {
     use num_bigint::Sign;
 
     #[test]
-    fn get_memory_segment_addresses() {
+    fn get_allocated_memory_units() {
         let builtin = HashBuiltinRunner::new(10);
 
         let mut vm = vm!();

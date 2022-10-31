@@ -196,7 +196,8 @@ impl EcOpBuiltinRunner {
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         };
         return result;
-        
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("ec_op", (self.base, self.stop_ptr))
     }
@@ -212,15 +213,15 @@ mod tests {
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
-    use num_bigint::Sign;
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
+    use num_bigint::Sign;
 
     #[test]
-    fn get_memory_segment_addresses() {
+    fn get_allocated_memory_units() {
         let builtin = EcOpBuiltinRunner::new(10);
 
         let mut vm = vm!();

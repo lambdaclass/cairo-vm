@@ -107,7 +107,8 @@ impl BitwiseBuiltinRunner {
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         };
         return result;
-        
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("bitwise", (self.base, self.stop_ptr))
     }
@@ -119,20 +120,16 @@ mod tests {
 
     use super::*;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         serde::deserialize_program::ReferenceManager, types::program::Program,
         utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
     use num_bigint::Sign;
-    use crate::utils::test_utils::*;
-    use crate::vm::{
-        errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine,
-    };
 
     #[test]
-    fn get_memory_segment_addresses() {
+    fn get_allocated_memory_units() {
         let builtin = BitwiseBuiltinRunner::new(10);
 
         let mut vm = vm!();

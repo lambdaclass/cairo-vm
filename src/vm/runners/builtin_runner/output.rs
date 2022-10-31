@@ -48,7 +48,8 @@ impl OutputBuiltinRunner {
 
     pub fn get_allocated_memory_units(&self, _vm: &VirtualMachine) -> Result<usize, MemoryError> {
         return Ok(0);
-        
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("output", (self.base, self.stop_ptr))
     }
@@ -63,7 +64,6 @@ impl Default for OutputBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::*;
     use crate::{
         utils::test_utils::vm,
         vm::{
@@ -74,7 +74,7 @@ mod tests {
     use num_bigint::{BigInt, Sign};
 
     #[test]
-    fn get_memory_segment_addresses() {
+    fn get_allocated_memory_units() {
         let builtin = OutputBuiltinRunner::new();
 
         let vm = vm!();

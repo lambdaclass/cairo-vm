@@ -91,7 +91,7 @@ impl RangeCheckBuiltinRunner {
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
     }
-    
+
     pub fn get_allocated_memory_units(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
         let value = safe_div(&bigint!(vm.current_step), &bigint!(self._ratio.clone()))
             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
@@ -100,7 +100,8 @@ impl RangeCheckBuiltinRunner {
             _ => Err(MemoryError::ErrorCalculatingMemoryUnits),
         };
         return result;
-        
+    }
+
     pub fn get_memory_segment_addresses(&self) -> (&'static str, (isize, Option<usize>)) {
         ("range_check", (self.base, self.stop_ptr))
     }
@@ -116,14 +117,14 @@ mod tests {
     use crate::types::program::Program;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{bigint, utils::test_utils::*};
-    use num_bigint::Sign;
     use crate::{
         utils::test_utils::vm, vm::runners::builtin_runner::BuiltinRunner,
         vm::vm_core::VirtualMachine,
     };
+    use num_bigint::Sign;
 
     #[test]
-    fn get_memory_segment_addresses() {
+    fn get_allocated_memory_units() {
         let builtin = RangeCheckBuiltinRunner::new(bigint!(10), 12);
 
         let mut vm = vm!();
