@@ -27,8 +27,8 @@ cargo build --release
 
 ### WebAssembly
 
-cairo-rs is compatible with WebAssembly, doesn't implement any bindings to it.
-Instead, create a new WebAssembly crate with cairo-rs as a dependency and
+While cairo-rs is compatible with WebAssembly, it doesn't implement any bindings
+to it. Instead, create a new WebAssembly crate with cairo-rs as a dependency and
 implement the required functionality there.
 
 Since `mimalloc` is not automatically compilable to WebAssembly, the cairo-rs
