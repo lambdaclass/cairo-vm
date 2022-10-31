@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::borrow::Cow;
 use std::ops::Shl;
 
@@ -9,7 +8,6 @@ use crate::bigint;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
 use crate::vm::vm_memory::memory::{Memory, ValidationRule};
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -38,21 +36,24 @@ impl RangeCheckBuiltinRunner {
             _n_parts: n_parts,
         }
     }
-}
-impl BuiltinRunner for RangeCheckBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> isize {
+    pub fn base(&self) -> isize {
         self.base
     }
 
-    fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
             |memory: &Memory,
              address: &MaybeRelocatable|
@@ -81,24 +82,18 @@ impl BuiltinRunner for RangeCheckBuiltinRunner {
         Ok(())
     }
 
-    fn deduce_memory_cell(
+    pub fn deduce_memory_cell(
         &mut self,
         _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{utils::test_utils::vm, vm::vm_core::VirtualMachine};
-    use num_bigint::Sign;
 
     #[test]
     fn initialize_segments_for_range_check() {
@@ -119,42 +114,5 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base(), 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
-    }
-
-    #[test]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = RangeCheckBuiltinRunner::new(bigint!(256), 8);
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    fn get_memory_accesses_empty() {
-        let builtin = RangeCheckBuiltinRunner::new(bigint!(256), 8);
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    fn get_memory_accesses() {
-        let builtin = RangeCheckBuiltinRunner::new(bigint!(256), 8);
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base, 0).into(),
-                (builtin.base, 1).into(),
-                (builtin.base, 2).into(),
-                (builtin.base, 3).into(),
-            ]),
-        );
     }
 }

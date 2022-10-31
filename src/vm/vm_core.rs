@@ -44,7 +44,7 @@ pub struct HintData {
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub(crate) prime: BigInt,
-    pub(crate) builtin_runners: Vec<(String, Box<dyn BuiltinRunner>)>,
+    pub(crate) builtin_runners: Vec<(String, BuiltinRunner)>,
     pub(crate) segments: MemorySegmentManager,
     pub(crate) _program_base: Option<MaybeRelocatable>,
     pub(crate) memory: Memory,
@@ -696,7 +696,7 @@ impl VirtualMachine {
     }
 
     /// Returns a reference to the vector with all builtins present in the virtual machine
-    pub fn get_builtin_runners(&self) -> &Vec<(String, Box<dyn BuiltinRunner>)> {
+    pub fn get_builtin_runners(&self) -> &Vec<(String, BuiltinRunner)> {
         &self.builtin_runners
     }
 
@@ -750,9 +750,7 @@ impl VirtualMachine {
     pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
         for (name, builtin) in &self.builtin_runners {
             if name == &String::from("range_check") {
-                if let Some(range_check_builtin) =
-                    builtin.as_any().downcast_ref::<RangeCheckBuiltinRunner>()
-                {
+                if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
                     return Ok(range_check_builtin);
                 };
             }
@@ -2678,7 +2676,7 @@ mod tests {
         let mut vm = vm!();
         let builtin = HashBuiltinRunner::new(8);
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(builtin)));
+            .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 5))),
@@ -2732,7 +2730,7 @@ mod tests {
         let mut vm = vm!();
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(builtin)));
+            .push((String::from("pedersen"), builtin.into()));
         run_context!(vm, 0, 13, 12);
 
         //Insert values into memory (excluding those from the program segment (instructions))
@@ -2782,7 +2780,7 @@ mod tests {
         let mut vm = vm!();
         let builtin = BitwiseBuiltinRunner::new(8);
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(builtin)));
+            .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_eq!(
             vm.deduce_memory_cell(&Relocatable::from((0, 7))),
@@ -2825,7 +2823,7 @@ mod tests {
 
         vm.accessed_addresses = Some(Vec::new());
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(builtin)));
+            .push((String::from("bitwise"), builtin.into()));
         run_context!(vm, 0, 9, 8);
 
         //Insert values into memory (excluding those from the program segment (instructions))
@@ -2864,7 +2862,7 @@ mod tests {
         let mut vm = vm!();
         let builtin = EcOpBuiltinRunner::new(256);
         vm.builtin_runners
-            .push((String::from("ec_op"), Box::new(builtin)));
+            .push((String::from("ec_op"), builtin.into()));
 
         vm.memory = memory![
             (
@@ -2936,7 +2934,7 @@ mod tests {
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("ec_op"), Box::new(builtin)));
+            .push((String::from("ec_op"), builtin.into()));
         vm.memory = memory![
             (
                 (3, 0),
@@ -2984,7 +2982,7 @@ mod tests {
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("ec_op"), Box::new(builtin)));
+            .push((String::from("ec_op"), builtin.into()));
         vm.memory = memory![
             (
                 (3, 0),
@@ -3057,7 +3055,7 @@ mod tests {
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(builtin)));
+            .push((String::from("bitwise"), builtin.into()));
         vm.memory = memory![((2, 0), 12), ((2, 1), 10)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
@@ -3091,7 +3089,7 @@ mod tests {
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(builtin)));
+            .push((String::from("pedersen"), builtin.into()));
         vm.memory = memory![((3, 0), 32), ((3, 1), 72)];
         assert_eq!(vm.verify_auto_deductions(), Ok(()));
     }
@@ -3204,9 +3202,9 @@ mod tests {
         let hash_builtin = HashBuiltinRunner::new(8);
         let bitwise_builtin = BitwiseBuiltinRunner::new(8);
         vm.builtin_runners
-            .push((String::from("pedersen"), Box::new(hash_builtin)));
+            .push((String::from("pedersen"), hash_builtin.into()));
         vm.builtin_runners
-            .push((String::from("bitwise"), Box::new(bitwise_builtin)));
+            .push((String::from("bitwise"), bitwise_builtin.into()));
 
         let builtins = vm.get_builtin_runners();
 
