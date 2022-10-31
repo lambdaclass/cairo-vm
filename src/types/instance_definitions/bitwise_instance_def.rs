@@ -1,7 +1,7 @@
 pub(crate) const CELLS_PER_BITWISE: u32 = 5;
 pub(crate) const INPUT_CELLS_PER_BITWISE: u32 = 2;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BitwiseInstanceDef {
     pub(crate) ratio: u32,
     pub(crate) total_n_bits: u32,
@@ -45,5 +45,23 @@ mod tests {
     fn get_cells_per_builtin() {
         let builtin_instance = BitwiseInstanceDef::default();
         assert_eq!(builtin_instance._cells_per_builtin(), 5);
+    }
+
+    #[test]
+    fn test_new() {
+        let builtin_instance = BitwiseInstanceDef {
+            ratio: 8,
+            total_n_bits: 251,
+        };
+        assert_eq!(BitwiseInstanceDef::new(8), builtin_instance);
+    }
+
+    #[test]
+    fn test_default() {
+        let builtin_instance = BitwiseInstanceDef {
+            ratio: 256,
+            total_n_bits: 251,
+        };
+        assert_eq!(BitwiseInstanceDef::default(), builtin_instance);
     }
 }

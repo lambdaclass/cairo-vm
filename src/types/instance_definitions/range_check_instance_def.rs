@@ -1,6 +1,6 @@
 pub(crate) const CELLS_PER_RANGE_CHECK: u32 = 1;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct RangeCheckInstanceDef {
     pub(crate) ratio: u32,
     pub(crate) n_parts: u32,
@@ -41,5 +41,23 @@ mod tests {
     fn get_cells_per_builtin() {
         let builtin_instance = RangeCheckInstanceDef::default();
         assert_eq!(builtin_instance._cells_per_builtin(), 1);
+    }
+
+    #[test]
+    fn test_new() {
+        let builtin_instance = RangeCheckInstanceDef {
+            ratio: 10,
+            n_parts: 10,
+        };
+        assert_eq!(RangeCheckInstanceDef::new(10, 10), builtin_instance);
+    }
+
+    #[test]
+    fn test_default() {
+        let builtin_instance = RangeCheckInstanceDef {
+            ratio: 8,
+            n_parts: 8,
+        };
+        assert_eq!(RangeCheckInstanceDef::default(), builtin_instance);
     }
 }
