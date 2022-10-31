@@ -159,10 +159,14 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         opt(offset),
     ))(input)?;
 
-    let (_, (_, type_)) = tuple((
-        take_till(|c: char| c.is_alphanumeric()),
-        take_till(|c: char| c == '*'),
-    ))(second_arg)?;
+    let (indirection_level, (_, struct_)) =
+        tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
+
+    let type_: String = if let Some(indirections) = indirection_level.get(1..) {
+        struct_.to_owned() + indirections
+    } else {
+        struct_.to_owned()
+    };
 
     // check if there was any register and offset to be parsed
     let (inner_deref, reg, offs1) = if let Some((inner_deref, reg, offs1)) = inner_deref {
@@ -186,7 +190,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             immediate: None,
             dereference,
             inner_dereference: inner_deref,
-            value_type: type_.to_string(),
+            value_type: type_,
         }
     } else {
         ValueAddress {
@@ -196,7 +200,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             immediate: Some(bigint!(offset_or_immediate)),
             dereference,
             inner_dereference: inner_deref,
-            value_type: type_.to_string(),
+            value_type: type_,
         }
     };
 
@@ -375,7 +379,7 @@ mod tests {
 
     #[test]
     fn parse_value_with_inner_deref_and_offset2() {
-        let value = "[cast([ap] + 1, felt*)]";
+        let value = "[cast([ap] + 1, __main__.felt*)]";
         let parsed = parse_value(value);
 
         assert_eq!(
@@ -389,7 +393,73 @@ mod tests {
                     immediate: None,
                     dereference: true,
                     inner_dereference: true,
+                    value_type: "__main__.felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_no_reference() {
+        let value = "cast(825323, felt)";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: None,
+                    offset1: 0,
+                    offset2: 0,
+                    immediate: Some(bigint!(825323)),
+                    dereference: false,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_one_reference() {
+        let value = "[cast([ap] + 1, starkware.cairo.common.cairo_secp.ec.EcPoint*)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: Some(Register::AP),
+                    offset1: 0,
+                    offset2: 1,
+                    immediate: None,
+                    dereference: true,
+                    inner_dereference: true,
+                    value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_value_with_doble_reference() {
+        let value = "[cast([ap] + 1, starkware.cairo.common.cairo_secp.ec.EcPoint**)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    register: Some(Register::AP),
+                    offset1: 0,
+                    offset2: 1,
+                    immediate: None,
+                    dereference: true,
+                    inner_dereference: true,
+                    value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint*".to_string(),
                 }
             ))
         );
