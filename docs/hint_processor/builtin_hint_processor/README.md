@@ -19,7 +19,7 @@ Or by github link:
 cairo-rs =  {git = "https://github.com/lambdaclass/cairo-rs.git"}
 ```
 
-#### Step 2: Code the implementation of your custom hint (Using the helpers and proxies described in the sections below)
+#### Step 2: Code the implementation of your custom hint (Using the helpers and structures described in the sections below)
 For this step, you will have to code your hint implementation as a Rust function, and then wrap it inside a Box smart pointer, and a HintFunc (type alias for hint functions).
 
 **Note**: Passing your function as a closure to the Box smart pointer inside HintFunc works too.
@@ -27,8 +27,8 @@ For this step, you will have to code your hint implementation as a Rust function
 The hint implementation must also follow a specific structure in terms of variable input and output:
 ```rust
 fn hint_func(
-    vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    vm: &mut VM,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
@@ -43,13 +43,13 @@ For example, this function implements the hint "print(ids.a)":
 
 ```rust
 fn print_a_hint(
-    vm_proxy: &mut VMProxy,
-    exec_scopes_proxy: &mut ExecutionScopesProxy,
+    vm: &mut VM,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, BigInt>,
 ) -> Result<(), VirtualMachineError> {
-    let a = get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)?;
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     println!("{}", a);
     Ok(())
 }
@@ -126,7 +126,7 @@ This API uses VirtualMachineError as error return type for hint functions, while
 For example, if we want our hint to return an error if ids.a is less than 0 we could write:
 
 ```rust
-if (get_integer_from_var_name("a", vm_proxy, ids_data, ap_tracking)? < 0){
+if (get_integer_from_var_name("a", vm, ids_data, ap_tracking)? < 0){
   return Err(VirtualMachineError::CustomHint(String::from("a < 0")))
 }
 ```
