@@ -83,31 +83,28 @@ impl CairoRunner {
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let mut builtin_runners = Vec::<(String, Box<dyn BuiltinRunner>)>::new();
+        let mut builtin_runners = Vec::<(String, BuiltinRunner)>::new();
         for builtin_name in self.program.builtins.iter() {
             if builtin_name == "output" {
-                builtin_runners.push((builtin_name.clone(), Box::new(OutputBuiltinRunner::new())));
+                builtin_runners.push((builtin_name.clone(), OutputBuiltinRunner::new().into()));
             }
 
             if builtin_name == "pedersen" {
-                builtin_runners.push((builtin_name.clone(), Box::new(HashBuiltinRunner::new(8))));
+                builtin_runners.push((builtin_name.clone(), HashBuiltinRunner::new(8).into()));
             }
 
             if builtin_name == "range_check" {
                 //Information for Buitin info taken from here https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/instances.py#L115
                 builtin_runners.push((
                     builtin_name.clone(),
-                    Box::new(RangeCheckBuiltinRunner::new(bigint!(8), 8)),
+                    RangeCheckBuiltinRunner::new(bigint!(8), 8).into(),
                 ));
             }
             if builtin_name == "bitwise" {
-                builtin_runners.push((
-                    builtin_name.clone(),
-                    Box::new(BitwiseBuiltinRunner::new(256)),
-                ));
+                builtin_runners.push((builtin_name.clone(), BitwiseBuiltinRunner::new(256).into()));
             }
             if builtin_name == "ec_op" {
-                builtin_runners.push((builtin_name.clone(), Box::new(EcOpBuiltinRunner::new(256))));
+                builtin_runners.push((builtin_name.clone(), EcOpBuiltinRunner::new(256).into()));
             }
         }
         vm.builtin_runners = builtin_runners;
@@ -2498,10 +2495,10 @@ mod tests {
 
         cairo_runner.accessed_addresses = Some(HashSet::new());
         vm.builtin_runners = vec![{
-            let mut builtin_runner = OutputBuiltinRunner::new();
+            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new().into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
 
-            ("output".to_string(), Box::new(builtin_runner))
+            ("output".to_string(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(0));
@@ -2530,10 +2527,10 @@ mod tests {
         cairo_runner.accessed_addresses =
             Some([(1, 0).into(), (1, 2).into()].into_iter().collect());
         vm.builtin_runners = vec![{
-            let mut builtin_runner = OutputBuiltinRunner::new();
+            let mut builtin_runner: BuiltinRunner = OutputBuiltinRunner::new().into();
             builtin_runner.initialize_segments(&mut vm.segments, &mut vm.memory);
 
-            ("output".to_string(), Box::new(builtin_runner))
+            ("output".to_string(), builtin_runner)
         }];
         vm.segments.segment_used_sizes = Some(vec![4, 4]);
         assert_eq!(cairo_runner.get_memory_holes(&vm), Ok(2));

@@ -1,10 +1,5 @@
-use std::any::Any;
-
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::builtin_runner::BuiltinRunner;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
@@ -20,39 +15,33 @@ impl OutputBuiltinRunner {
             _stop_ptr: None,
         }
     }
-}
 
-impl BuiltinRunner for OutputBuiltinRunner {
-    fn initialize_segments(&mut self, segments: &mut MemorySegmentManager, memory: &mut Memory) {
+    pub fn initialize_segments(
+        &mut self,
+        segments: &mut MemorySegmentManager,
+        memory: &mut Memory,
+    ) {
         self.base = segments.add(memory).segment_index
     }
 
-    fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
         vec![MaybeRelocatable::from((self.base, 0))]
     }
 
-    fn base(&self) -> isize {
+    pub fn base(&self) -> isize {
         self.base
     }
 
-    fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
+    pub fn add_validation_rule(&self, _memory: &mut Memory) -> Result<(), RunnerError> {
         Ok(())
     }
 
-    fn deduce_memory_cell(
+    pub fn deduce_memory_cell(
         &mut self,
         _address: &Relocatable,
         _memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         Ok(None)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn get_used_instances(&self, vm: &VirtualMachine) -> Result<usize, MemoryError> {
-        self.get_used_cells(vm)
     }
 }
 
@@ -67,7 +56,10 @@ mod tests {
     use super::*;
     use crate::{
         utils::test_utils::vm,
-        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+        vm::{
+            errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
+            vm_core::VirtualMachine,
+        },
     };
     use num_bigint::{BigInt, Sign};
 
@@ -94,7 +86,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         let vm = vm!();
 
         assert_eq!(
@@ -105,7 +97,7 @@ mod tests {
 
     #[test]
     fn get_memory_accesses_empty() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -114,24 +106,24 @@ mod tests {
 
     #[test]
     fn get_memory_accesses() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             builtin.get_memory_accesses(&vm),
             Ok(vec![
-                (builtin.base, 0).into(),
-                (builtin.base, 1).into(),
-                (builtin.base, 2).into(),
-                (builtin.base, 3).into(),
+                (builtin.base(), 0).into(),
+                (builtin.base(), 1).into(),
+                (builtin.base(), 2).into(),
+                (builtin.base(), 3).into(),
             ]),
         );
     }
 
     #[test]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         let vm = vm!();
 
         assert_eq!(
@@ -142,7 +134,7 @@ mod tests {
 
     #[test]
     fn get_used_cells_empty() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -151,7 +143,7 @@ mod tests {
 
     #[test]
     fn get_used_cells() {
-        let builtin = OutputBuiltinRunner::new();
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
