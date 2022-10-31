@@ -11,7 +11,7 @@ pub struct HashBuiltinRunner {
     pub base: isize,
     stop_ptr: Option<usize>,
     _ratio: usize,
-    cells_per_instance: usize,
+    pub(crate) cells_per_instance: usize,
     _n_input_cells: usize,
     verified_addresses: Vec<Relocatable>,
 }
@@ -193,5 +193,34 @@ mod tests {
                 (builtin.base(), 3).into(),
             ]),
         );
+    }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(256));
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
     }
 }

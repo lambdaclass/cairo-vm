@@ -425,7 +425,7 @@ mod tests {
                                 "offset": 0
                             },
                             "pc": 0,
-                            "value": "[cast(fp, felt*)]"
+                            "value": "[cast(fp, felt**)]"
                         }
                     ]
                 }
@@ -544,7 +544,7 @@ mod tests {
                         immediate: None,
                         dereference: true,
                         inner_dereference: false,
-                        value_type: "felt".to_string(),
+                        value_type: "felt*".to_string(),
                     },
                 },
             ],
@@ -778,29 +778,6 @@ mod tests {
                 pc: None,
                 type_: Some(String::from("const")),
                 value: Some(bigint_str!(b"340282366920938463463374607431768211456")),
-                full_name: None,
-                members: None,
-            },
-        );
-
-        assert_eq!(program_json.identifiers, identifiers);
-    }
-
-    #[test]
-    fn deserialize_value_type() {
-        let file = File::open("cairo_programs/manually_compiled/deserialize_value_type_test.json")
-            .unwrap();
-        let mut reader = BufReader::new(file);
-
-        let program_json: ProgramJson = serde_json::from_reader(&mut reader).unwrap();
-        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-        identifiers.insert(
-            String::from("__main__.main"),
-            Identifier {
-                pc: Some(0),
-                type_: Some(String::from("function")),
-                value: None,
                 full_name: None,
                 members: None,
             },

@@ -134,4 +134,33 @@ mod tests {
             ]),
         );
     }
+
+    #[test]
+    fn get_used_cells_missing_segment_used_sizes() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let vm = vm!();
+
+        assert_eq!(
+            builtin.get_used_cells(&vm),
+            Err(MemoryError::MissingSegmentUsedSizes)
+        );
+    }
+
+    #[test]
+    fn get_used_cells_empty() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![0]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(0));
+    }
+
+    #[test]
+    fn get_used_cells() {
+        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new());
+        let mut vm = vm!();
+
+        vm.segments.segment_used_sizes = Some(vec![4]);
+        assert_eq!(builtin.get_used_cells(&vm), Ok(4));
+    }
 }
