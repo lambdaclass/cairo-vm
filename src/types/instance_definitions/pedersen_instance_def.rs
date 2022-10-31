@@ -44,3 +44,20 @@ impl PedersenInstanceDef {
         0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_range_check_units_per_builtin() {
+        let builtin_instance = PedersenInstanceDef::default();
+        assert_eq!(builtin_instance._range_check_units_per_builtin(), 0);
+    }
+
+    #[test]
+    fn get_cells_per_builtin() {
+        let builtin_instance = PedersenInstanceDef::default();
+        assert_eq!(builtin_instance._cells_per_builtin(), 3);
+    }
+}
