@@ -58,6 +58,8 @@ pub enum RunnerError {
     EcOpSameXCoordinate((BigInt, BigInt), BigInt, (BigInt, BigInt)),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve((usize, usize)),
+    #[error("Run has already ended.")]
+    RunAlreadyFinished,
     #[error("Builtin segment name collision on '{0}'")]
-    BuiltinSegmentNameCollision(String),
+    BuiltinSegmentNameCollision(&'static str),
 }

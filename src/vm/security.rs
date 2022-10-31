@@ -25,7 +25,7 @@ pub fn verify_secure_runner(
 
     let builtin_segment_by_index = builtin_segments
         .iter()
-        .map(|(seg_name, seg_info)| (seg_info.index, (seg_name.as_str(), seg_info)))
+        .map(|(seg_name, seg_info)| (seg_info.index, (seg_name, seg_info)))
         .collect::<HashMap<_, _>>();
 
     let memory_iter = vm
